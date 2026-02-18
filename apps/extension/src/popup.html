@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>holmeta</title>
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+    <main class="popup-shell">
+      <header class="panel header">
+        <div>
+          <p class="kicker">FIELD OPERATION</p>
+          <h1>holmeta</h1>
+        </div>
+        <p id="statusChip" class="status-chip status-active">STATUS: ACTIVE</p>
+      </header>
+
+      <section class="panel readouts">
+        <article class="readout-card">
+          <p class="readout-label">FILTER MODE</p>
+          <p class="readout-value" id="filterReadout">nightWarm · 65%</p>
+          <p class="readout-meta" id="localTime">LOCAL TIME: --:--</p>
+        </article>
+        <article class="readout-card">
+          <p class="readout-label">FOCUS TIMER</p>
+          <p class="readout-value" id="focusReadout">IDLE</p>
+          <p class="readout-meta" id="focusMeta">MODE: READY</p>
+        </article>
+        <article class="readout-card">
+          <p class="readout-label">HYDRATION</p>
+          <p class="readout-value" id="hydrationReadout">0 / 8</p>
+          <p class="readout-meta" id="hydrationMeta">STREAK: 0 DAYS</p>
+        </article>
+        <article class="readout-card">
+          <p class="readout-label">CALM MINUTES</p>
+          <p class="readout-value" id="calmReadout">0</p>
+          <p class="readout-meta">SESSION LOG: TODAY</p>
+        </article>
+      </section>
+
+      <section class="panel">
+        <p class="kicker">CIRCADIAN FILTER</p>
+        <div class="control-row">
+          <label for="presetSelect">MODE</label>
+          <select id="presetSelect">
+            <option value="nightWarm">Night Warm</option>
+            <option value="blueBlocker">Blue Blocker</option>
+            <option value="redBlocker">Red Blocker</option>
+            <option value="neutral">Neutral</option>
+          </select>
+        </div>
+        <div class="control-row">
+          <label for="intensityRange">INTENSITY</label>
+          <input id="intensityRange" type="range" min="0" max="100" step="1" />
+          <span id="intensityValue">65%</span>
+        </div>
+        <div class="control-row toggle-row">
+          <label for="disableSiteToggle">DISABLE ON THIS SITE</label>
+          <input id="disableSiteToggle" type="checkbox" />
+        </div>
+      </section>
+
+      <section class="panel">
+        <p class="kicker">DEEP WORK</p>
+        <div class="button-row">
+          <button class="action-btn" data-focus="25">ENGAGE 25M</button>
+          <button class="action-btn" data-focus="50">ENGAGE 50M</button>
+          <button class="action-btn" data-focus="90">ENGAGE 90M</button>
+        </div>
+        <label for="focusDomains" class="textarea-label">DISTRACTOR DOMAINS (CSV)</label>
+        <textarea id="focusDomains" rows="2" placeholder="youtube.com, x.com"></textarea>
+        <div class="button-row">
+          <button id="saveFocusDomains">DEPLOY RULES</button>
+          <button id="panicButton" class="danger">PANIC STOP</button>
+        </div>
+      </section>
+
+      <section class="panel">
+        <p class="kicker">RECOVERY PROTOCOLS</p>
+        <div class="button-row">
+          <button id="eyeBreakNow">RUN 20-20-20</button>
+          <button id="logHydration">LOG HYDRATION</button>
+        </div>
+        <div class="button-row">
+          <button class="breath-btn" data-breath="box">RUN BOX BREATH</button>
+          <button class="breath-btn" data-breath="478">RUN 4-7-8</button>
+          <button class="breath-btn" data-breath="sigh">RUN PHYSIO SIGH</button>
+        </div>
+        <p id="breathStatus" class="small-note">STATUS: READY</p>
+      </section>
+
+      <section class="panel paywall" id="paywallPanel">
+        <p class="kicker">PREMIUM CONTROL LAYER</p>
+        <p id="entitlementStatus" class="status-chip status-locked">STATUS: LOCKED</p>
+        <p class="small-note" id="paywallCopy">
+          Unlock advanced customization, webcam posture mode, and branded-free mode.
+        </p>
+        <div class="button-row">
+          <button id="unlockPremium" class="primary">UNLOCK PREMIUM ($2/MO)</button>
+          <button id="refreshEntitlement">REFRESH</button>
+        </div>
+      </section>
+
+      <footer class="panel footer-actions">
+        <button id="openOptions">OPEN CONSOLE</button>
+      </footer>
+    </main>
+
+    <script src="common.js"></script>
+    <script src="popup.js"></script>
+  </body>
+</html>
