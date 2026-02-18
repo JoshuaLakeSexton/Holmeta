@@ -1,0 +1,248 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>holmeta Console</title>
+    <link rel="stylesheet" href="options.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <header class="topbar panel">
+        <div>
+          <p class="kicker">REPORT ID: HM-MVP</p>
+          <h1>holmeta operational console</h1>
+          <p id="statusLine" class="meta-line">STATUS: ACTIVE</p>
+        </div>
+        <button id="saveSettings" class="primary">SAVE CONFIG</button>
+      </header>
+
+      <section class="panel">
+        <h2>Permissions + Privacy</h2>
+        <ul class="mono-list">
+          <li>All health data defaults to <strong>local storage only</strong>.</li>
+          <li>No keylogging. No selling user data. No page content harvesting.</li>
+          <li>Camera is requested only if webcam posture mode is enabled.</li>
+          <li>System-wide filters require a future desktop companion; v1 is browser-only.</li>
+        </ul>
+      </section>
+
+      <section class="panel grid-2">
+        <div>
+          <h2>Circadian Filter Engine</h2>
+          <div class="control-grid">
+            <label for="filterPreset">FILTER MODE</label>
+            <select id="filterPreset">
+              <option value="nightWarm">Night Warm</option>
+              <option value="blueBlocker">Blue Blocker</option>
+              <option value="redBlocker">Red Blocker</option>
+              <option value="neutral">Neutral</option>
+            </select>
+
+            <label for="filterIntensity">INTENSITY</label>
+            <div class="row-inline">
+              <input id="filterIntensity" type="range" min="0" max="100" step="1" />
+              <span id="filterIntensityValue" class="mono">65%</span>
+            </div>
+
+            <label for="wakeTime">WAKE TIME</label>
+            <input id="wakeTime" type="time" />
+
+            <label for="sleepTime">SLEEP TIME</label>
+            <input id="sleepTime" type="time" />
+
+            <label for="rampMinutes" data-premium>RAMP MINUTES (PREMIUM)</label>
+            <input id="rampMinutes" type="number" min="10" max="180" data-premium />
+          </div>
+        </div>
+
+        <div>
+          <h2>Reminder Cadence</h2>
+          <div class="control-grid">
+            <label for="eyeBreakInterval">EYE BREAK (MIN)</label>
+            <input id="eyeBreakInterval" type="number" min="10" max="90" />
+
+            <label for="hydrationInterval">HYDRATION (MIN)</label>
+            <input id="hydrationInterval" type="number" min="15" max="180" />
+
+            <label for="stillnessThreshold">STILLNESS NUDGE (MIN)</label>
+            <input id="stillnessThreshold" type="number" min="15" max="180" />
+
+            <label for="hydrationGoal">HYDRATION GOAL (GLASSES)</label>
+            <input id="hydrationGoal" type="number" min="1" max="20" />
+
+            <label for="reminderNotifications">BROWSER NOTIFICATIONS</label>
+            <input id="reminderNotifications" type="checkbox" />
+
+            <label for="audioCues">AUDIO BEEPS</label>
+            <input id="audioCues" type="checkbox" />
+
+            <label for="speechCues">SPEECH CUES</label>
+            <input id="speechCues" type="checkbox" />
+          </div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2>Deep Work Rules</h2>
+        <p class="meta-line">Use declarativeNetRequest to block distracting domains during active focus sessions.</p>
+        <label for="distractorDomains">DISTRACTOR DOMAINS (ONE PER LINE OR CSV)</label>
+        <textarea id="distractorDomains" rows="4"></textarea>
+      </section>
+
+      <section class="panel grid-2">
+        <div>
+          <h2>Posture + Movement Bio-Tracker</h2>
+          <p class="meta-line">
+            Default mode uses idle/activity stillness nudges. Webcam mode is optional and local-only.
+          </p>
+          <div class="control-grid">
+            <label for="webcamPostureOptIn" data-premium>ENABLE WEBCAM MODE (PREMIUM)</label>
+            <input id="webcamPostureOptIn" type="checkbox" data-premium />
+          </div>
+          <div class="row-inline">
+            <button id="startPostureMonitor" data-premium>START MONITOR</button>
+            <button id="stopPostureMonitor" class="ghost">STOP</button>
+            <span id="postureStatus" class="mono">STATUS: IDLE</span>
+          </div>
+          <video id="postureVideo" muted playsinline></video>
+
+          <div class="stretch-grid">
+            <article>
+              <svg viewBox="0 0 64 64" aria-hidden="true">
+                <circle cx="32" cy="12" r="6" />
+                <path d="M32 18 L32 40 M18 28 L46 28 M22 52 L32 40 L42 52" />
+              </svg>
+              <p>SHOULDER ROLLS</p>
+            </article>
+            <article>
+              <svg viewBox="0 0 64 64" aria-hidden="true">
+                <circle cx="32" cy="12" r="6" />
+                <path d="M32 18 L32 38 M10 26 L54 26 M26 38 L18 54 M38 38 L46 54" />
+              </svg>
+              <p>CHEST OPENER</p>
+            </article>
+            <article>
+              <svg viewBox="0 0 64 64" aria-hidden="true">
+                <circle cx="24" cy="12" r="6" />
+                <path d="M24 18 L26 38 L18 52 M26 38 L40 26 L50 34" />
+              </svg>
+              <p>WALK RESET</p>
+            </article>
+          </div>
+        </div>
+
+        <div>
+          <h2>Hydration + Nootropic Notes</h2>
+          <div class="paper-card">
+            <p><strong>General wellness tips (not medical advice):</strong></p>
+            <ul>
+              <li>Caffeine timing: avoid late-day intake if sleep quality drops.</li>
+              <li>Optional pairing: caffeine + L-theanine can smooth jitter for some people.</li>
+              <li>Hydration: include electrolytes after intense sweating.</li>
+            </ul>
+          </div>
+
+          <h3>Daily Health Log</h3>
+          <div class="quick-grid" id="dailyQuickLog">
+            <div>
+              <p>ENERGY</p>
+              <div class="rating-row" data-metric="energy"></div>
+            </div>
+            <div>
+              <p>MOOD</p>
+              <div class="rating-row" data-metric="mood"></div>
+            </div>
+            <div>
+              <p>SLEEP QUALITY</p>
+              <div class="rating-row" data-metric="sleepQuality"></div>
+            </div>
+          </div>
+          <button id="saveDailyLog">SAVE DAILY LOG</button>
+          <p id="dailyLogStatus" class="meta-line">NO ENTRY SAVED YET.</p>
+
+          <div class="readout-inline">
+            <p id="hydrationStats">HYDRATION: 0 / 8</p>
+            <p id="calmStats">CALM MINUTES: 0</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel paper-theme">
+        <h2>Ergonomic Audit + Trends</h2>
+        <p class="meta-line">Weekly self-assessment stored locally. Optional photo never leaves this browser.</p>
+
+        <form id="auditForm" class="control-grid paper-grid">
+          <label for="monitorHeight">MONITOR HEIGHT</label>
+          <select id="monitorHeight">
+            <option value="aligned">Top aligned with eye level</option>
+            <option value="high">Too high</option>
+            <option value="low">Too low</option>
+          </select>
+
+          <label for="monitorDistance">MONITOR DISTANCE</label>
+          <select id="monitorDistance">
+            <option value="arm">About arm's length</option>
+            <option value="near">Too near</option>
+            <option value="far">Too far</option>
+          </select>
+
+          <label for="chairSupport">CHAIR LUMBAR SUPPORT</label>
+          <select id="chairSupport">
+            <option value="good">Adequate</option>
+            <option value="needs-adjustment">Needs adjustment</option>
+            <option value="poor">Poor</option>
+          </select>
+
+          <label for="wristNeutral">WRIST POSITION</label>
+          <select id="wristNeutral">
+            <option value="neutral">Neutral</option>
+            <option value="extended">Extended</option>
+            <option value="compressed">Compressed</option>
+          </select>
+
+          <label for="lighting">LIGHTING / GLARE</label>
+          <select id="lighting">
+            <option value="balanced">Balanced</option>
+            <option value="glare">Glare present</option>
+            <option value="dim">Too dim</option>
+          </select>
+
+          <label for="auditPhoto">OPTIONAL DESK PHOTO</label>
+          <input id="auditPhoto" type="file" accept="image/*" />
+        </form>
+
+        <img id="auditPreview" alt="Audit preview" />
+        <div class="row-inline">
+          <button id="saveAudit" class="primary">SAVE AUDIT</button>
+          <p id="auditStatus" class="meta-line">STATUS: NOT SAVED</p>
+        </div>
+
+        <canvas id="trendsCanvas" width="960" height="260"></canvas>
+      </section>
+
+      <section class="panel">
+        <h2>Subscription Scaffold</h2>
+        <div class="control-grid">
+          <label for="entitlementUrl">ENTITLEMENT ENDPOINT</label>
+          <input id="entitlementUrl" type="text" placeholder="https://site.netlify.app/api/entitlement" />
+
+          <label for="checkoutUrl">CHECKOUT URL</label>
+          <input id="checkoutUrl" type="text" placeholder="https://site.netlify.app/api/checkout" />
+
+          <label for="devBypassPremium">DEV BYPASS PREMIUM</label>
+          <input id="devBypassPremium" type="checkbox" />
+        </div>
+
+        <p id="premiumStatus" class="status-chip status-locked">STATUS: LOCKED</p>
+        <div class="row-inline">
+          <button id="refreshEntitlement">REFRESH ENTITLEMENT</button>
+          <button id="openCheckout" class="primary">UNLOCK PREMIUM ($2/MO)</button>
+        </div>
+      </section>
+    </main>
+
+    <script src="common.js"></script>
+    <script src="options.js"></script>
+  </body>
+</html>
