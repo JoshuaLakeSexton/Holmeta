@@ -8,5 +8,8 @@ coverage/
 apps/web/.next/
 apps/web/out/
 apps/web/.netlify/
+apps/web/tsconfig.tsbuildinfo
 apps/extension/dist/
+apps/extension/holmeta-extension.zip
+*.tsbuildinfo
 *.log
