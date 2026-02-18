@@ -1,0 +1,26 @@
+{
+  "name": "@holmeta/web",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "lint": "node -e \"console.log('web lint: no-op')\"",
+    "test": "node -e \"console.log('web test: no-op')\""
+  },
+  "dependencies": {
+    "@holmeta/shared": "0.1.0",
+    "@netlify/functions": "^2.8.2",
+    "next": "^15.1.6",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "stripe": "^17.7.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.10",
+    "@types/react": "^19.0.4",
+    "@types/react-dom": "^19.0.2"
+  }
+}

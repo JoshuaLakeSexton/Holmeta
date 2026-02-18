@@ -1,0 +1,12 @@
+node_modules/
+.DS_Store
+dist/
+coverage/
+.nyc_output/
+.env
+.env.local
+apps/web/.next/
+apps/web/out/
+apps/web/.netlify/
+apps/extension/dist/
+*.log

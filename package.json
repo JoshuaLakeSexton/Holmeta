@@ -1,0 +1,22 @@
+{
+  "name": "holmeta",
+  "private": true,
+  "version": "0.1.0",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "npm run build --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "lint": "npm run lint --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present",
+    "dev:web": "npm run dev -w @holmeta/web",
+    "dev:extension": "npm run dev -w @holmeta/extension",
+    "build:extension": "npm run build -w @holmeta/extension",
+    "zip:extension": "npm run zip -w @holmeta/extension"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.3"
+  }
+}
