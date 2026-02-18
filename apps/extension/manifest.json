@@ -1,0 +1,45 @@
+{
+  "manifest_version": 3,
+  "name": "holmeta",
+  "version": "0.1.0",
+  "description": "Privacy-first screen health, focus mode, and deep work instrumentation for desk workers.",
+  "action": {
+    "default_title": "holmeta",
+    "default_popup": "src/popup.html"
+  },
+  "options_page": "src/options.html",
+  "background": {
+    "service_worker": "src/background.js"
+  },
+  "permissions": [
+    "storage",
+    "alarms",
+    "notifications",
+    "tabs",
+    "declarativeNetRequest",
+    "idle"
+  ],
+  "optional_permissions": [
+    "videoCapture"
+  ],
+  "host_permissions": [
+    "<all_urls>"
+  ],
+  "content_scripts": [
+    {
+      "matches": [
+        "<all_urls>"
+      ],
+      "js": [
+        "src/common.js",
+        "src/content.js"
+      ],
+      "run_at": "document_idle"
+    }
+  ],
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "holmeta@holmeta.app"
+    }
+  }
+}
