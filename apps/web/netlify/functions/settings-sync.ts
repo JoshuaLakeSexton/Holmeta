@@ -1,55 +1,35 @@
 import type { Handler } from "@netlify/functions";
-
-function toBoolean(value: string | undefined): boolean {
-  if (!value) return false;
-  const normalized = value.trim().toLowerCase();
-  return normalized === "1" || normalized === "true" || normalized === "yes" || normalized === "on";
-}
+import { json, methodNotAllowed, parseJsonBody } from "./_lib/http";
+import { requireToken } from "./_lib/token";
+import { entitlementForUser } from "./_lib/entitlement";
 
 export const handler: Handler = async (event) => {
-  const premium = toBoolean(process.env.HOLMETA_DEV_BYPASS_PREMIUM);
+  if (event.httpMethod !== "GET" && event.httpMethod !== "POST") {
+    return methodNotAllowed(["GET", "POST"]);
+  }
 
-  if (!premium) {
-    return {
-      statusCode: 402,
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        error: "Premium required for sync endpoint"
-      })
-    };
+  const claims = requireToken(event, ["dashboard", "extension"]);
+  if (!claims) {
+    return json(401, { error: "Unauthorized" });
+  }
+
+  const entitlement = await entitlementForUser(claims.sub);
+  if (!entitlement.active || !entitlement.features.settingsSync) {
+    return json(402, {
+      error: "Premium required for settings sync"
+    });
   }
 
   if (event.httpMethod === "GET") {
-    return {
-      statusCode: 200,
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        syncedAt: null,
-        settings: {}
-      })
-    };
+    return json(200, {
+      syncedAt: null,
+      settings: {}
+    });
   }
 
-  if (event.httpMethod === "POST") {
-    const payload = event.body ? JSON.parse(event.body) : {};
-    return {
-      statusCode: 200,
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        syncedAt: new Date().toISOString(),
-        accepted: payload
-      })
-    };
-  }
-
-  return {
-    statusCode: 405,
-    body: JSON.stringify({ error: "Method not allowed" })
-  };
+  const payload = parseJsonBody<Record<string, unknown>>(event);
+  return json(200, {
+    syncedAt: new Date().toISOString(),
+    accepted: payload
+  });
 };

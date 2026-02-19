@@ -4,9 +4,10 @@
   "private": true,
   "scripts": {
     "dev": "node -e \"console.log('Load unpacked extension from apps/extension')\"",
-    "build": "rm -rf dist holmeta-extension.zip && mkdir -p dist/extension && cp -R manifest.json src dist/extension/",
+    "build": "rm -rf dist holmeta-extension.zip && mkdir -p dist/extension && cp manifest.json dist/extension/ && cp -R src dist/extension/ && if [ -d src/assets ]; then cp -R src/assets dist/extension/assets; fi",
     "zip": "npm run build && cd dist && zip -r ../holmeta-extension.zip extension",
-    "lint": "node -e \"console.log('extension lint: no-op')\"",
+    "lint:palette": "node scripts/lint-palette.mjs",
+    "lint": "npm run lint:palette",
     "typecheck": "node -e \"console.log('extension typecheck: no-op (plain JS)')\"",
     "test": "node -e \"console.log('extension test: smoke-only')\""
   }

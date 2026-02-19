@@ -3,108 +3,331 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>holmeta Console</title>
+    <title>holmeta Ops Console</title>
     <link rel="stylesheet" href="options.css" />
   </head>
   <body>
     <main class="app-shell">
       <header class="topbar panel">
         <div>
-          <p class="kicker">REPORT ID: HM-MVP</p>
-          <h1>holmeta operational console</h1>
+          <p class="kicker">REPORT ID: HM-OPS-CADENCE-V2</p>
+          <h1>holmeta operations console</h1>
           <p id="statusLine" class="meta-line">STATUS: ACTIVE</p>
         </div>
         <button id="saveSettings" class="primary">SAVE CONFIG</button>
       </header>
 
+      <section class="panel quick-actions">
+        <p class="kicker">PRIMARY ACTIONS</p>
+        <div class="button-grid">
+          <button id="focus25" class="primary">FOCUS 25M</button>
+          <button id="focus50">FOCUS 50M</button>
+          <button id="focusStop" class="danger">STOP FOCUS</button>
+          <button id="snoozeAllButton">SNOOZE ALL 15M</button>
+          <button id="panicOffButton" class="danger">PANIC OFF 30M</button>
+          <button id="meetingModeQuick">MEETING MODE</button>
+          <button id="openSidePanelQuick">OPEN SIDE PANEL</button>
+          <button id="closeSidePanelQuick">CLOSE SIDE PANEL</button>
+        </div>
+      </section>
+
       <section class="panel">
-        <h2>Permissions + Privacy</h2>
-        <ul class="mono-list">
-          <li>All health data defaults to <strong>local storage only</strong>.</li>
-          <li>No keylogging. No selling user data. No page content harvesting.</li>
-          <li>Camera is requested only if webcam posture mode is enabled.</li>
-          <li>System-wide filters require a future desktop companion; v1 is browser-only.</li>
+        <h2>Sound Engine</h2>
+        <p class="meta-line">Enable subtle ops cues for UI actions and reminders. Keep hover cues optional.</p>
+
+        <div class="control-grid">
+          <label for="soundEnabled">MASTER SOUND</label>
+          <input id="soundEnabled" type="checkbox" />
+
+          <label for="masterVolume">MASTER VOLUME</label>
+          <div class="row-inline">
+            <input id="masterVolume" type="range" min="0" max="100" step="1" />
+            <span id="masterVolumeValue" class="mono">35%</span>
+          </div>
+
+          <label for="hoverEnabled">ENABLE HOVER SOUNDS</label>
+          <input id="hoverEnabled" type="checkbox" />
+
+          <label for="reminderSoundsEnabled">ENABLE REMINDER SOUNDS</label>
+          <input id="reminderSoundsEnabled" type="checkbox" />
+        </div>
+
+        <div id="soundMappings" class="sound-mappings"></div>
+
+        <div class="row-inline">
+          <button id="soundTestPing">TEST PING</button>
+          <p id="soundStatus" class="meta-line">STATUS: SOUND READY</p>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2>First-Run Onboarding</h2>
+        <p class="meta-line">Pick a profile, work window, delivery style, and design-mode defaults in one pass.</p>
+
+        <div class="control-grid">
+          <label for="onboardingProfile">PROFILE</label>
+          <select id="onboardingProfile">
+            <option value="balanced">Balanced</option>
+            <option value="deepWork">Deep Work</option>
+            <option value="highStrain">High Strain</option>
+            <option value="gentle">Gentle</option>
+            <option value="night">Night</option>
+          </select>
+
+          <label for="onboardingWorkStart">WORK START</label>
+          <input id="onboardingWorkStart" type="time" value="09:00" />
+
+          <label for="onboardingWorkEnd">WORK END</label>
+          <input id="onboardingWorkEnd" type="time" value="17:30" />
+
+          <label for="onboardingDelivery">DEFAULT DELIVERY</label>
+          <select id="onboardingDelivery">
+            <option value="balanced">Overlay + notification</option>
+            <option value="gentle">Gentle overlay only</option>
+            <option value="popup">Popup-only (silent)</option>
+          </select>
+
+          <label for="onboardingDesignMode">DESIGN MODE</label>
+          <input id="onboardingDesignMode" type="checkbox" />
+        </div>
+
+        <div class="row-inline">
+          <button id="completeOnboarding" class="primary">APPLY ONBOARDING</button>
+          <p id="onboardingStatus" class="status-chip status-idle">STATUS: NOT APPLIED</p>
+        </div>
+
+        <h3>Permissions + Privacy</h3>
+        <ul class="mono-list compact-list">
+          <li>All reminder and health logs stay in local extension storage by default.</li>
+          <li>No keylogging or page content harvesting for analytics.</li>
+          <li>Camera is optional and requested only for webcam posture mode.</li>
+          <li>Browser-only filters cannot perform true Iris system-wide gamma ramps.</li>
+          <li>Wellness/comfort guidance only. This tool is not medical advice.</li>
         </ul>
       </section>
 
       <section class="panel grid-2">
         <div>
-          <h2>Circadian Filter Engine</h2>
+          <h2>Filter Engine v2</h2>
           <div class="control-grid">
-            <label for="filterPreset">FILTER MODE</label>
+            <label for="filterPreset">FILTER PRESET</label>
             <select id="filterPreset">
-              <option value="nightWarm">Night Warm</option>
-              <option value="blueBlocker">Blue Blocker</option>
-              <option value="redBlocker">Red Blocker</option>
-              <option value="neutral">Neutral</option>
+              <optgroup label="Mild">
+                <option value="blueShieldMild">Blue Shield (Mild)</option>
+                <option value="nightWarmMild">Night Warm (Mild)</option>
+                <option value="contrastGuard">Contrast Guard</option>
+              </optgroup>
+              <optgroup label="Strong">
+                <option value="blueShieldStrong">Blue Shield (Strong)</option>
+                <option value="nightWarmStrong">Night Warm (Strong)</option>
+                <option value="redNightStrong">Red Night (Strong)</option>
+                <option value="redBlocker">Red Blocker</option>
+                <option value="grayscale">Grayscale</option>
+              </optgroup>
+              <optgroup label="Max">
+                <option value="blueShieldMax">Blue Shield (Max)</option>
+                <option value="nightWarmMax">Night Warm (Max)</option>
+                <option value="redNightMax">Red Night (Max)</option>
+                <option value="migraineSafe">Migraine Safe</option>
+              </optgroup>
             </select>
 
             <label for="filterIntensity">INTENSITY</label>
             <div class="row-inline">
               <input id="filterIntensity" type="range" min="0" max="100" step="1" />
-              <span id="filterIntensityValue" class="mono">65%</span>
+              <span id="filterIntensityValue" class="mono">78%</span>
             </div>
 
-            <label for="wakeTime">WAKE TIME</label>
-            <input id="wakeTime" type="time" />
+            <label for="overlayStrength">OVERLAY STRENGTH</label>
+            <div class="row-inline">
+              <input id="overlayStrength" type="range" min="0" max="100" step="1" />
+              <span id="overlayStrengthValue" class="mono">35%</span>
+            </div>
 
-            <label for="sleepTime">SLEEP TIME</label>
-            <input id="sleepTime" type="time" />
+            <label for="filterDimming">DIMMING</label>
+            <div class="row-inline">
+              <input id="filterDimming" type="range" min="0" max="100" step="1" />
+              <span id="filterDimmingValue" class="mono">20%</span>
+            </div>
 
-            <label for="rampMinutes" data-premium>RAMP MINUTES (PREMIUM)</label>
-            <input id="rampMinutes" type="number" min="10" max="180" data-premium />
+            <label for="filterContrast">CONTRAST</label>
+            <div class="row-inline">
+              <input id="filterContrast" type="range" min="40" max="200" step="1" />
+              <span id="filterContrastValue" class="mono">100%</span>
+            </div>
+
+            <label for="filterSaturation">SATURATION</label>
+            <div class="row-inline">
+              <input id="filterSaturation" type="range" min="0" max="200" step="1" />
+              <span id="filterSaturationValue" class="mono">95%</span>
+            </div>
+
+            <label for="filterGamma">GAMMA (APPROX)</label>
+            <div class="row-inline">
+              <input id="filterGamma" type="range" min="50" max="180" step="1" />
+              <span id="filterGammaValue" class="mono">100%</span>
+            </div>
+
+            <label for="overlayColorPreset">OVERLAY COLOR</label>
+            <select id="overlayColorPreset">
+              <option value="amber">Amber</option>
+              <option value="deepRed">Deep Red</option>
+              <option value="warmGray">Warm Gray</option>
+              <option value="custom">Custom RGB</option>
+            </select>
+
+            <label for="overlayBlendMode">BLEND MODE</label>
+            <select id="overlayBlendMode">
+              <option value="normal">normal</option>
+              <option value="multiply">multiply</option>
+              <option value="screen">screen</option>
+              <option value="overlay">overlay</option>
+              <option value="color">color</option>
+            </select>
+
+            <label id="overlayCustomLabel" for="overlayCustomR">CUSTOM RGB</label>
+            <div id="overlayCustomGrid" class="rgb-grid">
+              <input id="overlayCustomR" type="number" min="0" max="255" placeholder="R" />
+              <input id="overlayCustomG" type="number" min="0" max="255" placeholder="G" />
+              <input id="overlayCustomB" type="number" min="0" max="255" placeholder="B" />
+            </div>
+          </div>
+
+          <div class="toggle-grid">
+            <label><input id="filterEnabled" type="checkbox" /> FILTER ENABLED</label>
+            <label><input id="colorAccurate" type="checkbox" /> COLOR ACCURATE</label>
+            <label><input id="showHud" type="checkbox" /> SHOW HUD</label>
+            <label><input id="applyToMedia" type="checkbox" /> APPLY TO IMAGES/VIDEO</label>
+            <label><input id="excludeMedia" type="checkbox" /> EXCLUDE MEDIA</label>
+            <label><input id="designMode" type="checkbox" /> DESIGN MODE</label>
+            <label><input id="preserveLuminance" type="checkbox" /> PRESERVE LUMINANCE</label>
+          </div>
+
+          <div class="row-inline">
+            <button id="reapplyFilterNow">REAPPLY FILTER NOW</button>
+            <button id="colorAccurateButton">TOGGLE COLOR ACCURATE</button>
           </div>
         </div>
 
         <div>
-          <h2>Reminder Cadence</h2>
-          <div class="control-grid">
-            <label for="eyeBreakInterval">EYE BREAK (MIN)</label>
-            <input id="eyeBreakInterval" type="number" min="10" max="90" />
+          <h2>Calibration + Debug</h2>
+          <p class="meta-line">Verify red-only intensity, grayscale ramps, and readability in-browser.</p>
 
-            <label for="hydrationInterval">HYDRATION (MIN)</label>
-            <input id="hydrationInterval" type="number" min="15" max="180" />
+          <div class="calibration-grid">
+            <div class="calibration-card">
+              <p class="calibration-title">RGB BARS</p>
+              <div class="rgb-bars">
+                <div class="bar bar-r"></div>
+                <div class="bar bar-g"></div>
+                <div class="bar bar-b"></div>
+              </div>
+            </div>
+            <div class="calibration-card">
+              <p class="calibration-title">GRAYSCALE STEPS</p>
+              <div class="gray-steps">
+                <span class="gray-step-0"></span>
+                <span class="gray-step-1"></span>
+                <span class="gray-step-2"></span>
+                <span class="gray-step-3"></span>
+                <span class="gray-step-4"></span>
+                <span class="gray-step-5"></span>
+              </div>
+            </div>
+          </div>
 
-            <label for="stillnessThreshold">STILLNESS NUDGE (MIN)</label>
-            <input id="stillnessThreshold" type="number" min="15" max="180" />
+          <label for="matrixReadout">CURRENT MATRIX VALUES</label>
+          <textarea id="matrixReadout" rows="3" readonly></textarea>
 
-            <label for="hydrationGoal">HYDRATION GOAL (GLASSES)</label>
-            <input id="hydrationGoal" type="number" min="1" max="20" />
+          <div class="toggle-grid">
+            <label><input id="debugPanel" type="checkbox" /> ENABLE DEBUG PANEL</label>
+          </div>
 
-            <label for="reminderNotifications">BROWSER NOTIFICATIONS</label>
-            <input id="reminderNotifications" type="checkbox" />
-
-            <label for="audioCues">AUDIO BEEPS</label>
-            <input id="audioCues" type="checkbox" />
-
-            <label for="speechCues">SPEECH CUES</label>
-            <input id="speechCues" type="checkbox" />
+          <div id="debugBlock" class="debug-block">
+            <p id="debugMode">MODE: --</p>
+            <p id="debugIntensity">INTENSITY: --</p>
+            <p id="debugOverlay">OVERLAY: --</p>
+            <p id="debugBlend">BLEND: --</p>
+            <p id="debugMedia">MEDIA EXCLUDED: --</p>
           </div>
         </div>
       </section>
 
       <section class="panel">
-        <h2>Deep Work Rules</h2>
-        <p class="meta-line">Use declarativeNetRequest to block distracting domains during active focus sessions.</p>
-        <label for="distractorDomains">DISTRACTOR DOMAINS (ONE PER LINE OR CSV)</label>
-        <textarea id="distractorDomains" rows="4"></textarea>
+        <h2>Cadence Engine v2</h2>
+        <p class="meta-line">Set cadence mode per reminder type: Interval / Work Blocks / Time Windows.</p>
+
+        <div class="control-grid">
+          <label for="cadenceProfile">CADENCE PRESET</label>
+          <div class="row-inline">
+            <select id="cadenceProfile">
+              <option value="balanced">Balanced</option>
+              <option value="deepWork">Deep Work</option>
+              <option value="highStrain">High Strain</option>
+              <option value="gentle">Gentle</option>
+              <option value="night">Night</option>
+            </select>
+            <button id="applyCadenceProfile" class="primary">APPLY</button>
+          </div>
+
+          <label for="quietHoursStart">QUIET HOURS START</label>
+          <input id="quietHoursStart" type="time" />
+
+          <label for="quietHoursEnd">QUIET HOURS END</label>
+          <input id="quietHoursEnd" type="time" />
+
+          <label for="suppressDuringFocus">SUPPRESS DURING FOCUS</label>
+          <input id="suppressDuringFocus" type="checkbox" />
+
+          <label for="suppressWhenIdle">SUPPRESS WHEN IDLE/LOCKED</label>
+          <input id="suppressWhenIdle" type="checkbox" />
+
+          <label for="meetingModeManual">MEETING MODE (MANUAL)</label>
+          <input id="meetingModeManual" type="checkbox" />
+
+          <label for="meetingModeAuto" data-premium>MEETING MODE (AUTO DOMAIN)</label>
+          <input id="meetingModeAuto" type="checkbox" data-premium />
+
+          <label for="meetingDomains" data-premium>MEETING DOMAINS (CSV)</label>
+          <textarea id="meetingDomains" rows="2" data-premium placeholder="meet.google.com, zoom.us"></textarea>
+        </div>
+
+        <div id="cadenceCards" class="cadence-cards"></div>
+      </section>
+
+      <section class="panel">
+        <h2>Timeline Preview</h2>
+        <div class="control-grid compact-grid">
+          <label for="timelineStart">START</label>
+          <input id="timelineStart" type="time" value="09:00" />
+
+          <label for="timelineEnd">END</label>
+          <input id="timelineEnd" type="time" value="18:00" />
+
+          <label for="timelinePreview">PREVIEW</label>
+          <div class="row-inline">
+            <button id="refreshTimeline">REFRESH TIMELINE</button>
+            <span class="meta-line">Typical workday fire map</span>
+          </div>
+        </div>
+
+        <div id="timelinePreview" class="timeline-preview"></div>
       </section>
 
       <section class="panel grid-2">
         <div>
           <h2>Posture + Movement Bio-Tracker</h2>
-          <p class="meta-line">
-            Default mode uses idle/activity stillness nudges. Webcam mode is optional and local-only.
-          </p>
+          <p class="meta-line">Webcam mode is optional and local-only. Default posture cues use stillness/activity.</p>
           <div class="control-grid">
             <label for="webcamPostureOptIn" data-premium>ENABLE WEBCAM MODE (PREMIUM)</label>
             <input id="webcamPostureOptIn" type="checkbox" data-premium />
           </div>
+
           <div class="row-inline">
             <button id="startPostureMonitor" data-premium>START MONITOR</button>
-            <button id="stopPostureMonitor" class="ghost">STOP</button>
-            <span id="postureStatus" class="mono">STATUS: IDLE</span>
+            <button id="stopPostureMonitor" class="secondary">STOP</button>
+            <span id="postureStatus" class="status-chip status-idle">STATUS: IDLE</span>
           </div>
+
           <video id="postureVideo" muted playsinline></video>
 
           <div class="stretch-grid">
@@ -133,13 +356,13 @@
         </div>
 
         <div>
-          <h2>Hydration + Nootropic Notes</h2>
+          <h2>Hydration + Wellness Notes</h2>
           <div class="paper-card">
             <p><strong>General wellness tips (not medical advice):</strong></p>
             <ul>
-              <li>Caffeine timing: avoid late-day intake if sleep quality drops.</li>
-              <li>Optional pairing: caffeine + L-theanine can smooth jitter for some people.</li>
-              <li>Hydration: include electrolytes after intense sweating.</li>
+              <li>Caffeine timing: avoid late-day use if sleep quality drops.</li>
+              <li>Optional pairing: caffeine + L-theanine can smooth jitters for some users.</li>
+              <li>Hydration/electrolytes can support comfort and focus during long screen days.</li>
             </ul>
           </div>
 
@@ -172,7 +395,7 @@
         <h2>Ergonomic Audit + Trends</h2>
         <p class="meta-line">Weekly self-assessment stored locally. Optional photo never leaves this browser.</p>
 
-        <form id="auditForm" class="control-grid paper-grid">
+        <form id="auditForm" class="control-grid">
           <label for="monitorHeight">MONITOR HEIGHT</label>
           <select id="monitorHeight">
             <option value="aligned">Top aligned with eye level</option>
@@ -215,34 +438,67 @@
         <img id="auditPreview" alt="Audit preview" />
         <div class="row-inline">
           <button id="saveAudit" class="primary">SAVE AUDIT</button>
-          <p id="auditStatus" class="meta-line">STATUS: NOT SAVED</p>
+          <p id="auditStatus" class="status-chip status-idle">STATUS: NOT SAVED</p>
         </div>
 
         <canvas id="trendsCanvas" width="960" height="260"></canvas>
       </section>
 
       <section class="panel">
-        <h2>Subscription Scaffold</h2>
+        <h2>Account + Premium Entitlement</h2>
         <div class="control-grid">
-          <label for="entitlementUrl">ENTITLEMENT ENDPOINT</label>
-          <input id="entitlementUrl" type="text" placeholder="https://site.netlify.app/api/entitlement" />
+          <label for="apiBaseUrl">API BASE URL</label>
+          <input id="apiBaseUrl" type="text" placeholder="https://holmeta-web.netlify.app" />
+
+          <label for="entitlementUrl">ENTITLEMENT URL</label>
+          <input id="entitlementUrl" type="text" placeholder="https://.../.netlify/functions/entitlement" />
+
+          <label for="pairingExchangeUrl">PAIRING EXCHANGE URL</label>
+          <input id="pairingExchangeUrl" type="text" placeholder="https://.../.netlify/functions/exchange-pairing-code" />
 
           <label for="checkoutUrl">CHECKOUT URL</label>
-          <input id="checkoutUrl" type="text" placeholder="https://site.netlify.app/api/checkout" />
+          <input id="checkoutUrl" type="text" placeholder="https://.../.netlify/functions/create-checkout-session" />
+
+          <label for="dashboardUrl">DASHBOARD URL</label>
+          <div class="field-stack">
+            <input id="dashboardUrl" type="text" placeholder="https://holmeta-web.netlify.app/dashboard" />
+            <p id="dashboardHint" class="field-help">Default: derived from API BASE URL + /dashboard when override is empty.</p>
+          </div>
+
+          <label for="pairingCodeInput">PAIRING CODE</label>
+          <div class="field-stack">
+            <input id="pairingCodeInput" type="text" placeholder="HM-XXXXXX" />
+            <p class="field-help">Use format HM-XXXXXX. Generate this from Dashboard → Pair Extension.</p>
+          </div>
 
           <label for="devBypassPremium">DEV BYPASS PREMIUM</label>
           <input id="devBypassPremium" type="checkbox" />
         </div>
 
-        <p id="premiumStatus" class="status-chip status-locked">STATUS: LOCKED</p>
         <div class="row-inline">
-          <button id="refreshEntitlement">REFRESH ENTITLEMENT</button>
-          <button id="openCheckout" class="primary">UNLOCK PREMIUM ($2/MO)</button>
+          <p id="premiumStatus" class="status-chip status-locked">STATUS: LOCKED</p>
+          <p id="trialStatus" class="status-chip status-idle">STATUS: FREE MODE</p>
         </div>
+
+        <div id="premiumBanner" class="premium-banner" hidden>TRIAL ENDED - SUBSCRIBE TO CONTINUE PREMIUM CONTROLS.</div>
+
+        <div class="account-actions">
+          <button id="pairExtension" class="primary">PAIR EXTENSION</button>
+          <button id="clearPairing" class="secondary">CLEAR PAIRING</button>
+          <button id="refreshEntitlement" class="secondary">REFRESH ENTITLEMENT</button>
+          <button id="testEntitlementFetch" class="secondary">TEST ENTITLEMENT FETCH</button>
+          <button id="openDashboard" class="secondary">OPEN DASHBOARD</button>
+          <button id="testDashboardUrl" class="secondary">TEST DASHBOARD URL</button>
+          <button id="subscribeNow" class="primary">SUBSCRIBE</button>
+        </div>
+
+        <p id="pairingStatus" class="meta-line">STATUS: NOT PAIRED</p>
+        <p id="accountStatus" class="meta-line">STATUS: READY</p>
       </section>
     </main>
 
     <script src="common.js"></script>
+    <script src="audio.js"></script>
     <script src="options.js"></script>
   </body>
 </html>

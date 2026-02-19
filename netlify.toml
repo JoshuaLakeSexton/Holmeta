@@ -4,6 +4,11 @@
   publish = "apps/web/.next"
   functions = "apps/web/netlify/functions"
 
+[functions]
+  node_bundler = "esbuild"
+  external_node_modules = ["@prisma/client"]
+  included_files = ["apps/web/prisma/schema.prisma", "node_modules/.prisma/client/**"]
+
 [[plugins]]
   package = "@netlify/plugin-nextjs"
 

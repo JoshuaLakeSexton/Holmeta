@@ -1,14 +1,5 @@
 import Link from "next/link";
-import { buildColorMatrix, matrixToString } from "@holmeta/shared";
 import { StatusCard } from "@/components/status-card";
-
-const previewMatrix = matrixToString(
-  buildColorMatrix("nightWarm", 0.65, {
-    wakeTime: "07:00",
-    sleepTime: "23:00",
-    rampMinutes: 60
-  })
-);
 
 export default function HomePage() {
   return (
@@ -17,45 +8,63 @@ export default function HomePage() {
         <p className="kicker">MISSION BRIEFING</p>
         <h1>holmeta</h1>
         <p className="lede">
-          Extension-first screen health, deep work enforcement, and biohacking micro-protocols for 8+ hour screen workers.
+          Extension-first screen health + deep work instrumentation for people on screens 8+ hours/day. Local-first reminders, browser-only filter engine, and a $2/mo plan with a 3-day trial (trial enables Light Filters only).
         </p>
         <div className="cta-row">
           <Link className="btn btn-primary" href="/dashboard">
-            OPEN DASHBOARD
+            START FREE
           </Link>
-          <a className="btn" href="#pricing">
-            VIEW PRICING
-          </a>
+          <Link className="btn" href="/dashboard">
+            SUBSCRIBE ($2/MO)
+          </Link>
         </div>
       </header>
 
       <section className="panel status-grid">
-        <StatusCard label="STATUS" value="DEPLOYED" detail="Browser extension MVP available now" />
-        <StatusCard label="PRICING" value="$2/MO" detail="Stripe scaffold + entitlement endpoint included" />
-        <StatusCard label="PRIVACY" value="LOCAL-FIRST" detail="No data resale. Webcam posture mode stays local." />
-        <StatusCard label="FILTER MATRIX" value="SVG feColorMatrix" detail={`PREVIEW: ${previewMatrix}`} />
+        <StatusCard label="STATUS" value="DEPLOYED" detail="MV3 extension + web dashboard" />
+        <StatusCard label="PRICING" value="$2/MO" detail="Single premium tier" />
+        <StatusCard label="PRIVACY" value="LOCAL-FIRST" detail="No data resale. Webcam posture local-only." />
+        <StatusCard label="BILLING" value="STRIPE + NETLIFY" detail="Checkout, webhook, entitlement, pairing flow" />
       </section>
 
       <section className="panel" id="pricing">
         <p className="kicker">PRICING</p>
-        <h2>Single Operator Plan</h2>
-        <p className="lede">$2/month. Basic reminders remain available in trial mode. Premium unlocks advanced customization and webcam posture monitor.</p>
-        <ul className="list">
-          <li>Deep work domain rules + panic button</li>
-          <li>Circadian filter presets + local schedule ramp</li>
-          <li>Hydration, breathwork, and daily audit logs</li>
-          <li>Premium-only: custom ramps, webcam posture mode, advanced theming</li>
-        </ul>
-        <Link className="btn btn-primary" href="/dashboard">
-          UNLOCK PREMIUM
-        </Link>
+        <h2>Free + Premium</h2>
+        <div className="split-grid">
+          <article>
+            <p className="meta-line">FREE</p>
+            <ul className="list">
+              <li>Basic filters + intensity controls</li>
+              <li>Basic eye reminders (interval mode)</li>
+              <li>Manual focus sessions</li>
+            </ul>
+          </article>
+          <article>
+            <p className="meta-line">SUBSCRIPTION ($2/MO)</p>
+            <ul className="list">
+              <li>During 3-day trial: Light Filters only</li>
+              <li>Active subscription: all reminders, cadence, deep work, logs, posture, hydration, breathwork</li>
+              <li>Pairing token + entitlement gating via Netlify functions</li>
+            </ul>
+          </article>
+        </div>
+        <div className="cta-row">
+          <Link className="btn btn-primary" href="/dashboard">
+            OPEN ACCOUNT CONSOLE
+          </Link>
+        </div>
       </section>
 
       <section className="panel">
-        <p className="kicker">LIMITATION NOTICE</p>
+        <p className="kicker">BROWSER-ONLY LIMIT</p>
         <p className="lede">
-          v1 applies health filters inside browser content only. True system-wide color and app-level control requires a future desktop companion.
+          holmeta v1 can only transform browser-rendered content. It cannot apply OS-level gamma ramps like Iris system-wide controls. Strong in-browser intensity is achieved via matrix + CSS + overlay pipeline.
         </p>
+      </section>
+
+      <section className="panel">
+        <p className="kicker">WELLNESS DISCLAIMER</p>
+        <p className="lede">holmeta provides comfort/focus guidance and is not medical advice.</p>
       </section>
     </main>
   );

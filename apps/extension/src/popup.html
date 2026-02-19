@@ -11,16 +11,21 @@
       <header class="panel header">
         <div>
           <p class="kicker">FIELD OPERATION</p>
-          <h1>holmeta</h1>
+          <h1 class="popup-title">holmeta command center</h1>
         </div>
         <p id="statusChip" class="status-chip status-active">STATUS: ACTIVE</p>
       </header>
 
       <section class="panel readouts">
         <article class="readout-card">
-          <p class="readout-label">FILTER MODE</p>
-          <p class="readout-value" id="filterReadout">nightWarm · 65%</p>
-          <p class="readout-meta" id="localTime">LOCAL TIME: --:--</p>
+          <p class="readout-label">NEXT REMINDER</p>
+          <p class="readout-value" id="nextReminderReadout">--:--</p>
+          <p class="readout-meta" id="nextReminderMeta">TYPE: NONE</p>
+        </article>
+        <article class="readout-card">
+          <p class="readout-label">TODAY COMPLETION</p>
+          <p class="readout-value" id="completionReadout">0 / 0</p>
+          <p class="readout-meta" id="completionMeta">READY</p>
         </article>
         <article class="readout-card">
           <p class="readout-label">FOCUS TIMER</p>
@@ -28,86 +33,145 @@
           <p class="readout-meta" id="focusMeta">MODE: READY</p>
         </article>
         <article class="readout-card">
-          <p class="readout-label">HYDRATION</p>
-          <p class="readout-value" id="hydrationReadout">0 / 8</p>
-          <p class="readout-meta" id="hydrationMeta">STREAK: 0 DAYS</p>
-        </article>
-        <article class="readout-card">
-          <p class="readout-label">CALM MINUTES</p>
-          <p class="readout-value" id="calmReadout">0</p>
-          <p class="readout-meta">SESSION LOG: TODAY</p>
+          <p class="readout-label">FILTER MODE</p>
+          <p class="readout-value" id="filterReadout">Night Warm</p>
+          <p class="readout-meta" id="filterMeta">INTENSITY: 78%</p>
         </article>
       </section>
 
       <section class="panel">
-        <p class="kicker">CIRCADIAN FILTER</p>
+        <p class="kicker">PRIMARY COMMANDS</p>
+        <div class="button-grid">
+          <button class="primary" data-focus="25">ENGAGE 25M</button>
+          <button data-focus="50">ENGAGE 50M</button>
+          <button data-focus="90">ENGAGE 90M</button>
+          <button id="stopFocus" class="danger">STOP FOCUS</button>
+          <button id="filterToggle">FILTER ON/OFF</button>
+          <button id="meetingToggle">MEETING MODE</button>
+          <button id="snoozeAll" data-minutes="15">SNOOZE ALL 15M</button>
+          <button id="panicOff" class="danger">PANIC OFF 30M</button>
+        </div>
+      </section>
+
+      <section class="panel">
+        <p class="kicker">SOUND ENGINE</p>
+        <div class="toggle-grid">
+          <label><input id="soundEnabledToggle" type="checkbox" /> MASTER SOUND</label>
+          <label><input id="hoverEnabledToggle" type="checkbox" /> HOVER CUES</label>
+          <label><input id="reminderSoundsToggle" type="checkbox" /> REMINDER SFX</label>
+          <label><input id="uiClickSfxQuick" type="checkbox" checked disabled /> UI CLICK SFX ACTIVE</label>
+        </div>
         <div class="control-row">
-          <label for="presetSelect">MODE</label>
-          <select id="presetSelect">
-            <option value="nightWarm">Night Warm</option>
-            <option value="blueBlocker">Blue Blocker</option>
-            <option value="redBlocker">Red Blocker</option>
-            <option value="neutral">Neutral</option>
+          <label class="meta-label" for="masterVolumeRange">MASTER VOLUME</label>
+          <input id="masterVolumeRange" type="range" min="0" max="100" step="1" />
+          <span id="masterVolumeValue" class="mono">35%</span>
+        </div>
+        <div class="button-row">
+          <button id="soundTestPing">TEST PING</button>
+        </div>
+      </section>
+
+      <section class="panel">
+        <p class="kicker">FILTER CONTROL</p>
+        <div class="control-row">
+          <label class="meta-label" for="presetSelect">PRESET</label>
+          <select id="presetSelect" class="select">
+            <optgroup label="Mild">
+              <option value="blueShieldMild">Blue Shield (Mild)</option>
+              <option value="nightWarmMild">Night Warm (Mild)</option>
+              <option value="contrastGuard">Contrast Guard</option>
+            </optgroup>
+            <optgroup label="Strong">
+              <option value="blueShieldStrong">Blue Shield (Strong)</option>
+              <option value="nightWarmStrong">Night Warm (Strong)</option>
+              <option value="redNightStrong">Red Night (Strong)</option>
+              <option value="redBlocker">Red Blocker</option>
+              <option value="grayscale">Grayscale</option>
+            </optgroup>
+            <optgroup label="Max">
+              <option value="blueShieldMax">Blue Shield (Max)</option>
+              <option value="nightWarmMax">Night Warm (Max)</option>
+              <option value="redNightMax">Red Night (Max)</option>
+              <option value="migraineSafe">Migraine Safe</option>
+            </optgroup>
           </select>
+          <span class="mono">SET</span>
         </div>
+
         <div class="control-row">
-          <label for="intensityRange">INTENSITY</label>
+          <label class="meta-label" for="intensityRange">INTENSITY</label>
           <input id="intensityRange" type="range" min="0" max="100" step="1" />
-          <span id="intensityValue">65%</span>
+          <span id="intensityValue" class="mono">78%</span>
         </div>
-        <div class="control-row toggle-row">
-          <label for="disableSiteToggle">DISABLE ON THIS SITE</label>
-          <input id="disableSiteToggle" type="checkbox" />
+
+        <div class="control-row">
+          <label class="meta-label" for="cadencePresetSelect">CADENCE PROFILE</label>
+          <select id="cadencePresetSelect" class="select" data-premium>
+            <option value="balanced">Balanced</option>
+            <option value="deepWork">Deep Work</option>
+            <option value="highStrain">High Strain</option>
+            <option value="gentle">Gentle</option>
+            <option value="night">Night</option>
+          </select>
+          <button id="applyCadencePreset" data-premium>APPLY</button>
+        </div>
+
+        <div class="toggle-grid">
+          <label><input id="colorAccurateToggle" type="checkbox" /> COLOR ACCURATE</label>
+          <label><input id="meetingManualToggle" type="checkbox" /> MEETING (MANUAL)</label>
+        </div>
+
+        <label for="focusDomains" class="textarea-label meta-label">DISTRACTOR DOMAINS (CSV)</label>
+        <textarea id="focusDomains" rows="2" class="input" placeholder="youtube.com, x.com"></textarea>
+        <div class="button-row">
+          <button id="saveFocusDomains">SAVE FOCUS RULES</button>
         </div>
       </section>
 
       <section class="panel">
-        <p class="kicker">DEEP WORK</p>
-        <div class="button-row">
-          <button class="action-btn" data-focus="25">ENGAGE 25M</button>
-          <button class="action-btn" data-focus="50">ENGAGE 50M</button>
-          <button class="action-btn" data-focus="90">ENGAGE 90M</button>
+        <p class="kicker">TEST REMINDERS</p>
+        <div class="button-grid compact">
+          <button data-test-reminder="eye">TEST EYE</button>
+          <button data-test-reminder="movement">TEST MOVE</button>
+          <button data-test-reminder="posture">TEST POSTURE</button>
+          <button data-test-reminder="hydration">TEST HYDRATE</button>
+          <button data-test-reminder="breathwork" data-premium>TEST BREATH</button>
+          <button data-test-reminder="dailyAudit" data-premium>TEST AUDIT</button>
         </div>
-        <label for="focusDomains" class="textarea-label">DISTRACTOR DOMAINS (CSV)</label>
-        <textarea id="focusDomains" rows="2" placeholder="youtube.com, x.com"></textarea>
-        <div class="button-row">
-          <button id="saveFocusDomains">DEPLOY RULES</button>
-          <button id="panicButton" class="danger">PANIC STOP</button>
-        </div>
+        <p id="testStatus" class="small-note">STATUS: READY</p>
       </section>
 
       <section class="panel">
-        <p class="kicker">RECOVERY PROTOCOLS</p>
-        <div class="button-row">
-          <button id="eyeBreakNow">RUN 20-20-20</button>
-          <button id="logHydration">LOG HYDRATION</button>
-        </div>
-        <div class="button-row">
-          <button class="breath-btn" data-breath="box">RUN BOX BREATH</button>
-          <button class="breath-btn" data-breath="478">RUN 4-7-8</button>
-          <button class="breath-btn" data-breath="sigh">RUN PHYSIO SIGH</button>
-        </div>
-        <p id="breathStatus" class="small-note">STATUS: READY</p>
+        <p class="kicker">BREAKDOWN</p>
+        <div id="completionBreakdown" class="breakdown-grid"></div>
       </section>
 
       <section class="panel paywall" id="paywallPanel">
         <p class="kicker">PREMIUM CONTROL LAYER</p>
-        <p id="entitlementStatus" class="status-chip status-locked">STATUS: LOCKED</p>
+        <div class="row-inline">
+          <p id="entitlementStatus" class="status-chip status-locked">STATUS: LOCKED</p>
+          <p id="trialChip" class="status-chip status-idle">STATUS: FREE MODE</p>
+        </div>
+        <div id="premiumBanner" class="premium-banner" hidden>TRIAL ENDED - SUBSCRIBE TO CONTINUE.</div>
         <p class="small-note" id="paywallCopy">
-          Unlock advanced customization, webcam posture mode, and branded-free mode.
+          Free mode keeps basic filters + interval eye reminders. Premium unlocks advanced cadence and analytics.
         </p>
         <div class="button-row">
-          <button id="unlockPremium" class="primary">UNLOCK PREMIUM ($2/MO)</button>
-          <button id="refreshEntitlement">REFRESH</button>
+          <button id="unlockPremium" class="primary">SUBSCRIBE</button>
+          <button id="refreshEntitlement" class="secondary">REFRESH</button>
         </div>
       </section>
 
       <footer class="panel footer-actions">
-        <button id="openOptions">OPEN CONSOLE</button>
+        <button id="openHud" class="secondary">OPEN HUD</button>
+        <button id="closeHud" class="secondary">CLOSE HUD</button>
+        <button id="openDashboard" class="secondary">OPEN DASHBOARD</button>
+        <button id="openOptions" class="secondary">OPEN OPS CONSOLE</button>
       </footer>
     </main>
 
     <script src="common.js"></script>
+    <script src="audio.js"></script>
     <script src="popup.js"></script>
   </body>
 </html>

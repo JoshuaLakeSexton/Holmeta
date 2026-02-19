@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>holmeta Side Panel</title>
+    <link rel="stylesheet" href="sidepanel.css" />
+  </head>
+  <body>
+    <main class="panel" id="panelRoot">
+      <header class="panel-top">
+        <div class="brand-block">
+          <p class="kicker">OPS PANEL</p>
+          <h1 class="title">holmeta</h1>
+        </div>
+        <div class="top-actions" role="group" aria-label="Panel actions">
+          <button id="openOptions" class="btn btn-secondary" title="Open Ops Console">
+            <span class="icon" aria-hidden="true">O</span>
+            <span class="label-text">OPEN OPS</span>
+          </button>
+          <button id="closePanel" class="btn btn-primary" title="Close side panel">
+            <span class="icon" aria-hidden="true">X</span>
+            <span class="label-text">CLOSE</span>
+          </button>
+        </div>
+      </header>
+
+      <p id="narrowHint" class="narrow-hint">Panel is narrow - drag edge to resize.</p>
+      <p id="statusLine" class="status-line">STATUS: READY</p>
+
+      <section class="section panel-box">
+        <p class="section-title">Quick Actions</p>
+        <div class="action-grid" role="group" aria-label="Quick actions">
+          <button id="focus25" class="btn">
+            <span class="icon" aria-hidden="true">25</span>
+            <span class="label-text">FOCUS 25M</span>
+          </button>
+          <button id="focus50" class="btn">
+            <span class="icon" aria-hidden="true">50</span>
+            <span class="label-text">FOCUS 50M</span>
+          </button>
+          <button id="snoozeAll" class="btn">
+            <span class="icon" aria-hidden="true">S</span>
+            <span class="label-text">SNOOZE 15M</span>
+          </button>
+          <button id="panicOff" class="btn btn-danger">
+            <span class="icon" aria-hidden="true">P</span>
+            <span class="label-text">PANIC OFF</span>
+          </button>
+        </div>
+      </section>
+    </main>
+
+    <script src="sidepanel.js"></script>
+  </body>
+</html>

@@ -29,6 +29,9 @@ jobs:
       - name: Lint
         run: npm run lint
 
+      - name: Palette lint (extension)
+        run: npm run lint:palette -w @holmeta/extension
+
       - name: Test
         run: npm run test
 

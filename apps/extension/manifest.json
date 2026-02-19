@@ -1,11 +1,11 @@
 {
   "manifest_version": 3,
   "name": "holmeta",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Privacy-first screen health, focus mode, and deep work instrumentation for desk workers.",
   "action": {
-    "default_title": "holmeta",
-    "default_popup": "src/popup.html"
+    "default_popup": "src/popup.html",
+    "default_title": "holmeta"
   },
   "options_page": "src/options.html",
   "background": {
@@ -25,13 +25,45 @@
   "host_permissions": [
     "<all_urls>"
   ],
+  "commands": {
+    "toggle-filters": {
+      "description": "Toggle filters on or off",
+      "suggested_key": {
+        "default": "Alt+Shift+F",
+        "mac": "Command+Shift+F"
+      }
+    },
+    "toggle-color-accurate": {
+      "description": "Toggle color accurate mode",
+      "suggested_key": {
+        "default": "Alt+Shift+C",
+        "mac": "Command+Shift+C"
+      }
+    },
+    "increase-intensity": {
+      "description": "Increase filter intensity",
+      "suggested_key": {
+        "default": "Alt+Shift+Up",
+        "mac": "Command+Shift+Up"
+      }
+    },
+    "decrease-intensity": {
+      "description": "Decrease filter intensity",
+      "suggested_key": {
+        "default": "Alt+Shift+Down",
+        "mac": "Command+Shift+Down"
+      }
+    }
+  },
   "content_scripts": [
     {
       "matches": [
-        "<all_urls>"
+        "http://*/*",
+        "https://*/*"
       ],
       "js": [
         "src/common.js",
+        "src/audio.js",
         "src/content.js"
       ],
       "run_at": "document_idle"
@@ -41,5 +73,15 @@
     "gecko": {
       "id": "holmeta@holmeta.app"
     }
-  }
+  },
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "assets/sfx/*.ogg"
+      ],
+      "matches": [
+        "<all_urls>"
+      ]
+    }
+  ]
 }

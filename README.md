@@ -1,182 +1,165 @@
 # holmeta
 
-holmeta is an extension-first, privacy-focused screen health + deep work tool for desk workers on screens 8+ hours/day. v1 ships as a Manifest V3 browser extension (Chrome/Firefox) plus a lightweight web app for pricing/account/billing scaffolding.
+holmeta is an extension-first, privacy-focused screen health + deep work stack for people on screens 8+ hours/day.
 
-## Product Positioning
+- Extension: `@holmeta/extension` (Chrome/Firefox MV3)
+- Web app: `@holmeta/web` (Next.js + Netlify Functions)
+- Shared package: `@holmeta/shared`
+- Pricing target: **$2/month**
 
-- Product/business/repo name: `holmeta`
-- npm scope/workspaces:
-  - `@holmeta/web`
-  - `@holmeta/extension`
-  - `@holmeta/shared`
-- Price target: **$2/month**
-- Netlify site suggestion: `holmeta-web` (choose in Netlify UI)
-- Extension artifact filename: `holmeta-extension.zip`
+## Browser-only limitations vs Iris system-wide
 
-## Important v1 Limitation
+holmeta v1 can only transform browser-rendered content. A browser extension cannot apply true OS-level gamma ramps like Iris system-wide controls. holmeta achieves strong in-browser intensity via:
 
-v1 applies filters and overlays **inside browser content only**. System-wide app filtering requires a future desktop companion.
+- SVG `feColorMatrix`
+- CSS filter stack (brightness/contrast/saturation)
+- Overlay tint layer + blend modes
 
-## Architecture (Text Diagram)
+## Architecture
 
 ```text
-+--------------------+            +-------------------------------+
-| Browser Extension  |            | Web App (Next.js on Netlify) |
-| @holmeta/extension |            | @holmeta/web                 |
-|--------------------|            |-------------------------------|
-| popup/options UI   |            | landing + pricing            |
-| content overlays   |            | dashboard (account stub)     |
-| alarms + reminders |            | checkout trigger             |
-| focus DNR blocking |            | entitlement status view      |
-| local data storage |            +---------------+---------------+
-+---------+----------+                            |
-          |                                       |
-          | optional entitlement check            |
-          v                                       v
-+----------------------------+      +-----------------------------------+
-| /api/entitlement           |      | Netlify Functions (web/netlify)  |
-| /api/checkout              |      | entitlement / checkout / webhook  |
-| /api/stripe-webhook        |      | settings-sync (paid stub)         |
-+----------------------------+      +-----------------------------------+
-
-Shared logic/types: @holmeta/shared (filter math, schedules, schemas, trends)
++-----------------------------------------+
+| Browser Extension (@holmeta/extension)  |
+|-----------------------------------------|
+| Filter Engine v2 (matrix+css+overlay)   |
+| Cadence Engine v2 (interval/work/window)|
+| Quiet/idle/focus/meeting suppression    |
+| Focus mode (DNR + tab actions)          |
+| Local-first logs + onboarding           |
++---------------------+-------------------+
+                      | Bearer token (pairing flow)
+                      v
++-----------------------------------------+
+| Netlify Functions (apps/web/netlify)    |
+|-----------------------------------------|
+| request-account-code / verify-account   |
+| create-checkout-session                 |
+| stripe-webhook                          |
+| create-portal-session                   |
+| create-pairing-code / exchange-pairing  |
+| entitlement / settings-sync             |
++---------------------+-------------------+
+                      |
+                      v
++-----------------------------------------+
+| Postgres + Prisma (apps/web/prisma)     |
+|-----------------------------------------|
+| User / StripeCustomer / Subscription    |
+| PairingCode / ExtensionToken / LoginCode|
++-----------------------------------------+
 ```
 
-## Monorepo Structure
+## Free vs Premium
 
-```text
-holmeta/
-  README.md
-  .gitignore
-  package.json
-  package-lock.json
-  tsconfig.base.json
-  netlify.toml
-  .env.example
-  apps/
-    web/
-    extension/
-  packages/
-    shared/
-  scripts/
-    new-project.sh
-  .github/workflows/
-    ci.yml
-    build-extension.yml
-```
+Free:
 
-## MVP Features Implemented
+- Basic filters
+- Basic eye reminders (interval mode)
+- Basic focus sessions
 
-- Circadian blue/red/night filter control with SVG `feColorMatrix`
-- 20-20-20 eye recovery reminders with guided overlays
-- Hydration reminders + glass logging + streak calculation
-- Breathwork sessions (box, 4-7-8, physiological sigh) + calm minutes
-- Stillness detection using idle/activity signals
-- Optional webcam posture monitor (runtime permission + local only, FaceDetector fallback)
-- Weekly ergonomic audit + optional local photo + daily energy/mood/sleep logs + trend canvas
-- Deep work focus mode with DNR blocking + optional tab closing + panic stop
-- Premium paywall stub + entitlement scaffolding + dev bypass mode
+Premium ($2/mo):
 
-## Privacy Model
+- Advanced cadence modes (work blocks + time windows)
+- Meeting auto-suppression + richer summaries
+- Pairing-token entitlement + paid sync endpoint
 
-- Local-first: extension state in `chrome.storage.local`
-- No keylogging, no data sale
-- Webcam posture mode is optional and local-only
-- Minimal required permissions for alarms/storage/reminders/focus blocking
+## Local development
 
-## Local Development
-
-### 1) Install dependencies
+### 1) Install
 
 ```bash
 npm install
 ```
 
-### 2) Run web app
+### 2) Configure env
+
+Copy `.env.example` and set:
+
+- `DATABASE_URL`
+- `APP_JWT_SECRET`
+- `STRIPE_SECRET_KEY`
+- `STRIPE_PRICE_ID_2`
+- `TRIAL_DAYS`
+- `STRIPE_WEBHOOK_SECRET`
+- `NEXT_PUBLIC_APP_URL`
+- `NEXT_PUBLIC_API_BASE`
+
+### 3) Prepare DB schema
 
 ```bash
-npm run dev:web
+npm -w @holmeta/web run prisma:dbpush
 ```
 
-### 3) Load extension unpacked
+### 4) Run web + functions
+
+Use Netlify local runtime so function paths behave like production:
+
+```bash
+netlify dev
+```
+
+### 5) Build extension and load unpacked
+
+```bash
+npm -w @holmeta/extension run build
+```
+
+Then in Chrome:
 
 1. Open `chrome://extensions`
 2. Enable Developer Mode
 3. Click Load unpacked
-4. Select: `apps/extension`
+4. Select `apps/extension/dist/extension`
 
-## Build + Packaging
+## Stripe setup (test mode)
 
-### Build everything
+1. In Stripe, create a monthly `$2` recurring price.
+2. Put the price ID into `STRIPE_PRICE_ID_2`.
+3. Set `TRIAL_DAYS` (default `7`).
+4. Deploy web app to Netlify.
+5. Add webhook endpoint:
+   `https://<your-site>/.netlify/functions/stripe-webhook`
+6. Subscribe to events:
+   - `checkout.session.completed`
+   - `customer.subscription.created`
+   - `customer.subscription.updated`
+   - `customer.subscription.deleted`
+7. Set `STRIPE_WEBHOOK_SECRET` in Netlify env.
+8. Entitlement is active only for `trialing` and `active` statuses; trial end locks premium features in the extension.
 
-```bash
-npm run build
-```
+## Extension pairing flow
 
-### Build extension zip
+1. Log into `/dashboard` with account code flow.
+2. Click **Generate Pairing Code**.
+3. In extension Options, enter code under **Account + Premium Entitlement**.
+4. Extension exchanges code for JWT and stores it locally.
+5. Extension refreshes entitlement via `/.netlify/functions/entitlement`.
 
-```bash
-npm run zip:extension
-```
+## Deploy
 
-Output: `apps/extension/holmeta-extension.zip`
+### Web (GitHub → Netlify)
 
-## Web Deployment (GitHub -> Netlify)
-
-- Netlify config is pinned in root `netlify.toml`
+- Root config: `netlify.toml`
 - Build command: `npm run build -w @holmeta/web`
-- Publish dir: `apps/web/.next`
 - Functions dir: `apps/web/netlify/functions`
-- Redirects `/api/*` -> `/.netlify/functions/:splat`
+- Redirect `/api/*` → `/.netlify/functions/:splat`
 
-Set env vars from `.env.example` in Netlify UI.
-
-## Extension Distribution (GitHub Actions)
+### Extension (GitHub Actions)
 
 - Workflow: `.github/workflows/build-extension.yml`
-- Trigger: tag push matching `ext-v*`
-- Artifact produced: `holmeta-extension.zip`
+- Trigger tags: `ext-v*`
+- Artifact: `holmeta-extension.zip`
 
-Store upload flow:
+## Core extension capabilities (current)
 
-1. Tag release (`ext-v0.1.0`)
-2. Download artifact from Actions
-3. Upload zip to Chrome Web Store and Firefox AMO dashboards
+- Filter Engine v2 with strong presets and panic/color-accurate toggles
+- Cadence Engine v2 with per-reminder scheduling modes
+- Quiet hours + suppress-on-focus + suppress-on-idle + meeting mode
+- Reminder delivery styles (overlay/notification/popup-only/sound/gentle)
+- Test reminders + timeline preview + completion summaries
+- Focus mode with DNR rules + panic stop
+- Hydration, breathwork, daily logs, ergonomic audit, posture monitor
 
-## Subscription Scaffold (Phased)
+## Wellness disclaimer
 
-Netlify Functions included:
-
-- `GET /api/entitlement`
-- `POST /api/checkout`
-- `POST /api/stripe-webhook`
-- `GET|POST /api/settings-sync` (paid stub)
-
-Current MVP behavior:
-
-- Paywall UI always visible
-- `devBypassPremium=true` keeps features usable in development
-- When bypass is off, advanced controls are gated by entitlement state
-
-## CI
-
-`ci.yml` runs:
-
-- `npm ci`
-- `npm run typecheck`
-- `npm run lint`
-- `npm run test`
-- `npm run build`
-
-## Utility Script
-
-Create new clean projects under `~/Documents/Projects`:
-
-```bash
-./scripts/new-project.sh my-project
-```
-
-## Notes
-
-- Browser compatibility: designed for Chromium MV3 and modern Firefox extension flows.
-- Keep extension package lightweight and local-first for sustainable low pricing.
+holmeta provides wellness/comfort/focus guidance and is not medical advice.

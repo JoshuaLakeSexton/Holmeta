@@ -163,11 +163,18 @@ button,
   color: var(--muted);
 }
 
+.split-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
 .field-row {
   display: grid;
   grid-template-columns: 180px minmax(0, 1fr);
   gap: 8px;
   align-items: center;
+  margin-top: 8px;
 }
 
 input {
@@ -194,8 +201,49 @@ input {
   color: var(--orange);
 }
 
+.pairing-box {
+  margin-top: 12px;
+  border: 1px solid var(--line);
+  padding: 12px;
+  background: rgba(7, 8, 10, 0.35);
+}
+
+.pairing-code {
+  margin: 0;
+  font-size: 22px;
+  letter-spacing: 0.16em;
+  color: var(--amber);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+}
+
+.feature-grid {
+  margin-top: 10px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.feature-item {
+  border: 1px solid var(--line);
+  background: rgba(7, 8, 10, 0.35);
+  padding: 8px;
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 11px;
+  letter-spacing: 0.07em;
+  color: var(--muted);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+}
+
+.feature-item strong {
+  color: var(--text);
+}
+
 @media (max-width: 860px) {
-  .status-grid {
+  .status-grid,
+  .split-grid,
+  .feature-grid {
     grid-template-columns: 1fr;
   }
 

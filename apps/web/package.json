@@ -4,15 +4,18 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "prisma:generate": "prisma generate --schema prisma/schema.prisma",
+    "prisma:dbpush": "prisma db push --schema prisma/schema.prisma",
+    "build": "npm run prisma:generate && next build",
     "start": "next start",
-    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "typecheck": "npm run prisma:generate && tsc -p tsconfig.json --noEmit",
     "lint": "node -e \"console.log('web lint: no-op')\"",
     "test": "node -e \"console.log('web test: no-op')\""
   },
   "dependencies": {
     "@holmeta/shared": "0.1.0",
     "@netlify/functions": "^2.8.2",
+    "@prisma/client": "^6.19.2",
     "next": "^15.1.6",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
@@ -21,6 +24,7 @@
   "devDependencies": {
     "@types/node": "^22.10.10",
     "@types/react": "^19.0.4",
-    "@types/react-dom": "^19.0.2"
+    "@types/react-dom": "^19.0.2",
+    "prisma": "^6.19.2"
   }
 }
