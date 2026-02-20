@@ -1,23 +1,8 @@
 [build]
-  base = "."
-  command = "npm ci && npm -w @holmeta/web run build"
-  publish = "apps/web/.next"
-  functions = "apps/web/netlify/functions"
-
-[build.environment]
-  NODE_VERSION = "20"
-  NETLIFY_BUILD_DEBUG = true
-  CI = ""
-
-[functions]
-  node_bundler = "esbuild"
-  external_node_modules = ["@prisma/client"]
-  included_files = ["apps/web/prisma/schema.prisma", "node_modules/.prisma/client/**"]
+  base = "apps/web"
+  command = "cd ../.. && npm ci && npm -w apps/web run build"
+  publish = ".next"
+  functions = "netlify/functions"
 
 [[plugins]]
   package = "@netlify/plugin-nextjs"
-
-[[redirects]]
-  from = "/api/*"
-  to = "/.netlify/functions/:splat"
-  status = 200
