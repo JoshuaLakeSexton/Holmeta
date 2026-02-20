@@ -83,6 +83,12 @@ Copy `.env.example` and set:
 - `STRIPE_WEBHOOK_SECRET`
 - `NEXT_PUBLIC_APP_URL`
 - `NEXT_PUBLIC_API_BASE`
+- `NEXT_PUBLIC_CHROME_STORE_URL`
+- `NEXT_PUBLIC_EDGE_STORE_URL`
+- `NEXT_PUBLIC_FIREFOX_AMO_URL`
+- `NEXT_PUBLIC_SAFARI_URL`
+- `PUBLIC_BASE_URL`
+- `HOLMETA_EXPOSE_LOGIN_CODE` (optional; enable test login code output in non-prod)
 
 ### 3) Prepare DB schema
 
@@ -115,7 +121,7 @@ Then in Chrome:
 
 1. In Stripe, create a monthly `$2` recurring price.
 2. Put the price ID into `STRIPE_PRICE_ID_2`.
-3. Set `TRIAL_DAYS` (default `7`).
+3. Set `TRIAL_DAYS` (default `3`).
 4. Deploy web app to Netlify.
 5. Add webhook endpoint:
    `https://<your-site>/.netlify/functions/stripe-webhook`
@@ -135,13 +141,30 @@ Then in Chrome:
 4. Extension exchanges code for JWT and stores it locally.
 5. Extension refreshes entitlement via `/.netlify/functions/entitlement`.
 
+## Download CTA configuration
+
+- Landing uses a browser-aware **Download Extension** CTA and routes to `/download`.
+- Configure store links with:
+  - `NEXT_PUBLIC_CHROME_STORE_URL`
+  - `NEXT_PUBLIC_EDGE_STORE_URL`
+  - `NEXT_PUBLIC_FIREFOX_AMO_URL`
+  - `NEXT_PUBLIC_SAFARI_URL`
+- Manual Chromium fallback uses `apps/web/public/downloads/holmeta-extension.zip`.
+- To generate the archive from monorepo root:
+
+```bash
+npm run zip:extension
+cp apps/extension/holmeta-extension.zip apps/web/public/downloads/holmeta-extension.zip
+```
+
 ## Deploy
 
 ### Web (GitHub → Netlify)
 
 - Root config: `netlify.toml`
-- Build command: `npm run build -w @holmeta/web`
+- Build command: `npm ci --include=dev && DATABASE_URL=${DATABASE_URL:-postgresql://placeholder:placeholder@localhost:5432/holmeta} npm -w @holmeta/web run build`
 - Functions dir: `apps/web/netlify/functions`
+- Note: set a real `DATABASE_URL` in Netlify for runtime function access (build uses a safe fallback only).
 - Redirect `/api/*` → `/.netlify/functions/:splat`
 
 ### Extension (GitHub Actions)

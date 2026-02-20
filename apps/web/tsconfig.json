@@ -6,6 +6,7 @@
     "noEmit": true,
     "incremental": true,
     "jsx": "preserve",
+    "types": ["node", "react", "react-dom"],
     "plugins": [
       {
         "name": "next"

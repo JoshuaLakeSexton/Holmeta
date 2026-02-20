@@ -6,10 +6,10 @@ interface StatusCardProps {
 
 export function StatusCard({ label, value, detail }: StatusCardProps) {
   return (
-    <article className="status-card">
-      <p className="status-label">{label}</p>
-      <p className="status-value">{value}</p>
-      <p className="status-detail">{detail}</p>
+    <article className="hm-status-card">
+      <p className="hm-kicker">{label}</p>
+      <p className="hm-status-value">{value}</p>
+      <p className="hm-meta">{detail}</p>
     </article>
   );
 }

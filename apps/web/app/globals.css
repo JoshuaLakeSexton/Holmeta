@@ -1,40 +1,27 @@
-:root {
-  --bg: #07080a;
-  --panel: #0e1014;
-  --panel2: #141824;
-  --text: #eaecef;
-  --muted: #a7adb8;
-  --line: rgba(234, 236, 239, 0.12);
-  --orange: #ff4d1a;
-  --neon-green: #00ff66;
-  --amber: #ffb000;
-  --cyan: #00d4ff;
-}
+@import "@holmeta/shared/styles/holmeta-tokens.css";
+@import "@holmeta/shared/styles/holmeta-ui.css";
 
-* {
-  box-sizing: border-box;
+html,
+body {
+  margin: 0;
+  padding: 0;
+  min-height: 100%;
+  background: var(--c-bg);
+  color: var(--c-text);
+  font-family: var(--ff-sans);
+  font-variant-numeric: tabular-nums;
 }
 
 body {
-  margin: 0;
-  color: var(--text);
-  background: radial-gradient(circle at 14% 20%, rgba(0, 212, 255, 0.08), transparent 36%), var(--bg);
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, Arial, sans-serif;
-}
-
-body::before {
-  content: "";
-  pointer-events: none;
-  position: fixed;
-  inset: 0;
-  background: repeating-linear-gradient(
-    to bottom,
-    rgba(255, 255, 255, 0.026),
-    rgba(255, 255, 255, 0.026) 1px,
-    transparent 1px,
-    transparent 4px
-  );
-  opacity: 0.06;
+  background-image:
+    repeating-linear-gradient(
+      to bottom,
+      rgba(243, 243, 244, 0.04),
+      rgba(243, 243, 244, 0.04) 1px,
+      transparent 1px,
+      transparent 4px
+    ),
+    radial-gradient(circle at 18% 10%, rgba(196, 32, 33, 0.1), transparent 38%);
 }
 
 a {
@@ -43,211 +30,166 @@ a {
 }
 
 .shell {
-  max-width: 1080px;
+  width: min(1080px, 100%);
   margin: 0 auto;
-  padding: 20px;
+  padding: var(--s-5);
   display: grid;
-  gap: 14px;
+  gap: var(--s-3);
 }
 
-.panel {
-  position: relative;
-  border: 1px solid var(--line);
-  background: linear-gradient(180deg, var(--panel), var(--panel2));
-  padding: 18px;
-}
-
-.panel::before,
-.panel::after {
-  content: "";
-  position: absolute;
-  width: 8px;
-  height: 8px;
-  border-color: rgba(255, 77, 26, 0.72);
-}
-
-.panel::before {
-  top: 6px;
-  left: 6px;
-  border-top: 1px solid;
-  border-left: 1px solid;
-}
-
-.panel::after {
-  right: 6px;
-  bottom: 6px;
-  border-right: 1px solid;
-  border-bottom: 1px solid;
-}
-
-.hero h1,
-h1,
-h2 {
-  margin: 6px 0;
+.hm-title {
+  margin: var(--s-1) 0;
+  font-size: var(--fs-5);
+  line-height: var(--lh-tight);
+  letter-spacing: var(--ls-head);
   text-transform: uppercase;
-  letter-spacing: 0.06em;
 }
 
-.kicker,
-.meta-line,
-.status-label,
-.status-detail,
-.status-chip,
-label,
-input,
-button,
-.list {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+.hm-subtitle {
+  margin: var(--s-1) 0;
+  font-size: var(--fs-4);
+  line-height: var(--lh-tight);
+  letter-spacing: var(--ls-head);
+  text-transform: uppercase;
 }
 
-.kicker,
-.meta-line,
-.status-label,
-.status-detail {
-  margin: 0;
-  font-size: 12px;
-  letter-spacing: 0.1em;
-  color: var(--muted);
-}
-
-.lede {
-  margin: 8px 0;
+.hm-lede {
+  margin: var(--s-2) 0;
   max-width: 72ch;
-  line-height: 1.5;
+  line-height: var(--lh-base);
 }
 
-.cta-row {
+.hm-cta-row {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
+  gap: var(--s-2);
   align-items: center;
-  margin-top: 10px;
+  margin-top: var(--s-3);
 }
 
-.btn {
-  border: 1px solid rgba(255, 77, 26, 0.72);
-  background: transparent;
-  color: var(--text);
-  padding: 9px 14px;
-  letter-spacing: 0.08em;
-  cursor: pointer;
-}
-
-.btn-primary {
-  background: rgba(255, 77, 26, 0.18);
-}
-
-.status-grid {
+.hm-status-grid {
   display: grid;
-  gap: 10px;
+  gap: var(--s-2);
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
-.status-card {
-  border: 1px solid var(--line);
-  padding: 12px;
-  background: rgba(7, 8, 10, 0.45);
+.hm-status-card {
+  border: 1px solid var(--c-border);
+  padding: var(--s-3);
+  background: rgba(20, 17, 15, 0.72);
 }
 
-.status-value {
-  margin: 8px 0;
-  color: var(--neon-green);
-  font-size: 20px;
+.hm-status-value {
+  margin: var(--s-2) 0;
+  color: var(--c-warn);
+  font-size: var(--fs-4);
+  font-family: var(--ff-mono);
 }
 
-.list {
-  margin: 10px 0;
+.hm-list {
+  margin: var(--s-2) 0;
   padding-left: 20px;
   display: grid;
-  gap: 7px;
-  color: var(--muted);
+  gap: var(--s-2);
+  color: var(--c-muted);
+  font-family: var(--ff-mono);
+  letter-spacing: var(--ls-body);
 }
 
-.split-grid {
+.hm-list--ordered {
+  padding-left: 24px;
+}
+
+.hm-split-grid {
   display: grid;
-  gap: 12px;
+  gap: var(--s-3);
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
-.field-row {
+.hm-field-row {
   display: grid;
-  grid-template-columns: 180px minmax(0, 1fr);
-  gap: 8px;
+  grid-template-columns: 200px minmax(0, 1fr);
+  gap: var(--s-2);
   align-items: center;
-  margin-top: 8px;
+  margin-top: var(--s-2);
 }
 
-input {
-  width: 100%;
-  border: 1px solid var(--line);
-  background: #07080a;
-  color: var(--text);
-  padding: 8px;
+.hm-download-row {
+  max-width: 680px;
 }
 
-.status-chip {
-  display: inline-block;
-  padding: 6px 10px;
-  border: 1px solid var(--line);
-  font-size: 12px;
-  letter-spacing: 0.09em;
+.hm-warning-panel {
+  margin-top: var(--s-3);
+  border: 1px solid rgba(255, 179, 0, 0.64);
+  background: rgba(52, 49, 45, 0.72);
+  padding: var(--s-3);
 }
 
-.status-active {
-  color: var(--neon-green);
+.hm-warning-line {
+  margin: 0 0 var(--s-2);
+  color: var(--c-warn);
+  font-family: var(--ff-mono);
+  text-transform: uppercase;
+  letter-spacing: var(--ls-meta);
+  font-size: var(--fs-1);
 }
 
-.status-locked {
-  color: var(--orange);
+.hm-pairing-box {
+  margin-top: var(--s-3);
+  border: 1px solid var(--c-border);
+  padding: var(--s-3);
+  background: rgba(20, 17, 15, 0.72);
 }
 
-.pairing-box {
-  margin-top: 12px;
-  border: 1px solid var(--line);
-  padding: 12px;
-  background: rgba(7, 8, 10, 0.35);
-}
-
-.pairing-code {
+.hm-pairing-code {
   margin: 0;
-  font-size: 22px;
-  letter-spacing: 0.16em;
-  color: var(--amber);
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+  font-size: 24px;
+  letter-spacing: var(--ls-meta);
+  color: var(--c-warn);
+  font-family: var(--ff-mono);
 }
 
-.feature-grid {
-  margin-top: 10px;
+.hm-feature-grid {
+  margin-top: var(--s-2);
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 8px;
+  gap: var(--s-2);
 }
 
-.feature-item {
-  border: 1px solid var(--line);
-  background: rgba(7, 8, 10, 0.35);
-  padding: 8px;
+.hm-feature-item {
+  border: 1px solid var(--c-border);
+  background: rgba(20, 17, 15, 0.72);
+  padding: var(--s-2);
   display: flex;
   justify-content: space-between;
-  gap: 8px;
-  font-size: 11px;
-  letter-spacing: 0.07em;
-  color: var(--muted);
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+  gap: var(--s-2);
+  font-size: var(--fs-1);
+  color: var(--c-muted);
+  font-family: var(--ff-mono);
+  text-transform: uppercase;
+  letter-spacing: var(--ls-meta);
 }
 
-.feature-item strong {
-  color: var(--text);
+.hm-feature-item strong {
+  color: var(--c-text);
 }
 
 @media (max-width: 860px) {
-  .status-grid,
-  .split-grid,
-  .feature-grid {
+  .shell {
+    padding: var(--s-3);
+  }
+
+  .hm-status-grid,
+  .hm-split-grid,
+  .hm-feature-grid {
     grid-template-columns: 1fr;
   }
 
-  .field-row {
+  .hm-field-row {
     grid-template-columns: 1fr;
+  }
+
+  .hm-title {
+    font-size: 24px;
   }
 }

@@ -1,5 +1,9 @@
 "use client";
 
+import { Button } from "@/components/holmeta/Button";
+import { Field } from "@/components/holmeta/Field";
+import { Label } from "@/components/holmeta/Label";
+import { Panel } from "@/components/holmeta/Panel";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 type Entitlement = {
@@ -366,122 +370,124 @@ export default function DashboardPage() {
 
   return (
     <main className="shell">
-      <header className="panel">
-        <p className="kicker">ACCOUNT / DASHBOARD</p>
-        <h1>holmeta account console</h1>
-        <p className={`status-chip ${subscriptionSummary.chipClass}`}>{subscriptionSummary.label}</p>
-        <p className="meta-line">{subscriptionSummary.detail}</p>
-        <p className="meta-line">
+      <Panel as="header">
+        <p className="hm-kicker">ACCOUNT / DASHBOARD</p>
+        <h1 className="hm-title">holmeta account console</h1>
+        <p className={`hm-chip ${subscriptionSummary.chipClass}`}>{subscriptionSummary.label}</p>
+        <p className="hm-meta">{subscriptionSummary.detail}</p>
+        <p className="hm-meta">
           {entitlement.trialEndsAt
             ? `TRIAL ENDS: ${new Date(entitlement.trialEndsAt).toLocaleString()}`
             : "TRIAL ENDS: N/A"}
         </p>
-        <p className="meta-line">
+        <p className="hm-meta">
           {entitlement.renewsAt
             ? `RENEWS AT: ${new Date(entitlement.renewsAt).toLocaleString()}`
             : "RENEWAL: N/A"}
         </p>
-        <p className="meta-line">{statusLine}</p>
-      </header>
+        <p className="hm-meta">{statusLine}</p>
+      </Panel>
 
       {!token ? (
-        <section className="panel">
-          <h2>Sign In</h2>
-          <p className="meta-line">Enter email, request a code, then verify to manage trial/subscription and generate extension pairing codes.</p>
-          <div className="field-row">
-            <label htmlFor="email">EMAIL</label>
-            <input
+        <Panel>
+          <h2 className="hm-subtitle">Sign In</h2>
+          <p className="hm-meta">Enter email, request a code, then verify to manage trial/subscription and generate extension pairing codes.</p>
+
+          <div className="hm-field-row">
+            <Label htmlFor="email">EMAIL</Label>
+            <Field
               id="email"
               value={email}
               placeholder="you@company.com"
               onChange={(event) => setEmail(event.target.value)}
             />
           </div>
-          <div className="field-row">
-            <label htmlFor="accountCode">ACCOUNT CODE</label>
-            <input
+
+          <div className="hm-field-row">
+            <Label htmlFor="accountCode">ACCOUNT CODE</Label>
+            <Field
               id="accountCode"
               value={codeInput}
               placeholder="123456"
               onChange={(event) => setCodeInput(event.target.value)}
             />
           </div>
-          <div className="cta-row">
-            <button className="btn" onClick={requestAccountCode} disabled={loading || !email}>
+
+          <div className="hm-cta-row">
+            <Button onClick={requestAccountCode} disabled={loading || !email}>
               REQUEST CODE
-            </button>
-            <button className="btn btn-primary" onClick={verifyCodeAndLogin} disabled={loading || !email || !codeInput}>
+            </Button>
+            <Button variant="primary" onClick={verifyCodeAndLogin} disabled={loading || !email || !codeInput}>
               VERIFY + LOGIN
-            </button>
+            </Button>
           </div>
+
           {issuedCode ? (
-            <p className="meta-line">
+            <p className="hm-meta">
               TEST CODE: <strong>{issuedCode}</strong>
               {codeExpiresAt ? ` · EXPIRES ${new Date(codeExpiresAt).toLocaleTimeString()}` : ""}
             </p>
           ) : null}
-        </section>
+        </Panel>
       ) : (
         <>
-          <section className="panel">
-            <h2>Billing</h2>
-            <p className="meta-line">SIGNED IN AS: {user?.email || email}</p>
-            <p className="meta-line">$2/month subscription · 3-day trial.</p>
-            <div className="cta-row">
-              <button className="btn btn-primary" onClick={startCheckout} disabled={loading}>
+          <Panel>
+            <h2 className="hm-subtitle">Billing</h2>
+            <p className="hm-meta">SIGNED IN AS: {user?.email || email}</p>
+            <p className="hm-meta">$2/month subscription · 3-day trial.</p>
+            <div className="hm-cta-row">
+              <Button variant="primary" onClick={startCheckout} disabled={loading}>
                 SUBSCRIBE $2/MO (3-DAY TRIAL)
-              </button>
-              <button className="btn" onClick={openPortal} disabled={loading}>
+              </Button>
+              <Button onClick={openPortal} disabled={loading}>
                 OPEN BILLING PORTAL
-              </button>
-              <button className="btn" onClick={loadEntitlement} disabled={loading}>
+              </Button>
+              <Button onClick={loadEntitlement} disabled={loading}>
                 REFRESH ENTITLEMENT
-              </button>
-              <button className="btn" onClick={logout}>
-                LOG OUT
-              </button>
+              </Button>
+              <Button onClick={logout}>LOG OUT</Button>
             </div>
-          </section>
+          </Panel>
 
-          <section className="panel">
-            <h2>Connect holmeta Extension</h2>
-            <p className="meta-line">Generate a one-time pairing code (valid for 10 minutes), then paste it in Extension Options.</p>
-            <div className="cta-row">
-              <button className="btn btn-primary" onClick={createPairingCode} disabled={loading}>
+          <Panel>
+            <h2 className="hm-subtitle">Connect holmeta Extension</h2>
+            <p className="hm-meta">Generate a one-time pairing code (valid for 10 minutes), then paste it in Extension Options.</p>
+            <div className="hm-cta-row">
+              <Button variant="primary" onClick={createPairingCode} disabled={loading}>
                 GENERATE PAIRING CODE
-              </button>
+              </Button>
             </div>
             {pairingCode ? (
-              <div className="pairing-box">
-                <p className="pairing-code">{pairingCode}</p>
-                <p className="meta-line">
+              <div className="hm-pairing-box">
+                <p className="hm-pairing-code">{pairingCode}</p>
+                <p className="hm-meta">
                   VALID UNTIL: {pairingExpiresAt ? new Date(pairingExpiresAt).toLocaleTimeString() : "N/A"}
                 </p>
-                <p className="meta-line">Extension path: Options → Account + Premium Entitlement → Pair extension.</p>
+                <p className="hm-meta">Extension path: Options → Account + Premium Entitlement → Pair extension.</p>
               </div>
             ) : null}
-          </section>
+          </Panel>
 
-          <section className="panel">
-            <h2>Feature Access</h2>
-            <div className="feature-grid">
-              <div className="feature-item">
+          <Panel>
+            <h2 className="hm-subtitle">Feature Access</h2>
+            <div className="hm-feature-grid">
+              <div className="hm-feature-item">
                 <span>lightFilters</span>
                 <strong>{lightFiltersEnabled ? "ON" : "OFF"}</strong>
               </div>
-              <div className="feature-item">
+              <div className="hm-feature-item">
                 <span>everythingElse</span>
                 <strong>{everythingElseEnabled ? "ON" : "OFF"}</strong>
               </div>
             </div>
-          </section>
+          </Panel>
         </>
       )}
 
-      <section className="panel">
-        <p className="kicker">WELLNESS DISCLAIMER</p>
-        <p className="meta-line">holmeta offers comfort/focus guidance and is not medical advice.</p>
-      </section>
+      <Panel>
+        <p className="hm-kicker">WELLNESS DISCLAIMER</p>
+        <p className="hm-meta">holmeta offers comfort/focus guidance and is not medical advice.</p>
+      </Panel>
     </main>
   );
 }

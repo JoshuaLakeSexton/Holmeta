@@ -6,7 +6,8 @@
   "types": "src/index.ts",
   "files": [
     "src",
-    "dist"
+    "dist",
+    "styles"
   ],
   "scripts": {
     "build": "tsc -p tsconfig.json",
