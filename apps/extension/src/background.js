@@ -25,7 +25,7 @@ const REMINDER_ALARM_PREFIX = "holmeta-reminder-";
 const FOCUS_RULE_IDS = Array.from({ length: 120 }, (_, i) => 9000 + i);
 const NOTIFICATION_ICON = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQIHWP4//8/AwAI/AL+Xw8N3wAAAABJRU5ErkJggg==";
 const SIDE_PANEL_PATH = "src/sidepanel.html";
-const SIDE_PANEL_ENABLED = false;
+const SIDE_PANEL_ENABLED = true;
 const PREMIUM_FEATURES = {
   lightFilters: true,
   everythingElse: true,
@@ -1613,7 +1613,8 @@ async function triggerReminder(reminderType, options = {}) {
   return {
     ok: true,
     reminderType,
-    payload
+    payload,
+    delivery
   };
 }
 
@@ -1958,34 +1959,6 @@ async function clearReminderSnooze(runtime, reminderType) {
   return runtime;
 }
 
-function openOptionsTabFallback() {
-  const url = chrome.runtime.getURL("src/options.html");
-  if (!chrome.tabs?.create) {
-    return;
-  }
-
-  chrome.tabs.create({ url }, () => {
-    void chrome.runtime.lastError;
-  });
-}
-
-async function openOpsConsoleFromAction() {
-  if (chrome.runtime?.openOptionsPage) {
-    await new Promise((resolve) => {
-      chrome.runtime.openOptionsPage(() => {
-        const err = chrome.runtime.lastError;
-        if (err) {
-          openOptionsTabFallback();
-        }
-        resolve();
-      });
-    });
-    return;
-  }
-
-  openOptionsTabFallback();
-}
-
 configureSidePanelDefaults("service-worker-load").catch(() => {});
 
 async function runBootstrap() {
@@ -2005,10 +1978,6 @@ chrome.runtime.onInstalled.addListener(() => {
 
 chrome.runtime.onStartup.addListener(() => {
   runBootstrap();
-});
-
-chrome.action.onClicked.addListener(() => {
-  openOpsConsoleFromAction();
 });
 
 chrome.commands?.onCommand?.addListener(async (command) => {
@@ -2078,6 +2047,7 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
 
 chrome.tabs.onActivated.addListener(async (info) => {
   if (info.tabId) {
+    await disableSidePanelForTab(info.tabId);
     await sendStateToTab(info.tabId);
     const settings = await getSettings();
     const runtime = await getRuntime();
@@ -2086,7 +2056,13 @@ chrome.tabs.onActivated.addListener(async (info) => {
 });
 
 chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
-  if (changeInfo.status === "complete" && tab?.url && isHttpUrl(tab.url)) {
+  if (changeInfo.status !== "complete") {
+    return;
+  }
+
+  await disableSidePanelForTab(tabId);
+
+  if (tab?.url && isHttpUrl(tab.url)) {
     await sendStateToTab(tabId);
     const settings = await getSettings();
     const runtime = await getRuntime();

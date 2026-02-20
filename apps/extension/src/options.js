@@ -1617,47 +1617,23 @@
       });
       await refreshState();
     });
-    const openSidePanelQuickBtn = $("openSidePanelQuick");
-    const closeSidePanelQuickBtn = $("closeSidePanelQuick");
-    const sidePanelSupported = Boolean(chrome.sidePanel && typeof chrome.sidePanel.setOptions === "function");
-
-    if (sidePanelSupported) {
-      openSidePanelQuickBtn.addEventListener("click", async () => {
-        const response = await sendPanelCommand("HOLMETA_PANEL_OPEN");
-        if (!response?.ok) {
-          setStatus("STATUS: SIDE PANEL OPEN FAILED (" + String(response?.error || "UNKNOWN") + ")");
-          return;
-        }
-
-        setStatus("STATUS: SIDE PANEL OPENED");
-      });
-
-      closeSidePanelQuickBtn.addEventListener("click", async () => {
-        const response = await sendPanelCommand("HOLMETA_PANEL_CLOSE");
-        if (!response?.ok) {
-          setStatus("STATUS: SIDE PANEL CLOSE FAILED (" + String(response?.error || "UNKNOWN") + ")");
-          return;
-        }
-
-        setStatus("STATUS: SIDE PANEL CLOSED");
-      });
-    } else {
-      [openSidePanelQuickBtn, closeSidePanelQuickBtn].forEach((button) => {
-        if (!button) {
-          return;
-        }
-
-        button.disabled = true;
-        button.hidden = true;
-      });
-    }
-
     $("cadenceCards").addEventListener("click", async (event) => {
       const target = event.target;
       const reminderType = target?.getAttribute?.("data-test-reminder");
       if (!reminderType) return;
-      await send({ type: "holmeta-test-reminder", reminderType });
-      setStatus(`STATUS: TEST REMINDER DISPATCHED (${reminderType.toUpperCase()})`);
+      const response = await send({ type: "holmeta-test-reminder", reminderType });
+      if (!response || response.ok !== true) {
+        setStatus("STATUS: TEST FAILED (" + String((response && response.error) || "UNKNOWN") + ")");
+        return;
+      }
+
+      if (response.suppressed) {
+        setStatus("STATUS: SUPPRESSED (" + String(response.reason || "RULE") + ")");
+      } else if (response.delivery && response.delivery.delivered === false) {
+        setStatus("STATUS: NO ACTIVE WEB TAB FOR OVERLAY");
+      } else {
+        setStatus("STATUS: TEST REMINDER DISPATCHED (" + reminderType.toUpperCase() + ")");
+      }
     });
 
     $("saveDailyLog").addEventListener("click", async () => {
@@ -1686,8 +1662,7 @@
     $("stopPostureMonitor").addEventListener("click", () => {
       stopPostureMonitor();
     });
-
-        $("pairExtension").addEventListener("click", async () => {
+    $("pairExtension").addEventListener("click", async () => {
       const code = String($("pairingCodeInput").value || "").trim().toUpperCase();
       if (!code) {
         $("pairingStatus").textContent = "STATUS: ENTER A PAIRING CODE";
@@ -1704,14 +1679,12 @@
       setAccountStatus("PAIRING SUCCEEDED", "success");
       await refreshState();
     });
-
-        $("clearPairing").addEventListener("click", async () => {
+    $("clearPairing").addEventListener("click", async () => {
       await send({ type: "holmeta-clear-extension-token" });
       setAccountStatus("PAIRING CLEARED", "success");
       await refreshState();
     });
-
-        $("refreshEntitlement").addEventListener("click", async () => {
+    $("refreshEntitlement").addEventListener("click", async () => {
       const response = await send({ type: "holmeta-refresh-entitlement" });
       if (!response?.ok) {
         setAccountStatus("ENTITLEMENT REFRESH FAILED", "error");
@@ -1720,8 +1693,7 @@
       }
       await refreshState();
     });
-
-        $("openDashboard").addEventListener("click", async () => {
+    $("openDashboard").addEventListener("click", async () => {
       await openDashboardFromAccount();
     });
     $("testDashboardUrl").addEventListener("click", async () => {

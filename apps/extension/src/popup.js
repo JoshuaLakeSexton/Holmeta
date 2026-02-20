@@ -691,8 +691,19 @@
         const reminderType = button.getAttribute("data-test-reminder");
         $("testStatus").textContent = "STATUS: TESTING " + String(reminderType || "").toUpperCase();
         playUiSfx("uiTest", { force: true });
-        await send({ type: "holmeta-test-reminder", reminderType });
-        $("testStatus").textContent = "STATUS: DISPATCHED " + String(reminderType || "").toUpperCase();
+        const response = await send({ type: "holmeta-test-reminder", reminderType });
+        if (!response?.ok) {
+          $("testStatus").textContent = "STATUS: TEST FAILED (" + String(response?.error || "UNKNOWN") + ")";
+          return;
+        }
+
+        if (response?.suppressed) {
+          $("testStatus").textContent = "STATUS: SUPPRESSED (" + String(response.reason || "RULE") + ")";
+        } else if (response?.delivery && response.delivery.delivered === false) {
+          $("testStatus").textContent = "STATUS: NO WEB TAB FOR OVERLAY - OPEN HTTPS TAB";
+        } else {
+          $("testStatus").textContent = "STATUS: DISPATCHED " + String(reminderType || "").toUpperCase();
+        }
         await refreshState();
       });
     });
@@ -745,46 +756,6 @@
       await refreshState();
       playUiSfx("uiSuccess");
     });
-    const openSidePanelBtn = $("openSidePanel");
-    const closeSidePanelBtn = $("closeSidePanel");
-    const sidePanelSupported = Boolean(chrome.sidePanel && typeof chrome.sidePanel.setOptions === "function");
-
-    if (sidePanelSupported) {
-      openSidePanelBtn.addEventListener("click", async () => {
-        playUiSfx("uiClick");
-        const response = await sendPanelCommand("HOLMETA_PANEL_OPEN");
-        if (!response?.ok) {
-          setInlineStatus("STATUS: SIDE PANEL OPEN FAILED (" + String(response?.error || "UNKNOWN") + ")");
-          playUiSfx("uiError", { force: true });
-          return;
-        }
-
-        setInlineStatus("STATUS: SIDE PANEL OPENED");
-        playUiSfx("uiSuccess", { force: true });
-      });
-
-      closeSidePanelBtn.addEventListener("click", async () => {
-        playUiSfx("uiClick");
-        const response = await sendPanelCommand("HOLMETA_PANEL_CLOSE");
-        if (!response?.ok) {
-          setInlineStatus("STATUS: SIDE PANEL CLOSE FAILED (" + String(response?.error || "UNKNOWN") + ")");
-          playUiSfx("uiError", { force: true });
-          return;
-        }
-
-        setInlineStatus("STATUS: SIDE PANEL CLOSED");
-        playUiSfx("uiSuccess", { force: true });
-      });
-    } else {
-      [openSidePanelBtn, closeSidePanelBtn].forEach((button) => {
-        if (!button) {
-          return;
-        }
-
-        button.disabled = true;
-        button.hidden = true;
-      });
-    }
 
     $("openHud").addEventListener("click", async () => {
       playUiSfx("uiClick");
