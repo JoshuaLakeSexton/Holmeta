@@ -1,20 +1,18 @@
-# netlify.toml (repo root)
-
 [build]
-  command = "npm ci && npm -w apps/web run build"
-  publish = "apps/web/.next"
-  functions = "apps/web/netlify/functions"
+  base = "apps/web"
+  command = "npm ci && npm run build"
+  publish = ".next"
+  functions = "netlify/functions"
 
 [build.environment]
   NODE_VERSION = "20"
-  NPM_FLAGS = "--no-audit --no-fund"
   NETLIFY_BUILD_DEBUG = "true"
 
 [functions]
   node_bundler = "esbuild"
   external_node_modules = ["@prisma/client"]
   included_files = [
-    "apps/web/prisma/schema.prisma",
+    "prisma/schema.prisma",
     "node_modules/.prisma/client/**",
     "node_modules/@prisma/**"
   ]
@@ -22,7 +20,6 @@
 [[plugins]]
   package = "@netlify/plugin-nextjs"
 
-# Optional (but usually helpful): clean /api/* endpoints -> netlify functions
 [[redirects]]
   from = "/api/*"
   to = "/.netlify/functions/:splat"
