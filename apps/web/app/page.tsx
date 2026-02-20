@@ -1,9 +1,98 @@
+"use client";
+
+import { useEffect, useMemo, useState } from "react";
+
 import { Button } from "@/components/holmeta/Button";
-import { DownloadCTA } from "@/components/holmeta/DownloadCTA";
 import { Panel } from "@/components/holmeta/Panel";
+import { BROWSER_LABELS, detectBrowser, type BrowserFamily, type BrowserType } from "@/lib/browser";
 import { StatusCard } from "@/components/status-card";
 
+const PRICE_ID = process.env.NEXT_PUBLIC_STRIPE_PRICE_ID_2 ?? null;
+
+type CheckoutResponse = {
+  url?: string;
+  error?: string;
+};
+
 export default function HomePage() {
+  const [browserType, setBrowserType] = useState<BrowserType>("unknown");
+  const [browserFamily, setBrowserFamily] = useState<BrowserFamily>("unknown");
+  const [checkoutBusy, setCheckoutBusy] = useState(false);
+  const [checkoutError, setCheckoutError] = useState("");
+
+  useEffect(() => {
+    let alive = true;
+
+    detectBrowser()
+      .then((info) => {
+        if (!alive) return;
+        setBrowserType(info.type);
+        setBrowserFamily(info.family);
+      })
+      .catch(() => {
+        if (!alive) return;
+        setBrowserType("unknown");
+        setBrowserFamily("unknown");
+      });
+
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  const downloadHref = useMemo(() => {
+    if (browserFamily === "chromium") {
+      return "/downloads/holmeta-extension.zip";
+    }
+
+    if (browserType === "firefox") {
+      return "/download?browser=firefox";
+    }
+
+    return "/download";
+  }, [browserFamily, browserType]);
+
+  const downloadLabel = useMemo(() => {
+    if (browserFamily === "chromium") {
+      return "Download Extension";
+    }
+
+    if (browserType === "firefox") {
+      return "Firefox Install Info";
+    }
+
+    return "Download Options";
+  }, [browserFamily, browserType]);
+
+  async function startCheckout() {
+    setCheckoutBusy(true);
+    setCheckoutError("");
+
+    try {
+      const response = await fetch("/.netlify/functions/create-checkout-session", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          priceId: PRICE_ID
+        })
+      });
+
+      const payload = (await response.json().catch(() => ({}))) as CheckoutResponse;
+
+      if (!response.ok || !payload.url) {
+        throw new Error(payload.error || `Checkout request failed (${response.status}).`);
+      }
+
+      window.location.href = payload.url;
+    } catch (error) {
+      setCheckoutError(error instanceof Error ? error.message : "Could not start Stripe Checkout.");
+    } finally {
+      setCheckoutBusy(false);
+    }
+  }
+
   return (
     <main className="shell">
       <Panel as="header" className="hero">
@@ -13,11 +102,17 @@ export default function HomePage() {
           Extension-first screen health + deep work instrumentation for people on screens 8+ hours/day. Local-first reminders,
           browser-only filter engine, and a $2/mo plan with a 3-day trial (trial enables Light Filters only).
         </p>
+        <p className="hm-meta">DETECTED BROWSER: {BROWSER_LABELS[browserType]}</p>
         <div className="hm-cta-row">
-          <DownloadCTA />
+          <Button href={downloadHref} variant="primary">
+            {downloadLabel}
+          </Button>
           <Button href="/dashboard">Start Free</Button>
-          <Button href="/dashboard/subscribe">Subscribe ($2/mo)</Button>
+          <Button onClick={startCheckout} disabled={checkoutBusy}>
+            {checkoutBusy ? "Starting Checkout..." : "Subscribe ($2/mo)"}
+          </Button>
         </div>
+        {checkoutError ? <p className="hm-warning-line">CHECKOUT ERROR: {checkoutError}</p> : null}
       </Panel>
 
       <Panel className="hm-status-grid">
@@ -52,7 +147,7 @@ export default function HomePage() {
           <Button href="/dashboard" variant="primary">
             Open Account Console
           </Button>
-          <DownloadCTA />
+          <Button href="/download">Download Details</Button>
         </div>
       </Panel>
 

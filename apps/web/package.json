@@ -6,7 +6,7 @@
     "dev": "next dev",
     "prisma:generate": "prisma generate --schema prisma/schema.prisma",
     "prisma:dbpush": "prisma db push --schema prisma/schema.prisma",
-    "build": "npm run prisma:generate && next build",
+    "build": "npm run prisma:generate && npm --prefix ../extension run build && node ./scripts/prepare-extension-download.mjs && next build",
     "start": "next start",
     "typecheck": "npm run prisma:generate && tsc -p tsconfig.json --noEmit",
     "lint": "node -e \"console.log('web lint: no-op')\"",

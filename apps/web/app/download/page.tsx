@@ -254,8 +254,7 @@ export default function DownloadPage() {
             <div className="hm-warning-panel">
               <p className="hm-warning-line">ZIP NOT AVAILABLE YET</p>
               <p className="hm-meta">
-                Run <span className="hm-mono">npm run zip:extension</span> and copy the archive to
-                <span className="hm-mono"> apps/web/public/downloads/holmeta-extension.zip</span>.
+                Run <span className="hm-mono">npm --prefix apps/extension run build:zip</span> to regenerate and copy this archive automatically.
               </p>
             </div>
           ) : null}
