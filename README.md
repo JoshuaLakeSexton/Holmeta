@@ -153,8 +153,7 @@ Then in Chrome:
 - To generate the archive from monorepo root:
 
 ```bash
-npm run zip:extension
-cp apps/extension/holmeta-extension.zip apps/web/public/downloads/holmeta-extension.zip
+npm --prefix apps/extension run build:zip
 ```
 
 ## Deploy
@@ -162,7 +161,7 @@ cp apps/extension/holmeta-extension.zip apps/web/public/downloads/holmeta-extens
 ### Web (GitHub → Netlify)
 
 - Root config: `netlify.toml`
-- Build command: `npm ci --include=dev && DATABASE_URL=${DATABASE_URL:-postgresql://placeholder:placeholder@localhost:5432/holmeta} npm -w @holmeta/web run build`
+- Build command: `npm ci && npm --prefix apps/extension run build:zip && npm --prefix apps/web run build`
 - Functions dir: `apps/web/netlify/functions`
 - Note: set a real `DATABASE_URL` in Netlify for runtime function access (build uses a safe fallback only).
 - Redirect `/api/*` → `/.netlify/functions/:splat`

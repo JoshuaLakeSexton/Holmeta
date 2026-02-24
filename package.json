@@ -17,6 +17,7 @@
     "zip:extension": "npm run zip -w @holmeta/extension"
   },
   "devDependencies": {
+    "archiver": "^7.0.1",
     "typescript": "^5.7.3"
   }
 }

@@ -33,6 +33,10 @@ export const handler: Handler = async (event) => {
     return preflight;
   }
 
+  if (event.httpMethod === "GET") {
+    return json(200, { ok: true, hint: "Use POST" });
+  }
+
   if (event.httpMethod !== "POST") {
     return methodNotAllowed(["POST", "OPTIONS"]);
   }
