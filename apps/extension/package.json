@@ -7,6 +7,7 @@
     "build": "rm -rf dist holmeta-extension.zip && mkdir -p dist/extension dist/extension/packages/shared/styles && cp manifest.json dist/extension/ && cp -R src dist/extension/ && cp -R ../../packages/shared/styles/. dist/extension/packages/shared/styles/ && if [ -d src/assets ]; then cp -R src/assets dist/extension/assets; fi && (cd dist && zip -qr ../holmeta-extension.zip extension)",
     "build:zip": "npm run build",
     "zip": "npm run build",
+    "check": "npm run lint && npm run typecheck",
     "lint:palette": "node scripts/lint-palette.mjs",
     "lint": "npm run lint:palette",
     "typecheck": "node -e \"console.log('extension typecheck: no-op (plain JS)')\"",
