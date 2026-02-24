@@ -1,7 +1,7 @@
 [build]
-  command = "npm ci && npm -w @holmeta/web run build"
-  publish = "apps/web/.next"
-  functions = "apps/web/netlify/functions"
+  command = "npm run build"
+  publish = ".next"
+  functions = "netlify/functions"
 
 [[plugins]]
   package = "@netlify/plugin-nextjs"
