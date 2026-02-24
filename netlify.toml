@@ -1,7 +1,8 @@
 [build]
-  command = "npm ci && npm -w @holmeta/web run build"
-  publish = "apps/web/.next"
-  functions = "apps/web/netlify/functions"
+  base = "apps/web"
+  command = "cd ../.. && npm ci && npm -w @holmeta/web run build"
+  publish = ".next"
+  functions = "netlify/functions"
 
 [build.environment]
   NODE_VERSION = "20"
