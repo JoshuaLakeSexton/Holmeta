@@ -55,7 +55,12 @@
       }
     }
   },
-  "content_scripts": [
+  "content_scripts":
+  "css": [
+  "../../packages/shared/styles/holmeta-tokens.css",
+  "../../packages/shared/styles/holmeta-ui.css"
+]
+ [
     {
       "matches": [
         "http://*/*",
