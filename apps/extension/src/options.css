@@ -35,11 +35,17 @@ body::before {
 
 .app-shell {
   position: relative;
+  z-index: 1;
   max-width: 1220px;
   margin: 0 auto;
   padding: var(--s-4);
   display: grid;
   gap: var(--s-3);
+}
+
+.panel,
+.panel * {
+  pointer-events: auto;
 }
 
 .app-shell > * {

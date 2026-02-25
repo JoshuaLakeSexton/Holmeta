@@ -39,12 +39,18 @@ body::before {
 
 .popup-shell {
   position: relative;
+  z-index: 1;
   width: 100%;
   min-width: 320px;
   margin: 0;
   display: grid;
   gap: var(--s-3);
   padding: var(--s-3);
+}
+
+.panel,
+.panel * {
+  pointer-events: auto;
 }
 
 .header {

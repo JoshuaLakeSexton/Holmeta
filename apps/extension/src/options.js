@@ -46,7 +46,14 @@
   function send(message) {
     return new Promise((resolve) => {
       chrome.runtime.sendMessage(message, (response) => {
-        void chrome.runtime.lastError;
+        const runtimeError = chrome.runtime?.lastError;
+        if (runtimeError) {
+          resolve({
+            ok: false,
+            error: runtimeError.message || "RUNTIME_ERROR"
+          });
+          return;
+        }
         resolve(response || {});
       });
     });
@@ -1380,6 +1387,16 @@
       send({ type: "holmeta-get-trends" })
     ]);
 
+    if (stateResponse?.ok === false) {
+      setStatus("STATUS: BACKGROUND ERROR (" + String(stateResponse.error || "UNKNOWN") + ")");
+      setAccountStatus("BACKGROUND ERROR", "error");
+      return;
+    }
+
+    if (trendsResponse?.ok === false) {
+      setStatus("STATUS: TRENDS ERROR (" + String(trendsResponse.error || "UNKNOWN") + ")");
+    }
+
     if (stateResponse.settings) state.settings = HC.normalizeSettings(stateResponse.settings);
     if (stateResponse.runtime) state.runtime = HC.normalizeRuntime(stateResponse.runtime);
     if (stateResponse.entitlement) state.entitlement = normalizeEntitlement(stateResponse.entitlement);
@@ -1732,8 +1749,14 @@
     bindRatingRows();
     bindEvents();
     attachPhotoReader();
-    await loadAudit();
-    await refreshState();
+    try {
+      await loadAudit();
+      await refreshState();
+    } catch (error) {
+      setStatus("STATUS: INIT ERROR");
+      setAccountStatus("INIT ERROR", "error");
+      console.error("holmeta options bootstrap failed", error);
+    }
   }
 
   bootstrap();

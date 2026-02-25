@@ -46,7 +46,14 @@
   function send(message) {
     return new Promise((resolve) => {
       chrome.runtime.sendMessage(message, (response) => {
-        void chrome.runtime.lastError;
+        const runtimeError = chrome.runtime?.lastError;
+        if (runtimeError) {
+          resolve({
+            ok: false,
+            error: runtimeError.message || "RUNTIME_ERROR"
+          });
+          return;
+        }
         resolve(response || {});
       });
     });
@@ -529,6 +536,10 @@
 
   async function refreshState() {
     const response = await send({ type: "holmeta-request-state", domain: "" });
+    if (response?.ok === false) {
+      setInlineStatus("STATUS: BACKGROUND ERROR (" + String(response.error || "UNKNOWN") + ")");
+      return;
+    }
 
     if (response.settings) state.settings = HC.normalizeSettings(response.settings);
     if (response.runtime) state.runtime = HC.normalizeRuntime(response.runtime);
@@ -797,7 +808,12 @@
   async function bootstrap() {
     installAudioUnlock();
     bindEvents();
-    await refreshState();
+    try {
+      await refreshState();
+    } catch (error) {
+      setInlineStatus("STATUS: INIT ERROR");
+      console.error("holmeta popup bootstrap failed", error);
+    }
 
     setInterval(() => {
       render();
