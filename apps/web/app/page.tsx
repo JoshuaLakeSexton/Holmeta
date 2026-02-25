@@ -1,5 +1,7 @@
 "use client";
 
+import Image from "next/image";
+
 import { Accordion } from "@/components/holmeta/Accordion";
 import { Button } from "@/components/holmeta/Button";
 import { FAQItem } from "@/components/holmeta/FAQItem";
@@ -59,7 +61,22 @@ export default function HomePage() {
 
       <section className="hm-section hm-hero" aria-labelledby="hero-title">
         <div className="hm-hero-grid">
-          <Panel>
+          <Panel className="hm-proof-card" aria-label="Holmeta extension screenshot">
+            <p className="hm-kicker">LIVE PREVIEW</p>
+            <p className="hm-meta">Holmeta extension command center</p>
+            <figure className="hm-proof-frame">
+              <Image
+                src="/images/holmeta-extension-command-center.png"
+                alt="Holmeta extension popup with reminder readouts, focus controls, and filter controls."
+                width={384}
+                height={1240}
+                className="hm-proof-image"
+                priority
+              />
+            </figure>
+          </Panel>
+
+          <Panel className="hm-hero-copy">
             <p className="hm-kicker">MISSION BRIEFING</p>
             <h1 className="hm-title" id="hero-title">
               MISSION: reduce screen strain + increase focus without sending your data to the cloud.
@@ -84,18 +101,6 @@ export default function HomePage() {
               <span className="hm-chip">Local-first</span>
               <span className="hm-chip">Browser-only</span>
               <span className="hm-chip">Cancel anytime</span>
-            </div>
-          </Panel>
-
-          <Panel className="hm-proof-card" aria-label="Visual proof placeholder">
-            <p className="hm-kicker">LIVE PREVIEW</p>
-            <p className="hm-meta">Inline placeholder for extension capture</p>
-            <div className="hm-proof-frame" role="img" aria-label="Holmeta extension panel placeholder">
-              <div className="hm-proof-row hm-proof-row--head" />
-              <div className="hm-proof-row" />
-              <div className="hm-proof-row hm-proof-row--short" />
-              <div className="hm-proof-row" />
-              <div className="hm-proof-row hm-proof-row--short" />
             </div>
           </Panel>
         </div>
@@ -195,7 +200,10 @@ export default function HomePage() {
 
           <div className="hm-faq-list">
             <FAQItem question="What does “local-first” mean here?">
-              <p className="hm-meta">Core browsing controls run in your extension. Billing and entitlement checks are handled server-side.</p>
+              <p className="hm-meta">
+                Core browsing controls run in your extension. Billing and entitlement checks are handled
+                server-side.
+              </p>
             </FAQItem>
 
             <FAQItem question="Does this work system-wide or only in the browser?">
@@ -203,11 +211,17 @@ export default function HomePage() {
             </FAQItem>
 
             <FAQItem question="Which browsers are supported?">
-              <p className="hm-meta">Chromium browsers are supported now. Firefox/Safari rollout depends on store publishing status.</p>
+              <p className="hm-meta">
+                Chromium browsers are supported now. Firefox/Safari rollout depends on store publishing
+                status.
+              </p>
             </FAQItem>
 
             <FAQItem question="What’s included in the trial vs free vs premium?">
-              <p className="hm-meta">Free covers baseline controls. The 3-day trial is for Premium evaluation. Premium unlocks advanced modules.</p>
+              <p className="hm-meta">
+                Free covers baseline controls. The 3-day trial is for Premium evaluation. Premium unlocks
+                advanced modules.
+              </p>
             </FAQItem>
 
             <FAQItem question="Can I cancel immediately?">
@@ -215,11 +229,17 @@ export default function HomePage() {
             </FAQItem>
 
             <FAQItem question="What data do you store?">
-              <p className="hm-meta">Account, subscription, and entitlement records. Sensitive browsing behavior is not required for core operation.</p>
+              <p className="hm-meta">
+                Account, subscription, and entitlement records. Sensitive browsing behavior is not required
+                for core operation.
+              </p>
             </FAQItem>
 
             <FAQItem question="I installed it—how do I “pair” and unlock Premium?">
-              <p className="hm-meta">Open the dashboard, generate/paste your pairing details, then refresh entitlement in the extension.</p>
+              <p className="hm-meta">
+                Open the dashboard, generate/paste your pairing details, then refresh entitlement in the
+                extension.
+              </p>
             </FAQItem>
 
             <FAQItem question="Where’s the changelog / status?">
