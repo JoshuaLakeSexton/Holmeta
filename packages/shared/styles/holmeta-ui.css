@@ -512,17 +512,6 @@ input[type="checkbox"] {
     grid-template-columns: 1fr;
   }
 }
-"content_scripts": [
-  {
-    "matches": ["http://*/*", "https://*/*"],
-    "js": ["src/common.js", "src/audio.js", "src/content.js"],
-    "css": [
-      "packages/shared/styles/holmeta-tokens.css",
-      "packages/shared/styles/holmeta-ui.css"
-    ],
-    "run_at": "document_idle"
-  }
-]
 /* === Holmeta UI spacing + no-overlap hardening (SCOPED) === */
 /* Put these rules at the END of holmeta-ui.css so they win. */
 

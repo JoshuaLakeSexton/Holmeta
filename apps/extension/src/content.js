@@ -22,6 +22,8 @@
   const FILTER_LAYER_ID = "holmeta-filter-layer";
   const PANEL_LAYER_ID = "holmeta-panel-layer";
   const PANIC_STORAGE_KEY = "holmeta.contentPanicUntilTs";
+  const TOKENS_CSS_URL = chrome.runtime.getURL("src/styles/holmeta-tokens.css");
+  const UI_CSS_URL = chrome.runtime.getURL("src/styles/holmeta-ui.css");
 
   const HISTORY_PATCH_FLAG = "__holmeta_history_patch__";
 
@@ -180,10 +182,12 @@
     const existing = document.getElementById(ROOT_ID);
     if (existing) {
       modalHost = existing;
+      modalHost.classList.add("hm-root");
       modalShadow = existing.shadowRoot || existing.attachShadow({ mode: "open" });
     } else {
       modalHost = document.createElement("div");
       modalHost.id = ROOT_ID;
+      modalHost.className = "hm-root";
       modalHost.setAttribute("aria-hidden", "true");
       modalHost.style.cssText = [
         "all: initial",
@@ -200,6 +204,8 @@
     if (modalShadow && !modalShadow.querySelector(`#${PANEL_LAYER_ID}`)) {
       const wrapper = document.createElement("div");
       wrapper.innerHTML = `
+        <link rel="stylesheet" href="${TOKENS_CSS_URL}" />
+        <link rel="stylesheet" href="${UI_CSS_URL}" />
         <style>
           :host {
             all: initial;
@@ -321,7 +327,7 @@
             font-size: 11px;
           }
         </style>
-        <div id="${PANEL_LAYER_ID}"></div>
+        <div id="${PANEL_LAYER_ID}" class="hm-root"></div>
       `;
 
       while (wrapper.firstChild) {
@@ -381,10 +387,12 @@
     const existing = document.getElementById(HUD_HOST_ID);
     if (existing) {
       hudHost = existing;
+      hudHost.classList.add("hm-root");
       hudShadow = existing.shadowRoot || existing.attachShadow({ mode: "open" });
     } else {
       hudHost = document.createElement("div");
       hudHost.id = HUD_HOST_ID;
+      hudHost.className = "hm-root";
       hudHost.style.cssText = [
         "all: initial",
         "position: fixed",
@@ -405,6 +413,8 @@
     if (hudShadow && !hudShadow.getElementById(HUD_PANEL_ID)) {
       const wrapper = document.createElement("div");
       wrapper.innerHTML = `
+        <link rel="stylesheet" href="${TOKENS_CSS_URL}" />
+        <link rel="stylesheet" href="${UI_CSS_URL}" />
         <style>
           :host {
             all: initial;
@@ -482,7 +492,7 @@
             font-weight: 600;
           }
         </style>
-        <div id="${HUD_PANEL_ID}" class="hud-shell"></div>
+        <div id="${HUD_PANEL_ID}" class="hm-root hud-shell"></div>
       `;
 
       while (wrapper.firstChild) {

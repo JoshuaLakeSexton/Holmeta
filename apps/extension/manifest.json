@@ -55,12 +55,7 @@
       }
     }
   },
-  "content_scripts":
-  "css": [
-  "../../packages/shared/styles/holmeta-tokens.css",
-  "../../packages/shared/styles/holmeta-ui.css"
-]
- [
+  "content_scripts": [
     {
       "matches": [
         "http://*/*",
@@ -70,6 +65,10 @@
         "src/common.js",
         "src/audio.js",
         "src/content.js"
+      ],
+      "css": [
+        "src/styles/holmeta-tokens.css",
+        "src/styles/holmeta-ui.css"
       ],
       "run_at": "document_idle"
     }
@@ -82,7 +81,9 @@
   "web_accessible_resources": [
     {
       "resources": [
-        "assets/sfx/*.ogg"
+        "assets/sfx/*.ogg",
+        "src/styles/holmeta-tokens.css",
+        "src/styles/holmeta-ui.css"
       ],
       "matches": [
         "<all_urls>"

@@ -11,6 +11,8 @@
     "typecheck": "npm run typecheck --workspaces --if-present",
     "lint": "npm run lint --workspaces --if-present",
     "test": "npm run test --workspaces --if-present",
+    "lint:css-integrity": "node scripts/check-css-integrity.mjs",
+    "build:extension:zip": "node scripts/sync-extension-zip.mjs",
     "dev:web": "npm run dev -w @holmeta/web",
     "dev:extension": "npm run dev -w @holmeta/extension",
     "build:extension": "npm run build -w @holmeta/extension",

@@ -1,0 +1,38 @@
+.hm-root {
+  --pitch-black: #14110f;
+  --graphite: #34312d;
+  --flag-red: #c42021;
+  --pale-oak: #d9c5b2;
+  --amber-flame: #ffb300;
+  --platinum: #f3f3f4;
+
+  --hm-bg: var(--pitch-black);
+  --hm-panel: rgba(52, 49, 45, 0.94);
+  --hm-panel-2: rgba(20, 17, 15, 0.96);
+  --hm-text: var(--platinum);
+  --hm-muted: var(--pale-oak);
+  --hm-border: rgba(243, 243, 244, 0.18);
+  --hm-border-strong: rgba(243, 243, 244, 0.34);
+
+  --hm-s-1: 4px;
+  --hm-s-2: 8px;
+  --hm-s-3: 12px;
+  --hm-s-4: 16px;
+  --hm-s-5: 24px;
+
+  --hm-r-1: 0;
+
+  --hm-fs-1: 12px;
+  --hm-fs-2: 14px;
+  --hm-fs-3: 16px;
+  --hm-fs-4: 20px;
+
+  --hm-ls-meta: 0.12em;
+  --hm-ls-head: 0.06em;
+
+  --hm-control-h: 40px;
+
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+  color: var(--hm-text);
+  line-height: 1.35;
+}

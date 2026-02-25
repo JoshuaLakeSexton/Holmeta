@@ -6,6 +6,8 @@
     "dev": "next dev",
     "prisma:generate": "prisma generate --schema prisma/schema.prisma",
     "prisma:dbpush": "prisma db push --schema prisma/schema.prisma",
+    "css:guard": "node ../../scripts/check-css-integrity.mjs",
+    "prebuild": "npm run css:guard",
     "build": "npm run prisma:generate && next build",
     "start": "next start",
     "typecheck": "npm run prisma:generate && tsc -p tsconfig.json --noEmit",
