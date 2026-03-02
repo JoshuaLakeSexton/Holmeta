@@ -3,6 +3,7 @@ import Stripe from "stripe";
 import { json, methodNotAllowed, getOrigin } from "./_lib/http";
 import { requireToken } from "./_lib/token";
 import { prisma } from "./_lib/prisma";
+import { reportServerEvent } from "./_lib/monitor";
 
 export const handler: Handler = async (event) => {
   if (event.httpMethod !== "POST") {
@@ -11,11 +12,13 @@ export const handler: Handler = async (event) => {
 
   const claims = requireToken(event, ["dashboard"]);
   if (!claims) {
+    await reportServerEvent("warn", "portal_unauthorized");
     return json(401, { error: "Unauthorized" });
   }
 
   const stripeKey = process.env.STRIPE_SECRET_KEY;
   if (!stripeKey) {
+    await reportServerEvent("warn", "portal_stub_mode", { userId: claims.sub });
     return json(200, {
       stub: true,
       url: `${getOrigin(event)}/dashboard?portal=stub`
@@ -27,6 +30,7 @@ export const handler: Handler = async (event) => {
   });
 
   if (!stripeCustomer) {
+    await reportServerEvent("warn", "portal_missing_customer", { userId: claims.sub });
     return json(404, { error: "No Stripe customer for this account" });
   }
 
@@ -38,6 +42,8 @@ export const handler: Handler = async (event) => {
     customer: stripeCustomer.customerId,
     return_url: `${getOrigin(event)}/dashboard`
   });
+
+  await reportServerEvent("info", "portal_session_created", { userId: claims.sub });
 
   return json(200, {
     url: portal.url

@@ -3,6 +3,7 @@ import { corsPreflight, json, methodNotAllowed } from "./_lib/http";
 import { requireToken } from "./_lib/token";
 import { entitlementForUser, LOCKED_FEATURES } from "./_lib/entitlement";
 import { prisma } from "./_lib/prisma";
+import { reportServerEvent } from "./_lib/monitor";
 
 function inactiveResponse(status = "inactive") {
   return {
@@ -32,6 +33,7 @@ export const handler: Handler = async (event) => {
 
   const claims = requireToken(event, ["dashboard", "extension"]);
   if (!claims) {
+    await reportServerEvent("warn", "entitlement_unauthorized");
     return json(401, inactiveResponse("unauthorized"));
   }
 
@@ -41,6 +43,10 @@ export const handler: Handler = async (event) => {
     });
 
     if (!token || token.userId !== claims.sub || token.revokedAt) {
+      await reportServerEvent("warn", "entitlement_token_revoked", {
+        tokenId: claims.tokenId || null,
+        userId: claims.sub
+      });
       return json(401, inactiveResponse("token_revoked"));
     }
   }

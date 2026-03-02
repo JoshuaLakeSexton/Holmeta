@@ -2,6 +2,7 @@ import type { Handler } from "@netlify/functions";
 import Stripe from "stripe";
 import { json, methodNotAllowed } from "./_lib/http";
 import { prisma } from "./_lib/prisma";
+import { reportServerEvent } from "./_lib/monitor";
 
 function toDateFromUnix(seconds: number | null | undefined): Date | null {
   if (!seconds) return null;
@@ -42,11 +43,13 @@ export const handler: Handler = async (event) => {
   const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
 
   if (!stripeSecret || !webhookSecret) {
+    await reportServerEvent("warn", "stripe_webhook_stub_mode");
     return json(200, { received: true, mode: "stub" });
   }
 
   const signature = event.headers["stripe-signature"];
   if (!signature) {
+    await reportServerEvent("error", "stripe_webhook_missing_signature");
     return json(400, { error: "Missing stripe-signature header" });
   }
 
@@ -101,8 +104,15 @@ export const handler: Handler = async (event) => {
       }
     }
 
+    await reportServerEvent("info", "stripe_webhook_processed", {
+      type: stripeEvent.type
+    });
+
     return json(200, { received: true, type: stripeEvent.type });
   } catch (error) {
+    await reportServerEvent("error", "stripe_webhook_verification_failed", {
+      error: error instanceof Error ? error.message : "unknown"
+    });
     return json(400, {
       error: "Webhook verification failed",
       detail: error instanceof Error ? error.message : "unknown"

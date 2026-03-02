@@ -4,6 +4,7 @@ import Stripe from "stripe";
 import { corsPreflight, json, methodNotAllowed, parseJsonBody } from "./_lib/http";
 import { prisma } from "./_lib/prisma";
 import { requireToken } from "./_lib/token";
+import { reportServerEvent } from "./_lib/monitor";
 
 interface CheckoutBody {
   priceId?: string | null;
@@ -46,17 +47,20 @@ export const handler: Handler = async (event) => {
 
   const stripeKey = requiredEnv("STRIPE_SECRET_KEY");
   if (!stripeKey) {
+    await reportServerEvent("error", "checkout_missing_stripe_key");
     return json(500, { error: "Missing STRIPE_SECRET_KEY." });
   }
 
   const envPriceId = requiredEnv("STRIPE_PRICE_ID_2");
   const priceId = bodyPriceId || envPriceId;
   if (!priceId) {
+    await reportServerEvent("error", "checkout_missing_price_id");
     return json(500, { error: "Missing STRIPE_PRICE_ID_2 and no priceId provided." });
   }
 
   const publicBaseUrl = requiredEnv("PUBLIC_BASE_URL");
   if (!publicBaseUrl) {
+    await reportServerEvent("error", "checkout_missing_public_base_url");
     return json(500, { error: "Missing PUBLIC_BASE_URL." });
   }
 
@@ -133,8 +137,16 @@ export const handler: Handler = async (event) => {
   });
 
   if (!session.url) {
+    await reportServerEvent("error", "checkout_session_missing_url", {
+      userId: userId || null
+    });
     return json(500, { error: "Stripe Checkout session returned no URL." });
   }
+
+  await reportServerEvent("info", "checkout_session_created", {
+    userId: userId || null,
+    trialDays
+  });
 
   return json(200, {
     url: session.url
