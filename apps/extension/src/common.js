@@ -2,6 +2,11 @@
   const FILTER_BLEND_MODES = ["normal", "multiply", "screen", "overlay", "color"];
   const OVERLAY_COLOR_IDS = ["amber", "deepRed", "warmGray", "custom"];
   const REMINDER_TYPES = ["eye", "movement", "posture", "hydration", "breathwork", "dailyAudit"];
+  const DEFAULT_API_BASE_URL = "https://holmeta.com/.netlify/functions";
+  const DEFAULT_ENTITLEMENT_URL = `${DEFAULT_API_BASE_URL}/entitlement`;
+  const DEFAULT_PAIRING_EXCHANGE_URL = `${DEFAULT_API_BASE_URL}/exchange-pairing-code`;
+  const DEFAULT_CHECKOUT_URL = `${DEFAULT_API_BASE_URL}/create-checkout-session`;
+  const DEFAULT_DASHBOARD_URL = "https://holmeta.com/dashboard";
   const CADENCE_MODES = ["interval", "workBlocks", "timeWindows"];
   const CADENCE_PRESET_OPTIONS = [
     { id: "balanced", label: "Balanced" },
@@ -398,12 +403,12 @@
     debugPanel: false,
     ui: { showHud: false },
     onboardingCompleted: false,
-    apiBaseUrl: "",
-    entitlementUrl: "",
-    pairingExchangeUrl: "",
+    apiBaseUrl: DEFAULT_API_BASE_URL,
+    entitlementUrl: DEFAULT_ENTITLEMENT_URL,
+    pairingExchangeUrl: DEFAULT_PAIRING_EXCHANGE_URL,
     pairingCodeCreateUrl: "",
-    checkoutUrl: "",
-    dashboardUrl: "",
+    checkoutUrl: DEFAULT_CHECKOUT_URL,
+    dashboardUrl: DEFAULT_DASHBOARD_URL,
     extensionToken: "",
     disabledDomains: [],
     siteOverrides: {},
@@ -608,6 +613,15 @@
 
     const derived = deriveDashboardFromApiBase(settings.apiBaseUrl || "");
     if (!derived) {
+      const fallback = parseHttpUrl(DEFAULT_DASHBOARD_URL);
+      if (fallback) {
+        return {
+          ok: true,
+          source: "fallback",
+          url: fallback.toString()
+        };
+      }
+
       return {
         ok: false,
         error: "INVALID_API_BASE",
