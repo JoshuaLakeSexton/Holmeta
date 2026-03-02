@@ -10,7 +10,7 @@
     "prebuild": "npm run css:guard",
     "build": "npm run prisma:generate && next build",
     "start": "next start",
-    "typecheck": "npm run prisma:generate && tsc -p tsconfig.json --noEmit",
+    "typecheck": "rm -f tsconfig.tsbuildinfo .next/cache/.tsbuildinfo && npm run prisma:generate && tsc -p tsconfig.json --noEmit",
     "lint": "node -e \"console.log('web lint: no-op')\"",
     "test": "node -e \"console.log('web test: no-op')\""
   },
