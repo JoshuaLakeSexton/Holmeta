@@ -391,7 +391,12 @@ export default function DashboardPage() {
       {!token ? (
         <Panel>
           <h2 className="hm-subtitle">Sign In</h2>
-          <p className="hm-meta">Enter email, request a code, then verify to manage trial/subscription and generate extension pairing codes.</p>
+          <p className="hm-meta">
+            Enter email, request a code, then verify to manage trial/subscription and generate extension pairing codes.
+          </p>
+          <p className="hm-meta">
+            If transactional email is not configured, the request response shows a one-time code inline for local/dev testing.
+          </p>
 
           <div className="hm-field-row">
             <Label htmlFor="email">EMAIL</Label>
@@ -487,6 +492,11 @@ export default function DashboardPage() {
       <Panel>
         <p className="hm-kicker">WELLNESS DISCLAIMER</p>
         <p className="hm-meta">holmeta offers comfort/focus guidance and is not medical advice.</p>
+        <div className="hm-cta-row">
+          <Button href="/privacy">PRIVACY</Button>
+          <Button href="/terms">TERMS</Button>
+          <Button href="/status">STATUS</Button>
+        </div>
       </Panel>
     </main>
   );

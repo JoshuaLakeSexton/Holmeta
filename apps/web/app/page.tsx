@@ -250,9 +250,9 @@ export default function HomePage() {
       </section>
 
       <footer className="hm-footer" aria-label="Footer links">
-        <a href="/dashboard">Status / Changelog</a>
-        <a href="#privacy">Privacy</a>
-        <a href="/dashboard">Terms</a>
+        <a href="/status">Status / Changelog</a>
+        <a href="/privacy">Privacy</a>
+        <a href="/terms">Terms</a>
         <a href="/dashboard/subscribe">Billing</a>
       </footer>
     </main>

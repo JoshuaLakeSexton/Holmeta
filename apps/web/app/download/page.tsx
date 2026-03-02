@@ -268,7 +268,9 @@ export default function DownloadPage() {
       {selectedChoice === "chromium" ? (
         <Panel>
           <p className="hm-kicker">MANUAL INSTALL (CHROMIUM)</p>
-          <p className="hm-meta">Download zip → extract → chrome://extensions → Developer mode → Load unpacked → select dist/extension.</p>
+          <p className="hm-meta">
+            Download zip → extract → chrome://extensions → Developer mode → Load unpacked → select the extracted folder that contains <span className="hm-mono">manifest.json</span>.
+          </p>
           <div className="hm-cta-row">
             <Button href={DOWNLOAD_ZIP_PATH} disabled={!manualZipEnabled}>
               Download .zip
