@@ -12,7 +12,7 @@
     "start": "next start",
     "typecheck": "rm -f tsconfig.tsbuildinfo .next/cache/.tsbuildinfo && npm run prisma:generate && tsc -p tsconfig.json --noEmit",
     "lint": "node -e \"console.log('web lint: no-op')\"",
-    "test": "node -e \"console.log('web test: no-op')\""
+    "test": "vitest run"
   },
   "dependencies": {
     "@holmeta/shared": "0.1.0",
@@ -27,6 +27,7 @@
     "@types/node": "^22.10.10",
     "@types/react": "^19.0.4",
     "@types/react-dom": "^19.0.2",
-    "prisma": "^6.19.2"
+    "prisma": "^6.19.2",
+    "vitest": "^3.2.4"
   }
 }

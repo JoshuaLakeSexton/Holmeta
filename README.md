@@ -88,7 +88,13 @@ Copy `.env.example` and set:
 - `NEXT_PUBLIC_FIREFOX_AMO_URL`
 - `NEXT_PUBLIC_SAFARI_URL`
 - `PUBLIC_BASE_URL`
-- `HOLMETA_EXPOSE_LOGIN_CODE` (optional; enable test login code output in non-prod)
+- `HOLMETA_EXPOSE_LOGIN_CODE` (optional; local/dev inline code mode)
+- `HOLMETA_ALLOW_INLINE_LOGIN_CODE_IN_PROD` (leave `false` for production)
+- `HOLMETA_LOGIN_CODE_MAX_PER_HOUR` (default `6`)
+- `RESEND_API_KEY`
+- `HOLMETA_EMAIL_FROM`
+- `HOLMETA_MONITOR_WEBHOOK_URL` (optional Slack/Discord/webhook sink)
+- `NEXT_PUBLIC_ENABLE_CLIENT_MONITORING`
 
 ### 3) Prepare DB schema
 
@@ -132,6 +138,27 @@ Then in Chrome:
    - `customer.subscription.deleted`
 7. Set `STRIPE_WEBHOOK_SECRET` in Netlify env.
 8. Entitlement is active only for `trialing` and `active` statuses; trial end locks premium features in the extension.
+
+## Auth delivery hardening
+
+- Production-safe default: inline login codes are disabled in `NODE_ENV=production`.
+- Recommended: configure transactional email with Resend.
+  - `RESEND_API_KEY`
+  - `HOLMETA_EMAIL_FROM` (e.g. `holmeta <auth@holmeta.com>`)
+- Optional local/dev shortcut:
+  - set `HOLMETA_EXPOSE_LOGIN_CODE=true` to return one-time login codes inline.
+- Safety controls:
+  - `HOLMETA_LOGIN_CODE_MAX_PER_HOUR` limits account-code requests per user email.
+  - `HOLMETA_ALLOW_INLINE_LOGIN_CODE_IN_PROD` should remain `false`.
+
+## Monitoring and alerts
+
+- Server-side functions now emit structured monitor events to Netlify logs.
+- Optional alert fan-out:
+  - set `HOLMETA_MONITOR_WEBHOOK_URL` to send warn/error events to your webhook target.
+- Client-side error capture:
+  - browser runtime errors/unhandled rejections are sent to `/.netlify/functions/client-error`.
+  - disable with `NEXT_PUBLIC_ENABLE_CLIENT_MONITORING=false`.
 
 ## Extension pairing flow
 
@@ -181,6 +208,22 @@ npm --prefix apps/extension run build:zip
 - Test reminders + timeline preview + completion summaries
 - Focus mode with DNR rules + panic stop
 - Hydration, breathwork, daily logs, ergonomic audit, posture monitor
+
+## Chrome Web Store permission rationale
+
+| Permission | Why Holmeta needs it |
+|---|---|
+| `storage` | Persist local-first settings, reminders, and entitlement cache. |
+| `alarms` | Schedule reminder cadence and focus timers reliably. |
+| `notifications` | Optional reminder and focus session notifications. |
+| `tabs` | Open dashboard/subscribe pages and apply focus tab controls. |
+| `sidePanel` | Optional side-panel command center (user-initiated). |
+| `declarativeNetRequest` | Focus mode distractor blocking rules. |
+| `idle` | Suppress reminders while user is idle/locked. |
+| `videoCapture` (optional) | Webcam posture mode only when user opts in. |
+| `host_permissions: <all_urls>` | Required to apply in-page browser-only filters and overlays consistently across user browsing contexts; no keylogging and no page-content harvesting. |
+
+Store review note: Holmeta uses broad host access for rendering transforms and reminder overlays, not for scraping page content.
 
 ## Wellness disclaimer
 

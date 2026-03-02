@@ -11,6 +11,6 @@
     "lint:palette": "node scripts/lint-palette.mjs",
     "lint": "npm run lint:palette",
     "typecheck": "node -e \"console.log('extension typecheck: no-op (plain JS)')\"",
-    "test": "node -e \"console.log('extension test: smoke-only')\""
+    "test": "node scripts/test-manifest.mjs && node scripts/test-dom-bindings.mjs"
   }
 }
