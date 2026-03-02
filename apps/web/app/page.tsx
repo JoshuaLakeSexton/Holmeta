@@ -95,9 +95,8 @@ export default function HomePage() {
               </Button>
               <Button href="/dashboard">Open Dashboard</Button>
             </div>
-            <p className="hm-meta">Local-first. Browser-only by design. Cancel anytime.</p>
+            <p className="hm-meta">Browser-only by design. Cancel anytime.</p>
             <div className="hm-trust-strip" aria-label="Trust markers">
-              <span className="hm-chip">Local-first</span>
               <span className="hm-chip">Browser-only</span>
               <span className="hm-chip">Cancel anytime</span>
             </div>
