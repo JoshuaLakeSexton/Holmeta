@@ -79,16 +79,15 @@ export default function HomePage() {
           <Panel className="hm-hero-copy">
             <p className="hm-kicker">MISSION BRIEFING</p>
             <h1 className="hm-title" id="hero-title">
-              MISSION: reduce screen strain + increase focus without sending your data to the cloud.
+              MISSION: Reduce screen strain. Increase focus.
             </h1>
             <p className="hm-lede">
-              HOLMETA is a local-first browser toolkit for devs, designers, desk workers, and biohackers.
-              Run light filters, focus sessions, and micro-reminders directly in your browser.
+              HOLMETA is a browser toolkit for devs, designers, desk workers, and biohackers.
             </p>
             <ul className="hm-list hm-hero-list">
-              <li>Less eye strain (warmth + dim + contrast tuning)</li>
-              <li>More deep work (sessions + gentle interruptions control)</li>
-              <li>Better habits (hydration / posture / breaks — minimal, configurable)</li>
+              <li>Light Filters — redlight, dim, contrast</li>
+              <li>Focus Sessions — deep work, fewer interruptions</li>
+              <li>Micro-Reminders — breaks, posture, hydration</li>
             </ul>
             <div className="hm-cta-row">
               <Button href="/download" variant="primary">
