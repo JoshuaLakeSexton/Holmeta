@@ -192,7 +192,14 @@ export default function DashboardPage() {
 
       setIssuedCode(json.code || "");
       setCodeExpiresAt(json.expiresAt || null);
-      setStatusLine("STATUS: ACCOUNT CODE ISSUED");
+      const delivery = String(json.delivery || "").toLowerCase();
+      if (delivery === "inline") {
+        setStatusLine("STATUS: ACCOUNT CODE ISSUED (INLINE)");
+      } else if (delivery === "email") {
+        setStatusLine("STATUS: ACCOUNT CODE SENT TO EMAIL");
+      } else {
+        setStatusLine("STATUS: ACCOUNT CODE ISSUED");
+      }
     } catch (error) {
       setStatusLine(`STATUS: ${error instanceof Error ? error.message : "REQUEST FAILED"}`);
     } finally {
@@ -395,7 +402,7 @@ export default function DashboardPage() {
             Enter email, request a code, then verify to manage trial/subscription and generate extension pairing codes.
           </p>
           <p className="hm-meta">
-            If transactional email is not configured, the request response shows a one-time code inline for local/dev testing.
+            Inline one-time codes are for local/dev only. Production should deliver account codes via transactional email.
           </p>
 
           <div className="hm-field-row">
