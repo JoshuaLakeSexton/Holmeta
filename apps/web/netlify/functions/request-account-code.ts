@@ -6,6 +6,7 @@ import { prisma } from "./_lib/prisma";
 import { allowInlineLoginCode, loginCodeRateLimitPerHour } from "./_lib/auth";
 import { hasEmailDeliveryConfig, sendLoginCodeEmail } from "./_lib/email";
 import { reportServerEvent } from "./_lib/monitor";
+import { requireEnvVars } from "./_lib/env";
 
 interface RequestBody {
   email?: string;
@@ -19,6 +20,12 @@ export const handler: Handler = async (event) => {
 
   if (event.httpMethod !== "POST") {
     return methodNotAllowed(["POST", "OPTIONS"]);
+  }
+
+  const missingEnv = requireEnvVars(["DATABASE_URL", "APP_JWT_SECRET"]);
+  if (missingEnv) {
+    await reportServerEvent("error", "auth_request_server_env_missing");
+    return missingEnv;
   }
 
   const body = parseJsonBody<RequestBody>(event);

@@ -96,6 +96,12 @@ Copy `.env.example` and set:
 - `HOLMETA_MONITOR_WEBHOOK_URL` (optional Slack/Discord/webhook sink)
 - `NEXT_PUBLIC_ENABLE_CLIENT_MONITORING`
 
+Verify required Netlify production runtime env vars:
+
+```bash
+npm run verify:netlify-env
+```
+
 ### 3) Prepare DB schema
 
 ```bash
@@ -192,6 +198,14 @@ npm --prefix apps/extension run build:zip
 - Functions dir: `apps/web/netlify/functions`
 - Note: set a real `DATABASE_URL` in Netlify for runtime function access (build uses a safe fallback only).
 - Redirect `/api/*` → `/.netlify/functions/:splat`
+- Required production runtime vars:
+  - `DATABASE_URL`
+  - `APP_JWT_SECRET`
+  - `STRIPE_SECRET_KEY`
+  - `STRIPE_PRICE_ID_2`
+  - `STRIPE_WEBHOOK_SECRET`
+  - `RESEND_API_KEY`
+  - `HOLMETA_EMAIL_FROM`
 
 ### Extension (GitHub Actions)
 

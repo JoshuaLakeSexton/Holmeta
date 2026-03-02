@@ -4,10 +4,17 @@ import { json, methodNotAllowed, getOrigin } from "./_lib/http";
 import { requireToken } from "./_lib/token";
 import { prisma } from "./_lib/prisma";
 import { reportServerEvent } from "./_lib/monitor";
+import { requireEnvVars } from "./_lib/env";
 
 export const handler: Handler = async (event) => {
   if (event.httpMethod !== "POST") {
     return methodNotAllowed(["POST"]);
+  }
+
+  const missingEnv = requireEnvVars(["DATABASE_URL", "APP_JWT_SECRET"]);
+  if (missingEnv) {
+    await reportServerEvent("error", "portal_server_env_missing");
+    return missingEnv;
   }
 
   const claims = requireToken(event, ["dashboard"]);

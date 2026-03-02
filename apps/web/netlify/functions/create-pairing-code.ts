@@ -3,6 +3,7 @@ import { corsPreflight, json, methodNotAllowed } from "./_lib/http";
 import { requireToken } from "./_lib/token";
 import { prisma } from "./_lib/prisma";
 import { generatePairingCode } from "./_lib/codes";
+import { requireEnvVars } from "./_lib/env";
 
 export const handler: Handler = async (event) => {
   const preflight = corsPreflight(event);
@@ -11,6 +12,11 @@ export const handler: Handler = async (event) => {
   }
   if (event.httpMethod !== "POST") {
     return methodNotAllowed(["POST"]);
+  }
+
+  const missingEnv = requireEnvVars(["DATABASE_URL", "APP_JWT_SECRET"]);
+  if (missingEnv) {
+    return missingEnv;
   }
 
   const claims = requireToken(event, ["dashboard"]);

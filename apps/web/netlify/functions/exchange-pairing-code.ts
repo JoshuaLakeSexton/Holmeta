@@ -4,6 +4,7 @@ import { corsPreflight, json, methodNotAllowed, parseJsonBody } from "./_lib/htt
 import { prisma } from "./_lib/prisma";
 import { normalizePairingCode } from "./_lib/codes";
 import { signExtensionToken } from "./_lib/token";
+import { requireEnvVars } from "./_lib/env";
 
 interface ExchangeBody {
   code?: string;
@@ -16,6 +17,11 @@ export const handler: Handler = async (event) => {
   }
   if (event.httpMethod !== "POST") {
     return methodNotAllowed(["POST"]);
+  }
+
+  const missingEnv = requireEnvVars(["DATABASE_URL", "APP_JWT_SECRET"]);
+  if (missingEnv) {
+    return missingEnv;
   }
 
   const body = parseJsonBody<ExchangeBody>(event);

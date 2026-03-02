@@ -5,6 +5,7 @@ import { corsPreflight, json, methodNotAllowed, parseJsonBody } from "./_lib/htt
 import { prisma } from "./_lib/prisma";
 import { requireToken } from "./_lib/token";
 import { reportServerEvent } from "./_lib/monitor";
+import { requireEnvVars } from "./_lib/env";
 
 interface CheckoutBody {
   priceId?: string | null;
@@ -42,6 +43,12 @@ export const handler: Handler = async (event) => {
     return methodNotAllowed(["POST", "OPTIONS"]);
   }
 
+  const missingAuthEnv = requireEnvVars(["APP_JWT_SECRET"]);
+  if (missingAuthEnv) {
+    await reportServerEvent("error", "checkout_server_env_missing_auth");
+    return missingAuthEnv;
+  }
+
   const body = parseJsonBody<CheckoutBody>(event);
   const bodyPriceId = String(body.priceId || "").trim();
 
@@ -77,6 +84,12 @@ export const handler: Handler = async (event) => {
   let userId: string | undefined;
 
   if (claims?.sub) {
+    const missingDbEnv = requireEnvVars(["DATABASE_URL"]);
+    if (missingDbEnv) {
+      await reportServerEvent("error", "checkout_server_env_missing_db");
+      return missingDbEnv;
+    }
+
     const user = await prisma.user.findUnique({ where: { id: claims.sub } });
     if (user) {
       userId = user.id;

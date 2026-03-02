@@ -3,6 +3,7 @@ import Stripe from "stripe";
 import { json, methodNotAllowed } from "./_lib/http";
 import { prisma } from "./_lib/prisma";
 import { reportServerEvent } from "./_lib/monitor";
+import { requireEnvVars } from "./_lib/env";
 
 function toDateFromUnix(seconds: number | null | undefined): Date | null {
   if (!seconds) return null;
@@ -37,6 +38,12 @@ async function upsertSubscriptionForUser(userId: string, subscription: Stripe.Su
 export const handler: Handler = async (event) => {
   if (event.httpMethod !== "POST") {
     return methodNotAllowed(["POST"]);
+  }
+
+  const missingEnv = requireEnvVars(["DATABASE_URL"]);
+  if (missingEnv) {
+    await reportServerEvent("error", "stripe_webhook_server_env_missing_db");
+    return missingEnv;
   }
 
   const stripeSecret = process.env.STRIPE_SECRET_KEY;

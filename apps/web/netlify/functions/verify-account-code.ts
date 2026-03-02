@@ -5,6 +5,7 @@ import { prisma } from "./_lib/prisma";
 import { signDashboardToken } from "./_lib/token";
 import { entitlementForUser } from "./_lib/entitlement";
 import { reportServerEvent } from "./_lib/monitor";
+import { requireEnvVars } from "./_lib/env";
 
 interface VerifyBody {
   email?: string;
@@ -19,6 +20,12 @@ export const handler: Handler = async (event) => {
 
   if (event.httpMethod !== "POST") {
     return methodNotAllowed(["POST", "OPTIONS"]);
+  }
+
+  const missingEnv = requireEnvVars(["DATABASE_URL", "APP_JWT_SECRET"]);
+  if (missingEnv) {
+    await reportServerEvent("error", "auth_verify_server_env_missing");
+    return missingEnv;
   }
 
   const body = parseJsonBody<VerifyBody>(event);

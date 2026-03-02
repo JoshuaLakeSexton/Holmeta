@@ -4,6 +4,7 @@ import { requireToken } from "./_lib/token";
 import { entitlementForUser, LOCKED_FEATURES } from "./_lib/entitlement";
 import { prisma } from "./_lib/prisma";
 import { reportServerEvent } from "./_lib/monitor";
+import { requireEnvVars } from "./_lib/env";
 
 function inactiveResponse(status = "inactive") {
   return {
@@ -29,6 +30,12 @@ export const handler: Handler = async (event) => {
 
   if (event.httpMethod !== "GET") {
     return methodNotAllowed(["GET"]);
+  }
+
+  const missingEnv = requireEnvVars(["DATABASE_URL", "APP_JWT_SECRET"]);
+  if (missingEnv) {
+    await reportServerEvent("error", "entitlement_server_env_missing");
+    return missingEnv;
   }
 
   const claims = requireToken(event, ["dashboard", "extension"]);
