@@ -117,6 +117,109 @@ body::before {
   margin-top: var(--s-3);
 }
 
+.command-panel .command-help {
+  margin-top: var(--s-2);
+}
+
+.command-subhead {
+  margin-top: var(--s-4);
+}
+
+.focus-grid,
+.safety-grid {
+  margin-top: var(--s-3);
+}
+
+.lockin-add-row {
+  margin-top: var(--s-2);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 118px auto;
+  gap: var(--s-2);
+  align-items: center;
+}
+
+.lockin-add-row > * {
+  min-width: 0;
+}
+
+.compact-row {
+  margin-top: var(--s-2);
+}
+
+.lockin-list {
+  margin-top: var(--s-3);
+  display: grid;
+  gap: var(--s-2);
+}
+
+.lockin-empty {
+  border: 1px dashed var(--c-border);
+  border-radius: var(--r-1);
+  padding: var(--s-3);
+  color: var(--c-muted);
+  font-family: var(--ff-mono);
+  font-size: var(--fs-1);
+  letter-spacing: var(--ls-body);
+}
+
+.lockin-item {
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-1);
+  background: rgba(20, 17, 15, 0.7);
+  padding: var(--s-2);
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: var(--s-2);
+  align-items: center;
+}
+
+.lockin-check {
+  width: 18px;
+  height: 18px;
+  margin: 0;
+}
+
+.lockin-copy {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.lockin-title {
+  margin: 0;
+  color: var(--c-text);
+  font-family: var(--ff-mono);
+  font-size: var(--fs-2);
+  line-height: var(--lh-tight);
+  letter-spacing: var(--ls-body);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.lockin-meta {
+  margin: 0;
+  color: var(--c-muted);
+  font-family: var(--ff-mono);
+  font-size: var(--fs-1);
+  letter-spacing: var(--ls-body);
+}
+
+.lockin-item.is-complete .lockin-title {
+  text-decoration: line-through;
+  opacity: 0.65;
+}
+
+.lockin-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--s-1);
+}
+
+.lockin-actions button {
+  min-width: 74px;
+}
+
 .row-inline {
   display: flex;
   align-items: center;
@@ -182,6 +285,37 @@ body::before {
   min-height: 74px;
 }
 
+.blocker-label {
+  margin-top: var(--s-3);
+  display: block;
+}
+
+.blocker-categories {
+  margin-top: var(--s-2);
+  display: grid;
+  gap: var(--s-2);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.blocker-cat {
+  border-style: dashed;
+}
+
+.blocker-cat.is-active {
+  border-style: solid;
+  border-color: var(--c-accent);
+  background: rgba(196, 32, 33, 0.18);
+}
+
+.blocker-status-row {
+  margin-top: var(--s-2);
+  align-items: center;
+}
+
+#blockerDomainCount {
+  margin: 0;
+}
+
 .button-row {
   margin-top: var(--s-3);
   display: grid;
@@ -191,6 +325,10 @@ body::before {
 
 .button-row > :only-child {
   grid-column: 1 / -1;
+}
+
+.button-row.blocker-actions {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
 .small-note {
@@ -264,6 +402,7 @@ body::before {
   .readouts,
   .button-grid,
   .toggle-grid,
+  .blocker-categories,
   .breakdown-grid,
   .button-row,
   .footer-actions {
@@ -274,6 +413,26 @@ body::before {
     grid-template-columns: 1fr;
     gap: var(--s-2);
     align-items: start;
+  }
+
+  .lockin-add-row {
+    grid-template-columns: 1fr;
+  }
+
+  .lockin-item {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .lockin-actions {
+    grid-column: 1 / -1;
+    width: 100%;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .lockin-actions button {
+    width: 100%;
+    min-width: 0;
   }
 
   .control-row span {

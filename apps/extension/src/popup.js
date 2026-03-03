@@ -26,7 +26,22 @@
       type: null
     },
     hydrationToday: 0,
-    calmToday: 0
+    calmToday: 0,
+    lockIn: {
+      date: "",
+      items: [],
+      summary: {
+        total: 0,
+        completed: 0,
+        pending: 0
+      }
+    },
+    blocker: {
+      enabled: false,
+      categories: {},
+      csvDomains: [],
+      effectiveDomains: []
+    }
   };
 
   const $ = (id) => document.getElementById(id);
@@ -95,6 +110,55 @@
     }
 
     return Math.ceil(delta / (24 * 60 * 60 * 1000));
+  }
+
+  function normalizeLockIn(rawLockIn, rawSummary) {
+    const source = rawLockIn && typeof rawLockIn === "object" ? rawLockIn : {};
+    const items = Array.isArray(source.items) ? source.items : [];
+    const normalizedItems = items.map((item) => ({
+      id: String(item?.id || ""),
+      title: String(item?.title || "").trim(),
+      dueTime: String(item?.dueTime || "09:00"),
+      completed: Boolean(item?.completed),
+      createdAt: Number(item?.createdAt || 0),
+      completedAt: Number(item?.completedAt || 0),
+      alarmCount: Math.max(0, Number(item?.alarmCount || 0))
+    })).filter((item) => item.id && item.title);
+
+    const derived = {
+      total: normalizedItems.length,
+      completed: normalizedItems.filter((item) => item.completed).length
+    };
+    derived.pending = Math.max(0, derived.total - derived.completed);
+
+    const summary = rawSummary && typeof rawSummary === "object"
+      ? {
+          total: Number(rawSummary.total ?? derived.total),
+          completed: Number(rawSummary.completed ?? derived.completed),
+          pending: Number(rawSummary.pending ?? derived.pending)
+        }
+      : derived;
+
+    return {
+      date: String(source.date || HC.todayKey()),
+      items: normalizedItems,
+      summary
+    };
+  }
+
+  function normalizeBlocker(raw) {
+    const source = raw && typeof raw === "object" ? raw : {};
+    const categories = source.categories && typeof source.categories === "object"
+      ? source.categories
+      : {};
+    const csvDomains = Array.isArray(source.csvDomains) ? source.csvDomains : [];
+    const effectiveDomains = Array.isArray(source.effectiveDomains) ? source.effectiveDomains : [];
+    return {
+      enabled: Boolean(source.enabled),
+      categories: categories,
+      csvDomains: csvDomains,
+      effectiveDomains: effectiveDomains
+    };
   }
 
   function isPremium() {
@@ -385,6 +449,135 @@
     });
   }
 
+  function blockerCategoriesFromSettings() {
+    const defaults = HC.DEFAULT_BLOCKER_CATEGORIES || {};
+    return {
+      social: Boolean(state.settings.blockerCategories?.social ?? defaults.social),
+      news: Boolean(state.settings.blockerCategories?.news ?? defaults.news),
+      video: Boolean(state.settings.blockerCategories?.video ?? defaults.video),
+      adult: Boolean(state.settings.blockerCategories?.adult ?? defaults.adult)
+    };
+  }
+
+  function renderBlockerControls() {
+    const categories = blockerCategoriesFromSettings();
+    const effectiveDomains = Array.isArray(state.blocker?.effectiveDomains) && state.blocker.effectiveDomains.length
+      ? state.blocker.effectiveDomains
+      : HC.effectiveDistractorDomains(state.settings);
+
+    [
+      ["catSocial", "social"],
+      ["catNews", "news"],
+      ["catVideo", "video"],
+      ["catAdult", "adult"]
+    ].forEach(([id, key]) => {
+      const button = $(id);
+      if (!button) {
+        return;
+      }
+      const active = Boolean(categories[key]);
+      button.classList.toggle("is-active", active);
+      button.setAttribute("aria-pressed", active ? "true" : "false");
+    });
+
+    const chip = $("blockerStateChip");
+    if (chip) {
+      const enabled = Boolean(state.settings.blockerEnabled);
+      chip.className = `status-chip ${enabled ? "status-warning" : "status-idle"}`;
+      chip.textContent = enabled ? "STATUS: BLOCKERS ACTIVE" : "STATUS: BLOCKERS PAUSED";
+    }
+
+    const count = $("blockerDomainCount");
+    if (count) {
+      count.textContent = `ACTIVE DOMAINS: ${effectiveDomains.length}`;
+    }
+
+    if ($("activateBlockers")) {
+      $("activateBlockers").disabled = Boolean(state.settings.blockerEnabled);
+    }
+    if ($("pauseBlockers")) {
+      $("pauseBlockers").disabled = !Boolean(state.settings.blockerEnabled);
+    }
+  }
+
+  function renderLockIn() {
+    const listEl = $("lockInList");
+    const statusEl = $("lockInStatus");
+    if (!listEl || !statusEl) {
+      return;
+    }
+
+    listEl.innerHTML = "";
+
+    const lockIn = state.lockIn || normalizeLockIn({}, null);
+    const items = Array.isArray(lockIn.items) ? lockIn.items : [];
+    const summary = lockIn.summary || { total: 0, completed: 0, pending: 0 };
+
+    statusEl.textContent = `STATUS: ${summary.completed}/${summary.total} COMPLETE · ${summary.pending} PENDING`;
+
+    if (!items.length) {
+      const empty = document.createElement("div");
+      empty.className = "lockin-empty";
+      empty.textContent = "NO TO-DO ITEMS FOR TODAY. ADD A TASK + DUE TIME TO ARM LOCK IN.";
+      listEl.appendChild(empty);
+      return;
+    }
+
+    items.forEach((item) => {
+      const row = document.createElement("article");
+      row.className = `lockin-item${item.completed ? " is-complete" : ""}`;
+      row.dataset.lockinId = item.id;
+
+      const check = document.createElement("input");
+      check.type = "checkbox";
+      check.className = "lockin-check";
+      check.checked = Boolean(item.completed);
+      check.setAttribute("aria-label", `Mark ${item.title} complete`);
+      check.dataset.action = "toggle";
+      check.dataset.lockinId = item.id;
+
+      const copy = document.createElement("div");
+      copy.className = "lockin-copy";
+
+      const title = document.createElement("p");
+      title.className = "lockin-title";
+      title.textContent = item.title;
+
+      const meta = document.createElement("p");
+      meta.className = "lockin-meta";
+      meta.textContent = `DUE ${item.dueTime}${item.alarmCount ? ` · ALARMS ${item.alarmCount}` : ""}`;
+
+      copy.appendChild(title);
+      copy.appendChild(meta);
+
+      const actions = document.createElement("div");
+      actions.className = "lockin-actions";
+
+      const snoozeBtn = document.createElement("button");
+      snoozeBtn.type = "button";
+      snoozeBtn.className = "secondary";
+      snoozeBtn.textContent = "SNOOZE";
+      snoozeBtn.disabled = Boolean(item.completed);
+      snoozeBtn.dataset.action = "snooze";
+      snoozeBtn.dataset.lockinId = item.id;
+
+      const deleteBtn = document.createElement("button");
+      deleteBtn.type = "button";
+      deleteBtn.className = "danger";
+      deleteBtn.textContent = "DELETE";
+      deleteBtn.dataset.action = "delete";
+      deleteBtn.dataset.lockinId = item.id;
+
+      actions.appendChild(snoozeBtn);
+      actions.appendChild(deleteBtn);
+
+      row.appendChild(check);
+      row.appendChild(copy);
+      row.appendChild(actions);
+      listEl.appendChild(row);
+    });
+  }
+
   function applyPresetLocks() {
     const presetSelect = $("presetSelect");
     if (!presetSelect) {
@@ -517,10 +710,12 @@
     $("focusDomains").value = (state.settings.distractorDomains || []).join(", ");
 
     $("meetingToggle").textContent = state.settings.cadence.global.meetingModeManual
-      ? "MEETING MODE: ON"
-      : "MEETING MODE: OFF";
+      ? "MEETING QUIET: ON"
+      : "MEETING QUIET: OFF";
 
-    $("filterToggle").textContent = state.settings.filterEnabled ? "FILTERS: ON" : "FILTERS: OFF";
+    $("filterToggle").textContent = state.settings.filterEnabled
+      ? "TOGGLE FILTERS (ON)"
+      : "TOGGLE FILTERS (OFF)";
 
     $("soundEnabledToggle").checked = Boolean(state.settings.soundEnabled);
     $("hoverEnabledToggle").checked = Boolean(state.settings.hoverEnabled);
@@ -530,7 +725,14 @@
     $("masterVolumeRange").value = String(Math.round(Number(state.settings.masterVolume || 0.35) * 100));
     $("masterVolumeValue").textContent = Math.round(Number(state.settings.masterVolume || 0.35) * 100) + "%";
 
+    if ($("lockInDueTime") && !$("lockInDueTime").value) {
+      const nextHour = new Date(Date.now() + 60 * 60 * 1000);
+      $("lockInDueTime").value = `${String(nextHour.getHours()).padStart(2, "0")}:00`;
+    }
+
     refreshBreakdown();
+    renderLockIn();
+    renderBlockerControls();
     renderPaywall();
   }
 
@@ -559,6 +761,21 @@
 
     if (response.nextReminder) {
       state.nextReminder = response.nextReminder;
+    }
+
+    if (response.lockIn || response.lockInSummary) {
+      state.lockIn = normalizeLockIn(response.lockIn, response.lockInSummary);
+    }
+
+    if (response.blocker) {
+      state.blocker = normalizeBlocker(response.blocker);
+    } else {
+      state.blocker = normalizeBlocker({
+        enabled: state.settings.blockerEnabled,
+        categories: state.settings.blockerCategories,
+        csvDomains: state.settings.distractorDomains,
+        effectiveDomains: HC.effectiveDistractorDomains(state.settings)
+      });
     }
 
     render();
@@ -590,6 +807,63 @@
     await refreshState();
   }
 
+  function applyLockInResponse(response) {
+    if (!response) {
+      return;
+    }
+
+    if (response.lockIn || response.summary) {
+      state.lockIn = normalizeLockIn(response.lockIn, response.summary);
+    }
+  }
+
+  function currentBlockerCategoriesDraft() {
+    const categories = blockerCategoriesFromSettings();
+    [
+      ["catSocial", "social"],
+      ["catNews", "news"],
+      ["catVideo", "video"],
+      ["catAdult", "adult"]
+    ].forEach(([id, key]) => {
+      const button = $(id);
+      if (!button) {
+        return;
+      }
+      categories[key] = button.classList.contains("is-active");
+    });
+    return categories;
+  }
+
+  async function applyBlockerConfig(options = {}) {
+    const categories = currentBlockerCategoriesDraft();
+    const domains = HC.parseDomainList($("focusDomains").value);
+    const enabled = Object.prototype.hasOwnProperty.call(options, "enabled")
+      ? Boolean(options.enabled)
+      : Boolean(state.settings.blockerEnabled);
+
+    const response = await send({
+      type: "holmeta-set-blocker-config",
+      domains,
+      categories,
+      enabled
+    });
+
+    if (!response?.ok) {
+      setInlineStatus("STATUS: BLOCKER UPDATE FAILED");
+      playUiSfx("uiError", { force: true });
+      return false;
+    }
+
+    if (response.settings) {
+      state.settings = HC.normalizeSettings(response.settings);
+    }
+    if (response.blocker) {
+      state.blocker = normalizeBlocker(response.blocker);
+    }
+    render();
+    return true;
+  }
+
   function bindEvents() {
     const debouncedPatch = debounce((patch) => {
       patchSettings(patch);
@@ -601,7 +875,11 @@
       button.addEventListener("click", async () => {
         playUiSfx("uiClick");
         const durationMin = Number(button.getAttribute("data-focus"));
-        const domains = HC.parseDomainList($("focusDomains").value);
+        const domains = HC.effectiveDistractorDomains({
+          ...state.settings,
+          distractorDomains: HC.parseDomainList($("focusDomains").value),
+          blockerCategories: currentBlockerCategoriesDraft()
+        });
         await send({
           type: "holmeta-start-focus",
           payload: {
@@ -659,6 +937,142 @@
       await refreshState();
     });
 
+    $("lockInAdd").addEventListener("click", async () => {
+      const title = String($("lockInTitle").value || "").trim();
+      const dueTime = String($("lockInDueTime").value || "").trim();
+      if (!title) {
+        setInlineStatus("STATUS: LOCK IN TITLE REQUIRED");
+        playUiSfx("uiError", { force: true });
+        return;
+      }
+
+      playUiSfx("uiSave");
+      const response = await send({
+        type: "holmeta-lockin-add",
+        payload: {
+          title,
+          dueTime
+        }
+      });
+
+      if (!response?.ok) {
+        setInlineStatus("STATUS: LOCK IN ADD FAILED");
+        playUiSfx("uiError", { force: true });
+        return;
+      }
+
+      $("lockInTitle").value = "";
+      applyLockInResponse(response);
+      render();
+      setInlineStatus("STATUS: LOCK IN ITEM ARMED");
+      playUiSfx("uiSuccess", { force: true });
+    });
+
+    $("lockInTitle").addEventListener("keydown", async (event) => {
+      if (event.key !== "Enter") {
+        return;
+      }
+      event.preventDefault();
+      $("lockInAdd").click();
+    });
+
+    $("lockInTestAlarm").addEventListener("click", async () => {
+      playUiSfx("uiTest", { force: true });
+      const response = await send({ type: "holmeta-lockin-test" });
+      if (!response?.ok) {
+        setInlineStatus(`STATUS: LOCK IN TEST FAILED (${String(response?.error || "UNKNOWN")})`);
+        return;
+      }
+
+      applyLockInResponse(response);
+      render();
+      setInlineStatus("STATUS: LOCK IN ALARM TRIGGERED");
+    });
+
+    $("lockInList").addEventListener("change", async (event) => {
+      const target = event.target;
+      if (!(target instanceof HTMLInputElement)) {
+        return;
+      }
+
+      if (target.dataset.action !== "toggle") {
+        return;
+      }
+
+      const itemId = String(target.dataset.lockinId || "").trim();
+      if (!itemId) {
+        return;
+      }
+
+      playUiSfx(target.checked ? "uiToggleOn" : "uiToggleOff");
+      const response = await send({
+        type: "holmeta-lockin-set-completed",
+        itemId,
+        completed: Boolean(target.checked)
+      });
+
+      if (!response?.ok) {
+        setInlineStatus("STATUS: LOCK IN UPDATE FAILED");
+        playUiSfx("uiError", { force: true });
+        return;
+      }
+
+      applyLockInResponse(response);
+      render();
+      setInlineStatus(target.checked ? "STATUS: LOCK IN ITEM COMPLETED" : "STATUS: LOCK IN ITEM REOPENED");
+    });
+
+    $("lockInList").addEventListener("click", async (event) => {
+      const target = event.target;
+      if (!(target instanceof HTMLElement)) {
+        return;
+      }
+
+      const action = String(target.dataset.action || "").trim();
+      const itemId = String(target.dataset.lockinId || "").trim();
+      if (!action || !itemId) {
+        return;
+      }
+
+      if (action === "snooze") {
+        playUiSfx("uiWarn");
+        const response = await send({
+          type: "holmeta-lockin-snooze",
+          itemId,
+          minutes: 10
+        });
+
+        if (!response?.ok) {
+          setInlineStatus("STATUS: LOCK IN SNOOZE FAILED");
+          playUiSfx("uiError", { force: true });
+          return;
+        }
+
+        applyLockInResponse(response);
+        render();
+        setInlineStatus("STATUS: LOCK IN SNOOZED 10M");
+        return;
+      }
+
+      if (action === "delete") {
+        playUiSfx("uiWarn");
+        const response = await send({
+          type: "holmeta-lockin-delete",
+          itemId
+        });
+
+        if (!response?.ok) {
+          setInlineStatus("STATUS: LOCK IN DELETE FAILED");
+          playUiSfx("uiError", { force: true });
+          return;
+        }
+
+        applyLockInResponse(response);
+        render();
+        setInlineStatus("STATUS: LOCK IN ITEM DELETED");
+      }
+    });
+
     $("presetSelect").addEventListener("change", (event) => {
       playUiSfx("uiToggleOn");
       const preset = HC.getPresetById(event.target.value);
@@ -689,11 +1103,47 @@
       playUiSfx("uiSuccess");
     });
 
+    document.querySelectorAll(".blocker-cat").forEach((button) => {
+      button.addEventListener("click", async () => {
+        const willBeActive = !button.classList.contains("is-active");
+        button.classList.toggle("is-active", willBeActive);
+        button.setAttribute("aria-pressed", willBeActive ? "true" : "false");
+        playUiSfx(willBeActive ? "uiToggleOn" : "uiToggleOff");
+        const ok = await applyBlockerConfig();
+        if (!ok) {
+          await refreshState();
+          return;
+        }
+        setInlineStatus("STATUS: BLOCK CATEGORY UPDATED");
+      });
+    });
+
+    $("activateBlockers").addEventListener("click", async () => {
+      playUiSfx("uiWarn");
+      const ok = await applyBlockerConfig({ enabled: true });
+      if (!ok) {
+        return;
+      }
+      setInlineStatus("STATUS: DISTRACTOR BLOCKERS ACTIVE");
+      playUiSfx("uiSuccess", { force: true });
+    });
+
+    $("pauseBlockers").addEventListener("click", async () => {
+      playUiSfx("uiToggleOff");
+      const ok = await applyBlockerConfig({ enabled: false });
+      if (!ok) {
+        return;
+      }
+      setInlineStatus("STATUS: DISTRACTOR BLOCKERS PAUSED");
+    });
+
     $("saveFocusDomains").addEventListener("click", async () => {
       playUiSfx("uiSave");
-      const domains = HC.parseDomainList($("focusDomains").value);
-      await patchSettings({ distractorDomains: domains });
-      await refreshState();
+      const ok = await applyBlockerConfig();
+      if (!ok) {
+        return;
+      }
+      setInlineStatus("STATUS: DOMAIN LIST SAVED");
       playUiSfx("uiSuccess");
     });
 

@@ -8,6 +8,7 @@ const STORAGE = {
   hydration: "holmeta.hydration",
   calm: "holmeta.calm",
   dailyLogs: "holmeta.dailyLogs",
+  lockIn: "holmeta.lockIn",
   entitlement: "holmeta.entitlement",
   audit: "holmeta.audit",
   auth: "holmeta.auth"
@@ -21,8 +22,13 @@ const ALARMS = {
 };
 
 const REMINDER_ALARM_PREFIX = "holmeta-reminder-";
+const LOCKIN_ALARM_PREFIX = "holmeta-lockin-";
+const LOCKIN_NOTIFICATION_PREFIX = "holmeta-lockin-notification-";
+const LOCKIN_MAX_ITEMS = 24;
+const LOCKIN_DEFAULT_SNOOZE_MIN = 10;
 
 const FOCUS_RULE_IDS = Array.from({ length: 120 }, (_, i) => 9000 + i);
+const BLOCKER_RULE_IDS = Array.from({ length: 300 }, (_, i) => 9400 + i);
 const NOTIFICATION_ICON = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQIHWP4//8/AwAI/AL+Xw8N3wAAAABJRU5ErkJggg==";
 const SIDE_PANEL_PATH = "src/sidepanel.html";
 const SIDE_PANEL_ENABLED = true;
@@ -118,6 +124,14 @@ function tabsQuery(queryInfo = {}) {
 
 function notificationsCreate(id, options) {
   return new Promise((resolve) => chrome.notifications.create(id, options, () => resolve()));
+}
+
+function notificationsClear(id) {
+  return new Promise((resolve) => chrome.notifications.clear(id, () => resolve()));
+}
+
+function alarmsGetAll() {
+  return new Promise((resolve) => chrome.alarms.getAll((alarms) => resolve(Array.isArray(alarms) ? alarms : [])));
 }
 
 function idleQueryState(threshold) {
@@ -709,6 +723,357 @@ async function getDailyLogs() {
   return data[STORAGE.dailyLogs] || [];
 }
 
+function normalizeLockInTime(rawTime, fallback = "09:00") {
+  const safe = String(rawTime || "").trim();
+  if (/^([01]\d|2[0-3]):([0-5]\d)$/.test(safe)) {
+    return safe;
+  }
+  return fallback;
+}
+
+function normalizeLockInItem(rawItem, index = 0, nowTs = Date.now()) {
+  const source = rawItem && typeof rawItem === "object" ? rawItem : {};
+  const trimmedTitle = String(source.title || "").trim().replace(/\s+/g, " ");
+  const fallbackId = `li-${nowTs}-${index}-${Math.random().toString(16).slice(2, 8)}`;
+  return {
+    id: String(source.id || fallbackId),
+    title: trimmedTitle.slice(0, 140),
+    dueTime: normalizeLockInTime(source.dueTime, "09:00"),
+    completed: Boolean(source.completed),
+    createdAt: Number(source.createdAt || nowTs),
+    completedAt: Number(source.completedAt || 0),
+    snoozedUntil: Number(source.snoozedUntil || 0),
+    lastAlarmAt: Number(source.lastAlarmAt || 0),
+    alarmCount: Math.max(0, Number(source.alarmCount || 0))
+  };
+}
+
+function lockInTimeToMinutes(clock) {
+  const [hours = "0", minutes = "0"] = String(clock || "00:00").split(":");
+  return Number(hours) * 60 + Number(minutes);
+}
+
+function sortLockInItems(items) {
+  return [...items].sort((a, b) => {
+    if (a.completed !== b.completed) {
+      return a.completed ? 1 : -1;
+    }
+    const dueDiff = lockInTimeToMinutes(a.dueTime) - lockInTimeToMinutes(b.dueTime);
+    if (dueDiff !== 0) {
+      return dueDiff;
+    }
+    return Number(a.createdAt || 0) - Number(b.createdAt || 0);
+  });
+}
+
+function normalizeLockIn(rawLockIn, date = new Date()) {
+  const source = rawLockIn && typeof rawLockIn === "object" ? rawLockIn : {};
+  const today = HC.todayKey(date);
+  const sourceDate = String(source.date || "");
+  const rawItems = sourceDate === today && Array.isArray(source.items) ? source.items : [];
+
+  const nowTs = Date.now();
+  const items = rawItems
+    .map((item, index) => normalizeLockInItem(item, index, nowTs))
+    .filter((item) => item.title.length > 0)
+    .slice(0, LOCKIN_MAX_ITEMS);
+
+  return {
+    version: 1,
+    date: today,
+    items: sortLockInItems(items)
+  };
+}
+
+async function getLockIn(date = new Date()) {
+  const data = await storageGet(STORAGE.lockIn);
+  const raw = data[STORAGE.lockIn] || {};
+  const normalized = normalizeLockIn(raw, date);
+  if (String(raw?.date || "") !== normalized.date) {
+    await storageSet({ [STORAGE.lockIn]: normalized });
+  }
+  return normalized;
+}
+
+async function writeLockIn(nextLockIn, date = new Date()) {
+  const normalized = normalizeLockIn(nextLockIn, date);
+  await storageSet({ [STORAGE.lockIn]: normalized });
+  return normalized;
+}
+
+function lockInAlarmName(itemId) {
+  return LOCKIN_ALARM_PREFIX + String(itemId || "");
+}
+
+function lockInNotificationId(itemId) {
+  return LOCKIN_NOTIFICATION_PREFIX + String(itemId || "");
+}
+
+function parseLockInItemIdFromAlarm(alarmName) {
+  if (!String(alarmName || "").startsWith(LOCKIN_ALARM_PREFIX)) {
+    return "";
+  }
+  return String(alarmName).slice(LOCKIN_ALARM_PREFIX.length);
+}
+
+function parseLockInItemIdFromNotification(notificationId) {
+  if (!String(notificationId || "").startsWith(LOCKIN_NOTIFICATION_PREFIX)) {
+    return "";
+  }
+  return String(notificationId).slice(LOCKIN_NOTIFICATION_PREFIX.length);
+}
+
+function lockInDueTs(item, date = new Date()) {
+  const [hours = "9", minutes = "0"] = String(item?.dueTime || "09:00").split(":");
+  const due = new Date(date);
+  due.setHours(Number(hours), Number(minutes), 0, 0);
+  return due.getTime();
+}
+
+function nextLockInAlarmAt(item, date = new Date()) {
+  if (!item || item.completed) {
+    return 0;
+  }
+
+  const nowTs = date.getTime();
+  const snoozedUntil = Number(item.snoozedUntil || 0);
+  if (snoozedUntil > nowTs) {
+    return snoozedUntil;
+  }
+
+  const dueTs = lockInDueTs(item, date);
+  if (dueTs > nowTs) {
+    return dueTs;
+  }
+
+  if (Number(item.lastAlarmAt || 0) >= dueTs) {
+    return 0;
+  }
+
+  return nowTs + 1200;
+}
+
+async function clearLockInAlarms() {
+  const alarms = await alarmsGetAll();
+  const targets = alarms.filter((alarm) => String(alarm?.name || "").startsWith(LOCKIN_ALARM_PREFIX));
+  await Promise.all(targets.map((alarm) => alarmsClear(alarm.name)));
+}
+
+async function scheduleLockIn(rawLockIn, reason = "lockin-schedule") {
+  const now = new Date();
+  const lockIn = normalizeLockIn(rawLockIn, now);
+  await clearLockInAlarms();
+
+  for (const item of lockIn.items) {
+    const nextAt = nextLockInAlarmAt(item, now);
+    if (!nextAt) {
+      continue;
+    }
+    chrome.alarms.create(lockInAlarmName(item.id), {
+      when: Math.max(Date.now() + 1200, Number(nextAt))
+    });
+  }
+
+  lockIn.lastScheduleReason = reason;
+  await writeLockIn(lockIn, now);
+  return lockIn;
+}
+
+function lockInSummary(lockIn) {
+  const items = Array.isArray(lockIn?.items) ? lockIn.items : [];
+  const total = items.length;
+  const completed = items.filter((item) => item.completed).length;
+  const pending = total - completed;
+  return { total, completed, pending };
+}
+
+async function addLockInTodo(payload) {
+  const lockIn = await getLockIn();
+  const title = String(payload?.title || "").trim().replace(/\s+/g, " ").slice(0, 140);
+  if (!title) {
+    return { ok: false, error: "TODO_TITLE_REQUIRED" };
+  }
+
+  const defaultTime = (() => {
+    const now = new Date();
+    const nextHour = new Date(now.getTime() + 60 * 60 * 1000);
+    return `${String(nextHour.getHours()).padStart(2, "0")}:00`;
+  })();
+
+  const dueTime = normalizeLockInTime(payload?.dueTime, defaultTime);
+
+  const item = normalizeLockInItem({
+    id: `li-${Date.now()}-${Math.random().toString(16).slice(2, 8)}`,
+    title,
+    dueTime,
+    completed: false,
+    createdAt: Date.now(),
+    completedAt: 0,
+    snoozedUntil: 0,
+    lastAlarmAt: 0,
+    alarmCount: 0
+  });
+
+  lockIn.items = sortLockInItems([item, ...(lockIn.items || [])]).slice(0, LOCKIN_MAX_ITEMS);
+  const saved = await writeLockIn(lockIn);
+  const scheduled = await scheduleLockIn(saved, "lockin-add");
+
+  return {
+    ok: true,
+    lockIn: scheduled,
+    summary: lockInSummary(scheduled),
+    item
+  };
+}
+
+async function setLockInTodoCompleted(itemId, completed) {
+  const lockIn = await getLockIn();
+  let found = false;
+  lockIn.items = lockIn.items.map((item) => {
+    if (item.id !== itemId) {
+      return item;
+    }
+    found = true;
+    return {
+      ...item,
+      completed: Boolean(completed),
+      completedAt: completed ? Date.now() : 0,
+      snoozedUntil: 0
+    };
+  });
+
+  if (!found) {
+    return { ok: false, error: "TODO_NOT_FOUND" };
+  }
+
+  const saved = await writeLockIn(lockIn);
+  const scheduled = await scheduleLockIn(saved, completed ? "lockin-complete" : "lockin-uncheck");
+  await notificationsClear(lockInNotificationId(itemId));
+
+  return {
+    ok: true,
+    lockIn: scheduled,
+    summary: lockInSummary(scheduled)
+  };
+}
+
+async function deleteLockInTodo(itemId) {
+  const lockIn = await getLockIn();
+  const beforeCount = lockIn.items.length;
+  lockIn.items = lockIn.items.filter((item) => item.id !== itemId);
+  if (lockIn.items.length === beforeCount) {
+    return { ok: false, error: "TODO_NOT_FOUND" };
+  }
+
+  const saved = await writeLockIn(lockIn);
+  const scheduled = await scheduleLockIn(saved, "lockin-delete");
+  await Promise.all([
+    alarmsClear(lockInAlarmName(itemId)),
+    notificationsClear(lockInNotificationId(itemId))
+  ]);
+
+  return {
+    ok: true,
+    lockIn: scheduled,
+    summary: lockInSummary(scheduled)
+  };
+}
+
+async function snoozeLockInTodo(itemId, minutes = LOCKIN_DEFAULT_SNOOZE_MIN) {
+  const lockIn = await getLockIn();
+  const snoozeMs = Math.max(1, Number(minutes || LOCKIN_DEFAULT_SNOOZE_MIN)) * 60 * 1000;
+  let found = false;
+  lockIn.items = lockIn.items.map((item) => {
+    if (item.id !== itemId) {
+      return item;
+    }
+    found = true;
+    return {
+      ...item,
+      completed: false,
+      completedAt: 0,
+      snoozedUntil: Date.now() + snoozeMs
+    };
+  });
+
+  if (!found) {
+    return { ok: false, error: "TODO_NOT_FOUND" };
+  }
+
+  const saved = await writeLockIn(lockIn);
+  const scheduled = await scheduleLockIn(saved, "lockin-snooze");
+  await notificationsClear(lockInNotificationId(itemId));
+
+  return {
+    ok: true,
+    lockIn: scheduled,
+    summary: lockInSummary(scheduled)
+  };
+}
+
+async function triggerLockInAlarm(itemId, options = {}) {
+  const [settings, lockInRaw] = await Promise.all([getSettings(), getLockIn()]);
+  const lockIn = normalizeLockIn(lockInRaw);
+  const item = lockIn.items.find((entry) => entry.id === itemId && !entry.completed);
+  if (!item) {
+    return { ok: false, error: "TODO_NOT_FOUND" };
+  }
+
+  const dueLabel = item.dueTime ? `DUE ${item.dueTime}` : "DUE NOW";
+  notificationsCreate(lockInNotificationId(item.id), {
+    type: "basic",
+    iconUrl: NOTIFICATION_ICON,
+    title: "holmeta: LOCK IN TODO",
+    message: `${item.title} · ${dueLabel}`,
+    priority: 2,
+    requireInteraction: true,
+    buttons: [
+      { title: "MARK DONE" },
+      { title: "SNOOZE 10M" }
+    ]
+  });
+
+  const reminderVolume = HC.clamp(Number(settings.masterVolume ?? 0.35) * 0.95, 0, 1);
+  await sendSfxToActiveTab(settings, "reminderDailyAudit", {
+    channel: "reminder",
+    volume: reminderVolume
+  });
+
+  const nextItems = lockIn.items.map((entry) => {
+    if (entry.id !== item.id) {
+      return entry;
+    }
+    return {
+      ...entry,
+      lastAlarmAt: Date.now(),
+      snoozedUntil: 0,
+      alarmCount: Math.max(0, Number(entry.alarmCount || 0) + 1)
+    };
+  });
+
+  const saved = await writeLockIn({
+    ...lockIn,
+    items: nextItems
+  });
+
+  const scheduled = await scheduleLockIn(saved, options.reason || "lockin-trigger");
+  return {
+    ok: true,
+    item,
+    lockIn: scheduled,
+    summary: lockInSummary(scheduled)
+  };
+}
+
+async function listLockInTodos() {
+  const lockIn = await getLockIn();
+  return {
+    ok: true,
+    lockIn,
+    summary: lockInSummary(lockIn)
+  };
+}
+
 async function broadcastToTabs(message) {
   const tabs = await tabsQuery({});
   tabs.forEach((tab) => {
@@ -819,6 +1184,12 @@ async function updateActionBadge(settings, runtime) {
       chrome.action.setBadgeBackgroundColor({ color: "#FFB000" });
       return;
     }
+  }
+
+  if (settings.blockerEnabled) {
+    chrome.action.setBadgeText({ text: "BLK" });
+    chrome.action.setBadgeBackgroundColor({ color: "#C42021" });
+    return;
   }
 
   if (!next.at) {
@@ -1713,14 +2084,19 @@ async function panicOff(minutes = 30) {
   return next;
 }
 
-async function setFocusRules(domains) {
-  const normalized = domains
+function normalizeBlockDomains(domains, maxCount = 120) {
+  return (Array.isArray(domains) ? domains : [])
     .map((domain) => HC.normalizeDomain(domain))
     .filter(Boolean)
-    .slice(0, FOCUS_RULE_IDS.length);
+    .filter((domain, index, all) => all.indexOf(domain) === index)
+    .slice(0, maxCount);
+}
+
+function buildBlockRules(domains, ruleIds) {
+  const normalized = normalizeBlockDomains(domains, ruleIds.length);
 
   const addRules = normalized.map((domain, index) => ({
-    id: FOCUS_RULE_IDS[index],
+    id: ruleIds[index],
     priority: 1,
     action: {
       type: "block"
@@ -1731,10 +2107,41 @@ async function setFocusRules(domains) {
     }
   }));
 
+  return {
+    normalized,
+    addRules
+  };
+}
+
+function effectiveDistractorDomains(settings) {
+  return HC.effectiveDistractorDomains(settings || {});
+}
+
+async function setFocusRules(domains) {
+  const { addRules } = buildBlockRules(domains, FOCUS_RULE_IDS);
+
   await dnrUpdate({
     removeRuleIds: FOCUS_RULE_IDS,
     addRules
   });
+}
+
+async function setPersistentBlockerRules(settings) {
+  if (!settings?.blockerEnabled) {
+    await dnrUpdate({
+      removeRuleIds: BLOCKER_RULE_IDS,
+      addRules: []
+    });
+    return [];
+  }
+
+  const domains = effectiveDistractorDomains(settings);
+  const { normalized, addRules } = buildBlockRules(domains, BLOCKER_RULE_IDS);
+  await dnrUpdate({
+    removeRuleIds: BLOCKER_RULE_IDS,
+    addRules
+  });
+  return normalized;
 }
 
 async function clearFocusRules() {
@@ -1799,7 +2206,7 @@ async function startFocusSession(payload = {}) {
 
   const requestedDomains = Array.isArray(payload.domains) && payload.domains.length
     ? payload.domains
-    : settings.distractorDomains;
+    : effectiveDistractorDomains(settings);
 
   const domains = premium
     ? requestedDomains
@@ -1967,7 +2374,10 @@ async function runBootstrap() {
   await refreshEntitlement(settings, true);
   await configureSidePanelDefaults("bootstrap");
   const runtime = await getRuntime();
+  const lockIn = await getLockIn();
+  await setPersistentBlockerRules(settings);
   await scheduleCadence(settings, runtime, "bootstrap");
+  await scheduleLockIn(lockIn, "bootstrap");
   await broadcastFilter(settings);
   await broadcastFocusState();
 }
@@ -2021,6 +2431,14 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
     return;
   }
 
+  if (alarm.name.startsWith(LOCKIN_ALARM_PREFIX)) {
+    const itemId = parseLockInItemIdFromAlarm(alarm.name);
+    if (itemId) {
+      await triggerLockInAlarm(itemId, { reason: "lockin-alarm" });
+    }
+    return;
+  }
+
   if (alarm.name === ALARMS.circadian) {
     await broadcastFilter(settings);
     return;
@@ -2043,6 +2461,34 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
     await writeRuntime(runtime);
     await scheduleInfrastructureAlarms(settings);
   }
+});
+
+chrome.notifications.onButtonClicked.addListener(async (notificationId, buttonIndex) => {
+  const itemId = parseLockInItemIdFromNotification(notificationId);
+  if (!itemId) {
+    return;
+  }
+
+  if (buttonIndex === 0) {
+    await setLockInTodoCompleted(itemId, true);
+    await notificationsClear(notificationId);
+    return;
+  }
+
+  if (buttonIndex === 1) {
+    await snoozeLockInTodo(itemId, LOCKIN_DEFAULT_SNOOZE_MIN);
+    await notificationsClear(notificationId);
+  }
+});
+
+chrome.notifications.onClicked.addListener(async (notificationId) => {
+  const itemId = parseLockInItemIdFromNotification(notificationId);
+  if (!itemId) {
+    return;
+  }
+
+  await setLockInTodoCompleted(itemId, true);
+  await notificationsClear(notificationId);
 });
 
 chrome.tabs.onActivated.addListener(async (info) => {
@@ -2098,16 +2544,18 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
     if (message.type === "holmeta-request-state") {
       const domain = HC.normalizeDomain(message.domain || "");
-      const [settings, runtime, entitlement, hydration, calm, auth] = await Promise.all([
+      const [settings, runtime, entitlement, hydration, calm, auth, lockIn] = await Promise.all([
         getSettings(),
         getRuntime(),
         getEntitlement(),
         getHydration(),
         getCalm(),
-        getAuth()
+        getAuth(),
+        getLockIn()
       ]);
 
       const nextReminder = HC.getNextReminderSnapshot(settings, runtime);
+      const effectiveDomains = HC.effectiveDistractorDomains(settings);
       sendResponse({
         settings,
         runtime,
@@ -2122,7 +2570,15 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         siteOverride: domain ? HC.getSiteOverride(settings, domain) : null,
         filterPresets: HC.FILTER_PRESET_OPTIONS,
         reminderSummary: HC.summarizeReminderStats(runtime),
-        nextReminder
+        nextReminder,
+        lockIn,
+        lockInSummary: lockInSummary(lockIn),
+        blocker: {
+          enabled: Boolean(settings.blockerEnabled),
+          categories: settings.blockerCategories || {},
+          csvDomains: settings.distractorDomains || [],
+          effectiveDomains
+        }
       });
       return;
     }
@@ -2158,6 +2614,14 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       const entitlement = await getEntitlement();
       const next = await setSettings(message.patch || {}, { entitlement });
       await scheduleInfrastructureAlarms(next);
+      const blockerPatch = message.patch && typeof message.patch === "object" ? message.patch : {};
+      if (
+        Object.prototype.hasOwnProperty.call(blockerPatch, "distractorDomains")
+        || Object.prototype.hasOwnProperty.call(blockerPatch, "blockerEnabled")
+        || Object.prototype.hasOwnProperty.call(blockerPatch, "blockerCategories")
+      ) {
+        await setPersistentBlockerRules(next);
+      }
       const runtime = await getRuntime();
       await scheduleCadence(next, runtime, "update-settings");
       await broadcastFilter(next);
@@ -2172,6 +2636,61 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       }
 
       sendResponse({ ok: true, settings: next });
+      return;
+    }
+
+    if (message.type === "holmeta-set-blocker-config") {
+      const entitlement = await getEntitlement();
+      const current = await getSettings();
+      const patch = {
+        distractorDomains: Array.isArray(message.domains) ? message.domains : current.distractorDomains,
+        blockerCategories: message.categories && typeof message.categories === "object"
+          ? message.categories
+          : current.blockerCategories,
+        blockerEnabled: Object.prototype.hasOwnProperty.call(message, "enabled")
+          ? Boolean(message.enabled)
+          : current.blockerEnabled
+      };
+
+      const next = await setSettings(patch, { entitlement });
+      const effectiveDomains = await setPersistentBlockerRules(next);
+      const runtime = await getRuntime();
+      await updateActionBadge(next, runtime);
+
+      sendResponse({
+        ok: true,
+        settings: next,
+        blocker: {
+          enabled: Boolean(next.blockerEnabled),
+          categories: next.blockerCategories,
+          csvDomains: next.distractorDomains,
+          effectiveDomains
+        }
+      });
+      return;
+    }
+
+    if (message.type === "holmeta-toggle-blocker-enabled") {
+      const entitlement = await getEntitlement();
+      const current = await getSettings();
+      const next = await setSettings({
+        blockerEnabled: Boolean(message.enabled)
+      }, { entitlement });
+
+      const effectiveDomains = await setPersistentBlockerRules(next);
+      const runtime = await getRuntime();
+      await updateActionBadge(next, runtime);
+
+      sendResponse({
+        ok: true,
+        settings: next,
+        blocker: {
+          enabled: Boolean(next.blockerEnabled),
+          categories: next.blockerCategories,
+          csvDomains: next.distractorDomains,
+          effectiveDomains
+        }
+      });
       return;
     }
 
@@ -2290,6 +2809,70 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
     if (message.type === "holmeta-reminder-action") {
       const response = await applyReminderAction(message);
+      sendResponse(response);
+      return;
+    }
+
+    if (message.type === "holmeta-lockin-get") {
+      const response = await listLockInTodos();
+      sendResponse(response);
+      return;
+    }
+
+    if (message.type === "holmeta-lockin-add") {
+      const response = await addLockInTodo(message.payload || {});
+      sendResponse(response);
+      return;
+    }
+
+    if (message.type === "holmeta-lockin-set-completed") {
+      const itemId = String(message.itemId || "").trim();
+      if (!itemId) {
+        sendResponse({ ok: false, error: "TODO_ID_REQUIRED" });
+        return;
+      }
+
+      const response = await setLockInTodoCompleted(itemId, Boolean(message.completed));
+      sendResponse(response);
+      return;
+    }
+
+    if (message.type === "holmeta-lockin-delete") {
+      const itemId = String(message.itemId || "").trim();
+      if (!itemId) {
+        sendResponse({ ok: false, error: "TODO_ID_REQUIRED" });
+        return;
+      }
+
+      const response = await deleteLockInTodo(itemId);
+      sendResponse(response);
+      return;
+    }
+
+    if (message.type === "holmeta-lockin-snooze") {
+      const itemId = String(message.itemId || "").trim();
+      if (!itemId) {
+        sendResponse({ ok: false, error: "TODO_ID_REQUIRED" });
+        return;
+      }
+
+      const response = await snoozeLockInTodo(itemId, Number(message.minutes || LOCKIN_DEFAULT_SNOOZE_MIN));
+      sendResponse(response);
+      return;
+    }
+
+    if (message.type === "holmeta-lockin-test") {
+      const lockIn = await getLockIn();
+      const candidate = String(message.itemId || "").trim()
+        || lockIn.items.find((item) => !item.completed)?.id
+        || "";
+
+      if (!candidate) {
+        sendResponse({ ok: false, error: "NO_PENDING_TODO" });
+        return;
+      }
+
+      const response = await triggerLockInAlarm(candidate, { reason: "lockin-test" });
       sendResponse(response);
       return;
     }

@@ -18,7 +18,10 @@
       </header>
 
       <section class="panel quick-actions">
-        <p class="kicker">PRIMARY ACTIONS</p>
+        <p class="kicker">QUICK CONTROLS</p>
+        <p class="meta-line quick-actions-copy">
+          Run immediate actions without editing your saved cadence settings.
+        </p>
         <div class="button-grid">
           <button id="focus25" class="primary">FOCUS 25M</button>
           <button id="focus50">FOCUS 50M</button>
@@ -320,7 +323,7 @@
             <input id="webcamPostureOptIn" type="checkbox" data-premium />
           </div>
 
-          <div class="row-inline">
+          <div class="row-inline posture-controls">
             <button id="startPostureMonitor" data-premium>START MONITOR</button>
             <button id="stopPostureMonitor" class="secondary">STOP</button>
             <span id="postureStatus" class="status-chip status-idle">STATUS: IDLE</span>
@@ -366,15 +369,15 @@
 
           <h3>Daily Health Log</h3>
           <div class="quick-grid" id="dailyQuickLog">
-            <div>
+            <div class="metric-card">
               <p>ENERGY</p>
               <div class="rating-row" data-metric="energy"></div>
             </div>
-            <div>
+            <div class="metric-card">
               <p>MOOD</p>
               <div class="rating-row" data-metric="mood"></div>
             </div>
-            <div>
+            <div class="metric-card">
               <p>SLEEP QUALITY</p>
               <div class="rating-row" data-metric="sleepQuality"></div>
             </div>

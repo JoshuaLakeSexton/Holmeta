@@ -282,6 +282,10 @@ h3 {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
+.grid-2 > div {
+  min-width: 0;
+}
+
 .cadence-cards {
   margin-top: var(--s-4);
   display: grid;
@@ -383,7 +387,7 @@ h3 {
 
 .quick-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   gap: var(--s-3);
 }
 
@@ -396,14 +400,26 @@ h3 {
   font-size: var(--fs-1);
 }
 
+.quick-grid .metric-card {
+  min-width: 0;
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-1);
+  padding: var(--s-2);
+  background: rgba(20, 17, 15, 0.7);
+}
+
 .rating-row {
-  display: flex;
-  gap: var(--s-2);
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: var(--s-1);
+  width: 100%;
+  min-width: 0;
 }
 
 .rating-row button {
-  min-width: var(--control-h);
-  width: var(--control-h);
+  min-width: 0;
+  width: 100%;
+  height: var(--control-h);
   padding: 0;
   border-color: var(--c-border);
   font-size: var(--fs-2);
@@ -527,6 +543,22 @@ h3 {
   display: none;
 }
 
+.posture-controls {
+  margin-top: var(--s-3);
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: var(--s-2);
+}
+
+.posture-controls > * {
+  min-width: 0;
+}
+
+.posture-controls .status-chip {
+  justify-content: center;
+  width: 100%;
+}
+
 .stretch-grid {
   margin-top: var(--s-4);
   display: grid;
@@ -632,6 +664,10 @@ h3 {
 
 .quick-actions .button-grid {
   margin-top: var(--s-2);
+}
+
+.quick-actions-copy {
+  margin-bottom: var(--s-3);
 }
 
 @media (max-width: 1080px) {

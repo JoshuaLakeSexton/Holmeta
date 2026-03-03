@@ -15,6 +15,76 @@
     { id: "gentle", label: "Gentle" },
     { id: "night", label: "Night" }
   ];
+  const BLOCKER_CATEGORY_DEFS = [
+    {
+      id: "social",
+      label: "Social Media",
+      domains: [
+        "x.com",
+        "twitter.com",
+        "facebook.com",
+        "instagram.com",
+        "linkedin.com",
+        "tiktok.com",
+        "threads.net",
+        "snapchat.com",
+        "reddit.com",
+        "pinterest.com"
+      ]
+    },
+    {
+      id: "news",
+      label: "News",
+      domains: [
+        "cnn.com",
+        "nytimes.com",
+        "bbc.com",
+        "foxnews.com",
+        "washingtonpost.com",
+        "theguardian.com",
+        "reuters.com",
+        "news.ycombinator.com",
+        "npr.org",
+        "wsj.com"
+      ]
+    },
+    {
+      id: "video",
+      label: "Video",
+      domains: [
+        "youtube.com",
+        "m.youtube.com",
+        "netflix.com",
+        "hulu.com",
+        "primevideo.com",
+        "vimeo.com",
+        "twitch.tv",
+        "kick.com",
+        "dailymotion.com"
+      ]
+    },
+    {
+      id: "adult",
+      label: "18+ (Porn)",
+      domains: [
+        "pornhub.com",
+        "xvideos.com",
+        "xnxx.com",
+        "redtube.com",
+        "youporn.com",
+        "xhamster.com",
+        "spankbang.com",
+        "chaturbate.com"
+      ]
+    }
+  ];
+  const BLOCKER_CATEGORY_IDS = BLOCKER_CATEGORY_DEFS.map((item) => item.id);
+  const DEFAULT_BLOCKER_CATEGORIES = {
+    social: true,
+    news: false,
+    video: true,
+    adult: true
+  };
 
   const FILTER_PRESET_OPTIONS = [
     {
@@ -413,6 +483,8 @@
     disabledDomains: [],
     siteOverrides: {},
     distractorDomains: ["youtube.com", "x.com", "reddit.com"],
+    blockerEnabled: false,
+    blockerCategories: { ...DEFAULT_BLOCKER_CATEGORIES },
     cadence: DEFAULT_CADENCE
   };
 
@@ -971,6 +1043,16 @@
     merged.designMode = Boolean(merged.designMode);
     merged.disabledDomains = parseDomainList((merged.disabledDomains || []).join(","));
     merged.distractorDomains = parseDomainList((merged.distractorDomains || []).join(","));
+    merged.blockerEnabled = Boolean(merged.blockerEnabled);
+    const rawBlockerCategories = merged.blockerCategories && typeof merged.blockerCategories === "object"
+      ? merged.blockerCategories
+      : {};
+    merged.blockerCategories = {};
+    BLOCKER_CATEGORY_IDS.forEach((id) => {
+      merged.blockerCategories[id] = Object.prototype.hasOwnProperty.call(rawBlockerCategories, id)
+        ? Boolean(rawBlockerCategories[id])
+        : Boolean(DEFAULT_BLOCKER_CATEGORIES[id]);
+    });
     merged.debugPanel = Boolean(merged.debugPanel);
     const rawUi = merged.ui && typeof merged.ui === "object" ? merged.ui : {};
     merged.ui = {
@@ -1036,6 +1118,26 @@
     merged.hydrationGoalGlasses = merged.cadence.reminders.hydration.dailyGoalGlasses;
 
     return merged;
+  }
+
+  function blockerDomainsFromCategories(rawCategories) {
+    const source = rawCategories && typeof rawCategories === "object" ? rawCategories : {};
+    const domains = [];
+    BLOCKER_CATEGORY_DEFS.forEach((entry) => {
+      if (!source[entry.id]) {
+        return;
+      }
+      entry.domains.forEach((domain) => {
+        domains.push(domain);
+      });
+    });
+    return parseDomainList(domains.join(","));
+  }
+
+  function effectiveDistractorDomains(rawSettings) {
+    const settings = normalizeSettings(rawSettings || {});
+    const categoryDomains = blockerDomainsFromCategories(settings.blockerCategories);
+    return parseDomainList([...settings.distractorDomains, ...categoryDomains].join(","));
   }
 
   function normalizeRuntime(rawRuntime) {
@@ -1754,6 +1856,9 @@
     REMINDER_TYPES,
     CADENCE_MODES,
     CADENCE_PRESET_OPTIONS,
+    BLOCKER_CATEGORY_DEFS,
+    BLOCKER_CATEGORY_IDS,
+    DEFAULT_BLOCKER_CATEGORIES,
     REMINDER_LABELS,
     SFX_SOUND_OPTIONS,
     SFX_SOUND_KEYS,
@@ -1798,6 +1903,8 @@
     openExternal,
     resolveSfxKeyForEvent,
     computeHydrationStreak,
-    emptyReminderMap
+    emptyReminderMap,
+    blockerDomainsFromCategories,
+    effectiveDistractorDomains
   };
 })();

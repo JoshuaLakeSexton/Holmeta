@@ -75,7 +75,7 @@
     if (!file || !globalThis.chrome?.runtime?.getURL) {
       return null;
     }
-    return globalThis.chrome.runtime.getURL(`assets/sfx/${file}`);
+    return globalThis.chrome.runtime.getURL(`src/assets/sfx/${file}`);
   }
 
   function fallbackToneForKey(key) {

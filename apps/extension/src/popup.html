@@ -39,18 +39,42 @@
         </article>
       </section>
 
-      <section class="panel">
-        <p class="kicker">PRIMARY COMMANDS</p>
-        <div class="button-grid">
-          <button class="primary" data-focus="25">ENGAGE 25M</button>
-          <button data-focus="50">ENGAGE 50M</button>
-          <button data-focus="90">ENGAGE 90M</button>
-          <button id="stopFocus" class="danger">STOP FOCUS</button>
-          <button id="filterToggle">FILTER ON/OFF</button>
-          <button id="meetingToggle">MEETING MODE</button>
-          <button id="snoozeAll" data-minutes="15">SNOOZE ALL 15M</button>
-          <button id="panicOff" class="danger">PANIC OFF 30M</button>
+      <section class="panel command-panel">
+        <p class="kicker">FOCUS SESSION CONTROLS</p>
+        <p class="small-note command-help">
+          Start a timed deep-work block. Distractor domains are blocked during active focus sessions.
+        </p>
+        <div class="button-grid focus-grid">
+          <button class="primary" data-focus="25">START 25M</button>
+          <button data-focus="50">START 50M</button>
+          <button data-focus="90">START 90M</button>
+          <button id="stopFocus" class="danger">END FOCUS</button>
         </div>
+
+        <p class="kicker command-subhead">QUICK SAFETY CONTROLS</p>
+        <p class="small-note command-help">
+          Temporary controls for overlays and reminders. Your saved schedules stay unchanged.
+        </p>
+        <div class="button-grid safety-grid">
+          <button id="filterToggle">TOGGLE FILTERS</button>
+          <button id="meetingToggle">MEETING QUIET: OFF</button>
+          <button id="snoozeAll" data-minutes="15">SNOOZE REMINDERS 15M</button>
+          <button id="panicOff" class="danger">PAUSE OVERLAYS 30M</button>
+        </div>
+      </section>
+
+      <section class="panel">
+        <p class="kicker">LOCK IN</p>
+        <div class="lockin-add-row">
+          <input id="lockInTitle" class="input" type="text" maxlength="140" placeholder="TODAY TO-DO ITEM" />
+          <input id="lockInDueTime" class="input" type="time" value="09:00" />
+          <button id="lockInAdd">ADD TO-DO</button>
+        </div>
+        <div class="button-row compact-row">
+          <button id="lockInTestAlarm" class="secondary">TEST LOCK IN ALARM</button>
+        </div>
+        <div id="lockInList" class="lockin-list"></div>
+        <p id="lockInStatus" class="small-note">STATUS: LOCK IN READY</p>
       </section>
 
       <section class="panel">
@@ -123,8 +147,25 @@
 
         <label for="focusDomains" class="textarea-label meta-label">DISTRACTOR DOMAINS (CSV)</label>
         <textarea id="focusDomains" rows="2" class="input" placeholder="youtube.com, x.com"></textarea>
-        <div class="button-row">
-          <button id="saveFocusDomains">SAVE FOCUS RULES</button>
+        <p class="small-note">Set one domain per comma. Applies to focus mode and blocker engine.</p>
+
+        <p class="meta-label blocker-label">BLOCK BY CATEGORY</p>
+        <div class="blocker-categories">
+          <button id="catSocial" type="button" class="secondary blocker-cat" data-category="social">SOCIAL MEDIA</button>
+          <button id="catNews" type="button" class="secondary blocker-cat" data-category="news">NEWS</button>
+          <button id="catVideo" type="button" class="secondary blocker-cat" data-category="video">VIDEO</button>
+          <button id="catAdult" type="button" class="secondary blocker-cat" data-category="adult">18+ (PORN)</button>
+        </div>
+
+        <div class="row-inline blocker-status-row">
+          <p id="blockerStateChip" class="status-chip status-idle">STATUS: BLOCKERS PAUSED</p>
+          <p id="blockerDomainCount" class="small-note">ACTIVE DOMAINS: 0</p>
+        </div>
+
+        <div class="button-row blocker-actions">
+          <button id="activateBlockers" class="danger">ACTIVATE BLOCKERS</button>
+          <button id="pauseBlockers" class="secondary">PAUSE BLOCKERS</button>
+          <button id="saveFocusDomains">SAVE DOMAIN LIST</button>
         </div>
       </section>
 
