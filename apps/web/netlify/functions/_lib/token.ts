@@ -5,6 +5,7 @@ export type TokenScope = "dashboard" | "extension";
 
 export interface TokenClaims {
   sub: string;
+  aud: "holmeta";
   scope: TokenScope;
   email?: string;
   tokenId?: string;
@@ -57,6 +58,7 @@ export function signDashboardToken(userId: string, email: string): string {
   return buildToken(
     {
       sub: userId,
+      aud: "holmeta",
       scope: "dashboard",
       email
     },
@@ -68,6 +70,7 @@ export function signExtensionToken(userId: string, tokenId: string): string {
   return buildToken(
     {
       sub: userId,
+      aud: "holmeta",
       scope: "extension",
       tokenId
     },
@@ -90,7 +93,7 @@ export function verifyToken(token: string): TokenClaims | null {
 
   try {
     const payload = JSON.parse(parseBase64url(body).toString("utf8")) as TokenClaims;
-    if (!payload?.sub || !payload?.scope || !payload?.exp) {
+    if (!payload?.sub || payload?.aud !== "holmeta" || !payload?.scope || !payload?.exp) {
       return null;
     }
 

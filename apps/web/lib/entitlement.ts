@@ -51,7 +51,8 @@ export const LOCKED_FEATURES: FeatureFlags = {
 };
 
 export function normalizeSubscriptionStatus(status: string | null | undefined): string {
-  return String(status || "inactive").toLowerCase();
+  const value = String(status || "").trim().toLowerCase();
+  return value || "none";
 }
 
 function isFuture(value: Date | string | null | undefined): boolean {

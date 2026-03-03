@@ -6,6 +6,7 @@ import { signDashboardToken } from "./_lib/token";
 import { entitlementForUser } from "./_lib/entitlement";
 import { reportServerEvent } from "./_lib/monitor";
 import { requireEnvVars } from "./_lib/env";
+import { compareLoginCodeHash } from "./_lib/login-codes";
 
 interface VerifyBody {
   email?: string;
@@ -33,19 +34,18 @@ export const handler: Handler = async (event) => {
 
   if (!code) {
     await reportServerEvent("warn", "auth_verify_missing_code");
-    return json(400, { error: "Code is required" });
+    return json(400, { error: "Code is required", code: "MISSING_CODE" });
   }
 
   const user = await getOrCreateUserByEmail(body.email || "");
   if (!user) {
     await reportServerEvent("warn", "auth_verify_invalid_email");
-    return json(400, { error: "Valid email is required" });
+    return json(400, { error: "Valid email is required", code: "INVALID_EMAIL" });
   }
 
-  const loginCode = await prisma.loginCode.findFirst({
+  const candidates = await prisma.loginCode.findMany({
     where: {
       userId: user.id,
-      code,
       usedAt: null,
       expiresAt: {
         gt: new Date()
@@ -53,7 +53,15 @@ export const handler: Handler = async (event) => {
     },
     orderBy: {
       createdAt: "desc"
-    }
+    },
+    take: 10
+  });
+
+  const loginCode = candidates.find((candidate) => {
+    if (!candidate.code) return false;
+    // Backward compatibility: some old rows may still hold plaintext codes.
+    if (candidate.code === code) return true;
+    return compareLoginCodeHash(user.email, code, candidate.code);
   });
 
   if (!loginCode) {
@@ -61,7 +69,7 @@ export const handler: Handler = async (event) => {
       userId: user.id,
       email: user.email
     });
-    return json(401, { error: "Invalid or expired code" });
+    return json(401, { error: "Invalid or expired code", code: "INVALID_OR_EXPIRED_CODE" });
   }
 
   await prisma.loginCode.update({

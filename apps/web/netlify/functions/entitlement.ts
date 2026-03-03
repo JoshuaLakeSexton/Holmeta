@@ -6,16 +6,19 @@ import { prisma } from "./_lib/prisma";
 import { reportServerEvent } from "./_lib/monitor";
 import { requireEnvVars } from "./_lib/env";
 
-function inactiveResponse(status = "inactive") {
+function inactiveResponse(status = "none") {
   return {
     ok: true,
     userId: null,
     entitled: false,
     active: false,
     status,
-    plan: "2",
+    tier: "none",
+    plan: "none",
     renewsAt: null,
     trialEndsAt: null,
+    current_period_end: null,
+    trial_end: null,
     features: {
       ...LOCKED_FEATURES
     }
@@ -41,7 +44,10 @@ export const handler: Handler = async (event) => {
   const claims = requireToken(event, ["dashboard", "extension"]);
   if (!claims) {
     await reportServerEvent("warn", "entitlement_unauthorized");
-    return json(401, inactiveResponse("unauthorized"));
+    return json(401, {
+      ...inactiveResponse("unauthorized"),
+      code: "UNAUTHORIZED"
+    });
   }
 
   if (claims.scope === "extension") {
@@ -54,7 +60,10 @@ export const handler: Handler = async (event) => {
         tokenId: claims.tokenId || null,
         userId: claims.sub
       });
-      return json(401, inactiveResponse("token_revoked"));
+      return json(401, {
+        ...inactiveResponse("token_revoked"),
+        code: "TOKEN_REVOKED"
+      });
     }
   }
 

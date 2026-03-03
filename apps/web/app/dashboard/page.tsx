@@ -23,13 +23,15 @@ type AccountUser = {
   email: string;
 };
 
+type PlanKey = "monthly_a" | "monthly_b" | "yearly";
+
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "/.netlify/functions";
 
 const defaultEntitlement: Entitlement = {
   entitled: false,
   active: false,
   status: "inactive",
-  plan: "2",
+  plan: "none",
   renewsAt: null,
   trialEndsAt: null,
   features: {
@@ -75,6 +77,7 @@ export default function DashboardPage() {
   const [entitlement, setEntitlement] = useState<Entitlement>(defaultEntitlement);
   const [pairingCode, setPairingCode] = useState("");
   const [pairingExpiresAt, setPairingExpiresAt] = useState<string | null>(null);
+  const [selectedPlan, setSelectedPlan] = useState<PlanKey>("monthly_a");
   const [statusLine, setStatusLine] = useState("STATUS: IDLE");
   const [loading, setLoading] = useState(false);
 
@@ -156,7 +159,7 @@ export default function DashboardPage() {
         entitled: Boolean(json.entitled ?? json.active),
         active: Boolean(json.active ?? json.entitled),
         status: String(json.status || (json.entitled || json.active ? "active" : "inactive")).toLowerCase(),
-        plan: json.plan || "2",
+        plan: json.plan || "none",
         renewsAt: json.renewsAt || null,
         trialEndsAt: json.trialEndsAt || null,
         features: json.features || {
@@ -177,7 +180,7 @@ export default function DashboardPage() {
     setStatusLine("STATUS: REQUESTING ACCOUNT CODE");
 
     try {
-      const response = await fetch(apiUrl("request-account-code"), {
+      const response = await fetch(apiUrl("request-login-code"), {
         method: "POST",
         headers: {
           "Content-Type": "application/json"
@@ -212,7 +215,7 @@ export default function DashboardPage() {
     setStatusLine("STATUS: VERIFYING CODE");
 
     try {
-      const response = await fetch(apiUrl("verify-account-code"), {
+      const response = await fetch(apiUrl("verify-login-code"), {
         method: "POST",
         headers: {
           "Content-Type": "application/json"
@@ -232,7 +235,7 @@ export default function DashboardPage() {
           entitled: Boolean(json.entitlement.entitled ?? json.entitlement.active),
           active: Boolean(json.entitlement.active ?? json.entitlement.entitled),
           status: String(json.entitlement.status || (json.entitlement.entitled || json.entitlement.active ? "active" : "inactive")).toLowerCase(),
-          plan: json.entitlement.plan || "2",
+          plan: json.entitlement.plan || "none",
           renewsAt: json.entitlement.renewsAt || null,
           trialEndsAt: json.entitlement.trialEndsAt || null,
           features: json.entitlement.features || {
@@ -249,7 +252,7 @@ export default function DashboardPage() {
     }
   }
 
-  async function startCheckout() {
+  async function startCheckout(plan: PlanKey = selectedPlan) {
     if (!token) return;
     setLoading(true);
     setStatusLine("STATUS: OPENING CHECKOUT");
@@ -257,7 +260,8 @@ export default function DashboardPage() {
     try {
       const response = await fetch(apiUrl("create-checkout-session"), {
         method: "POST",
-        headers: authHeaders
+        headers: authHeaders,
+        body: JSON.stringify({ plan })
       });
 
       const json = await response.json();
@@ -446,10 +450,36 @@ export default function DashboardPage() {
           <Panel>
             <h2 className="hm-subtitle">Billing</h2>
             <p className="hm-meta">SIGNED IN AS: {user?.email || email}</p>
-            <p className="hm-meta">$2/month subscription · 3-day trial.</p>
+            <p className="hm-meta">Choose a plan, then launch Stripe Checkout. Trial is 3 days.</p>
+            <div className="hm-plan-grid">
+              <button
+                type="button"
+                className={`hm-plan-card ${selectedPlan === "monthly_a" ? "is-selected" : ""}`}
+                onClick={() => setSelectedPlan("monthly_a")}
+              >
+                <span className="hm-plan-kicker">MONTHLY A</span>
+                <strong>$2/mo</strong>
+              </button>
+              <button
+                type="button"
+                className={`hm-plan-card ${selectedPlan === "monthly_b" ? "is-selected" : ""}`}
+                onClick={() => setSelectedPlan("monthly_b")}
+              >
+                <span className="hm-plan-kicker">MONTHLY B</span>
+                <strong>ALT MONTHLY</strong>
+              </button>
+              <button
+                type="button"
+                className={`hm-plan-card ${selectedPlan === "yearly" ? "is-selected" : ""}`}
+                onClick={() => setSelectedPlan("yearly")}
+              >
+                <span className="hm-plan-kicker">YEARLY</span>
+                <strong>ANNUAL PLAN</strong>
+              </button>
+            </div>
             <div className="hm-cta-row">
-              <Button variant="primary" onClick={startCheckout} disabled={loading}>
-                SUBSCRIBE $2/MO (3-DAY TRIAL)
+              <Button variant="primary" onClick={() => startCheckout(selectedPlan)} disabled={loading}>
+                START CHECKOUT ({selectedPlan.toUpperCase()})
               </Button>
               <Button onClick={openPortal} disabled={loading}>
                 OPEN BILLING PORTAL

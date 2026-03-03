@@ -1,14 +1,23 @@
 import type { Handler } from "@netlify/functions";
 import Stripe from "stripe";
-import { json, methodNotAllowed, getOrigin } from "./_lib/http";
+import { corsPreflight, json, methodNotAllowed, getOrigin } from "./_lib/http";
 import { requireToken } from "./_lib/token";
 import { prisma } from "./_lib/prisma";
 import { reportServerEvent } from "./_lib/monitor";
 import { requireEnvVars } from "./_lib/env";
 
 export const handler: Handler = async (event) => {
+  const preflight = corsPreflight(event);
+  if (preflight) {
+    return preflight;
+  }
+
+  if (event.httpMethod === "GET") {
+    return json(200, { ok: true, hint: "Use POST" });
+  }
+
   if (event.httpMethod !== "POST") {
-    return methodNotAllowed(["POST"]);
+    return methodNotAllowed(["POST", "OPTIONS"]);
   }
 
   const missingEnv = requireEnvVars(["DATABASE_URL", "APP_JWT_SECRET"]);

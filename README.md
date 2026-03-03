@@ -32,7 +32,7 @@ holmeta v1 can only transform browser-rendered content. A browser extension cann
 +-----------------------------------------+
 | Netlify Functions (apps/web/netlify)    |
 |-----------------------------------------|
-| request-account-code / verify-account   |
+| request-login-code / verify-login-code  |
 | create-checkout-session                 |
 | stripe-webhook                          |
 | create-portal-session                   |
@@ -78,7 +78,10 @@ Copy `.env.example` and set:
 - `DATABASE_URL`
 - `APP_JWT_SECRET`
 - `STRIPE_SECRET_KEY`
-- `STRIPE_PRICE_ID_2`
+- `STRIPE_PRICE_MONTHLY_A`
+- `STRIPE_PRICE_MONTHLY_B`
+- `STRIPE_PRICE_YEARLY`
+- `STRIPE_PRICE_ID_2` (optional legacy fallback for monthly A)
 - `TRIAL_DAYS`
 - `STRIPE_WEBHOOK_SECRET`
 - `NEXT_PUBLIC_APP_URL`
@@ -105,7 +108,7 @@ npm run verify:netlify-env
 ### 3) Prepare DB schema
 
 ```bash
-npm -w @holmeta/web run prisma:dbpush
+npm run db:migrate
 ```
 
 ### 4) Run web + functions
@@ -131,8 +134,12 @@ Then in Chrome:
 
 ## Stripe setup (test mode)
 
-1. In Stripe, create a monthly `$2` recurring price.
-2. Put the price ID into `STRIPE_PRICE_ID_2`.
+1. In Stripe, create three recurring prices: monthly A, monthly B, yearly.
+2. Set:
+   - `STRIPE_PRICE_MONTHLY_A`
+   - `STRIPE_PRICE_MONTHLY_B`
+   - `STRIPE_PRICE_YEARLY`
+   - optional fallback `STRIPE_PRICE_ID_2` for monthly A.
 3. Set `TRIAL_DAYS` (default `3`).
 4. Deploy web app to Netlify.
 5. Add webhook endpoint:
@@ -202,10 +209,23 @@ npm --prefix apps/extension run build:zip
   - `DATABASE_URL`
   - `APP_JWT_SECRET`
   - `STRIPE_SECRET_KEY`
-  - `STRIPE_PRICE_ID_2`
+  - `STRIPE_PRICE_MONTHLY_A`
+  - `STRIPE_PRICE_MONTHLY_B`
+  - `STRIPE_PRICE_YEARLY`
   - `STRIPE_WEBHOOK_SECRET`
   - `RESEND_API_KEY`
   - `HOLMETA_EMAIL_FROM`
+
+## Launch verification
+
+Run these from repo root:
+
+```bash
+npm run verify:netlify-env
+npm run e2e:smoke -- --base https://holmeta.com --token <DASHBOARD_JWT> --email you@example.com --plan monthly_a
+```
+
+Detailed launch steps: `docs/launch.md`.
 
 ### Extension (GitHub Actions)
 

@@ -12,10 +12,14 @@ const requiredKeys = [
   "DATABASE_URL",
   "APP_JWT_SECRET",
   "STRIPE_SECRET_KEY",
-  "STRIPE_PRICE_ID_2",
+  "STRIPE_PRICE_MONTHLY_A",
+  "STRIPE_PRICE_MONTHLY_B",
+  "STRIPE_PRICE_YEARLY",
   "STRIPE_WEBHOOK_SECRET",
   "RESEND_API_KEY",
-  "HOLMETA_EMAIL_FROM"
+  "HOLMETA_EMAIL_FROM",
+  "PUBLIC_BASE_URL",
+  "TRIAL_DAYS"
 ];
 
 function runNetlifyEnvList() {
@@ -27,11 +31,37 @@ function runNetlifyEnvList() {
   return JSON.parse(raw);
 }
 
+function toEnvMap(input) {
+  if (!input) return {};
+  if (!Array.isArray(input)) {
+    return input;
+  }
+
+  const map = {};
+  for (const item of input) {
+    const key = String(item?.key || "").trim();
+    if (!key) continue;
+
+    const direct = String(item?.value || "").trim();
+    if (direct) {
+      map[key] = direct;
+      continue;
+    }
+
+    if (Array.isArray(item?.values) && item.values.length) {
+      const first = item.values.find((valueEntry) => String(valueEntry?.value || "").trim());
+      map[key] = first?.value || "";
+    }
+  }
+
+  return map;
+}
+
 function main() {
   let envMap;
 
   try {
-    envMap = runNetlifyEnvList();
+    envMap = toEnvMap(runNetlifyEnvList());
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     console.error("Failed to read Netlify env vars for apps/web.");
@@ -40,7 +70,13 @@ function main() {
     process.exit(1);
   }
 
-  const missing = requiredKeys.filter((key) => !String(envMap?.[key] || "").trim());
+  const hasLegacyMonthlyFallback = Boolean(String(envMap?.STRIPE_PRICE_ID_2 || "").trim());
+  const missing = requiredKeys.filter((key) => {
+    if (key === "STRIPE_PRICE_MONTHLY_A") {
+      return !String(envMap?.STRIPE_PRICE_MONTHLY_A || "").trim() && !hasLegacyMonthlyFallback;
+    }
+    return !String(envMap?.[key] || "").trim();
+  });
 
   if (missing.length) {
     console.error("Missing required Netlify production env vars:");
@@ -52,7 +88,11 @@ function main() {
 
   console.log("Netlify env verification passed.");
   for (const key of requiredKeys) {
-    console.log(`- ${key}: present`);
+    if (key === "STRIPE_PRICE_MONTHLY_A" && !String(envMap?.STRIPE_PRICE_MONTHLY_A || "").trim()) {
+      console.log(`- STRIPE_PRICE_MONTHLY_A: fallback to STRIPE_PRICE_ID_2`);
+    } else {
+      console.log(`- ${key}: present`);
+    }
   }
 }
 

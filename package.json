@@ -13,6 +13,8 @@
     "test": "npm run test --workspaces --if-present",
     "lint:css-integrity": "node scripts/check-css-integrity.mjs",
     "verify:netlify-env": "node scripts/verify-netlify-env.mjs",
+    "e2e:smoke": "node scripts/e2e-smoke.mjs",
+    "db:migrate": "node scripts/run-migrations.mjs",
     "build:extension:zip": "node scripts/sync-extension-zip.mjs",
     "dev:web": "npm run dev -w @holmeta/web",
     "dev:extension": "npm run dev -w @holmeta/extension",
