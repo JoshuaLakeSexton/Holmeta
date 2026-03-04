@@ -4,6 +4,9 @@
   publish = ".next"
   functions = "netlify/functions"
 
+[functions]
+  included_files = ["netlify/functions/assets/**"]
+
 [build.environment]
   NODE_VERSION = "20"
   NETLIFY_BUILD_DEBUG = "true"

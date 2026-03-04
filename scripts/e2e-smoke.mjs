@@ -36,6 +36,18 @@ async function requestJson(url, init = {}) {
   };
 }
 
+async function requestBinary(url, init = {}) {
+  const response = await fetch(url, init);
+  const arrayBuffer = await response.arrayBuffer();
+  return {
+    ok: response.ok,
+    status: response.status,
+    contentType: response.headers.get("content-type") || "",
+    contentLength: Number(response.headers.get("content-length") || 0),
+    bytes: arrayBuffer.byteLength
+  };
+}
+
 function assert(condition, message) {
   if (!condition) {
     throw new Error(message);
@@ -55,14 +67,14 @@ async function main() {
   const fn = (name) => `${baseUrl}/.netlify/functions/${name}`;
   const plans = runAllPlans ? ["monthly_a", "yearly"] : [planKey];
 
-  console.log(`[1/4] Checking env flags at ${fn("env-check")}`);
+  console.log(`[1/5] Checking env flags at ${fn("env-check")}`);
   const envCheck = await requestJson(fn("env-check"));
   assert(envCheck.ok, `env-check failed: HTTP ${envCheck.status}`);
   assert(envCheck.data && typeof envCheck.data === "object", "env-check returned invalid JSON");
   assert(Boolean(envCheck.data.ok), `Missing required env vars: ${((envCheck.data && envCheck.data.missing) || []).join(", ")}`);
   console.log("env-check: ok");
 
-  console.log("[2/4] Creating checkout session");
+  console.log("[2/5] Creating checkout session");
   for (const selectedPlan of plans) {
     const checkout = await requestJson(fn("create-checkout-session"), {
       method: "POST",
@@ -77,10 +89,10 @@ async function main() {
   }
 
   if (!sessionId) {
-    console.log("[3/4] Skipping get-license (no --session-id provided)");
+    console.log("[3/5] Skipping get-license (no --session-id provided)");
     console.log("Complete checkout in Stripe, then rerun with --session-id=<CHECKOUT_SESSION_ID>.");
   } else {
-    console.log("[3/4] Fetching one-time license from success session");
+    console.log("[3/5] Fetching one-time license from success session");
     const getLicense = await requestJson(`${fn("get-license")}?session_id=${encodeURIComponent(sessionId)}`);
     assert(getLicense.ok, `get-license failed: HTTP ${getLicense.status}`);
     assert(getLicense.data?.licenseKey, "get-license returned no licenseKey");
@@ -88,9 +100,9 @@ async function main() {
   }
 
   if (!licenseKey || dryRun) {
-    console.log("[4/4] Skipping validate-license (no --license provided or --dry-run)");
+  console.log("[4/5] Skipping validate-license (no --license provided or --dry-run)");
   } else {
-    console.log("[4/4] Validating license");
+    console.log("[4/5] Validating license");
     const validation = await requestJson(fn("validate-license"), {
       method: "POST",
       headers: {
@@ -105,6 +117,27 @@ async function main() {
     console.log(
       `validate-license: ok (status=${String(validation.data.status || "unknown")}, plan=${String(validation.data.plan || "none")})`
     );
+  }
+
+  if (dryRun || (!sessionId && !licenseKey)) {
+    console.log("[5/5] Skipping gated download check (missing --session-id/--license or --dry-run)");
+  } else {
+    const query = sessionId
+      ? `session_id=${encodeURIComponent(sessionId)}`
+      : `license=${encodeURIComponent(licenseKey)}`;
+
+    console.log("[5/5] Verifying gated extension download endpoint");
+    const download = await requestBinary(`${fn("download-extension")}?${query}`, {
+      method: "GET"
+    });
+
+    assert(download.ok, `download-extension failed: HTTP ${download.status}`);
+    assert(download.bytes > 50 * 1024, `download-extension returned small payload: ${download.bytes} bytes`);
+    assert(
+      String(download.contentType || "").toLowerCase().includes("zip"),
+      `download-extension content-type not zip: ${download.contentType || "(none)"}`
+    );
+    console.log(`download-extension: ok (${download.bytes} bytes)`);
   }
 
   console.log("E2E smoke completed.");
