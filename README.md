@@ -120,6 +120,10 @@ npm run e2e:smoke -- --base https://holmeta.com --all-plans --dry-run
 npm run e2e:smoke -- --base https://holmeta.com --session-id <CHECKOUT_SESSION_ID> --license <HOLMETA-KEY>
 ```
 
+## Incident response
+
+- Runbook + support templates: `docs/incident-response.md`
+
 ## Wellness disclaimer
 
 holmeta provides wellness/comfort/focus guidance and is not medical advice.
