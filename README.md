@@ -12,11 +12,14 @@ Holmeta launch uses **paid checkout + license key unlock**:
 
 1. User subscribes with Stripe Checkout (`monthly_a`, `yearly`).
 2. After successful checkout, `/billing/success` reveals a one-time license key.
-3. Extension user enters license key in Popup/Options.
-4. Extension validates key via `/.netlify/functions/validate-license`.
-5. Active/trialing subscription unlocks premium.
+3. `/billing/success` can download the extension zip via a gated function.
+4. Extension user enters license key in Popup/Options.
+5. Extension validates key via `/.netlify/functions/validate-license`.
+6. Active/trialing subscription unlocks premium.
 
 No email OTP. No account creation required for launch.
+
+Direct public zip access is disabled. `https://holmeta.com/downloads/holmeta-extension.zip` is blocked.
 
 ## Browser-only limitations vs Iris system-wide
 
@@ -32,12 +35,17 @@ npm run typecheck
 npm run build
 ```
 
-Extension build + zip:
+Extension build + gated zip sync:
 
 ```bash
 npm -w @holmeta/extension run build
 npm run build:extension:zip
 ```
+
+`build:extension:zip` writes the zip to:
+
+- `apps/extension/holmeta-extension.zip` (local artifact)
+- `apps/web/netlify/functions/assets/holmeta-extension.zip` (served only by gated function)
 
 Web build:
 
@@ -91,9 +99,10 @@ npm run verify:netlify-env
 
 1. Open `/dashboard/subscribe` and complete checkout.
 2. Open `/billing/success?session_id=...`.
-3. Copy license key.
-4. In extension Popup or Options, enter license key and click **Activate License**.
-5. Click **Refresh Entitlement** to force recheck.
+3. Click **Download Extension** (served by protected download function).
+4. Copy license key.
+5. In extension Popup or Options, enter license key and click **Activate License**.
+6. Click **Refresh Entitlement** to force recheck.
 
 ## Endpoints used at launch
 
@@ -103,6 +112,7 @@ npm run verify:netlify-env
 - `POST /.netlify/functions/validate-license`
 - `GET|POST /.netlify/functions/entitlement` (compat alias style response)
 - `POST /.netlify/functions/create-portal-session`
+- `GET|POST /.netlify/functions/download-extension`
 
 Deprecated (return 410):
 

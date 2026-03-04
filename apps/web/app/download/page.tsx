@@ -6,8 +6,7 @@ import { Button } from "@/components/holmeta/Button";
 import { Panel } from "@/components/holmeta/Panel";
 import { BROWSER_LABELS, browserFamilyForType, detectBrowser, type BrowserType } from "@/lib/browser";
 
-const DOWNLOAD_ZIP_PATH = "/downloads/holmeta-extension.zip";
-
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "/.netlify/functions";
 const CHROME_STORE_URL = process.env.NEXT_PUBLIC_CHROME_STORE_URL || "";
 const EDGE_STORE_URL = process.env.NEXT_PUBLIC_EDGE_STORE_URL || "";
 const FIREFOX_AMO_URL = process.env.NEXT_PUBLIC_FIREFOX_AMO_URL || "";
@@ -15,20 +14,16 @@ const SAFARI_URL = process.env.NEXT_PUBLIC_SAFARI_URL || "";
 
 type BrowserChoice = "chromium" | "firefox" | "safari";
 
-type InstallPlan = {
-  heading: string;
-  detail: string;
-  buttonLabel: string;
-  href: string;
-  available: boolean;
-  external: boolean;
-};
-
 const choiceLabels: Record<BrowserChoice, string> = {
   chromium: "Chrome / Edge / Brave / Vivaldi / Arc",
   firefox: "Firefox",
   safari: "Safari"
 };
+
+function apiUrl(path: string): string {
+  const base = API_BASE.replace(/\/$/, "");
+  return `${base}/${path}`;
+}
 
 function choiceFromType(type: BrowserType): BrowserChoice | null {
   const family = browserFamilyForType(type);
@@ -42,119 +37,43 @@ function choiceFromQuery(value: string | null): BrowserChoice | null {
   if (!value) {
     return null;
   }
-
   const lowered = value.toLowerCase();
   if (lowered === "chromium" || lowered === "firefox" || lowered === "safari") {
     return lowered;
   }
-
-  const type = lowered as BrowserType;
-  if (type in BROWSER_LABELS) {
-    return choiceFromType(type);
-  }
-
   return null;
 }
 
-function firstChromiumStoreUrl(detectedType: BrowserType): string {
-  if (detectedType === "edge" && EDGE_STORE_URL) {
-    return EDGE_STORE_URL;
+function sessionIdFromQuery(): string {
+  if (typeof window === "undefined") {
+    return "";
   }
-
-  if (CHROME_STORE_URL) {
-    return CHROME_STORE_URL;
-  }
-
-  if (EDGE_STORE_URL) {
-    return EDGE_STORE_URL;
-  }
-
-  return "";
+  return String(new URLSearchParams(window.location.search).get("session_id") || "").trim();
 }
 
-function buildInstallPlan(selected: BrowserChoice | null, detectedType: BrowserType): InstallPlan {
-  if (!selected) {
-    return {
-      heading: "Choose your browser",
-      detail: "Select one option below to continue.",
-      buttonLabel: "Choose Browser",
-      href: "",
-      available: false,
-      external: false
-    };
-  }
-
-  if (selected === "chromium") {
-    const storeUrl = firstChromiumStoreUrl(detectedType);
-
-    if (storeUrl) {
-      return {
-        heading: "Recommended for Chromium browsers",
-        detail: "Install from store for automatic updates.",
-        buttonLabel: "Install from Store",
-        href: storeUrl,
-        available: true,
-        external: true
-      };
+function preferredStoreUrl(choice: BrowserChoice | null, detectedType: BrowserType): string {
+  if (choice === "chromium") {
+    if (detectedType === "edge" && EDGE_STORE_URL) {
+      return EDGE_STORE_URL;
     }
-
-    return {
-      heading: "Chromium manual install",
-      detail: "Store URL is not configured. Download the zip package.",
-      buttonLabel: "Download .zip",
-      href: DOWNLOAD_ZIP_PATH,
-      available: true,
-      external: false
-    };
+    return CHROME_STORE_URL || EDGE_STORE_URL || "";
   }
-
-  if (selected === "firefox") {
-    if (FIREFOX_AMO_URL) {
-      return {
-        heading: "Recommended for Firefox",
-        detail: "Install from Firefox Add-ons.",
-        buttonLabel: "Install on Firefox",
-        href: FIREFOX_AMO_URL,
-        available: true,
-        external: true
-      };
-    }
-
-    return {
-      heading: "Firefox",
-      detail: "Firefox version coming soon.",
-      buttonLabel: "Coming Soon",
-      href: "",
-      available: false,
-      external: false
-    };
+  if (choice === "firefox") {
+    return FIREFOX_AMO_URL;
   }
-
-  if (SAFARI_URL) {
-    return {
-      heading: "Recommended for Safari",
-      detail: "Install from the Safari listing.",
-      buttonLabel: "Open Safari Listing",
-      href: SAFARI_URL,
-      available: true,
-      external: true
-    };
+  if (choice === "safari") {
+    return SAFARI_URL;
   }
-
-  return {
-    heading: "Safari",
-    detail: "Safari version coming soon.",
-    buttonLabel: "Coming Soon",
-    href: "",
-    available: false,
-    external: false
-  };
+  return "";
 }
 
 export default function DownloadPage() {
   const [detectedType, setDetectedType] = useState<BrowserType>("unknown");
   const [selectedChoice, setSelectedChoice] = useState<BrowserChoice | null>(null);
-  const [zipAvailable, setZipAvailable] = useState<boolean | null>(null);
+  const [sessionId, setSessionId] = useState<string>(() => sessionIdFromQuery());
+  const [licenseKey, setLicenseKey] = useState("");
+  const [statusLine, setStatusLine] = useState("STATUS: SUBSCRIPTION REQUIRED BEFORE DOWNLOAD");
+  const [downloading, setDownloading] = useState(false);
 
   useEffect(() => {
     let alive = true;
@@ -165,7 +84,6 @@ export default function DownloadPage() {
         if (!alive) {
           return;
         }
-
         setDetectedType(info.type);
         setSelectedChoice(queryChoice || choiceFromType(info.type));
       })
@@ -173,7 +91,6 @@ export default function DownloadPage() {
         if (!alive) {
           return;
         }
-
         setDetectedType("unknown");
         setSelectedChoice(queryChoice);
       });
@@ -183,36 +100,76 @@ export default function DownloadPage() {
     };
   }, []);
 
-  useEffect(() => {
-    let alive = true;
-
-    fetch(DOWNLOAD_ZIP_PATH, {
-      method: "HEAD",
-      cache: "no-store"
-    })
-      .then((response) => {
-        if (alive) {
-          setZipAvailable(response.ok);
-        }
-      })
-      .catch(() => {
-        if (alive) {
-          setZipAvailable(false);
-        }
-      });
-
-    return () => {
-      alive = false;
-    };
-  }, []);
-
-  const plan = useMemo(() => buildInstallPlan(selectedChoice, detectedType), [selectedChoice, detectedType]);
-
   const detectedLabel = detectedType === "unknown" ? "Not detected" : BROWSER_LABELS[detectedType];
   const recommendedLabel = selectedChoice ? choiceLabels[selectedChoice] : "Choose your browser";
-  const manualZipEnabled = Boolean(zipAvailable);
-  const primaryInstallEnabled =
-    plan.available && !(plan.href === DOWNLOAD_ZIP_PATH && zipAvailable === false);
+  const storeUrl = useMemo(
+    () => preferredStoreUrl(selectedChoice, detectedType),
+    [selectedChoice, detectedType]
+  );
+
+  async function downloadProtectedZip() {
+    const safeSessionId = String(sessionId || "").trim();
+    const safeLicenseKey = String(licenseKey || "").trim().toUpperCase();
+
+    if (!safeSessionId && !safeLicenseKey) {
+      setStatusLine("STATUS: ENTER CHECKOUT SESSION ID OR LICENSE KEY");
+      return;
+    }
+
+    const params = new URLSearchParams();
+    if (safeSessionId) {
+      params.set("session_id", safeSessionId);
+    } else {
+      params.set("license", safeLicenseKey);
+    }
+
+    setDownloading(true);
+    setStatusLine("STATUS: VERIFYING SUBSCRIPTION");
+
+    try {
+      const response = await fetch(`${apiUrl("download-extension")}?${params.toString()}`, {
+        method: "GET",
+        cache: "no-store"
+      });
+
+      if (!response.ok) {
+        let detail = `HTTP ${response.status}`;
+        try {
+          const payload = (await response.json()) as { error?: string; code?: string };
+          detail = payload?.error || payload?.code || detail;
+        } catch {
+          // no-op
+        }
+        if (response.status === 401 || response.status === 403) {
+          setStatusLine("STATUS: SUBSCRIPTION REQUIRED OR NOT ACTIVE");
+        } else {
+          setStatusLine(`STATUS: DOWNLOAD FAILED (${detail})`);
+        }
+        return;
+      }
+
+      const blob = await response.blob();
+      if (!blob.size) {
+        setStatusLine("STATUS: EMPTY DOWNLOAD RESPONSE");
+        return;
+      }
+
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = "holmeta-extension.zip";
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+
+      setStatusLine("STATUS: DOWNLOAD STARTED");
+    } catch (error) {
+      setStatusLine(`STATUS: DOWNLOAD FAILED (${error instanceof Error ? error.message : "UNKNOWN"})`);
+    } finally {
+      setDownloading(false);
+    }
+  }
 
   return (
     <main className="shell">
@@ -224,73 +181,81 @@ export default function DownloadPage() {
       </Panel>
 
       <Panel>
+        <p className="hm-kicker">SUBSCRIBE FIRST</p>
+        <p className="hm-meta">
+          Download is paywalled. Complete Stripe checkout, then use your checkout session id or license key to download.
+        </p>
+        <div className="hm-cta-row">
+          <Button href="/dashboard/subscribe" variant="primary">START SUBSCRIPTION</Button>
+          <Button href="/billing/success">I ALREADY CHECKED OUT</Button>
+          <Button href="/billing/help">BILLING HELP</Button>
+        </div>
+      </Panel>
+
+      <Panel>
         <p className="hm-kicker">CHOOSE YOUR BROWSER</p>
         <div className="hm-cta-row">
-          <Button
-            variant={selectedChoice === "chromium" ? "primary" : "secondary"}
-            onClick={() => setSelectedChoice("chromium")}
-          >
+          <Button variant={selectedChoice === "chromium" ? "primary" : "secondary"} onClick={() => setSelectedChoice("chromium")}>
             Chrome / Edge
           </Button>
-          <Button
-            variant={selectedChoice === "firefox" ? "primary" : "secondary"}
-            onClick={() => setSelectedChoice("firefox")}
-          >
+          <Button variant={selectedChoice === "firefox" ? "primary" : "secondary"} onClick={() => setSelectedChoice("firefox")}>
             Firefox
           </Button>
-          <Button
-            variant={selectedChoice === "safari" ? "primary" : "secondary"}
-            onClick={() => setSelectedChoice("safari")}
-          >
+          <Button variant={selectedChoice === "safari" ? "primary" : "secondary"} onClick={() => setSelectedChoice("safari")}>
             Safari
+          </Button>
+        </div>
+        <div className="hm-cta-row">
+          <Button
+            href={storeUrl || "#"}
+            disabled={!storeUrl}
+            target={storeUrl ? "_blank" : undefined}
+            rel={storeUrl ? "noreferrer" : undefined}
+          >
+            {storeUrl ? "INSTALL FROM STORE" : "STORE LINK NOT CONFIGURED"}
           </Button>
         </div>
       </Panel>
 
       <Panel>
-        <p className="hm-kicker">RECOMMENDED INSTALL</p>
-        <h2 className="hm-subtitle">{plan.heading}</h2>
-        <p className="hm-meta">{plan.detail}</p>
+        <p className="hm-kicker">PROTECTED ZIP DOWNLOAD</p>
+        <div className="hm-field-row">
+          <label htmlFor="sessionId" className="hm-label">CHECKOUT SESSION ID</label>
+          <input
+            id="sessionId"
+            className="hm-field"
+            value={sessionId}
+            onChange={(event) => setSessionId(event.target.value)}
+            placeholder="cs_live_..."
+          />
+        </div>
+        <div className="hm-field-row">
+          <label htmlFor="licenseKey" className="hm-label">LICENSE KEY (ALTERNATE)</label>
+          <input
+            id="licenseKey"
+            className="hm-field"
+            value={licenseKey}
+            onChange={(event) => setLicenseKey(event.target.value.toUpperCase())}
+            placeholder="HOLMETA-XXXX-XXXX-XXXX-XXXX"
+          />
+        </div>
+        <p className="hm-meta">{statusLine}</p>
         <div className="hm-cta-row">
-          <Button
-            href={plan.href || "#"}
-            variant="primary"
-            disabled={!primaryInstallEnabled}
-            target={plan.external ? "_blank" : undefined}
-            rel={plan.external ? "noreferrer" : undefined}
-          >
-            {plan.buttonLabel}
+          <Button onClick={downloadProtectedZip} variant="primary" disabled={downloading}>
+            {downloading ? "VERIFYING…" : "DOWNLOAD EXTENSION"}
           </Button>
-          <Button href="/dashboard">Open Dashboard</Button>
+          <Button href="/billing/success">OPEN SUCCESS PAGE</Button>
         </div>
       </Panel>
 
-      {selectedChoice === "chromium" ? (
-        <Panel>
-          <p className="hm-kicker">MANUAL INSTALL (CHROMIUM)</p>
-          <p className="hm-meta">
-            Download zip → extract → chrome://extensions → Developer mode → Load unpacked → select the extracted folder that contains <span className="hm-mono">manifest.json</span>.
-          </p>
-          <div className="hm-cta-row">
-            <Button href={DOWNLOAD_ZIP_PATH} disabled={!manualZipEnabled}>
-              Download .zip
-            </Button>
-            <Button href="https://chrome://extensions" target="_blank" rel="noreferrer">
-              Open chrome://extensions
-            </Button>
-          </div>
-
-          {!manualZipEnabled ? (
-            <div className="hm-warning-panel">
-              <p className="hm-warning-line">ZIP NOT AVAILABLE YET</p>
-              <p className="hm-meta">
-                Run <span className="hm-mono">npm --prefix apps/extension run build</span> then
-                <span className="hm-mono"> node scripts/sync-extension-zip.mjs</span>.
-              </p>
-            </div>
-          ) : null}
-        </Panel>
-      ) : null}
+      <Panel>
+        <p className="hm-kicker">MANUAL INSTALL (CHROMIUM)</p>
+        <p className="hm-meta">
+          After download: extract zip → open <span className="hm-mono">chrome://extensions</span> → enable Developer mode →
+          Load unpacked → select extracted folder containing <span className="hm-mono">manifest.json</span>.
+        </p>
+      </Panel>
     </main>
   );
 }
+

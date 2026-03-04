@@ -107,6 +107,55 @@ export default function BillingSuccessPage() {
     }
   }
 
+  async function downloadExtensionNow() {
+    const currentSession = String(sessionId || "").trim();
+    if (!currentSession) {
+      setStatusLine("STATUS: SESSION ID REQUIRED");
+      return;
+    }
+
+    setLoading(true);
+    setStatusLine("STATUS: VERIFYING DOWNLOAD ACCESS");
+
+    try {
+      const response = await fetch(`${apiUrl("download-extension")}?session_id=${encodeURIComponent(currentSession)}`, {
+        method: "GET",
+        cache: "no-store"
+      });
+
+      if (!response.ok) {
+        let detail = `HTTP ${response.status}`;
+        try {
+          const payload = (await response.json()) as { error?: string; code?: string };
+          detail = payload?.error || payload?.code || detail;
+        } catch {
+          // no-op
+        }
+        throw new Error(detail);
+      }
+
+      const blob = await response.blob();
+      if (!blob.size) {
+        throw new Error("Empty zip response");
+      }
+
+      const objectUrl = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      anchor.href = objectUrl;
+      anchor.download = "holmeta-extension.zip";
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      URL.revokeObjectURL(objectUrl);
+
+      setStatusLine("STATUS: DOWNLOAD STARTED");
+    } catch (error) {
+      setStatusLine(`STATUS: DOWNLOAD FAILED (${error instanceof Error ? error.message : "UNKNOWN"})`);
+    } finally {
+      setLoading(false);
+    }
+  }
+
   return (
     <main className="shell">
       <Panel>
@@ -135,6 +184,7 @@ export default function BillingSuccessPage() {
           <Button onClick={openPortal} disabled={!sessionId || loading}>
             MANAGE BILLING
           </Button>
+          <Button href="/billing/help">REFUND HELP</Button>
         </div>
 
         <div className="hm-pairing-box">
@@ -142,7 +192,9 @@ export default function BillingSuccessPage() {
           <p className="hm-pairing-code">{licenseKey || "NOT REVEALED YET"}</p>
           <div className="hm-cta-row">
             <Button onClick={copyLicense} disabled={!licenseKey}>COPY LICENSE</Button>
-            <Button href="/download">DOWNLOAD EXTENSION</Button>
+            <Button onClick={downloadExtensionNow} variant="primary" disabled={!sessionId || loading}>DOWNLOAD EXTENSION</Button>
+            <Button href={`/download?session_id=${encodeURIComponent(sessionId)}`}>OPEN DOWNLOAD PAGE</Button>
+            <Button onClick={openPortal} disabled={!sessionId || loading}>CANCEL / PLAN CHANGES</Button>
           </div>
         </div>
       </Panel>
