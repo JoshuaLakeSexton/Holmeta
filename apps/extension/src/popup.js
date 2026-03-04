@@ -972,14 +972,10 @@
       if (activeId === "focusDomains") {
         state.inlineDraft.domainsCsv = String(domainsInput.value || "");
         state.inlineDraft.dirtyDomains = true;
-      } else if (state.inlineDraft.dirtyDomains) {
-        if (domainsInput.value !== state.inlineDraft.domainsCsv) {
-          domainsInput.value = state.inlineDraft.domainsCsv;
-        }
       } else {
-        const preferredCsv = String(
-          state.uiState.domainsDraft || (state.settings.distractorDomains || []).join(", ")
-        );
+        const preferredCsv = state.inlineDraft.dirtyDomains
+          ? String(state.inlineDraft.domainsCsv || "")
+          : String(state.uiState.domainsDraft || (state.settings.distractorDomains || []).join(", "));
         if (domainsInput.value !== preferredCsv) {
           domainsInput.value = preferredCsv;
         }
@@ -1004,17 +1000,14 @@
     const licenseInput = $("licenseKeyInline");
     if (licenseInput instanceof HTMLInputElement) {
       if (activeId === "licenseKeyInline") {
-        const liveValue = String(licenseInput.value || "").toUpperCase();
-        state.inlineDraft.licenseKey = liveValue;
+        state.inlineDraft.licenseKey = String(licenseInput.value || "");
         state.inlineDraft.dirtyLicense = true;
-      } else if (state.inlineDraft.dirtyLicense) {
-        if (licenseInput.value !== state.inlineDraft.licenseKey) {
-          licenseInput.value = state.inlineDraft.licenseKey;
-        }
       } else {
-        const pref = String(state.uiState.licenseKeyDraft || state.settings.licenseKey || "").trim().toUpperCase();
-        if (pref && licenseInput.value !== pref) {
-          licenseInput.value = pref;
+        const preferredLicense = state.inlineDraft.dirtyLicense
+          ? String(state.inlineDraft.licenseKey || "")
+          : String(state.uiState.licenseKeyDraft || state.settings.licenseKey || "");
+        if (licenseInput.value !== preferredLicense) {
+          licenseInput.value = preferredLicense;
         }
       }
     }
@@ -1022,17 +1015,14 @@
     const checkoutSessionInput = $("checkoutSessionInline");
     if (checkoutSessionInput instanceof HTMLInputElement) {
       if (activeId === "checkoutSessionInline") {
-        const liveValue = String(checkoutSessionInput.value || "").trim();
-        state.inlineDraft.checkoutSessionId = liveValue;
+        state.inlineDraft.checkoutSessionId = String(checkoutSessionInput.value || "");
         state.inlineDraft.dirtyCheckoutSession = true;
-      } else if (state.inlineDraft.dirtyCheckoutSession) {
-        if (checkoutSessionInput.value !== state.inlineDraft.checkoutSessionId) {
-          checkoutSessionInput.value = state.inlineDraft.checkoutSessionId;
-        }
       } else {
-        const pref = String(state.uiState.checkoutSessionDraft || state.settings.checkoutSessionId || "").trim();
-        if (pref && checkoutSessionInput.value !== pref) {
-          checkoutSessionInput.value = pref;
+        const preferredSession = state.inlineDraft.dirtyCheckoutSession
+          ? String(state.inlineDraft.checkoutSessionId || "")
+          : String(state.uiState.checkoutSessionDraft || state.settings.checkoutSessionId || "");
+        if (checkoutSessionInput.value !== preferredSession) {
+          checkoutSessionInput.value = preferredSession;
         }
       }
     }
@@ -1043,14 +1033,12 @@
       if (activeId === "quickNotes") {
         state.inlineDraft.notes = String(notesInput.value || "");
         state.inlineDraft.dirtyNotes = true;
-      } else if (state.inlineDraft.dirtyNotes) {
-        if (notesInput.value !== state.inlineDraft.notes) {
-          notesInput.value = state.inlineDraft.notes;
-        }
       } else {
-        const saved = String(state.uiState.notes || "");
-        if (notesInput.value !== saved) {
-          notesInput.value = saved;
+        const preferredNotes = state.inlineDraft.dirtyNotes
+          ? String(state.inlineDraft.notes || "")
+          : String(state.uiState.notes || "");
+        if (notesInput.value !== preferredNotes) {
+          notesInput.value = preferredNotes;
         }
       }
       if (notesStatus) {
@@ -1238,16 +1226,13 @@
       if (!(target instanceof HTMLInputElement)) {
         return;
       }
-      const normalized = String(target.value || "").toUpperCase();
-      if (target.value !== normalized) {
-        target.value = normalized;
-      }
-      state.inlineDraft.licenseKey = normalized;
+      const value = String(target.value || "");
+      state.inlineDraft.licenseKey = value;
       state.inlineDraft.dirtyLicense = true;
-      debouncedPersistUiState({ licenseKeyDraft: normalized });
+      debouncedPersistUiState({ licenseKeyDraft: value });
     });
 
-    on("licenseKeyInline", "change", (event) => {
+    on("licenseKeyInline", "blur", async (event) => {
       const target = event.target;
       if (!(target instanceof HTMLInputElement)) {
         return;
@@ -1255,22 +1240,8 @@
       const normalized = String(target.value || "").trim().toUpperCase();
       target.value = normalized;
       state.inlineDraft.licenseKey = normalized;
-      state.inlineDraft.dirtyLicense = true;
-      debouncedPersistUiState({ licenseKeyDraft: normalized });
-    });
-
-    on("licenseKeyInline", "paste", () => {
-      requestAnimationFrame(() => {
-        const target = $("licenseKeyInline");
-        if (!(target instanceof HTMLInputElement)) {
-          return;
-        }
-        const normalized = String(target.value || "").trim().toUpperCase();
-        target.value = normalized;
-        state.inlineDraft.licenseKey = normalized;
-        state.inlineDraft.dirtyLicense = true;
-        debouncedPersistUiState({ licenseKeyDraft: normalized });
-      });
+      state.inlineDraft.dirtyLicense = false;
+      await persistUiStatePatch({ licenseKeyDraft: normalized });
     });
 
     on("checkoutSessionInline", "input", (event) => {
@@ -1278,13 +1249,10 @@
       if (!(target instanceof HTMLInputElement)) {
         return;
       }
-      const normalized = String(target.value || "").trim();
-      if (target.value !== normalized) {
-        target.value = normalized;
-      }
-      state.inlineDraft.checkoutSessionId = normalized;
+      const value = String(target.value || "");
+      state.inlineDraft.checkoutSessionId = value;
       state.inlineDraft.dirtyCheckoutSession = true;
-      debouncedPersistUiState({ checkoutSessionDraft: normalized });
+      debouncedPersistUiState({ checkoutSessionDraft: value });
     });
 
     on("checkoutSessionInline", "blur", async (event) => {

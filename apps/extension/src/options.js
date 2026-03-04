@@ -1030,16 +1030,14 @@
     const licenseInput = $("licenseKeyInput");
     if (licenseInput instanceof HTMLInputElement) {
       if (document.activeElement === licenseInput) {
-        state.accountDraft.licenseKey = String(licenseInput.value || "").toUpperCase();
+        state.accountDraft.licenseKey = String(licenseInput.value || "");
         state.accountDraft.dirtyLicense = true;
-      } else if (state.accountDraft.dirtyLicense) {
-        if (licenseInput.value !== state.accountDraft.licenseKey) {
-          licenseInput.value = state.accountDraft.licenseKey;
-        }
       } else {
-        const pref = String(state.accountDraft.licenseKey || state.uiState.licenseKeyDraft || state.settings.licenseKey || "").trim().toUpperCase();
-        if (pref && licenseInput.value !== pref) {
-          licenseInput.value = pref;
+        const preferredLicense = state.accountDraft.dirtyLicense
+          ? String(state.accountDraft.licenseKey || "")
+          : String(state.accountDraft.licenseKey || state.uiState.licenseKeyDraft || state.settings.licenseKey || "");
+        if (licenseInput.value !== preferredLicense) {
+          licenseInput.value = preferredLicense;
         }
       }
     }
@@ -1047,16 +1045,14 @@
     const checkoutSessionInput = $("checkoutSessionId");
     if (checkoutSessionInput instanceof HTMLInputElement) {
       if (document.activeElement === checkoutSessionInput) {
-        state.accountDraft.checkoutSessionId = String(checkoutSessionInput.value || "").trim();
+        state.accountDraft.checkoutSessionId = String(checkoutSessionInput.value || "");
         state.accountDraft.dirtyCheckoutSession = true;
-      } else if (state.accountDraft.dirtyCheckoutSession) {
-        if (checkoutSessionInput.value !== state.accountDraft.checkoutSessionId) {
-          checkoutSessionInput.value = state.accountDraft.checkoutSessionId;
-        }
       } else {
-        const pref = String(state.accountDraft.checkoutSessionId || state.uiState.checkoutSessionDraft || state.settings.checkoutSessionId || "").trim();
-        if (pref && checkoutSessionInput.value !== pref) {
-          checkoutSessionInput.value = pref;
+        const preferredSession = state.accountDraft.dirtyCheckoutSession
+          ? String(state.accountDraft.checkoutSessionId || "")
+          : String(state.accountDraft.checkoutSessionId || state.uiState.checkoutSessionDraft || state.settings.checkoutSessionId || "");
+        if (checkoutSessionInput.value !== preferredSession) {
+          checkoutSessionInput.value = preferredSession;
         }
       }
     }
@@ -1862,13 +1858,10 @@
       if (!(target instanceof HTMLInputElement)) {
         return;
       }
-      const normalized = String(target.value || "").trim();
-      if (target.value !== normalized) {
-        target.value = normalized;
-      }
-      state.accountDraft.checkoutSessionId = normalized;
+      const value = String(target.value || "");
+      state.accountDraft.checkoutSessionId = value;
       state.accountDraft.dirtyCheckoutSession = true;
-      debouncedPersistUiState({ checkoutSessionDraft: normalized });
+      debouncedPersistUiState({ checkoutSessionDraft: value });
     });
 
     $("checkoutSessionId").addEventListener("blur", async (event) => {
@@ -1891,13 +1884,10 @@
       if (!(target instanceof HTMLInputElement)) {
         return;
       }
-      const normalized = String(target.value || "").toUpperCase();
-      if (target.value !== normalized) {
-        target.value = normalized;
-      }
-      state.accountDraft.licenseKey = normalized;
+      const value = String(target.value || "");
+      state.accountDraft.licenseKey = value;
       state.accountDraft.dirtyLicense = true;
-      debouncedPersistUiState({ licenseKeyDraft: normalized });
+      debouncedPersistUiState({ licenseKeyDraft: value });
     });
 
     $("licenseKeyInput").addEventListener("blur", async (event) => {
@@ -1908,6 +1898,7 @@
       const normalized = String(target.value || "").trim().toUpperCase();
       target.value = normalized;
       state.accountDraft.licenseKey = normalized;
+      state.accountDraft.dirtyLicense = false;
       await persistUiStatePatch({ licenseKeyDraft: normalized });
     });
 
