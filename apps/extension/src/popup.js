@@ -52,6 +52,16 @@
 
   const $ = (id) => document.getElementById(id);
 
+  function on(id, eventName, handler, options) {
+    const el = $(id);
+    if (!el) {
+      console.warn("holmeta popup missing element:", id);
+      return false;
+    }
+    el.addEventListener(eventName, handler, options);
+    return true;
+  }
+
   function debounce(fn, wait = 120) {
     let timer = null;
     return (...args) => {
@@ -844,6 +854,9 @@
   }
 
   function render() {
+    const activeElement = document.activeElement;
+    const activeId = activeElement && "id" in activeElement ? String(activeElement.id || "") : "";
+
     const mode = statusMode();
     const chip = $("statusChip");
     chip.className = `status-chip ${statusClass(mode)}`;
@@ -865,15 +878,23 @@
     $("filterReadout").textContent = HC.getPresetById(state.settings.filterPreset).label;
     $("filterMeta").textContent = `INTENSITY: ${Math.round(state.settings.filterIntensity * 100)}%`;
 
-    $("presetSelect").value = state.settings.filterPreset;
-    $("intensityRange").value = String(Math.round(Number(state.settings.filterIntensity) * 100));
+    if (activeId !== "presetSelect") {
+      $("presetSelect").value = state.settings.filterPreset;
+    }
+    if (activeId !== "intensityRange") {
+      $("intensityRange").value = String(Math.round(Number(state.settings.filterIntensity) * 100));
+    }
     $("intensityValue").textContent = `${Math.round(Number(state.settings.filterIntensity) * 100)}%`;
 
-    $("cadencePresetSelect").value = state.settings.cadence.activeProfile || "balanced";
+    if (activeId !== "cadencePresetSelect") {
+      $("cadencePresetSelect").value = state.settings.cadence.activeProfile || "balanced";
+    }
     $("colorAccurateToggle").checked = Boolean(state.settings.colorAccurate);
     $("meetingManualToggle").checked = Boolean(state.settings.cadence.global.meetingModeManual);
 
-    $("focusDomains").value = (state.settings.distractorDomains || []).join(", ");
+    if (activeId !== "focusDomains") {
+      $("focusDomains").value = (state.settings.distractorDomains || []).join(", ");
+    }
 
     $("meetingToggle").textContent = state.settings.cadence.global.meetingModeManual
       ? "MEETING QUIET: ON"
@@ -891,18 +912,38 @@
     $("masterVolumeRange").value = String(Math.round(Number(state.settings.masterVolume || 0.35) * 100));
     $("masterVolumeValue").textContent = Math.round(Number(state.settings.masterVolume || 0.35) * 100) + "%";
     const licenseInput = $("licenseKeyInline");
-    if (licenseInput && !state.inlineDraft.dirtyLicense && !String(licenseInput.value || "").trim()) {
-      const pref = String(state.settings.licenseKey || "").trim();
-      if (pref) {
-        licenseInput.value = pref;
+    if (licenseInput instanceof HTMLInputElement) {
+      if (activeId === "licenseKeyInline") {
+        const liveValue = String(licenseInput.value || "").toUpperCase();
+        state.inlineDraft.licenseKey = liveValue;
+        state.inlineDraft.dirtyLicense = true;
+      } else if (state.inlineDraft.dirtyLicense) {
+        if (licenseInput.value !== state.inlineDraft.licenseKey) {
+          licenseInput.value = state.inlineDraft.licenseKey;
+        }
+      } else if (!String(licenseInput.value || "").trim()) {
+        const pref = String(state.settings.licenseKey || "").trim().toUpperCase();
+        if (pref) {
+          licenseInput.value = pref;
+        }
       }
     }
 
     const checkoutSessionInput = $("checkoutSessionInline");
-    if (checkoutSessionInput && !state.inlineDraft.dirtyCheckoutSession && !String(checkoutSessionInput.value || "").trim()) {
-      const pref = String(state.settings.checkoutSessionId || "").trim();
-      if (pref) {
-        checkoutSessionInput.value = pref;
+    if (checkoutSessionInput instanceof HTMLInputElement) {
+      if (activeId === "checkoutSessionInline") {
+        const liveValue = String(checkoutSessionInput.value || "").trim();
+        state.inlineDraft.checkoutSessionId = liveValue;
+        state.inlineDraft.dirtyCheckoutSession = true;
+      } else if (state.inlineDraft.dirtyCheckoutSession) {
+        if (checkoutSessionInput.value !== state.inlineDraft.checkoutSessionId) {
+          checkoutSessionInput.value = state.inlineDraft.checkoutSessionId;
+        }
+      } else if (!String(checkoutSessionInput.value || "").trim()) {
+        const pref = String(state.settings.checkoutSessionId || "").trim();
+        if (pref) {
+          checkoutSessionInput.value = pref;
+        }
       }
     }
 
@@ -1052,15 +1093,15 @@
 
     bindPrimaryHoverSfx();
 
-    $("popupBack").addEventListener("click", () => {
+    on("popupBack", "click", () => {
       handlePopupBack();
     });
 
-    $("popupHome").addEventListener("click", async () => {
+    on("popupHome", "click", async () => {
       await openHomeFlow();
     });
 
-    $("licenseKeyInline").addEventListener("input", (event) => {
+    on("licenseKeyInline", "input", (event) => {
       const target = event.target;
       if (!(target instanceof HTMLInputElement)) {
         return;
@@ -1073,7 +1114,7 @@
       state.inlineDraft.dirtyLicense = true;
     });
 
-    $("licenseKeyInline").addEventListener("change", (event) => {
+    on("licenseKeyInline", "change", (event) => {
       const target = event.target;
       if (!(target instanceof HTMLInputElement)) {
         return;
@@ -1081,10 +1122,10 @@
       const normalized = String(target.value || "").trim().toUpperCase();
       target.value = normalized;
       state.inlineDraft.licenseKey = normalized;
-      state.inlineDraft.dirtyLicense = Boolean(normalized);
+      state.inlineDraft.dirtyLicense = true;
     });
 
-    $("licenseKeyInline").addEventListener("paste", () => {
+    on("licenseKeyInline", "paste", () => {
       requestAnimationFrame(() => {
         const target = $("licenseKeyInline");
         if (!(target instanceof HTMLInputElement)) {
@@ -1093,11 +1134,11 @@
         const normalized = String(target.value || "").trim().toUpperCase();
         target.value = normalized;
         state.inlineDraft.licenseKey = normalized;
-        state.inlineDraft.dirtyLicense = Boolean(normalized);
+        state.inlineDraft.dirtyLicense = true;
       });
     });
 
-    $("checkoutSessionInline").addEventListener("input", (event) => {
+    on("checkoutSessionInline", "input", (event) => {
       const target = event.target;
       if (!(target instanceof HTMLInputElement)) {
         return;
@@ -1132,20 +1173,20 @@
       });
     });
 
-    $("stopFocus").addEventListener("click", async () => {
+    on("stopFocus", "click", async () => {
       playUiSfx("uiWarn");
       await send({ type: "holmeta-panic-focus" });
       await refreshState();
     });
 
-    $("filterToggle").addEventListener("click", async () => {
+    on("filterToggle", "click", async () => {
       const nextEnabled = !state.settings.filterEnabled;
       playUiSfx(nextEnabled ? "uiToggleOn" : "uiToggleOff");
       await send({ type: "holmeta-set-filter-enabled", enabled: nextEnabled });
       await refreshState();
     });
 
-    $("meetingToggle").addEventListener("click", async () => {
+    on("meetingToggle", "click", async () => {
       const nextEnabled = !state.settings.cadence.global.meetingModeManual;
       playUiSfx(nextEnabled ? "uiToggleOn" : "uiToggleOff");
       await send({
@@ -1155,7 +1196,7 @@
       await refreshState();
     });
 
-    $("meetingManualToggle").addEventListener("change", async (event) => {
+    on("meetingManualToggle", "change", async (event) => {
       const nextEnabled = Boolean(event.target.checked);
       playUiSfx(nextEnabled ? "uiToggleOn" : "uiToggleOff");
       await send({
@@ -1165,19 +1206,19 @@
       await refreshState();
     });
 
-    $("snoozeAll").addEventListener("click", async () => {
+    on("snoozeAll", "click", async () => {
       playUiSfx("uiWarn");
       await send({ type: "holmeta-snooze-all", minutes: 15 });
       await refreshState();
     });
 
-    $("panicOff").addEventListener("click", async () => {
+    on("panicOff", "click", async () => {
       playUiSfx("uiWarn");
       await send({ type: "holmeta-panic-off", minutes: 30 });
       await refreshState();
     });
 
-    $("lockInAdd").addEventListener("click", async () => {
+    on("lockInAdd", "click", async () => {
       const title = String($("lockInTitle").value || "").trim();
       const dueTime = String($("lockInDueTime").value || "").trim();
       if (!title) {
@@ -1208,7 +1249,7 @@
       playUiSfx("uiSuccess", { force: true });
     });
 
-    $("lockInTitle").addEventListener("keydown", async (event) => {
+    on("lockInTitle", "keydown", async (event) => {
       if (event.key !== "Enter") {
         return;
       }
@@ -1216,7 +1257,7 @@
       $("lockInAdd").click();
     });
 
-    $("lockInTestAlarm").addEventListener("click", async () => {
+    on("lockInTestAlarm", "click", async () => {
       playUiSfx("uiTest", { force: true });
       const response = await send({ type: "holmeta-lockin-test" });
       if (!response?.ok) {
@@ -1229,7 +1270,7 @@
       setInlineStatus("STATUS: LOCK IN ALARM TRIGGERED");
     });
 
-    $("lockInList").addEventListener("change", async (event) => {
+    on("lockInList", "change", async (event) => {
       const target = event.target;
       if (!(target instanceof HTMLInputElement)) {
         return;
@@ -1262,7 +1303,7 @@
       setInlineStatus(target.checked ? "STATUS: LOCK IN ITEM COMPLETED" : "STATUS: LOCK IN ITEM REOPENED");
     });
 
-    $("lockInList").addEventListener("click", async (event) => {
+    on("lockInList", "click", async (event) => {
       const target = event.target;
       if (!(target instanceof HTMLElement)) {
         return;
@@ -1313,7 +1354,7 @@
       }
     });
 
-    $("presetSelect").addEventListener("change", (event) => {
+    on("presetSelect", "change", (event) => {
       playUiSfx("uiToggleOn");
       const preset = HC.getPresetById(event.target.value);
       patchSettings({
@@ -1323,13 +1364,13 @@
       });
     });
 
-    $("intensityRange").addEventListener("input", (event) => {
+    on("intensityRange", "input", (event) => {
       const value = Number(event.target.value || 0) / 100;
       $("intensityValue").textContent = Math.round(value * 100) + "%";
       debouncedPatch({ filterIntensity: value });
     });
 
-    $("colorAccurateToggle").addEventListener("change", (event) => {
+    on("colorAccurateToggle", "change", (event) => {
       playUiSfx(Boolean(event.target.checked) ? "uiToggleOn" : "uiToggleOff");
       patchSettings({
         colorAccurate: Boolean(event.target.checked),
@@ -1337,7 +1378,7 @@
       });
     });
 
-    $("applyCadencePreset").addEventListener("click", async () => {
+    on("applyCadencePreset", "click", async () => {
       playUiSfx("uiSave");
       await applyCadencePreset($("cadencePresetSelect").value);
       playUiSfx("uiSuccess");
@@ -1358,7 +1399,7 @@
       });
     });
 
-    $("activateBlockers").addEventListener("click", async () => {
+    on("activateBlockers", "click", async () => {
       playUiSfx("uiWarn");
       const ok = await applyBlockerConfig({ enabled: true });
       if (!ok) {
@@ -1368,7 +1409,7 @@
       playUiSfx("uiSuccess", { force: true });
     });
 
-    $("pauseBlockers").addEventListener("click", async () => {
+    on("pauseBlockers", "click", async () => {
       playUiSfx("uiToggleOff");
       const ok = await applyBlockerConfig({ enabled: false });
       if (!ok) {
@@ -1377,7 +1418,7 @@
       setInlineStatus("STATUS: DISTRACTOR BLOCKERS PAUSED");
     });
 
-    $("saveFocusDomains").addEventListener("click", async () => {
+    on("saveFocusDomains", "click", async () => {
       playUiSfx("uiSave");
       const ok = await applyBlockerConfig();
       if (!ok) {
@@ -1409,7 +1450,7 @@
       });
     });
 
-    $("soundEnabledToggle").addEventListener("change", async (event) => {
+    on("soundEnabledToggle", "change", async (event) => {
       const enabled = Boolean(event.target.checked);
       if (!enabled) {
         playUiSfx("uiToggleOff", { force: true });
@@ -1422,36 +1463,36 @@
       }
     });
 
-    $("hoverEnabledToggle").addEventListener("change", async (event) => {
+    on("hoverEnabledToggle", "change", async (event) => {
       const enabled = Boolean(event.target.checked);
       playUiSfx(enabled ? "uiToggleOn" : "uiToggleOff");
       await patchSettings({ hoverEnabled: enabled });
     });
 
-    $("reminderSoundsToggle").addEventListener("change", async (event) => {
+    on("reminderSoundsToggle", "change", async (event) => {
       const enabled = Boolean(event.target.checked);
       playUiSfx(enabled ? "uiToggleOn" : "uiToggleOff");
       await patchSettings({ reminderSoundsEnabled: enabled });
     });
 
-    $("masterVolumeRange").addEventListener("input", (event) => {
+    on("masterVolumeRange", "input", (event) => {
       const value = Number(event.target.value || 0);
       $("masterVolumeValue").textContent = Math.round(value) + "%";
       debouncedPatch({ masterVolume: value / 100 });
     });
 
-    $("soundTestPing").addEventListener("click", async () => {
+    on("soundTestPing", "click", async () => {
       await HA?.initAudioUnlock?.();
       playUiSfx("uiTest", { force: true });
       setInlineStatus("STATUS: SFX TEST PING");
     });
 
-    $("unlockPremium").addEventListener("click", async () => {
+    on("unlockPremium", "click", async () => {
       playUiSfx("uiClick");
       await openSubscribeFlow();
     });
 
-    $("activateLicenseInline").addEventListener("click", async () => {
+    on("activateLicenseInline", "click", async () => {
       const licenseKey = currentInlineLicenseKey();
       if (!licenseKey) {
         setInlineStatus("STATUS: LICENSE KEY REQUIRED");
@@ -1477,7 +1518,7 @@
       await refreshState();
     });
 
-    $("clearLicenseInline").addEventListener("click", async () => {
+    on("clearLicenseInline", "click", async () => {
       const response = await send({ type: "holmeta-clear-license" });
       if (!response?.ok) {
         setInlineStatus("STATUS: CLEAR LICENSE FAILED");
@@ -1492,29 +1533,29 @@
       await refreshState();
     });
 
-    $("refreshEntitlement").addEventListener("click", async () => {
+    on("refreshEntitlement", "click", async () => {
       playUiSfx("uiClick");
       await send({ type: "holmeta-refresh-entitlement" });
       await refreshState();
       playUiSfx("uiSuccess");
     });
 
-    $("openLicensePageInline").addEventListener("click", async () => {
+    on("openLicensePageInline", "click", async () => {
       playUiSfx("uiClick");
       await openLicensePageFlow();
     });
 
-    $("openCancelPortalInline").addEventListener("click", async () => {
+    on("openCancelPortalInline", "click", async () => {
       playUiSfx("uiClick");
       await openCancelPortalFlow();
     });
 
-    $("openRefundHelpInline").addEventListener("click", async () => {
+    on("openRefundHelpInline", "click", async () => {
       playUiSfx("uiClick");
       await openRefundHelpFlow();
     });
 
-    $("openHud").addEventListener("click", async () => {
+    on("openHud", "click", async () => {
       playUiSfx("uiClick");
       const result = await sendToActiveTab({ type: "HOLMETA_HUD_OPEN" });
       if (!result.ok) {
@@ -1527,7 +1568,7 @@
       playUiSfx("uiSuccess", { force: true });
     });
 
-    $("closeHud").addEventListener("click", async () => {
+    on("closeHud", "click", async () => {
       playUiSfx("uiClick");
       const result = await sendToActiveTab({ type: "HOLMETA_HUD_CLOSE" });
       if (!result.ok) {
@@ -1540,12 +1581,12 @@
       playUiSfx("uiSuccess", { force: true });
     });
 
-    $("openDashboard").addEventListener("click", async () => {
+    on("openDashboard", "click", async () => {
       playUiSfx("uiClick");
       await openDashboardFlow();
     });
 
-    $("openOptions").addEventListener("click", () => {
+    on("openOptions", "click", () => {
       playUiSfx("uiClick");
       chrome.runtime.openOptionsPage();
     });
