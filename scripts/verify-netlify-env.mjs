@@ -19,10 +19,6 @@ const requiredKeys = [
   "LICENSE_SALT"
 ];
 
-const optionalKeys = [
-  "STRIPE_PRICE_MONTHLY_B"
-];
-
 function runNetlifyEnvList() {
   const raw = execFileSync("npx", ["netlify-cli", "env:list", "--json"], {
     cwd: webDir,
@@ -96,10 +92,6 @@ function main() {
     }
   }
 
-  for (const key of optionalKeys) {
-    const present = Boolean(String(envMap?.[key] || "").trim());
-    console.log(`- ${key}: ${present ? "present (optional)" : "not set (optional)"}`);
-  }
 }
 
 main();

@@ -1,6 +1,6 @@
 import crypto from "node:crypto";
 
-export type LicensePlanKey = "monthly_a" | "monthly_b" | "yearly";
+export type LicensePlanKey = "monthly_a" | "yearly";
 
 export type LicenseEntitlementPayload = {
   valid: boolean;

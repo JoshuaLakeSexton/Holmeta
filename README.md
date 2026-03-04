@@ -58,10 +58,6 @@ Production runtime (Netlify):
 - `TRIAL_DAYS` (default `3`)
 - `LICENSE_SALT`
 
-Optional:
-
-- `STRIPE_PRICE_MONTHLY_B` (only if you want a second monthly plan)
-
 Optional legacy fallback:
 
 - `STRIPE_PRICE_ID_2` (used only if `STRIPE_PRICE_MONTHLY_A` is empty)
@@ -77,7 +73,6 @@ npm run verify:netlify-env
 1. Create recurring prices in Stripe:
    - monthly A
    - yearly
-   - optional monthly B
 2. Add webhook endpoint:
    - `https://<site>/.netlify/functions/stripe-webhook`
 3. Subscribe webhook to events:
@@ -121,8 +116,6 @@ Deprecated (return 410):
 
 ```bash
 npm run e2e:smoke -- --base https://holmeta.com --all-plans --dry-run
-# include monthly_b if you use it:
-npm run e2e:smoke -- --base https://holmeta.com --all-plans --include-monthly-b --dry-run
 # after manual checkout:
 npm run e2e:smoke -- --base https://holmeta.com --session-id <CHECKOUT_SESSION_ID> --license <HOLMETA-KEY>
 ```

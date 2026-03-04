@@ -19,7 +19,7 @@ function asIso(value: Date | null | undefined): string | null {
 
 function normalizeTier(raw: string | null | undefined): PlanKey | "none" {
   const value = String(raw || "").trim().toLowerCase();
-  if (value === "monthly_a" || value === "monthly_b" || value === "yearly") {
+  if (value === "monthly_a" || value === "yearly") {
     return value;
   }
   return "none";

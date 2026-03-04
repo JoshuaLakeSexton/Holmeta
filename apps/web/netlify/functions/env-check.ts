@@ -12,10 +12,6 @@ const REQUIRED_KEYS = [
   "LICENSE_SALT"
 ] as const;
 
-const OPTIONAL_KEYS = [
-  "STRIPE_PRICE_MONTHLY_B"
-] as const;
-
 function hasValue(name: string): boolean {
   return Boolean(String(process.env[name] || "").trim());
 }
@@ -30,11 +26,8 @@ export const handler: Handler = async (event) => {
     return methodNotAllowed(["GET", "OPTIONS"]);
   }
 
-  const env = Object.fromEntries([
-    ...REQUIRED_KEYS.map((key) => [key, hasValue(key)]),
-    ...OPTIONAL_KEYS.map((key) => [key, hasValue(key)])
-  ]) as Record<
-    (typeof REQUIRED_KEYS)[number] | (typeof OPTIONAL_KEYS)[number],
+  const env = Object.fromEntries(REQUIRED_KEYS.map((key) => [key, hasValue(key)])) as Record<
+    (typeof REQUIRED_KEYS)[number],
     boolean
   >;
 
@@ -51,10 +44,6 @@ export const handler: Handler = async (event) => {
     ok: missing.length === 0,
     env,
     missing,
-    optional: OPTIONAL_KEYS.map((key) => ({
-      key,
-      present: env[key]
-    })),
     fallback: {
       STRIPE_PRICE_ID_2: legacyMonthlyFallback
     }

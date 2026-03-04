@@ -35,12 +35,8 @@ function normalizeBaseUrl(raw: string): string {
   return raw.replace(/\/$/, "");
 }
 
-function resolveRequestedPlan(body: CheckoutBody): PlanKey {
-  const direct = normalizedPlan(body.planKey || body.plan);
-  if (direct) {
-    return direct;
-  }
-  return "monthly_a";
+function resolveRequestedPlan(body: CheckoutBody): PlanKey | null {
+  return normalizedPlan(body.planKey || body.plan) || null;
 }
 
 export const handler: Handler = async (event) => {
@@ -78,6 +74,13 @@ export const handler: Handler = async (event) => {
 
   const body = parseJsonBody<CheckoutBody>(event);
   const planKey = resolveRequestedPlan(body);
+  if (!planKey) {
+    return json(400, {
+      ok: false,
+      error: "Invalid planKey. Use monthly_a or yearly.",
+      code: "PLAN_KEY_INVALID"
+    });
+  }
   const resolvedPriceId = resolvePriceIdForPlan(planKey);
   if (!resolvedPriceId) {
     const requiredName = requiredPriceEnvForPlan(planKey);
