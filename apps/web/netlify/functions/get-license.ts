@@ -1,7 +1,7 @@
 import type { Handler } from "@netlify/functions";
 import Stripe from "stripe";
 
-import { corsPreflight, json, methodNotAllowed, parseJsonBody } from "./_lib/http";
+import { corsPreflight, json, methodNotAllowed, parseJsonBody, requestId } from "./_lib/http";
 import { prisma } from "./_lib/prisma";
 import { requireEnvVars } from "./_lib/env";
 import { reportServerEvent } from "./_lib/monitor";
@@ -44,6 +44,13 @@ function toDateFromUnix(seconds: number | null | undefined): Date | null {
 }
 
 export const handler: Handler = async (event) => {
+  const rid = requestId(event);
+  const respond = (statusCode: number, body: unknown, headers: Record<string, string> = {}) =>
+    json(statusCode, body, {
+      "X-Holmeta-Request-Id": rid,
+      ...headers
+    });
+
   const preflight = corsPreflight(event);
   if (preflight) {
     return preflight;
@@ -67,7 +74,7 @@ export const handler: Handler = async (event) => {
   const sessionId = bodySessionId(body) || querySessionId(event.rawUrl || "");
 
   if (!sessionId) {
-    return json(400, {
+    return respond(400, {
       ok: false,
       error: "Missing session_id",
       code: "SESSION_ID_REQUIRED"
@@ -80,7 +87,7 @@ export const handler: Handler = async (event) => {
     });
 
     if (!statusAllowsReveal(session)) {
-      return json(402, {
+      return respond(402, {
         ok: false,
         error: "not_paid",
         code: "CHECKOUT_NOT_COMPLETE"
@@ -92,7 +99,7 @@ export const handler: Handler = async (event) => {
       : session.subscription?.id || "";
 
     if (!subscriptionId) {
-      return json(409, {
+      return respond(409, {
         ok: false,
         error: "missing_subscription",
         code: "SUBSCRIPTION_REQUIRED"
@@ -145,7 +152,7 @@ export const handler: Handler = async (event) => {
       }
     });
 
-    const reveal = await prisma.licenseReveal.upsert({
+    await prisma.licenseReveal.upsert({
       where: {
         stripeCheckoutSessionId: session.id
       },
@@ -153,27 +160,12 @@ export const handler: Handler = async (event) => {
         stripeCheckoutSessionId: session.id
       },
       update: {},
-      select: {
-        id: true,
-        revealedAt: true
-      }
     });
 
-    if (reveal.revealedAt) {
-      await reportServerEvent("warn", "license_reveal_duplicate", {
-        sessionId: session.id
-      });
-
-      return json(409, {
-        ok: false,
-        error: "already_revealed",
-        code: "LICENSE_ALREADY_REVEALED"
-      });
-    }
-
-    await prisma.licenseReveal.update({
+    const revealClaim = await prisma.licenseReveal.updateMany({
       where: {
-        id: reveal.id
+        stripeCheckoutSessionId: session.id,
+        revealedAt: null
       },
       data: {
         revealedAt: new Date(),
@@ -182,7 +174,20 @@ export const handler: Handler = async (event) => {
       }
     });
 
-    return json(200, {
+    if (!revealClaim.count) {
+      await reportServerEvent("warn", "license_reveal_duplicate", {
+        sessionId: session.id,
+        requestId: rid
+      });
+
+      return respond(409, {
+        ok: false,
+        error: "already_revealed",
+        code: "LICENSE_ALREADY_REVEALED"
+      });
+    }
+
+    return respond(200, {
       ok: true,
       licenseKey,
       planKey,
@@ -192,10 +197,11 @@ export const handler: Handler = async (event) => {
     });
   } catch (error) {
     await reportServerEvent("error", "get_license_failed", {
+      requestId: rid,
       error: error instanceof Error ? error.message : "unknown"
     });
 
-    return json(500, {
+    return respond(500, {
       ok: false,
       error: "Unable to fetch license",
       code: "GET_LICENSE_FAILED"

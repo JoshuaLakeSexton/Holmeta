@@ -1,7 +1,7 @@
 import type { Handler } from "@netlify/functions";
 import Stripe from "stripe";
 
-import { corsPreflight, json, methodNotAllowed, parseJsonBody } from "./_lib/http";
+import { corsPreflight, json, methodNotAllowed, parseJsonBody, requestId } from "./_lib/http";
 import { reportServerEvent } from "./_lib/monitor";
 import { requireEnvVars } from "./_lib/env";
 import {
@@ -13,7 +13,6 @@ import {
 
 interface CheckoutBody {
   planKey?: string | null;
-  plan?: string | null;
   installId?: string | null;
 }
 
@@ -36,17 +35,24 @@ function normalizeBaseUrl(raw: string): string {
 }
 
 function resolveRequestedPlan(body: CheckoutBody): PlanKey | null {
-  return normalizedPlan(body.planKey || body.plan) || null;
+  return normalizedPlan(body.planKey || "") || null;
 }
 
 export const handler: Handler = async (event) => {
+  const rid = requestId(event);
+  const respond = (statusCode: number, body: unknown, headers: Record<string, string> = {}) =>
+    json(statusCode, body, {
+      "X-Holmeta-Request-Id": rid,
+      ...headers
+    });
+
   const preflight = corsPreflight(event);
   if (preflight) {
     return preflight;
   }
 
   if (event.httpMethod === "GET") {
-    return json(200, {
+    return respond(200, {
       ok: true,
       hint: "Use POST",
       supportedPlans: ["monthly_a", "yearly"]
@@ -59,14 +65,18 @@ export const handler: Handler = async (event) => {
 
   const missingEnv = requireEnvVars(["STRIPE_SECRET_KEY", "PUBLIC_BASE_URL"]);
   if (missingEnv) {
-    await reportServerEvent("error", "checkout_server_env_missing");
+    await reportServerEvent("error", "checkout_server_env_missing", {
+      requestId: rid
+    });
     return missingEnv;
   }
 
   const stripeKey = requiredEnv("STRIPE_SECRET_KEY");
   if (!stripeKey) {
-    await reportServerEvent("error", "checkout_missing_stripe_key");
-    return json(500, {
+    await reportServerEvent("error", "checkout_missing_stripe_key", {
+      requestId: rid
+    });
+    return respond(500, {
       error: "Server missing STRIPE_SECRET_KEY.",
       code: "CHECKOUT_ENV_MISSING"
     });
@@ -75,9 +85,9 @@ export const handler: Handler = async (event) => {
   const body = parseJsonBody<CheckoutBody>(event);
   const planKey = resolveRequestedPlan(body);
   if (!planKey) {
-    return json(400, {
+    return respond(400, {
       ok: false,
-      error: "Invalid planKey. Use monthly_a or yearly.",
+      error: "Invalid planKey. Use planKey: monthly_a or yearly.",
       code: "PLAN_KEY_INVALID"
     });
   }
@@ -86,10 +96,11 @@ export const handler: Handler = async (event) => {
     const requiredName = requiredPriceEnvForPlan(planKey);
     await reportServerEvent("error", "checkout_missing_price_mapping", {
       planKey,
-      requiredName
+      requiredName,
+      requestId: rid
     });
 
-    return json(500, {
+    return respond(500, {
       error: `Server missing price mapping for ${planKey}. Configure ${requiredName}.`,
       code: "PRICE_MAPPING_MISSING"
     });
@@ -97,8 +108,10 @@ export const handler: Handler = async (event) => {
 
   const publicBaseUrl = requiredEnv("PUBLIC_BASE_URL");
   if (!publicBaseUrl) {
-    await reportServerEvent("error", "checkout_missing_public_base_url");
-    return json(500, {
+    await reportServerEvent("error", "checkout_missing_public_base_url", {
+      requestId: rid
+    });
+    return respond(500, {
       error: "Server missing PUBLIC_BASE_URL.",
       code: "CHECKOUT_ENV_MISSING"
     });
@@ -140,9 +153,10 @@ export const handler: Handler = async (event) => {
 
     if (!session.url) {
       await reportServerEvent("error", "checkout_session_missing_url", {
-        planKey
+        planKey,
+        requestId: rid
       });
-      return json(500, {
+      return respond(500, {
         error: "Stripe Checkout session returned no URL.",
         code: "CHECKOUT_URL_MISSING"
       });
@@ -150,10 +164,11 @@ export const handler: Handler = async (event) => {
 
     await reportServerEvent("info", "checkout_session_created", {
       planKey,
-      trialDays
+      trialDays,
+      requestId: rid
     });
 
-    return json(200, {
+    return respond(200, {
       ok: true,
       url: session.url,
       planKey
@@ -162,12 +177,13 @@ export const handler: Handler = async (event) => {
     const message = error instanceof Error ? error.message : "Unable to create checkout session";
     await reportServerEvent("error", "checkout_session_create_failed", {
       planKey,
-      error: message
+      error: message,
+      requestId: rid
     });
 
     const lower = message.toLowerCase();
     if (lower.includes("inactive")) {
-      return json(409, {
+      return respond(409, {
         ok: false,
         error: `Configured Stripe price is inactive for ${planKey}.`,
         code: "PRICE_INACTIVE"
@@ -175,14 +191,14 @@ export const handler: Handler = async (event) => {
     }
 
     if (lower.includes("recurring price")) {
-      return json(409, {
+      return respond(409, {
         ok: false,
         error: `Configured Stripe price must be recurring for ${planKey}.`,
         code: "PRICE_NOT_RECURRING"
       });
     }
 
-    return json(502, {
+    return respond(502, {
       ok: false,
       error: "Unable to create checkout session",
       code: "CHECKOUT_CREATE_FAILED"

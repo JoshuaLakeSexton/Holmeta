@@ -20,7 +20,7 @@ const requiredKeys = [
 ];
 
 function runNetlifyEnvList() {
-  const raw = execFileSync("npx", ["netlify-cli", "env:list", "--json"], {
+  const raw = execFileSync("npx", ["netlify-cli", "env:list", "--json", "--context", "production"], {
     cwd: webDir,
     encoding: "utf8",
     stdio: ["ignore", "pipe", "pipe"]
@@ -67,11 +67,7 @@ function main() {
     process.exit(1);
   }
 
-  const hasLegacyMonthlyFallback = Boolean(String(envMap?.STRIPE_PRICE_ID_2 || "").trim());
   const missing = requiredKeys.filter((key) => {
-    if (key === "STRIPE_PRICE_MONTHLY_A") {
-      return !String(envMap?.STRIPE_PRICE_MONTHLY_A || "").trim() && !hasLegacyMonthlyFallback;
-    }
     return !String(envMap?.[key] || "").trim();
   });
 
@@ -85,11 +81,7 @@ function main() {
 
   console.log("Netlify env verification passed.");
   for (const key of requiredKeys) {
-    if (key === "STRIPE_PRICE_MONTHLY_A" && !String(envMap?.STRIPE_PRICE_MONTHLY_A || "").trim()) {
-      console.log("- STRIPE_PRICE_MONTHLY_A: fallback to STRIPE_PRICE_ID_2");
-    } else {
-      console.log(`- ${key}: present`);
-    }
+    console.log(`- ${key}: present`);
   }
 
 }

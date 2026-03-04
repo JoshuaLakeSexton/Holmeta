@@ -1,6 +1,6 @@
 import type { Handler } from "@netlify/functions";
 
-import { corsPreflight, json, methodNotAllowed, parseJsonBody } from "./_lib/http";
+import { corsPreflight, json, methodNotAllowed, parseJsonBody, requestId } from "./_lib/http";
 import { requireEnvVars } from "./_lib/env";
 import { prisma } from "./_lib/prisma";
 import {
@@ -120,6 +120,13 @@ function licenseFromEvent(event: Parameters<Handler>[0], body: Body): string {
 }
 
 export const handler: Handler = async (event) => {
+  const rid = requestId(event);
+  const respond = (statusCode: number, body: unknown, headers: Record<string, string> = {}) =>
+    json(statusCode, body, {
+      "X-Holmeta-Request-Id": rid,
+      ...headers
+    });
+
   const preflight = corsPreflight(event);
   if (preflight) {
     return preflight;
@@ -131,13 +138,15 @@ export const handler: Handler = async (event) => {
 
   const missingEnv = requireEnvVars(["DATABASE_URL", "LICENSE_SALT"]);
   if (missingEnv) {
-    await reportServerEvent("error", "validate_license_env_missing");
+    await reportServerEvent("error", "validate_license_env_missing", {
+      requestId: rid
+    });
     return missingEnv;
   }
 
   const rate = hitRateLimit(event);
   if (rate.limited) {
-    return json(
+    return respond(
       429,
       {
         ...invalidPayload(rate.retryAfterSec),
@@ -160,7 +169,7 @@ export const handler: Handler = async (event) => {
   try {
     licenseHash = hashLicenseKey(hashInput);
   } catch {
-    return json(500, {
+    return respond(500, {
       ok: false,
       error: "Server license hashing failed",
       code: "LICENSE_HASH_FAILED"
@@ -168,7 +177,7 @@ export const handler: Handler = async (event) => {
   }
 
   if (!incomingLicense || !licenseLooksValidShape(incomingLicense)) {
-    return json(200, invalidPayload(rate.retryAfterSec));
+    return respond(200, invalidPayload(rate.retryAfterSec));
   }
 
   try {
@@ -186,7 +195,7 @@ export const handler: Handler = async (event) => {
     });
 
     if (!license) {
-      return json(200, invalidPayload(rate.retryAfterSec));
+      return respond(200, invalidPayload(rate.retryAfterSec));
     }
 
     const entitlement = buildLicenseEntitlement({
@@ -198,22 +207,24 @@ export const handler: Handler = async (event) => {
 
     await reportServerEvent("info", "validate_license_checked", {
       installId: installId || null,
+      requestId: rid,
       subscriptionIdPresent: Boolean(license.stripeSubscriptionId),
       status: entitlement.status,
       active: entitlement.active
     });
 
-    return json(200, {
+    return respond(200, {
       ok: true,
       ...entitlement,
       nextCheckAfterSec: entitlement.active ? 12 * 60 * 60 : 5 * 60
     });
   } catch (error) {
     await reportServerEvent("error", "validate_license_failed", {
+      requestId: rid,
       error: error instanceof Error ? error.message : "unknown"
     });
 
-    return json(500, {
+    return respond(500, {
       ok: false,
       error: "License validation failed",
       code: "VALIDATE_LICENSE_FAILED"

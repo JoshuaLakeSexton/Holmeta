@@ -94,9 +94,14 @@ async function main() {
   } else {
     console.log("[3/5] Fetching one-time license from success session");
     const getLicense = await requestJson(`${fn("get-license")}?session_id=${encodeURIComponent(sessionId)}`);
-    assert(getLicense.ok, `get-license failed: HTTP ${getLicense.status}`);
-    assert(getLicense.data?.licenseKey, "get-license returned no licenseKey");
-    console.log("get-license: ok");
+    const alreadyRevealed = getLicense.status === 409 && getLicense.data?.error === "already_revealed";
+    assert(getLicense.ok || alreadyRevealed, `get-license failed: HTTP ${getLicense.status}`);
+    if (alreadyRevealed) {
+      console.log("get-license: already revealed (acceptable for reused session)");
+    } else {
+      assert(getLicense.data?.licenseKey, "get-license returned no licenseKey");
+      console.log("get-license: ok");
+    }
   }
 
   if (!licenseKey || dryRun) {

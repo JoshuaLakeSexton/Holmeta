@@ -5,7 +5,7 @@ import path from "node:path";
 import Stripe from "stripe";
 
 import { requireEnvVars } from "./_lib/env";
-import { corsPreflight, json, methodNotAllowed, parseJsonBody } from "./_lib/http";
+import { corsPreflight, json, methodNotAllowed, parseJsonBody, requestId } from "./_lib/http";
 import { hashLicenseKey, licenseLooksValidShape, normalizeSubscriptionStatus } from "./_lib/license";
 import { reportServerEvent } from "./_lib/monitor";
 import { prisma } from "./_lib/prisma";
@@ -241,6 +241,13 @@ function zipResponse(buffer: Buffer): HandlerResponse {
 }
 
 export const handler: Handler = async (event) => {
+  const rid = requestId(event);
+  const respond = (statusCode: number, body: unknown, headers: Record<string, string> = {}) =>
+    json(statusCode, body, {
+      "X-Holmeta-Request-Id": rid,
+      ...headers
+    });
+
   const preflight = corsPreflight(event);
   if (preflight) {
     return preflight;
@@ -252,7 +259,7 @@ export const handler: Handler = async (event) => {
 
   const limited = checkRateLimit(event);
   if (!limited.allowed) {
-    return json(429, {
+    return respond(429, {
       ok: false,
       error: "Too many download attempts",
       code: "RATE_LIMITED"
@@ -263,7 +270,7 @@ export const handler: Handler = async (event) => {
 
   const { sessionId, licenseKey } = extractSignal(event);
   if (!sessionId && !licenseKey) {
-    return json(401, {
+    return respond(401, {
       ok: false,
       error: "Download requires active subscription verification",
       code: "ENTITLEMENT_REQUIRED"
@@ -271,7 +278,7 @@ export const handler: Handler = async (event) => {
   }
 
   if (sessionId && !looksLikeCheckoutSessionId(sessionId)) {
-    return json(400, {
+    return respond(400, {
       ok: false,
       error: "Invalid session_id format",
       code: "INVALID_SESSION_ID"
@@ -288,11 +295,12 @@ export const handler: Handler = async (event) => {
 
     if (!entitled) {
       await reportServerEvent("warn", "download_not_entitled", {
+        requestId: rid,
         session: masked(sessionId),
         licensePresent: Boolean(licenseKey)
       });
 
-      return json(403, {
+      return respond(403, {
         ok: false,
         error: "Not entitled to download",
         code: "NOT_ENTITLED"
@@ -301,18 +309,20 @@ export const handler: Handler = async (event) => {
 
     const zipBuffer = await resolveZipBuffer();
     await reportServerEvent("info", "download_served", {
+      requestId: rid,
       session: masked(sessionId),
       via: sessionId ? "session" : "license"
     });
     return zipResponse(zipBuffer);
   } catch (error) {
     await reportServerEvent("error", "download_extension_failed", {
+      requestId: rid,
       session: masked(sessionId),
       via: sessionId ? "session" : "license",
       error: error instanceof Error ? error.message : "unknown"
     });
 
-    return json(500, {
+    return respond(500, {
       ok: false,
       error: "Unable to prepare extension download",
       code: "DOWNLOAD_FAILED"

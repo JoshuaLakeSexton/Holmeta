@@ -234,10 +234,9 @@ export default function HomePage() {
               </p>
             </FAQItem>
 
-            <FAQItem question="I installed it—how do I “pair” and unlock Premium?">
+            <FAQItem question="I installed it—how do I unlock Premium?">
               <p className="hm-meta">
-                Open billing success, copy your license key, then paste it in Extension Options and
-                click Activate.
+                Open billing success, copy your license key, then paste it in Extension Options and click Activate.
               </p>
             </FAQItem>
 

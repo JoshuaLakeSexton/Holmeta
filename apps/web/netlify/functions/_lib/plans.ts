@@ -21,7 +21,7 @@ export function normalizedPlan(input?: string | null): PlanKey | null {
 
 export function resolvePriceIdForPlan(plan: PlanKey): string | null {
   if (plan === "monthly_a") {
-    return readEnv("STRIPE_PRICE_MONTHLY_A") || readEnv("STRIPE_PRICE_ID_2") || null;
+    return readEnv("STRIPE_PRICE_MONTHLY_A") || null;
   }
   return readEnv("STRIPE_PRICE_YEARLY") || null;
 }
@@ -42,7 +42,7 @@ export function resolvePlanFromPriceId(priceId?: string | null): PlanKey | null 
 
 export function requiredPriceEnvForPlan(plan: PlanKey): string {
   return plan === "monthly_a"
-    ? "STRIPE_PRICE_MONTHLY_A (or STRIPE_PRICE_ID_2 fallback)"
+    ? "STRIPE_PRICE_MONTHLY_A"
     : "STRIPE_PRICE_YEARLY";
 }
 

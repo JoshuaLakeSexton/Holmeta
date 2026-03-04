@@ -66,10 +66,6 @@ Production runtime (Netlify):
 - `TRIAL_DAYS` (default `3`)
 - `LICENSE_SALT`
 
-Optional legacy fallback:
-
-- `STRIPE_PRICE_ID_2` (used only if `STRIPE_PRICE_MONTHLY_A` is empty)
-
 Verify Netlify env:
 
 ```bash
@@ -110,7 +106,7 @@ npm run verify:netlify-env
 - `POST /.netlify/functions/stripe-webhook`
 - `GET|POST /.netlify/functions/get-license`
 - `POST /.netlify/functions/validate-license`
-- `GET|POST /.netlify/functions/entitlement` (compat alias style response)
+- `GET|POST /.netlify/functions/entitlement` (license-based compatibility response)
 - `POST /.netlify/functions/create-portal-session`
 - `GET|POST /.netlify/functions/download-extension`
 
@@ -118,8 +114,6 @@ Deprecated (return 410):
 
 - `request-account-code`
 - `verify-account-code`
-- `create-pairing-code`
-- `exchange-pairing-code`
 - `settings-sync`
 
 ## Smoke test

@@ -60,3 +60,18 @@ export function getOrigin(event: HandlerEvent): string {
     "http://localhost:3000"
   );
 }
+
+export function requestId(event: HandlerEvent): string {
+  const fromHeader = String(
+    event.headers["x-nf-request-id"]
+      || event.headers["x-request-id"]
+      || event.headers["x-amzn-trace-id"]
+      || ""
+  ).trim();
+
+  if (fromHeader) {
+    return fromHeader.slice(0, 120);
+  }
+
+  return `hm-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+}

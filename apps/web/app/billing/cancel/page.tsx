@@ -12,6 +12,7 @@ export default function BillingCancelPage() {
           <Button href="/dashboard/subscribe" variant="primary">
             START CHECKOUT
           </Button>
+          <Button href="/billing/help">BILLING HELP</Button>
           <Button href="/">BACK TO HOME</Button>
         </div>
       </Panel>

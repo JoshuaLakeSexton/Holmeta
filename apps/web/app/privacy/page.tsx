@@ -16,8 +16,8 @@ export default function PrivacyPage() {
         <h2 className="hm-subtitle">What We Store</h2>
         <ul className="hm-list">
           <li>Extension settings and reminder logs are stored locally in your browser by default.</li>
-          <li>Account email and billing records are stored server-side for authentication and subscriptions.</li>
-          <li>Entitlement state (trial/active/inactive) is stored to unlock paid features.</li>
+          <li>Stripe billing records and license hashes are stored server-side for subscriptions and unlock checks.</li>
+          <li>Entitlement state (trialing/active/inactive) is stored to unlock paid features.</li>
         </ul>
       </Panel>
 
@@ -35,11 +35,11 @@ export default function PrivacyPage() {
         <ul className="hm-list">
           <li>Screen filters and reminder overlays run in-browser.</li>
           <li>Camera access is optional and requested only if webcam posture mode is enabled.</li>
-          <li>Billing and entitlement checks are processed through secure server functions.</li>
+          <li>Billing, download gating, and license checks are processed through secure server functions.</li>
         </ul>
         <div className="hm-cta-row">
           <Button href="/terms">Open Terms</Button>
-          <Button href="/dashboard" variant="primary">Open Dashboard</Button>
+          <Button href="/dashboard/subscribe" variant="primary">Open Billing</Button>
         </div>
       </Panel>
     </main>

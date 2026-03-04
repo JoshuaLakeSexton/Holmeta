@@ -25,8 +25,9 @@ export default function TermsPage() {
         <h2 className="hm-subtitle">Billing and Trials</h2>
         <ul className="hm-list">
           <li>Premium pricing is $2 per month.</li>
-          <li>Trial terms are shown in checkout and dashboard status.</li>
-          <li>You can manage or cancel from the billing portal.</li>
+          <li>Yearly billing is also available where offered on the subscribe page.</li>
+          <li>Trial terms are shown in Stripe Checkout.</li>
+          <li>You can manage, cancel, or request refund review from billing support and Stripe portal.</li>
         </ul>
       </Panel>
 
@@ -34,7 +35,7 @@ export default function TermsPage() {
         <h2 className="hm-subtitle">Acceptable Use</h2>
         <ul className="hm-list">
           <li>Do not use the service for unlawful activity.</li>
-          <li>Do not attempt to abuse billing, pairing, or entitlement systems.</li>
+          <li>Do not attempt to abuse billing, license, or entitlement systems.</li>
           <li>Use at your own discretion in accordance with browser and platform policies.</li>
         </ul>
         <div className="hm-cta-row">

@@ -31,11 +31,6 @@ export const handler: Handler = async (event) => {
     boolean
   >;
 
-  const legacyMonthlyFallback = hasValue("STRIPE_PRICE_ID_2");
-  if (!env.STRIPE_PRICE_MONTHLY_A && legacyMonthlyFallback) {
-    env.STRIPE_PRICE_MONTHLY_A = true;
-  }
-
   const missing = Object.entries(env)
     .filter(([, present]) => !present)
     .map(([key]) => key);
@@ -43,9 +38,6 @@ export const handler: Handler = async (event) => {
   return json(200, {
     ok: missing.length === 0,
     env,
-    missing,
-    fallback: {
-      STRIPE_PRICE_ID_2: legacyMonthlyFallback
-    }
+    missing
   });
 };

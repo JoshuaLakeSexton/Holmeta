@@ -1,7 +1,7 @@
 import type { Handler } from "@netlify/functions";
 import Stripe from "stripe";
 
-import { corsPreflight, json, methodNotAllowed } from "./_lib/http";
+import { corsPreflight, json, methodNotAllowed, requestId } from "./_lib/http";
 import { prisma } from "./_lib/prisma";
 import { reportServerEvent } from "./_lib/monitor";
 import { requireEnvVars } from "./_lib/env";
@@ -139,13 +139,20 @@ async function updateLicenseStatusFromInvoice(invoice: Stripe.Invoice) {
 }
 
 export const handler: Handler = async (event) => {
+  const rid = requestId(event);
+  const respond = (statusCode: number, body: unknown, headers: Record<string, string> = {}) =>
+    json(statusCode, body, {
+      "X-Holmeta-Request-Id": rid,
+      ...headers
+    });
+
   const preflight = corsPreflight(event);
   if (preflight) {
     return preflight;
   }
 
   if (event.httpMethod === "GET") {
-    return json(200, { ok: true, hint: "Use POST (Stripe webhook endpoint)." });
+    return respond(200, { ok: true, hint: "Use POST (Stripe webhook endpoint)." });
   }
 
   if (event.httpMethod !== "POST") {
@@ -154,7 +161,9 @@ export const handler: Handler = async (event) => {
 
   const missingEnv = requireEnvVars(["DATABASE_URL", "STRIPE_SECRET_KEY", "STRIPE_WEBHOOK_SECRET", "LICENSE_SALT"]);
   if (missingEnv) {
-    await reportServerEvent("error", "stripe_webhook_server_env_missing");
+    await reportServerEvent("error", "stripe_webhook_server_env_missing", {
+      requestId: rid
+    });
     return missingEnv;
   }
 
@@ -167,8 +176,10 @@ export const handler: Handler = async (event) => {
     "";
 
   if (!signature) {
-    await reportServerEvent("error", "stripe_webhook_missing_signature");
-    return json(400, {
+    await reportServerEvent("error", "stripe_webhook_missing_signature", {
+      requestId: rid
+    });
+    return respond(400, {
       error: "Missing stripe-signature header.",
       code: "WEBHOOK_SIGNATURE_MISSING"
     });
@@ -183,9 +194,10 @@ export const handler: Handler = async (event) => {
     stripeEvent = stripe.webhooks.constructEvent(event.body || "", signature, webhookSecret);
   } catch (error) {
     await reportServerEvent("error", "stripe_webhook_verification_failed", {
+      requestId: rid,
       error: error instanceof Error ? error.message : "unknown"
     });
-    return json(400, {
+    return respond(400, {
       error: "Webhook verification failed.",
       code: "WEBHOOK_VERIFICATION_FAILED"
     });
@@ -193,7 +205,7 @@ export const handler: Handler = async (event) => {
 
   const firstSeen = await markEventReceived(stripeEvent.id, stripeEvent.type);
   if (!firstSeen) {
-    return json(200, {
+    return respond(200, {
       ok: true,
       duplicate: true,
       eventId: stripeEvent.id,
@@ -233,11 +245,12 @@ export const handler: Handler = async (event) => {
     }
 
     await reportServerEvent("info", "stripe_webhook_processed", {
+      requestId: rid,
       type: stripeEvent.type,
       eventId: stripeEvent.id
     });
 
-    return json(200, {
+    return respond(200, {
       ok: true,
       received: true,
       eventId: stripeEvent.id,
@@ -245,12 +258,13 @@ export const handler: Handler = async (event) => {
     });
   } catch (error) {
     await reportServerEvent("error", "stripe_webhook_processing_failed", {
+      requestId: rid,
       eventId: stripeEvent.id,
       type: stripeEvent.type,
       error: error instanceof Error ? error.message : "unknown"
     });
 
-    return json(500, {
+    return respond(500, {
       error: "Webhook processing failed.",
       code: "WEBHOOK_PROCESSING_FAILED"
     });

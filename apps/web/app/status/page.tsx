@@ -2,14 +2,14 @@ import { Panel } from "@/components/holmeta/Panel";
 
 const changelog = [
   {
-    date: "2026-03-02",
-    id: "HM-2026-03-02-B",
-    summary: "Auth hardening: transactional email path, login request rate limit, and client/server error monitoring hooks."
+    date: "2026-03-04",
+    id: "HM-2026-03-04-B",
+    summary: "GA hardening: gated extension download, no-login license activation flow, and webhook idempotency checks."
   },
   {
-    date: "2026-03-02",
-    id: "HM-2026-03-02-A",
-    summary: "Launch hardening pass: extension styling reliability, entitlement flow checks, legal route coverage."
+    date: "2026-03-04",
+    id: "HM-2026-03-04-A",
+    summary: "Plan simplification: monthly_a + yearly only across checkout, validation, and smoke scripts."
   },
   {
     date: "2026-02-25",
@@ -30,8 +30,8 @@ export default function StatusPage() {
         <p className="hm-kicker">SYSTEM STATUS</p>
         <h1 className="hm-title">Holmeta Release Status</h1>
         <p className="hm-chip status-active">STATUS: OPERATIONAL</p>
-        <p className="hm-chip status-warning">MONITORING: ENABLED (SERVER LOGS + CLIENT ERROR INGEST)</p>
-        <p className="hm-meta">Last updated: March 2, 2026</p>
+        <p className="hm-chip status-warning">MONITORING: ENABLED (FUNCTION LOGS + CLIENT ERROR INGEST)</p>
+        <p className="hm-meta">Last updated: March 4, 2026</p>
       </Panel>
 
       <Panel>
