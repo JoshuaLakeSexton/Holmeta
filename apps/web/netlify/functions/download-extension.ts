@@ -72,6 +72,11 @@ function extractSignal(event: HandlerEvent): DownloadSignal {
   return { sessionId, licenseKey };
 }
 
+function looksLikeCheckoutSessionId(value: string): boolean {
+  const safe = String(value || "").trim();
+  return /^cs_(test|live|)_?[A-Za-z0-9_]+$/i.test(safe);
+}
+
 function firstIp(event: HandlerEvent): string {
   const forwarded = String(event.headers["x-forwarded-for"] || "").trim();
   if (!forwarded) {
@@ -147,9 +152,17 @@ async function entitledBySession(sessionId: string): Promise<boolean> {
     apiVersion: "2025-02-24.acacia"
   });
 
-  const session = await stripe.checkout.sessions.retrieve(sessionId, {
-    expand: ["subscription"]
-  });
+  let session: Stripe.Checkout.Session;
+  try {
+    session = await stripe.checkout.sessions.retrieve(sessionId, {
+      expand: ["subscription"]
+    });
+  } catch (error) {
+    if (error instanceof Stripe.errors.StripeInvalidRequestError) {
+      return false;
+    }
+    throw error;
+  }
 
   if (!checkoutComplete(session)) {
     return false;
@@ -257,6 +270,14 @@ export const handler: Handler = async (event) => {
     });
   }
 
+  if (sessionId && !looksLikeCheckoutSessionId(sessionId)) {
+    return json(400, {
+      ok: false,
+      error: "Invalid session_id format",
+      code: "INVALID_SESSION_ID"
+    });
+  }
+
   try {
     let entitled = false;
     if (sessionId) {
@@ -298,4 +319,3 @@ export const handler: Handler = async (event) => {
     });
   }
 };
-
