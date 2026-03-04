@@ -11,8 +11,9 @@ const repoRoot = path.resolve(__dirname, "..");
 
 const extensionBuildDir = path.resolve(repoRoot, "apps/extension/dist/extension");
 const extensionZipPath = path.resolve(repoRoot, "apps/extension/holmeta-extension.zip");
-const webDownloadsDir = path.resolve(repoRoot, "apps/web/public/downloads");
-const webZipPath = path.join(webDownloadsDir, "holmeta-extension.zip");
+const functionAssetsDir = path.resolve(repoRoot, "apps/web/netlify/functions/assets");
+const functionZipPath = path.join(functionAssetsDir, "holmeta-extension.zip");
+const legacyPublicZipPath = path.resolve(repoRoot, "apps/web/public/downloads/holmeta-extension.zip");
 
 const minBytes = 20 * 1024;
 
@@ -67,12 +68,16 @@ async function main() {
   await createZip();
   const builtBytes = await verifyZip(extensionZipPath);
 
-  await mkdir(webDownloadsDir, { recursive: true });
-  await copyFile(extensionZipPath, webZipPath);
-  const copiedBytes = await verifyZip(webZipPath);
+  await mkdir(functionAssetsDir, { recursive: true });
+  await copyFile(extensionZipPath, functionZipPath);
+  const copiedBytes = await verifyZip(functionZipPath);
+
+  // Ensure public direct download is removed; download must go through gated function.
+  await rm(legacyPublicZipPath, { force: true });
 
   console.log(`Extension zip rebuilt: ${path.relative(repoRoot, extensionZipPath)} (${builtBytes} bytes)`);
-  console.log(`Web download synced: ${path.relative(repoRoot, webZipPath)} (${copiedBytes} bytes)`);
+  console.log(`Function asset synced: ${path.relative(repoRoot, functionZipPath)} (${copiedBytes} bytes)`);
+  console.log(`Public zip removed: ${path.relative(repoRoot, legacyPublicZipPath)}`);
 }
 
 main().catch((error) => {
