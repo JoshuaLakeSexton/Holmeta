@@ -14,7 +14,11 @@
           <h1>holmeta operations console</h1>
           <p id="statusLine" class="meta-line">STATUS: ACTIVE</p>
         </div>
-        <button id="saveSettings" class="primary">SAVE CONFIG</button>
+        <div class="topbar-actions">
+          <button id="optionsBack" class="secondary">BACK</button>
+          <button id="optionsHome" class="secondary">HOME</button>
+          <button id="saveSettings" class="primary">SAVE CONFIG</button>
+        </div>
       </header>
 
       <section class="panel quick-actions">
@@ -469,6 +473,12 @@
             <p class="field-help">Paste the key from Billing Success after Stripe checkout.</p>
           </div>
 
+          <label for="checkoutSessionId">CHECKOUT SESSION ID</label>
+          <div class="field-stack">
+            <input id="checkoutSessionId" type="text" placeholder="cs_live_... from billing success URL" />
+            <p class="field-help">Use this for one-click license retrieval and billing cancellation portal access.</p>
+          </div>
+
           <label for="devBypassPremium">DEV BYPASS PREMIUM</label>
           <input id="devBypassPremium" type="checkbox" />
         </div>
@@ -486,6 +496,9 @@
           <button id="refreshEntitlement" class="secondary">REFRESH ENTITLEMENT</button>
           <button id="testLicenseValidation" class="secondary">TEST LICENSE VALIDATION</button>
           <button id="openDashboard" class="secondary">OPEN DASHBOARD</button>
+          <button id="openBillingSuccess" class="secondary">OPEN LICENSE PAGE</button>
+          <button id="openBillingPortal" class="secondary">MANAGE BILLING / CANCEL</button>
+          <button id="openRefundHelp" class="secondary">REFUND HELP</button>
           <button id="testDashboardUrl" class="secondary">TEST DASHBOARD URL</button>
           <button id="subscribeNow" class="primary">SUBSCRIBE</button>
         </div>
@@ -497,6 +510,7 @@
 
     <script src="common.js"></script>
     <script src="audio.js"></script>
+    <script src="storage.js"></script>
     <script src="options.js"></script>
   </body>
 </html>

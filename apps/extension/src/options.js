@@ -1,6 +1,7 @@
 (() => {
   const HC = globalThis.HolmetaCommon;
   const HA = globalThis.HolmetaAudio;
+  const HS = globalThis.HolmetaPopupStorage;
 
   const REMINDER_ORDER = ["eye", "movement", "posture", "hydration", "breathwork", "dailyAudit"];
 
@@ -34,6 +35,14 @@
       checkoutSessionId: "",
       dirtyLicense: false,
       dirtyCheckoutSession: false
+    },
+    uiState: HS?.DEFAULT_STATE ? { ...HS.DEFAULT_STATE } : {
+      version: 1,
+      notes: "",
+      licenseKeyDraft: "",
+      checkoutSessionDraft: "",
+      domainsDraft: "",
+      updatedAt: 0
     }
   };
 
@@ -64,6 +73,35 @@
       });
     });
   }
+
+  async function loadUiState() {
+    if (!HS?.readUiState) {
+      return;
+    }
+    try {
+      state.uiState = await HS.readUiState();
+    } catch (_) {
+      state.uiState = HS.DEFAULT_STATE ? { ...HS.DEFAULT_STATE } : state.uiState;
+    }
+  }
+
+  async function persistUiStatePatch(patch) {
+    if (!HS?.patchUiState) {
+      return;
+    }
+    try {
+      const result = await HS.patchUiState(patch || {});
+      if (result?.state) {
+        state.uiState = result.state;
+      }
+    } catch (_) {
+      // Keep options responsive if local draft write fails.
+    }
+  }
+
+  const debouncedPersistUiState = debounce((patch) => {
+    persistUiStatePatch(patch);
+  }, 320);
 
   function getActiveTabContext() {
     return new Promise((resolve) => {
@@ -265,12 +303,16 @@
 
   function currentCheckoutSessionId() {
     const value = $("checkoutSessionId")?.value;
-    return String(value || state.settings.checkoutSessionId || "").trim();
+    return String(
+      value || state.accountDraft.checkoutSessionId || state.uiState.checkoutSessionDraft || state.settings.checkoutSessionId || ""
+    ).trim();
   }
 
   function currentLicenseKeyValue() {
     const value = $("licenseKeyInput")?.value;
-    return String(value || state.settings.licenseKey || "").trim().toUpperCase();
+    return String(
+      value || state.accountDraft.licenseKey || state.uiState.licenseKeyDraft || state.settings.licenseKey || ""
+    ).trim().toUpperCase();
   }
 
   function updateDashboardHint() {
@@ -979,25 +1021,43 @@
     $("suppressWhenIdle").checked = Boolean(state.settings.cadence.global.suppressWhenIdle);
     $("meetingModeManual").checked = Boolean(state.settings.cadence.global.meetingModeManual);
     $("meetingModeAuto").checked = Boolean(state.settings.cadence.global.meetingModeAuto);
-    $("meetingDomains").value = (state.settings.cadence.global.meetingDomains || []).join(", ");
+    setInputValueIfIdle("meetingDomains", (state.settings.cadence.global.meetingDomains || []).join(", "));
 
     setInputValueIfIdle("apiBaseUrl", state.settings.apiBaseUrl || "");
     setInputValueIfIdle("validateLicenseUrl", state.settings.validateLicenseUrl || "");
     setInputValueIfIdle("checkoutUrl", state.settings.checkoutUrl || "");
     setInputValueIfIdle("dashboardUrl", state.settings.dashboardUrl || "");
     const licenseInput = $("licenseKeyInput");
-    if (licenseInput && !String(licenseInput.value || "").trim()) {
-      const pref = String(state.settings.licenseKey || "").trim();
-      if (pref) {
-        licenseInput.value = pref;
+    if (licenseInput instanceof HTMLInputElement) {
+      if (document.activeElement === licenseInput) {
+        state.accountDraft.licenseKey = String(licenseInput.value || "").toUpperCase();
+        state.accountDraft.dirtyLicense = true;
+      } else if (state.accountDraft.dirtyLicense) {
+        if (licenseInput.value !== state.accountDraft.licenseKey) {
+          licenseInput.value = state.accountDraft.licenseKey;
+        }
+      } else {
+        const pref = String(state.accountDraft.licenseKey || state.uiState.licenseKeyDraft || state.settings.licenseKey || "").trim().toUpperCase();
+        if (pref && licenseInput.value !== pref) {
+          licenseInput.value = pref;
+        }
       }
     }
 
     const checkoutSessionInput = $("checkoutSessionId");
-    if (checkoutSessionInput && !String(checkoutSessionInput.value || "").trim()) {
-      const pref = String(state.settings.checkoutSessionId || "").trim();
-      if (pref) {
-        checkoutSessionInput.value = pref;
+    if (checkoutSessionInput instanceof HTMLInputElement) {
+      if (document.activeElement === checkoutSessionInput) {
+        state.accountDraft.checkoutSessionId = String(checkoutSessionInput.value || "").trim();
+        state.accountDraft.dirtyCheckoutSession = true;
+      } else if (state.accountDraft.dirtyCheckoutSession) {
+        if (checkoutSessionInput.value !== state.accountDraft.checkoutSessionId) {
+          checkoutSessionInput.value = state.accountDraft.checkoutSessionId;
+        }
+      } else {
+        const pref = String(state.accountDraft.checkoutSessionId || state.uiState.checkoutSessionDraft || state.settings.checkoutSessionId || "").trim();
+        if (pref && checkoutSessionInput.value !== pref) {
+          checkoutSessionInput.value = pref;
+        }
       }
     }
     $("devBypassPremium").checked = Boolean(state.settings.devBypassPremium);
@@ -1087,7 +1147,11 @@
 
     applyPremiumPresetLocks();
     renderSoundMappings();
-    renderCadenceCards();
+    const active = document.activeElement;
+    const editingCadence = Boolean(active instanceof HTMLElement && active.closest("#cadenceCards"));
+    if (!editingCadence) {
+      renderCadenceCards();
+    }
   }
 
   function collectGlobalPatch() {
@@ -1622,6 +1686,13 @@
 
     bindPrimaryHoverSfx();
 
+    const auditForm = $("auditForm");
+    if (auditForm) {
+      auditForm.addEventListener("submit", (event) => {
+        event.preventDefault();
+      });
+    }
+
     $("optionsBack").addEventListener("click", () => {
       playUiSfx("uiClick");
       handleOptionsBack();
@@ -1786,26 +1857,58 @@
       updateDashboardHint();
     });
 
-    $("checkoutSessionId").addEventListener("input", debounce(async () => {
-      const normalized = $("checkoutSessionId").value.trim();
+    $("checkoutSessionId").addEventListener("input", (event) => {
+      const target = event.target;
+      if (!(target instanceof HTMLInputElement)) {
+        return;
+      }
+      const normalized = String(target.value || "").trim();
+      if (target.value !== normalized) {
+        target.value = normalized;
+      }
       state.accountDraft.checkoutSessionId = normalized;
       state.accountDraft.dirtyCheckoutSession = true;
+      debouncedPersistUiState({ checkoutSessionDraft: normalized });
+    });
+
+    $("checkoutSessionId").addEventListener("blur", async (event) => {
+      const target = event.target;
+      if (!(target instanceof HTMLInputElement)) {
+        return;
+      }
+      const normalized = String(target.value || "").trim();
+      target.value = normalized;
+      state.accountDraft.checkoutSessionId = normalized;
+      state.accountDraft.dirtyCheckoutSession = false;
+      await persistUiStatePatch({ checkoutSessionDraft: normalized });
       await patchSettings({
         checkoutSessionId: normalized
       });
-    }, 220));
+    });
 
     $("licenseKeyInput").addEventListener("input", (event) => {
       const target = event.target;
       if (!(target instanceof HTMLInputElement)) {
         return;
       }
-      const normalized = String(target.value || "").trim().toUpperCase();
+      const normalized = String(target.value || "").toUpperCase();
       if (target.value !== normalized) {
         target.value = normalized;
       }
       state.accountDraft.licenseKey = normalized;
       state.accountDraft.dirtyLicense = true;
+      debouncedPersistUiState({ licenseKeyDraft: normalized });
+    });
+
+    $("licenseKeyInput").addEventListener("blur", async (event) => {
+      const target = event.target;
+      if (!(target instanceof HTMLInputElement)) {
+        return;
+      }
+      const normalized = String(target.value || "").trim().toUpperCase();
+      target.value = normalized;
+      state.accountDraft.licenseKey = normalized;
+      await persistUiStatePatch({ licenseKeyDraft: normalized });
     });
 
     $("applyCadenceProfile").addEventListener("click", async () => {
@@ -1927,6 +2030,7 @@
       setAccountStatus("LICENSE ACTIVATED", "success");
       state.accountDraft.licenseKey = licenseKey;
       state.accountDraft.dirtyLicense = false;
+      await persistUiStatePatch({ licenseKeyDraft: licenseKey });
       await refreshState();
     });
     $("clearLicense").addEventListener("click", async () => {
@@ -1935,6 +2039,7 @@
       setAccountStatus("LICENSE CLEARED", "success");
       state.accountDraft.licenseKey = "";
       state.accountDraft.dirtyLicense = false;
+      await persistUiStatePatch({ licenseKeyDraft: "" });
       await refreshState();
     });
     $("refreshEntitlement").addEventListener("click", async () => {
@@ -1994,6 +2099,12 @@
   }
 
   async function bootstrap() {
+    await loadUiState();
+    state.accountDraft.licenseKey = String(state.uiState.licenseKeyDraft || "").trim().toUpperCase();
+    state.accountDraft.checkoutSessionId = String(state.uiState.checkoutSessionDraft || "").trim();
+    state.accountDraft.dirtyLicense = false;
+    state.accountDraft.dirtyCheckoutSession = false;
+
     installAudioUnlock();
     bindRatingRows();
     bindEvents();

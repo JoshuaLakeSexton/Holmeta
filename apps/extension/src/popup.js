@@ -266,6 +266,17 @@
     target.textContent = text;
   }
 
+  function isTypingFieldFocused() {
+    const active = document.activeElement;
+    if (!active || !(active instanceof HTMLElement)) {
+      return false;
+    }
+    if (active instanceof HTMLInputElement || active instanceof HTMLTextAreaElement) {
+      return true;
+    }
+    return false;
+  }
+
   function currentInlineLicenseKey() {
     const input = $("licenseKeyInline");
     if (input) {
@@ -1274,21 +1285,20 @@
       state.inlineDraft.checkoutSessionId = normalized;
       state.inlineDraft.dirtyCheckoutSession = true;
       debouncedPersistUiState({ checkoutSessionDraft: normalized });
-      debouncedPatch({ checkoutSessionId: normalized });
     });
 
-    const debouncedDomainSave = debounce(async () => {
-      const parsed = HC.parseDomainList(currentDomainsCsv());
-      await patchSettings({
-        distractorDomains: parsed
-      });
-      state.inlineDraft.domainsCsv = parsed.join(", ");
-      state.inlineDraft.dirtyDomains = false;
-      await persistUiStatePatch({
-        domainsDraft: state.inlineDraft.domainsCsv
-      });
-      setInlineStatus("STATUS: DOMAINS SAVED");
-    }, 420);
+    on("checkoutSessionInline", "blur", async (event) => {
+      const target = event.target;
+      if (!(target instanceof HTMLInputElement)) {
+        return;
+      }
+      const normalized = String(target.value || "").trim();
+      target.value = normalized;
+      state.inlineDraft.checkoutSessionId = normalized;
+      state.inlineDraft.dirtyCheckoutSession = false;
+      await persistUiStatePatch({ checkoutSessionDraft: normalized });
+      await patchSettings({ checkoutSessionId: normalized });
+    });
 
     on("focusDomains", "input", (event) => {
       const target = event.target;
@@ -1299,7 +1309,21 @@
       state.inlineDraft.domainsCsv = normalized;
       state.inlineDraft.dirtyDomains = true;
       debouncedPersistUiState({ domainsDraft: normalized });
-      debouncedDomainSave();
+    });
+
+    on("focusDomains", "blur", async (event) => {
+      const target = event.target;
+      if (!(target instanceof HTMLTextAreaElement)) {
+        return;
+      }
+      const parsed = HC.parseDomainList(String(target.value || ""));
+      const normalized = parsed.join(", ");
+      target.value = normalized;
+      state.inlineDraft.domainsCsv = normalized;
+      state.inlineDraft.dirtyDomains = false;
+      await persistUiStatePatch({ domainsDraft: normalized });
+      await patchSettings({ distractorDomains: parsed });
+      setInlineStatus("STATUS: DOMAINS SAVED");
     });
 
     on("quickNotes", "input", (event) => {
@@ -1804,6 +1828,9 @@
     }, 1000);
 
     setInterval(() => {
+      if (isTypingFieldFocused()) {
+        return;
+      }
       refreshState().catch(() => {});
     }, 30 * 1000);
   }
