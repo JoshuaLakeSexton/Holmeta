@@ -46,6 +46,7 @@ async function main() {
   const baseUrl = normalizeBaseUrl(argValue("--base") || process.env.PUBLIC_BASE_URL || process.env.HOLMETA_BASE_URL);
   const planKey = String(argValue("--plan") || "monthly_a").trim().toLowerCase();
   const runAllPlans = hasFlag("--all-plans");
+  const includeMonthlyB = hasFlag("--include-monthly-b");
   const installId = String(argValue("--install-id") || "smoke-install").trim();
   const sessionId = String(argValue("--session-id") || process.env.HOLMETA_CHECKOUT_SESSION_ID || "").trim();
   const licenseKey = String(argValue("--license") || process.env.HOLMETA_LICENSE_KEY || "").trim();
@@ -53,7 +54,11 @@ async function main() {
 
   assert(baseUrl, "Missing base URL. Use --base https://holmeta.com");
   const fn = (name) => `${baseUrl}/.netlify/functions/${name}`;
-  const plans = runAllPlans ? ["monthly_a", "monthly_b", "yearly"] : [planKey];
+  const plans = runAllPlans
+    ? includeMonthlyB
+      ? ["monthly_a", "monthly_b", "yearly"]
+      : ["monthly_a", "yearly"]
+    : [planKey];
 
   console.log(`[1/4] Checking env flags at ${fn("env-check")}`);
   const envCheck = await requestJson(fn("env-check"));

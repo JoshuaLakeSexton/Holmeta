@@ -5,13 +5,12 @@ import { useState } from "react";
 import { Button } from "@/components/holmeta/Button";
 import { Panel } from "@/components/holmeta/Panel";
 
-type PlanKey = "monthly_a" | "monthly_b" | "yearly";
+type PlanKey = "monthly_a" | "yearly";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "/.netlify/functions";
 
 const PLANS: Array<{ key: PlanKey; label: string; detail: string }> = [
   { key: "monthly_a", label: "CORE MONTHLY", detail: "$2/mo · 3-day trial" },
-  { key: "monthly_b", label: "PRO MONTHLY", detail: "Monthly option B" },
   { key: "yearly", label: "PRO YEARLY", detail: "Yearly option" }
 ];
 

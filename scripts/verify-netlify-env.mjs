@@ -13,11 +13,14 @@ const requiredKeys = [
   "STRIPE_SECRET_KEY",
   "STRIPE_WEBHOOK_SECRET",
   "STRIPE_PRICE_MONTHLY_A",
-  "STRIPE_PRICE_MONTHLY_B",
   "STRIPE_PRICE_YEARLY",
   "PUBLIC_BASE_URL",
   "TRIAL_DAYS",
   "LICENSE_SALT"
+];
+
+const optionalKeys = [
+  "STRIPE_PRICE_MONTHLY_B"
 ];
 
 function runNetlifyEnvList() {
@@ -91,6 +94,11 @@ function main() {
     } else {
       console.log(`- ${key}: present`);
     }
+  }
+
+  for (const key of optionalKeys) {
+    const present = Boolean(String(envMap?.[key] || "").trim());
+    console.log(`- ${key}: ${present ? "present (optional)" : "not set (optional)"}`);
   }
 }
 

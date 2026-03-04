@@ -53,7 +53,7 @@ export const handler: Handler = async (event) => {
     return json(200, {
       ok: true,
       hint: "Use POST",
-      supportedPlans: ["monthly_a", "monthly_b", "yearly"]
+      supportedPlans: ["monthly_a", "yearly"]
     });
   }
 

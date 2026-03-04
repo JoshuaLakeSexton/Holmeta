@@ -10,7 +10,7 @@ holmeta is an extension-first, privacy-focused screen health + deep work toolkit
 
 Holmeta launch uses **paid checkout + license key unlock**:
 
-1. User subscribes with Stripe Checkout (`monthly_a`, `monthly_b`, `yearly`).
+1. User subscribes with Stripe Checkout (`monthly_a`, `yearly`).
 2. After successful checkout, `/billing/success` reveals a one-time license key.
 3. Extension user enters license key in Popup/Options.
 4. Extension validates key via `/.netlify/functions/validate-license`.
@@ -53,11 +53,14 @@ Production runtime (Netlify):
 - `STRIPE_SECRET_KEY`
 - `STRIPE_WEBHOOK_SECRET`
 - `STRIPE_PRICE_MONTHLY_A`
-- `STRIPE_PRICE_MONTHLY_B`
 - `STRIPE_PRICE_YEARLY`
 - `PUBLIC_BASE_URL`
 - `TRIAL_DAYS` (default `3`)
 - `LICENSE_SALT`
+
+Optional:
+
+- `STRIPE_PRICE_MONTHLY_B` (only if you want a second monthly plan)
 
 Optional legacy fallback:
 
@@ -73,8 +76,8 @@ npm run verify:netlify-env
 
 1. Create recurring prices in Stripe:
    - monthly A
-   - monthly B
    - yearly
+   - optional monthly B
 2. Add webhook endpoint:
    - `https://<site>/.netlify/functions/stripe-webhook`
 3. Subscribe webhook to events:
@@ -118,6 +121,8 @@ Deprecated (return 410):
 
 ```bash
 npm run e2e:smoke -- --base https://holmeta.com --all-plans --dry-run
+# include monthly_b if you use it:
+npm run e2e:smoke -- --base https://holmeta.com --all-plans --include-monthly-b --dry-run
 # after manual checkout:
 npm run e2e:smoke -- --base https://holmeta.com --session-id <CHECKOUT_SESSION_ID> --license <HOLMETA-KEY>
 ```

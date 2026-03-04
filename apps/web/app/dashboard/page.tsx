@@ -5,7 +5,7 @@ import { useMemo, useState } from "react";
 import { Button } from "@/components/holmeta/Button";
 import { Panel } from "@/components/holmeta/Panel";
 
-type PlanKey = "monthly_a" | "monthly_b" | "yearly";
+type PlanKey = "monthly_a" | "yearly";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "/.netlify/functions";
 
@@ -13,10 +13,6 @@ const PLAN_COPY: Record<PlanKey, { title: string; detail: string }> = {
   monthly_a: {
     title: "CORE MONTHLY",
     detail: "$2/mo · 3-day trial"
-  },
-  monthly_b: {
-    title: "PRO MONTHLY",
-    detail: "Monthly option B"
   },
   yearly: {
     title: "PRO YEARLY",
