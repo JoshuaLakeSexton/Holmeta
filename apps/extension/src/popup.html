@@ -13,7 +13,13 @@
           <p class="kicker">FIELD OPERATION</p>
           <h1 class="popup-title">holmeta command center</h1>
         </div>
-        <p id="statusChip" class="status-chip status-active">STATUS: ACTIVE</p>
+        <div class="header-right">
+          <div class="nav-row">
+            <button id="popupBack" class="secondary">BACK</button>
+            <button id="popupHome" class="secondary">HOME</button>
+          </div>
+          <p id="statusChip" class="status-chip status-active">STATUS: ACTIVE</p>
+        </div>
       </header>
 
       <section class="panel readouts">
@@ -187,6 +193,13 @@
         <div id="completionBreakdown" class="breakdown-grid"></div>
       </section>
 
+      <section class="panel">
+        <p class="kicker">QUICK NOTES</p>
+        <label class="textarea-label meta-label" for="quickNotes">TODAY NOTES</label>
+        <textarea id="quickNotes" rows="3" class="input" placeholder="TYPE NOTES YOU WANT TO KEEP LOCALLY"></textarea>
+        <p id="quickNotesStatus" class="small-note">STATUS: NOTES READY</p>
+      </section>
+
       <section class="panel paywall" id="paywallPanel">
         <p class="kicker">PREMIUM CONTROL LAYER</p>
         <div class="row-inline">
@@ -199,11 +212,19 @@
         </p>
         <label class="textarea-label meta-label" for="licenseKeyInline">LICENSE KEY</label>
         <input id="licenseKeyInline" class="input" type="text" placeholder="HOLMETA-XXXX-XXXX-XXXX-XXXX" />
+        <label class="textarea-label meta-label" for="checkoutSessionInline">CHECKOUT SESSION ID</label>
+        <input id="checkoutSessionInline" class="input" type="text" placeholder="cs_live_... (from billing success URL)" />
+        <p class="small-note">Need your key or cancel? Use session id from Stripe success URL, then open billing tools below.</p>
         <div class="button-row">
           <button id="activateLicenseInline" class="primary">ACTIVATE LICENSE</button>
           <button id="clearLicenseInline" class="secondary">CLEAR LICENSE</button>
           <button id="unlockPremium" class="primary">SUBSCRIBE</button>
           <button id="refreshEntitlement" class="secondary">REFRESH</button>
+        </div>
+        <div class="button-row billing-actions">
+          <button id="openLicensePageInline" class="secondary">OPEN LICENSE PAGE</button>
+          <button id="openCancelPortalInline" class="secondary">MANAGE BILLING / CANCEL</button>
+          <button id="openRefundHelpInline" class="secondary">REFUND HELP</button>
         </div>
       </section>
 
@@ -217,6 +238,7 @@
 
     <script src="common.js"></script>
     <script src="audio.js"></script>
+    <script src="storage.js"></script>
     <script src="popup.js"></script>
   </body>
 </html>

@@ -1,6 +1,7 @@
 (() => {
   const HC = globalThis.HolmetaCommon;
   const HA = globalThis.HolmetaAudio;
+  const HS = globalThis.HolmetaPopupStorage;
 
   const state = {
     settings: HC.normalizeSettings(HC.DEFAULT_SETTINGS),
@@ -45,8 +46,20 @@
     inlineDraft: {
       licenseKey: "",
       checkoutSessionId: "",
+      domainsCsv: "",
+      notes: "",
       dirtyLicense: false,
-      dirtyCheckoutSession: false
+      dirtyCheckoutSession: false,
+      dirtyDomains: false,
+      dirtyNotes: false
+    },
+    uiState: HS?.DEFAULT_STATE ? { ...HS.DEFAULT_STATE } : {
+      version: 1,
+      notes: "",
+      licenseKeyDraft: "",
+      checkoutSessionDraft: "",
+      domainsDraft: "",
+      updatedAt: 0
     }
   };
 
@@ -89,6 +102,35 @@
       });
     });
   }
+
+  async function loadUiState() {
+    if (!HS?.readUiState) {
+      return;
+    }
+    try {
+      state.uiState = await HS.readUiState();
+    } catch (_) {
+      state.uiState = HS.DEFAULT_STATE ? { ...HS.DEFAULT_STATE } : state.uiState;
+    }
+  }
+
+  async function persistUiStatePatch(patch) {
+    if (!HS?.patchUiState) {
+      return;
+    }
+    try {
+      const result = await HS.patchUiState(patch || {});
+      if (result?.state) {
+        state.uiState = result.state;
+      }
+    } catch (_) {
+      // Keep popup responsive even when local storage write fails.
+    }
+  }
+
+  const debouncedPersistUiState = debounce((patch) => {
+    persistUiStatePatch(patch);
+  }, 320);
 
   function normalizeEntitlement(raw) {
     const source = raw && typeof raw === "object" ? raw : {};
@@ -231,7 +273,7 @@
     }
     return state.inlineDraft.dirtyLicense
       ? String(state.inlineDraft.licenseKey || "").trim().toUpperCase()
-      : String(state.settings.licenseKey || "").trim().toUpperCase();
+      : String(state.uiState.licenseKeyDraft || state.settings.licenseKey || "").trim().toUpperCase();
   }
 
   function currentInlineCheckoutSessionId() {
@@ -241,7 +283,29 @@
     }
     return state.inlineDraft.dirtyCheckoutSession
       ? String(state.inlineDraft.checkoutSessionId || "").trim()
-      : String(state.settings.checkoutSessionId || "").trim();
+      : String(state.uiState.checkoutSessionDraft || state.settings.checkoutSessionId || "").trim();
+  }
+
+  function currentDomainsCsv() {
+    const input = $("focusDomains");
+    if (input) {
+      return String(input.value || "").trim();
+    }
+    if (state.inlineDraft.dirtyDomains) {
+      return String(state.inlineDraft.domainsCsv || "").trim();
+    }
+    return String(state.uiState.domainsDraft || (state.settings.distractorDomains || []).join(", ")).trim();
+  }
+
+  function currentNotes() {
+    const input = $("quickNotes");
+    if (input) {
+      return String(input.value || "");
+    }
+    if (state.inlineDraft.dirtyNotes) {
+      return String(state.inlineDraft.notes || "");
+    }
+    return String(state.uiState.notes || "");
   }
 
   function currentSfxVolume(scale = 1) {
@@ -892,8 +956,23 @@
     $("colorAccurateToggle").checked = Boolean(state.settings.colorAccurate);
     $("meetingManualToggle").checked = Boolean(state.settings.cadence.global.meetingModeManual);
 
-    if (activeId !== "focusDomains") {
-      $("focusDomains").value = (state.settings.distractorDomains || []).join(", ");
+    const domainsInput = $("focusDomains");
+    if (domainsInput instanceof HTMLTextAreaElement) {
+      if (activeId === "focusDomains") {
+        state.inlineDraft.domainsCsv = String(domainsInput.value || "");
+        state.inlineDraft.dirtyDomains = true;
+      } else if (state.inlineDraft.dirtyDomains) {
+        if (domainsInput.value !== state.inlineDraft.domainsCsv) {
+          domainsInput.value = state.inlineDraft.domainsCsv;
+        }
+      } else {
+        const preferredCsv = String(
+          state.uiState.domainsDraft || (state.settings.distractorDomains || []).join(", ")
+        );
+        if (domainsInput.value !== preferredCsv) {
+          domainsInput.value = preferredCsv;
+        }
+      }
     }
 
     $("meetingToggle").textContent = state.settings.cadence.global.meetingModeManual
@@ -921,9 +1000,9 @@
         if (licenseInput.value !== state.inlineDraft.licenseKey) {
           licenseInput.value = state.inlineDraft.licenseKey;
         }
-      } else if (!String(licenseInput.value || "").trim()) {
-        const pref = String(state.settings.licenseKey || "").trim().toUpperCase();
-        if (pref) {
+      } else {
+        const pref = String(state.uiState.licenseKeyDraft || state.settings.licenseKey || "").trim().toUpperCase();
+        if (pref && licenseInput.value !== pref) {
           licenseInput.value = pref;
         }
       }
@@ -939,11 +1018,34 @@
         if (checkoutSessionInput.value !== state.inlineDraft.checkoutSessionId) {
           checkoutSessionInput.value = state.inlineDraft.checkoutSessionId;
         }
-      } else if (!String(checkoutSessionInput.value || "").trim()) {
-        const pref = String(state.settings.checkoutSessionId || "").trim();
-        if (pref) {
+      } else {
+        const pref = String(state.uiState.checkoutSessionDraft || state.settings.checkoutSessionId || "").trim();
+        if (pref && checkoutSessionInput.value !== pref) {
           checkoutSessionInput.value = pref;
         }
+      }
+    }
+
+    const notesInput = $("quickNotes");
+    const notesStatus = $("quickNotesStatus");
+    if (notesInput instanceof HTMLTextAreaElement) {
+      if (activeId === "quickNotes") {
+        state.inlineDraft.notes = String(notesInput.value || "");
+        state.inlineDraft.dirtyNotes = true;
+      } else if (state.inlineDraft.dirtyNotes) {
+        if (notesInput.value !== state.inlineDraft.notes) {
+          notesInput.value = state.inlineDraft.notes;
+        }
+      } else {
+        const saved = String(state.uiState.notes || "");
+        if (notesInput.value !== saved) {
+          notesInput.value = saved;
+        }
+      }
+      if (notesStatus) {
+        notesStatus.textContent = state.inlineDraft.dirtyNotes
+          ? "STATUS: NOTES EDITING"
+          : "STATUS: NOTES SAVED";
       }
     }
 
@@ -956,6 +1058,25 @@
     renderLockIn();
     renderBlockerControls();
     renderPaywall();
+  }
+
+  function renderLiveCountersOnly() {
+    const nextReminder = $("nextReminderReadout");
+    if (nextReminder) {
+      nextReminder.textContent = reminderCountdown();
+    }
+
+    const nextMeta = $("nextReminderMeta");
+    if (nextMeta) {
+      nextMeta.textContent = state.nextReminder?.type
+        ? `TYPE: ${(HC.REMINDER_LABELS[state.nextReminder.type] || state.nextReminder.type).toUpperCase()} · ${formatClock()}`
+        : `TYPE: NONE · ${formatClock()}`;
+    }
+
+    const focusReadout = $("focusReadout");
+    if (focusReadout) {
+      focusReadout.textContent = focusCountdown();
+    }
   }
 
   async function refreshState() {
@@ -1112,6 +1233,7 @@
       }
       state.inlineDraft.licenseKey = normalized;
       state.inlineDraft.dirtyLicense = true;
+      debouncedPersistUiState({ licenseKeyDraft: normalized });
     });
 
     on("licenseKeyInline", "change", (event) => {
@@ -1123,6 +1245,7 @@
       target.value = normalized;
       state.inlineDraft.licenseKey = normalized;
       state.inlineDraft.dirtyLicense = true;
+      debouncedPersistUiState({ licenseKeyDraft: normalized });
     });
 
     on("licenseKeyInline", "paste", () => {
@@ -1135,6 +1258,7 @@
         target.value = normalized;
         state.inlineDraft.licenseKey = normalized;
         state.inlineDraft.dirtyLicense = true;
+        debouncedPersistUiState({ licenseKeyDraft: normalized });
       });
     });
 
@@ -1149,7 +1273,59 @@
       }
       state.inlineDraft.checkoutSessionId = normalized;
       state.inlineDraft.dirtyCheckoutSession = true;
+      debouncedPersistUiState({ checkoutSessionDraft: normalized });
       debouncedPatch({ checkoutSessionId: normalized });
+    });
+
+    const debouncedDomainSave = debounce(async () => {
+      const parsed = HC.parseDomainList(currentDomainsCsv());
+      await patchSettings({
+        distractorDomains: parsed
+      });
+      state.inlineDraft.domainsCsv = parsed.join(", ");
+      state.inlineDraft.dirtyDomains = false;
+      await persistUiStatePatch({
+        domainsDraft: state.inlineDraft.domainsCsv
+      });
+      setInlineStatus("STATUS: DOMAINS SAVED");
+    }, 420);
+
+    on("focusDomains", "input", (event) => {
+      const target = event.target;
+      if (!(target instanceof HTMLTextAreaElement)) {
+        return;
+      }
+      const normalized = String(target.value || "");
+      state.inlineDraft.domainsCsv = normalized;
+      state.inlineDraft.dirtyDomains = true;
+      debouncedPersistUiState({ domainsDraft: normalized });
+      debouncedDomainSave();
+    });
+
+    on("quickNotes", "input", (event) => {
+      const target = event.target;
+      if (!(target instanceof HTMLTextAreaElement)) {
+        return;
+      }
+      const value = String(target.value || "");
+      state.inlineDraft.notes = value;
+      state.inlineDraft.dirtyNotes = true;
+      debouncedPersistUiState({ notes: value });
+      const notesStatus = $("quickNotesStatus");
+      if (notesStatus) {
+        notesStatus.textContent = "STATUS: SAVING NOTES";
+      }
+    });
+
+    on("quickNotes", "blur", async () => {
+      const value = currentNotes();
+      state.inlineDraft.notes = value;
+      state.inlineDraft.dirtyNotes = false;
+      await persistUiStatePatch({ notes: value });
+      const notesStatus = $("quickNotesStatus");
+      if (notesStatus) {
+        notesStatus.textContent = "STATUS: NOTES SAVED";
+      }
     });
 
     document.querySelectorAll("[data-focus]").forEach((button) => {
@@ -1424,6 +1600,11 @@
       if (!ok) {
         return;
       }
+      state.inlineDraft.domainsCsv = (state.settings.distractorDomains || []).join(", ");
+      state.inlineDraft.dirtyDomains = false;
+      await persistUiStatePatch({
+        domainsDraft: state.inlineDraft.domainsCsv
+      });
       setInlineStatus("STATUS: DOMAIN LIST SAVED");
       playUiSfx("uiSuccess");
     });
@@ -1513,6 +1694,9 @@
 
       state.inlineDraft.licenseKey = licenseKey;
       state.inlineDraft.dirtyLicense = false;
+      await persistUiStatePatch({
+        licenseKeyDraft: licenseKey
+      });
       setInlineStatus("STATUS: LICENSE ACTIVATED");
       playUiSfx("uiSuccess", { force: true });
       await refreshState();
@@ -1528,6 +1712,9 @@
 
       state.inlineDraft.licenseKey = "";
       state.inlineDraft.dirtyLicense = false;
+      await persistUiStatePatch({
+        licenseKeyDraft: ""
+      });
       setInlineStatus("STATUS: LICENSE CLEARED");
       playUiSfx("uiSuccess", { force: true });
       await refreshState();
@@ -1593,6 +1780,16 @@
   }
 
   async function bootstrap() {
+    await loadUiState();
+    state.inlineDraft.licenseKey = String(state.uiState.licenseKeyDraft || "").trim().toUpperCase();
+    state.inlineDraft.checkoutSessionId = String(state.uiState.checkoutSessionDraft || "").trim();
+    state.inlineDraft.domainsCsv = String(state.uiState.domainsDraft || "").trim();
+    state.inlineDraft.notes = String(state.uiState.notes || "");
+    state.inlineDraft.dirtyLicense = false;
+    state.inlineDraft.dirtyCheckoutSession = false;
+    state.inlineDraft.dirtyDomains = false;
+    state.inlineDraft.dirtyNotes = false;
+
     installAudioUnlock();
     bindEvents();
     try {
@@ -1603,8 +1800,12 @@
     }
 
     setInterval(() => {
-      render();
+      renderLiveCountersOnly();
     }, 1000);
+
+    setInterval(() => {
+      refreshState().catch(() => {});
+    }, 30 * 1000);
   }
 
   bootstrap();
