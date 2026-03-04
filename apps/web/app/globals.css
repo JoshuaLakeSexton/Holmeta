@@ -53,6 +53,38 @@ a {
   text-transform: uppercase;
 }
 
+@keyframes hm-neon-pulse {
+  0%,
+  100% {
+    text-shadow:
+      0 0 1px rgba(243, 243, 244, 0.6),
+      0 0 6px rgba(255, 179, 0, 0.28),
+      0 0 14px rgba(255, 179, 0, 0.18);
+  }
+  50% {
+    text-shadow:
+      0 0 1px rgba(243, 243, 244, 0.75),
+      0 0 10px rgba(255, 179, 0, 0.42),
+      0 0 20px rgba(255, 179, 0, 0.26);
+  }
+}
+
+h1,
+.hm-title {
+  text-shadow:
+    0 0 1px rgba(243, 243, 244, 0.6),
+    0 0 6px rgba(255, 179, 0, 0.28),
+    0 0 14px rgba(255, 179, 0, 0.18);
+  animation: hm-neon-pulse 2.8s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  h1,
+  .hm-title {
+    animation: none;
+  }
+}
+
 .hm-subtitle {
   margin: var(--s-1) 0;
   font-size: var(--fs-4);
