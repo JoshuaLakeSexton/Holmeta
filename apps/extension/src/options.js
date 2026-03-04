@@ -28,7 +28,13 @@
     cameraStream: null,
     postureTimer: null,
     faceDetector: null,
-    filterPayload: null
+    filterPayload: null,
+    accountDraft: {
+      licenseKey: "",
+      checkoutSessionId: "",
+      dirtyLicense: false,
+      dirtyCheckoutSession: false
+    }
   };
 
   const $ = (id) => document.getElementById(id);
@@ -583,7 +589,11 @@
     $(valueId).textContent = `${Math.round(percent)}%`;
   }
 
-  function setInputValueIfIdle(id, nextValue) {
+  function setInputValueIfIdle(id, nextValue, locked = false) {
+    if (locked) {
+      return;
+    }
+
     const input = $(id);
     if (!input) {
       return;
@@ -971,12 +981,34 @@
     $("meetingModeAuto").checked = Boolean(state.settings.cadence.global.meetingModeAuto);
     $("meetingDomains").value = (state.settings.cadence.global.meetingDomains || []).join(", ");
 
+    const liveLicenseValue = String($("licenseKeyInput")?.value || "").trim().toUpperCase();
+    if (!state.accountDraft.dirtyLicense && liveLicenseValue && !String(state.settings.licenseKey || "").trim()) {
+      state.accountDraft.licenseKey = liveLicenseValue;
+      state.accountDraft.dirtyLicense = true;
+    }
+
+    const liveSessionValue = String($("checkoutSessionId")?.value || "").trim();
+    if (!state.accountDraft.dirtyCheckoutSession && liveSessionValue && !String(state.settings.checkoutSessionId || "").trim()) {
+      state.accountDraft.checkoutSessionId = liveSessionValue;
+      state.accountDraft.dirtyCheckoutSession = true;
+    }
+
     setInputValueIfIdle("apiBaseUrl", state.settings.apiBaseUrl || "");
     setInputValueIfIdle("validateLicenseUrl", state.settings.validateLicenseUrl || "");
     setInputValueIfIdle("checkoutUrl", state.settings.checkoutUrl || "");
     setInputValueIfIdle("dashboardUrl", state.settings.dashboardUrl || "");
-    setInputValueIfIdle("licenseKeyInput", state.settings.licenseKey || "");
-    setInputValueIfIdle("checkoutSessionId", state.settings.checkoutSessionId || "");
+    setInputValueIfIdle(
+      "licenseKeyInput",
+      state.accountDraft.dirtyLicense ? state.accountDraft.licenseKey : (state.settings.licenseKey || ""),
+      state.accountDraft.dirtyLicense
+    );
+    setInputValueIfIdle(
+      "checkoutSessionId",
+      state.accountDraft.dirtyCheckoutSession
+        ? state.accountDraft.checkoutSessionId
+        : (state.settings.checkoutSessionId || ""),
+      state.accountDraft.dirtyCheckoutSession
+    );
     $("devBypassPremium").checked = Boolean(state.settings.devBypassPremium);
 
     $("webcamPostureOptIn").checked = Boolean(state.settings.webcamPostureOptIn);
@@ -1764,8 +1796,11 @@
     });
 
     $("checkoutSessionId").addEventListener("input", debounce(async () => {
+      const normalized = $("checkoutSessionId").value.trim();
+      state.accountDraft.checkoutSessionId = normalized;
+      state.accountDraft.dirtyCheckoutSession = true;
       await patchSettings({
-        checkoutSessionId: $("checkoutSessionId").value.trim()
+        checkoutSessionId: normalized
       });
     }, 220));
 
@@ -1778,6 +1813,8 @@
       if (target.value !== normalized) {
         target.value = normalized;
       }
+      state.accountDraft.licenseKey = normalized;
+      state.accountDraft.dirtyLicense = true;
     });
 
     $("applyCadenceProfile").addEventListener("click", async () => {
@@ -1897,12 +1934,16 @@
 
       $("licenseStatus").textContent = "STATUS: LICENSE ACTIVE";
       setAccountStatus("LICENSE ACTIVATED", "success");
+      state.accountDraft.licenseKey = licenseKey;
+      state.accountDraft.dirtyLicense = false;
       await refreshState();
     });
     $("clearLicense").addEventListener("click", async () => {
       await send({ type: "holmeta-clear-license" });
       $("licenseStatus").textContent = "STATUS: NO LICENSE";
       setAccountStatus("LICENSE CLEARED", "success");
+      state.accountDraft.licenseKey = "";
+      state.accountDraft.dirtyLicense = false;
       await refreshState();
     });
     $("refreshEntitlement").addEventListener("click", async () => {

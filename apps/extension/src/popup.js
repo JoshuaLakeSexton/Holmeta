@@ -41,6 +41,12 @@
       categories: {},
       csvDomains: [],
       effectiveDomains: []
+    },
+    inlineDraft: {
+      licenseKey: "",
+      checkoutSessionId: "",
+      dirtyLicense: false,
+      dirtyCheckoutSession: false
     }
   };
 
@@ -206,6 +212,26 @@
     const target = $("testStatus");
     if (!target) return;
     target.textContent = text;
+  }
+
+  function currentInlineLicenseKey() {
+    const input = $("licenseKeyInline");
+    if (input) {
+      return String(input.value || "").trim().toUpperCase();
+    }
+    return state.inlineDraft.dirtyLicense
+      ? String(state.inlineDraft.licenseKey || "").trim().toUpperCase()
+      : String(state.settings.licenseKey || "").trim().toUpperCase();
+  }
+
+  function currentInlineCheckoutSessionId() {
+    const input = $("checkoutSessionInline");
+    if (input) {
+      return String(input.value || "").trim();
+    }
+    return state.inlineDraft.dirtyCheckoutSession
+      ? String(state.inlineDraft.checkoutSessionId || "").trim()
+      : String(state.settings.checkoutSessionId || "").trim();
   }
 
   function currentSfxVolume(scale = 1) {
@@ -401,6 +427,36 @@
     return { ok: true };
   }
 
+  async function openHomeFlow() {
+    const resolved = HC.resolveSiteBaseUrl(state.settings);
+    if (!resolved.ok) {
+      setInlineStatus("STATUS: HOME URL INVALID");
+      playUiSfx("uiError", { force: true });
+      return { ok: false, error: resolved.error || "INVALID_URL" };
+    }
+
+    const opened = await HC.openExternal(resolved.url);
+    if (!opened.ok) {
+      setInlineStatus("STATUS: HOME OPEN FAILED (" + (opened.message || opened.error || "UNKNOWN") + ")");
+      playUiSfx("uiError", { force: true });
+      return opened;
+    }
+
+    setInlineStatus("STATUS: HOME OPENED");
+    playUiSfx("uiSuccess", { force: true });
+    return { ok: true };
+  }
+
+  function handlePopupBack() {
+    playUiSfx("uiClick");
+    try {
+      window.close();
+    } catch (_) {
+      setInlineStatus("STATUS: BACK ACTION UNAVAILABLE");
+      playUiSfx("uiError", { force: true });
+    }
+  }
+
   async function openSubscribeFlow() {
     const resolved = HC.resolveDashboardUrl(state.settings);
     if (!resolved.ok) {
@@ -431,6 +487,116 @@
     }
 
     setInlineStatus("STATUS: SUBSCRIBE PAGE OPENED");
+    playUiSfx("uiSuccess", { force: true });
+    return opened;
+  }
+
+  async function openLicensePageFlow() {
+    const sessionId = currentInlineCheckoutSessionId();
+    if (!sessionId) {
+      setInlineStatus("STATUS: CHECKOUT SESSION ID REQUIRED");
+      playUiSfx("uiError", { force: true });
+      return { ok: false, error: "SESSION_ID_REQUIRED" };
+    }
+
+    const resolved = HC.resolveBillingSuccessUrl(state.settings, sessionId);
+    if (!resolved.ok) {
+      setInlineStatus("STATUS: BILLING SUCCESS URL INVALID");
+      playUiSfx("uiError", { force: true });
+      return { ok: false, error: resolved.error || "INVALID_BILLING_URL" };
+    }
+
+    const opened = await HC.openExternal(resolved.url);
+    if (!opened.ok) {
+      setInlineStatus("STATUS: OPEN LICENSE PAGE FAILED (" + (opened.message || opened.error || "UNKNOWN") + ")");
+      playUiSfx("uiError", { force: true });
+      return opened;
+    }
+
+    setInlineStatus("STATUS: LICENSE PAGE OPENED");
+    playUiSfx("uiSuccess", { force: true });
+    return opened;
+  }
+
+  async function openCancelPortalFlow() {
+    const sessionId = currentInlineCheckoutSessionId();
+    const licenseKey = currentInlineLicenseKey();
+    if (!sessionId && !licenseKey) {
+      setInlineStatus("STATUS: SESSION ID OR LICENSE KEY REQUIRED");
+      playUiSfx("uiError", { force: true });
+      return { ok: false, error: "PORTAL_LOOKUP_REQUIRED" };
+    }
+
+    const endpoint = HC.resolvePortalSessionUrl(state.settings);
+    if (!endpoint.ok) {
+      setInlineStatus("STATUS: API BASE URL INVALID");
+      playUiSfx("uiError", { force: true });
+      return { ok: false, error: endpoint.error || "INVALID_API_BASE" };
+    }
+
+    try {
+      setInlineStatus("STATUS: OPENING BILLING PORTAL");
+      const response = await fetch(endpoint.url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          session_id: sessionId || null,
+          license_key: licenseKey || null
+        })
+      });
+
+      let payload = {};
+      try {
+        payload = await response.json();
+      } catch (_) {
+        payload = {};
+      }
+
+      if (!response.ok || !payload?.url) {
+        const detail = payload?.error || payload?.code || `HTTP ${response.status}`;
+        setInlineStatus(`STATUS: BILLING PORTAL FAILED (${String(detail)})`);
+        playUiSfx("uiError", { force: true });
+        return { ok: false, error: String(detail) };
+      }
+
+      const opened = await HC.openExternal(payload.url);
+      if (!opened.ok) {
+        setInlineStatus("STATUS: BILLING PORTAL OPEN FAILED (" + (opened.message || opened.error || "UNKNOWN") + ")");
+        playUiSfx("uiError", { force: true });
+        return opened;
+      }
+
+      setInlineStatus("STATUS: BILLING PORTAL OPENED");
+      playUiSfx("uiSuccess", { force: true });
+      return opened;
+    } catch (error) {
+      setInlineStatus("STATUS: BILLING PORTAL REQUEST FAILED");
+      playUiSfx("uiError", { force: true });
+      return {
+        ok: false,
+        error: error instanceof Error ? error.message : "PORTAL_FETCH_FAILED"
+      };
+    }
+  }
+
+  async function openRefundHelpFlow() {
+    const resolved = HC.resolveBillingHelpUrl(state.settings);
+    if (!resolved.ok) {
+      setInlineStatus("STATUS: BILLING HELP URL INVALID");
+      playUiSfx("uiError", { force: true });
+      return { ok: false, error: resolved.error || "INVALID_BILLING_HELP_URL" };
+    }
+
+    const opened = await HC.openExternal(resolved.url);
+    if (!opened.ok) {
+      setInlineStatus("STATUS: REFUND HELP OPEN FAILED (" + (opened.message || opened.error || "UNKNOWN") + ")");
+      playUiSfx("uiError", { force: true });
+      return opened;
+    }
+
+    setInlineStatus("STATUS: REFUND HELP OPENED");
     playUiSfx("uiSuccess", { force: true });
     return opened;
   }
@@ -724,7 +890,31 @@
     $("reminderSoundsToggle").disabled = !state.settings.soundEnabled;
     $("masterVolumeRange").value = String(Math.round(Number(state.settings.masterVolume || 0.35) * 100));
     $("masterVolumeValue").textContent = Math.round(Number(state.settings.masterVolume || 0.35) * 100) + "%";
-    $("licenseKeyInline").value = String(state.settings.licenseKey || "");
+    const licenseInput = $("licenseKeyInline");
+    if (licenseInput) {
+      const liveValue = String(licenseInput.value || "").trim().toUpperCase();
+      if (!state.inlineDraft.dirtyLicense && liveValue && !String(state.settings.licenseKey || "").trim()) {
+        state.inlineDraft.licenseKey = liveValue;
+        state.inlineDraft.dirtyLicense = true;
+      }
+
+      const sourceValue = state.inlineDraft.dirtyLicense
+        ? String(state.inlineDraft.licenseKey || "")
+        : String(state.settings.licenseKey || "");
+      if (document.activeElement !== licenseInput && licenseInput.value !== sourceValue) {
+        licenseInput.value = sourceValue;
+      }
+    }
+
+    const checkoutSessionInput = $("checkoutSessionInline");
+    if (checkoutSessionInput) {
+      const sourceValue = state.inlineDraft.dirtyCheckoutSession
+        ? String(state.inlineDraft.checkoutSessionId || "")
+        : String(state.settings.checkoutSessionId || "");
+      if (document.activeElement !== checkoutSessionInput && checkoutSessionInput.value !== sourceValue) {
+        checkoutSessionInput.value = sourceValue;
+      }
+    }
 
     if ($("lockInDueTime") && !$("lockInDueTime").value) {
       const nextHour = new Date(Date.now() + 60 * 60 * 1000);
@@ -871,6 +1061,65 @@
     }, 130);
 
     bindPrimaryHoverSfx();
+
+    $("popupBack").addEventListener("click", () => {
+      handlePopupBack();
+    });
+
+    $("popupHome").addEventListener("click", async () => {
+      await openHomeFlow();
+    });
+
+    $("licenseKeyInline").addEventListener("input", (event) => {
+      const target = event.target;
+      if (!(target instanceof HTMLInputElement)) {
+        return;
+      }
+      const normalized = String(target.value || "").toUpperCase();
+      if (target.value !== normalized) {
+        target.value = normalized;
+      }
+      state.inlineDraft.licenseKey = normalized;
+      state.inlineDraft.dirtyLicense = true;
+    });
+
+    $("licenseKeyInline").addEventListener("change", (event) => {
+      const target = event.target;
+      if (!(target instanceof HTMLInputElement)) {
+        return;
+      }
+      const normalized = String(target.value || "").trim().toUpperCase();
+      target.value = normalized;
+      state.inlineDraft.licenseKey = normalized;
+      state.inlineDraft.dirtyLicense = Boolean(normalized);
+    });
+
+    $("licenseKeyInline").addEventListener("paste", () => {
+      requestAnimationFrame(() => {
+        const target = $("licenseKeyInline");
+        if (!(target instanceof HTMLInputElement)) {
+          return;
+        }
+        const normalized = String(target.value || "").trim().toUpperCase();
+        target.value = normalized;
+        state.inlineDraft.licenseKey = normalized;
+        state.inlineDraft.dirtyLicense = Boolean(normalized);
+      });
+    });
+
+    $("checkoutSessionInline").addEventListener("input", (event) => {
+      const target = event.target;
+      if (!(target instanceof HTMLInputElement)) {
+        return;
+      }
+      const normalized = String(target.value || "").trim();
+      if (target.value !== normalized) {
+        target.value = normalized;
+      }
+      state.inlineDraft.checkoutSessionId = normalized;
+      state.inlineDraft.dirtyCheckoutSession = true;
+      debouncedPatch({ checkoutSessionId: normalized });
+    });
 
     document.querySelectorAll("[data-focus]").forEach((button) => {
       button.addEventListener("click", async () => {
@@ -1213,7 +1462,7 @@
     });
 
     $("activateLicenseInline").addEventListener("click", async () => {
-      const licenseKey = String($("licenseKeyInline").value || "").trim().toUpperCase();
+      const licenseKey = currentInlineLicenseKey();
       if (!licenseKey) {
         setInlineStatus("STATUS: LICENSE KEY REQUIRED");
         playUiSfx("uiError", { force: true });
@@ -1231,6 +1480,8 @@
         return;
       }
 
+      state.inlineDraft.licenseKey = licenseKey;
+      state.inlineDraft.dirtyLicense = false;
       setInlineStatus("STATUS: LICENSE ACTIVATED");
       playUiSfx("uiSuccess", { force: true });
       await refreshState();
@@ -1244,6 +1495,8 @@
         return;
       }
 
+      state.inlineDraft.licenseKey = "";
+      state.inlineDraft.dirtyLicense = false;
       setInlineStatus("STATUS: LICENSE CLEARED");
       playUiSfx("uiSuccess", { force: true });
       await refreshState();
@@ -1254,6 +1507,21 @@
       await send({ type: "holmeta-refresh-entitlement" });
       await refreshState();
       playUiSfx("uiSuccess");
+    });
+
+    $("openLicensePageInline").addEventListener("click", async () => {
+      playUiSfx("uiClick");
+      await openLicensePageFlow();
+    });
+
+    $("openCancelPortalInline").addEventListener("click", async () => {
+      playUiSfx("uiClick");
+      await openCancelPortalFlow();
+    });
+
+    $("openRefundHelpInline").addEventListener("click", async () => {
+      playUiSfx("uiClick");
+      await openRefundHelpFlow();
     });
 
     $("openHud").addEventListener("click", async () => {
