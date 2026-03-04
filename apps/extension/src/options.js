@@ -1028,33 +1028,15 @@
     setInputValueIfIdle("checkoutUrl", state.settings.checkoutUrl || "");
     setInputValueIfIdle("dashboardUrl", state.settings.dashboardUrl || "");
     const licenseInput = $("licenseKeyInput");
-    if (licenseInput instanceof HTMLInputElement) {
-      if (document.activeElement === licenseInput) {
-        state.accountDraft.licenseKey = String(licenseInput.value || "");
-        state.accountDraft.dirtyLicense = true;
-      } else {
-        const preferredLicense = state.accountDraft.dirtyLicense
-          ? String(state.accountDraft.licenseKey || "")
-          : String(state.accountDraft.licenseKey || state.uiState.licenseKeyDraft || state.settings.licenseKey || "");
-        if (licenseInput.value !== preferredLicense) {
-          licenseInput.value = preferredLicense;
-        }
-      }
+    if (licenseInput instanceof HTMLInputElement && document.activeElement === licenseInput) {
+      state.accountDraft.licenseKey = String(licenseInput.value || "");
+      state.accountDraft.dirtyLicense = true;
     }
 
     const checkoutSessionInput = $("checkoutSessionId");
-    if (checkoutSessionInput instanceof HTMLInputElement) {
-      if (document.activeElement === checkoutSessionInput) {
-        state.accountDraft.checkoutSessionId = String(checkoutSessionInput.value || "");
-        state.accountDraft.dirtyCheckoutSession = true;
-      } else {
-        const preferredSession = state.accountDraft.dirtyCheckoutSession
-          ? String(state.accountDraft.checkoutSessionId || "")
-          : String(state.accountDraft.checkoutSessionId || state.uiState.checkoutSessionDraft || state.settings.checkoutSessionId || "");
-        if (checkoutSessionInput.value !== preferredSession) {
-          checkoutSessionInput.value = preferredSession;
-        }
-      }
+    if (checkoutSessionInput instanceof HTMLInputElement && document.activeElement === checkoutSessionInput) {
+      state.accountDraft.checkoutSessionId = String(checkoutSessionInput.value || "");
+      state.accountDraft.dirtyCheckoutSession = true;
     }
     $("devBypassPremium").checked = Boolean(state.settings.devBypassPremium);
 
@@ -1190,6 +1172,22 @@
       licenseKey: $("licenseKeyInput").value.trim().toUpperCase(),
       devBypassPremium: Boolean($("devBypassPremium").checked)
     };
+  }
+
+  function hydrateAccountInputsFromDrafts() {
+    const licenseInput = $("licenseKeyInput");
+    if (licenseInput instanceof HTMLInputElement) {
+      if (!licenseInput.value) {
+        licenseInput.value = String(state.accountDraft.licenseKey || "");
+      }
+    }
+
+    const checkoutSessionInput = $("checkoutSessionId");
+    if (checkoutSessionInput instanceof HTMLInputElement) {
+      if (!checkoutSessionInput.value) {
+        checkoutSessionInput.value = String(state.accountDraft.checkoutSessionId || "");
+      }
+    }
   }
 
   function collectCadencePatch() {
@@ -2021,6 +2019,10 @@
       setAccountStatus("LICENSE ACTIVATED", "success");
       state.accountDraft.licenseKey = licenseKey;
       state.accountDraft.dirtyLicense = false;
+      const licenseInput = $("licenseKeyInput");
+      if (licenseInput instanceof HTMLInputElement) {
+        licenseInput.value = licenseKey;
+      }
       await persistUiStatePatch({ licenseKeyDraft: licenseKey });
       await refreshState();
     });
@@ -2030,6 +2032,10 @@
       setAccountStatus("LICENSE CLEARED", "success");
       state.accountDraft.licenseKey = "";
       state.accountDraft.dirtyLicense = false;
+      const licenseInput = $("licenseKeyInput");
+      if (licenseInput instanceof HTMLInputElement) {
+        licenseInput.value = "";
+      }
       await persistUiStatePatch({ licenseKeyDraft: "" });
       await refreshState();
     });
@@ -2095,6 +2101,7 @@
     state.accountDraft.checkoutSessionId = String(state.uiState.checkoutSessionDraft || "").trim();
     state.accountDraft.dirtyLicense = false;
     state.accountDraft.dirtyCheckoutSession = false;
+    hydrateAccountInputsFromDrafts();
 
     installAudioUnlock();
     bindRatingRows();

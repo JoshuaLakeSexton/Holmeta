@@ -277,6 +277,36 @@
     return false;
   }
 
+  function hydrateInlineInputsFromDrafts() {
+    const licenseInput = $("licenseKeyInline");
+    if (licenseInput instanceof HTMLInputElement) {
+      if (!licenseInput.value) {
+        licenseInput.value = String(state.inlineDraft.licenseKey || "");
+      }
+    }
+
+    const checkoutInput = $("checkoutSessionInline");
+    if (checkoutInput instanceof HTMLInputElement) {
+      if (!checkoutInput.value) {
+        checkoutInput.value = String(state.inlineDraft.checkoutSessionId || "");
+      }
+    }
+
+    const domainsInput = $("focusDomains");
+    if (domainsInput instanceof HTMLTextAreaElement) {
+      if (!domainsInput.value) {
+        domainsInput.value = String(state.inlineDraft.domainsCsv || "");
+      }
+    }
+
+    const notesInput = $("quickNotes");
+    if (notesInput instanceof HTMLTextAreaElement) {
+      if (!notesInput.value) {
+        notesInput.value = String(state.inlineDraft.notes || "");
+      }
+    }
+  }
+
   function currentInlineLicenseKey() {
     const input = $("licenseKeyInline");
     if (input) {
@@ -968,18 +998,9 @@
     $("meetingManualToggle").checked = Boolean(state.settings.cadence.global.meetingModeManual);
 
     const domainsInput = $("focusDomains");
-    if (domainsInput instanceof HTMLTextAreaElement) {
-      if (activeId === "focusDomains") {
-        state.inlineDraft.domainsCsv = String(domainsInput.value || "");
-        state.inlineDraft.dirtyDomains = true;
-      } else {
-        const preferredCsv = state.inlineDraft.dirtyDomains
-          ? String(state.inlineDraft.domainsCsv || "")
-          : String(state.uiState.domainsDraft || (state.settings.distractorDomains || []).join(", "));
-        if (domainsInput.value !== preferredCsv) {
-          domainsInput.value = preferredCsv;
-        }
-      }
+    if (domainsInput instanceof HTMLTextAreaElement && activeId === "focusDomains") {
+      state.inlineDraft.domainsCsv = String(domainsInput.value || "");
+      state.inlineDraft.dirtyDomains = true;
     }
 
     $("meetingToggle").textContent = state.settings.cadence.global.meetingModeManual
@@ -998,33 +1019,15 @@
     $("masterVolumeRange").value = String(Math.round(Number(state.settings.masterVolume || 0.35) * 100));
     $("masterVolumeValue").textContent = Math.round(Number(state.settings.masterVolume || 0.35) * 100) + "%";
     const licenseInput = $("licenseKeyInline");
-    if (licenseInput instanceof HTMLInputElement) {
-      if (activeId === "licenseKeyInline") {
-        state.inlineDraft.licenseKey = String(licenseInput.value || "");
-        state.inlineDraft.dirtyLicense = true;
-      } else {
-        const preferredLicense = state.inlineDraft.dirtyLicense
-          ? String(state.inlineDraft.licenseKey || "")
-          : String(state.uiState.licenseKeyDraft || state.settings.licenseKey || "");
-        if (licenseInput.value !== preferredLicense) {
-          licenseInput.value = preferredLicense;
-        }
-      }
+    if (licenseInput instanceof HTMLInputElement && activeId === "licenseKeyInline") {
+      state.inlineDraft.licenseKey = String(licenseInput.value || "");
+      state.inlineDraft.dirtyLicense = true;
     }
 
     const checkoutSessionInput = $("checkoutSessionInline");
-    if (checkoutSessionInput instanceof HTMLInputElement) {
-      if (activeId === "checkoutSessionInline") {
-        state.inlineDraft.checkoutSessionId = String(checkoutSessionInput.value || "");
-        state.inlineDraft.dirtyCheckoutSession = true;
-      } else {
-        const preferredSession = state.inlineDraft.dirtyCheckoutSession
-          ? String(state.inlineDraft.checkoutSessionId || "")
-          : String(state.uiState.checkoutSessionDraft || state.settings.checkoutSessionId || "");
-        if (checkoutSessionInput.value !== preferredSession) {
-          checkoutSessionInput.value = preferredSession;
-        }
-      }
+    if (checkoutSessionInput instanceof HTMLInputElement && activeId === "checkoutSessionInline") {
+      state.inlineDraft.checkoutSessionId = String(checkoutSessionInput.value || "");
+      state.inlineDraft.dirtyCheckoutSession = true;
     }
 
     const notesInput = $("quickNotes");
@@ -1033,13 +1036,6 @@
       if (activeId === "quickNotes") {
         state.inlineDraft.notes = String(notesInput.value || "");
         state.inlineDraft.dirtyNotes = true;
-      } else {
-        const preferredNotes = state.inlineDraft.dirtyNotes
-          ? String(state.inlineDraft.notes || "")
-          : String(state.uiState.notes || "");
-        if (notesInput.value !== preferredNotes) {
-          notesInput.value = preferredNotes;
-        }
       }
       if (notesStatus) {
         notesStatus.textContent = state.inlineDraft.dirtyNotes
@@ -1594,6 +1590,10 @@
       }
       state.inlineDraft.domainsCsv = (state.settings.distractorDomains || []).join(", ");
       state.inlineDraft.dirtyDomains = false;
+      const domainsInput = $("focusDomains");
+      if (domainsInput instanceof HTMLTextAreaElement) {
+        domainsInput.value = state.inlineDraft.domainsCsv;
+      }
       await persistUiStatePatch({
         domainsDraft: state.inlineDraft.domainsCsv
       });
@@ -1686,6 +1686,10 @@
 
       state.inlineDraft.licenseKey = licenseKey;
       state.inlineDraft.dirtyLicense = false;
+      const licenseInput = $("licenseKeyInline");
+      if (licenseInput instanceof HTMLInputElement) {
+        licenseInput.value = licenseKey;
+      }
       await persistUiStatePatch({
         licenseKeyDraft: licenseKey
       });
@@ -1704,6 +1708,10 @@
 
       state.inlineDraft.licenseKey = "";
       state.inlineDraft.dirtyLicense = false;
+      const licenseInput = $("licenseKeyInline");
+      if (licenseInput instanceof HTMLInputElement) {
+        licenseInput.value = "";
+      }
       await persistUiStatePatch({
         licenseKeyDraft: ""
       });
@@ -1781,6 +1789,7 @@
     state.inlineDraft.dirtyCheckoutSession = false;
     state.inlineDraft.dirtyDomains = false;
     state.inlineDraft.dirtyNotes = false;
+    hydrateInlineInputsFromDrafts();
 
     installAudioUnlock();
     bindEvents();
