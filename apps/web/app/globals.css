@@ -47,8 +47,22 @@ a {
   align-items: center;
 }
 
+.hm-web-nav-box {
+  border: 1px solid var(--c-border);
+  background: rgba(20, 17, 15, 0.9);
+  padding: var(--s-1);
+}
+
 .hm-web-nav-btn {
-  min-width: 92px;
+  min-width: 70px;
+}
+
+.hm-web-nav-btn--mini {
+  min-height: 32px;
+  height: 32px;
+  padding: 0 var(--s-2);
+  font-size: 11px;
+  letter-spacing: 0.12em;
 }
 
 .hm-panel {
@@ -184,8 +198,10 @@ button.primary:hover {
     gap: var(--s-1);
   }
 
-  .hm-web-nav-btn {
-    min-width: 80px;
+  .hm-web-nav-btn--mini {
+    min-width: 64px;
+    min-height: 30px;
+    height: 30px;
     padding: 0 var(--s-2);
   }
 }

@@ -18,6 +18,9 @@ export function BackHomeNav() {
   }, [pathname]);
 
   const isHome = pathname === "/";
+  if (isHome) {
+    return null;
+  }
 
   function onBack() {
     if (typeof window !== "undefined" && window.history.length > 1) {
@@ -34,11 +37,11 @@ export function BackHomeNav() {
   }
 
   return (
-    <div className="hm-web-nav" role="navigation" aria-label="Quick navigation">
-      <Button onClick={onBack} className="hm-web-nav-btn" disabled={!canGoBack && isHome}>
+    <div className="hm-web-nav hm-web-nav-box" role="navigation" aria-label="Quick navigation">
+      <Button onClick={onBack} className="hm-web-nav-btn hm-web-nav-btn--mini" disabled={!canGoBack && isHome}>
         Back
       </Button>
-      <Button onClick={onHome} className="hm-web-nav-btn" disabled={isHome}>
+      <Button onClick={onHome} className="hm-web-nav-btn hm-web-nav-btn--mini" disabled={isHome}>
         Home
       </Button>
     </div>
