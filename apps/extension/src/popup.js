@@ -891,28 +891,18 @@
     $("masterVolumeRange").value = String(Math.round(Number(state.settings.masterVolume || 0.35) * 100));
     $("masterVolumeValue").textContent = Math.round(Number(state.settings.masterVolume || 0.35) * 100) + "%";
     const licenseInput = $("licenseKeyInline");
-    if (licenseInput) {
-      const liveValue = String(licenseInput.value || "").trim().toUpperCase();
-      if (!state.inlineDraft.dirtyLicense && liveValue && !String(state.settings.licenseKey || "").trim()) {
-        state.inlineDraft.licenseKey = liveValue;
-        state.inlineDraft.dirtyLicense = true;
-      }
-
-      const sourceValue = state.inlineDraft.dirtyLicense
-        ? String(state.inlineDraft.licenseKey || "")
-        : String(state.settings.licenseKey || "");
-      if (document.activeElement !== licenseInput && licenseInput.value !== sourceValue) {
-        licenseInput.value = sourceValue;
+    if (licenseInput && !state.inlineDraft.dirtyLicense && !String(licenseInput.value || "").trim()) {
+      const pref = String(state.settings.licenseKey || "").trim();
+      if (pref) {
+        licenseInput.value = pref;
       }
     }
 
     const checkoutSessionInput = $("checkoutSessionInline");
-    if (checkoutSessionInput) {
-      const sourceValue = state.inlineDraft.dirtyCheckoutSession
-        ? String(state.inlineDraft.checkoutSessionId || "")
-        : String(state.settings.checkoutSessionId || "");
-      if (document.activeElement !== checkoutSessionInput && checkoutSessionInput.value !== sourceValue) {
-        checkoutSessionInput.value = sourceValue;
+    if (checkoutSessionInput && !state.inlineDraft.dirtyCheckoutSession && !String(checkoutSessionInput.value || "").trim()) {
+      const pref = String(state.settings.checkoutSessionId || "").trim();
+      if (pref) {
+        checkoutSessionInput.value = pref;
       }
     }
 

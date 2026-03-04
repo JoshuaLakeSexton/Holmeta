@@ -981,34 +981,25 @@
     $("meetingModeAuto").checked = Boolean(state.settings.cadence.global.meetingModeAuto);
     $("meetingDomains").value = (state.settings.cadence.global.meetingDomains || []).join(", ");
 
-    const liveLicenseValue = String($("licenseKeyInput")?.value || "").trim().toUpperCase();
-    if (!state.accountDraft.dirtyLicense && liveLicenseValue && !String(state.settings.licenseKey || "").trim()) {
-      state.accountDraft.licenseKey = liveLicenseValue;
-      state.accountDraft.dirtyLicense = true;
-    }
-
-    const liveSessionValue = String($("checkoutSessionId")?.value || "").trim();
-    if (!state.accountDraft.dirtyCheckoutSession && liveSessionValue && !String(state.settings.checkoutSessionId || "").trim()) {
-      state.accountDraft.checkoutSessionId = liveSessionValue;
-      state.accountDraft.dirtyCheckoutSession = true;
-    }
-
     setInputValueIfIdle("apiBaseUrl", state.settings.apiBaseUrl || "");
     setInputValueIfIdle("validateLicenseUrl", state.settings.validateLicenseUrl || "");
     setInputValueIfIdle("checkoutUrl", state.settings.checkoutUrl || "");
     setInputValueIfIdle("dashboardUrl", state.settings.dashboardUrl || "");
-    setInputValueIfIdle(
-      "licenseKeyInput",
-      state.accountDraft.dirtyLicense ? state.accountDraft.licenseKey : (state.settings.licenseKey || ""),
-      state.accountDraft.dirtyLicense
-    );
-    setInputValueIfIdle(
-      "checkoutSessionId",
-      state.accountDraft.dirtyCheckoutSession
-        ? state.accountDraft.checkoutSessionId
-        : (state.settings.checkoutSessionId || ""),
-      state.accountDraft.dirtyCheckoutSession
-    );
+    const licenseInput = $("licenseKeyInput");
+    if (licenseInput && !String(licenseInput.value || "").trim()) {
+      const pref = String(state.settings.licenseKey || "").trim();
+      if (pref) {
+        licenseInput.value = pref;
+      }
+    }
+
+    const checkoutSessionInput = $("checkoutSessionId");
+    if (checkoutSessionInput && !String(checkoutSessionInput.value || "").trim()) {
+      const pref = String(state.settings.checkoutSessionId || "").trim();
+      if (pref) {
+        checkoutSessionInput.value = pref;
+      }
+    }
     $("devBypassPremium").checked = Boolean(state.settings.devBypassPremium);
 
     $("webcamPostureOptIn").checked = Boolean(state.settings.webcamPostureOptIn);
