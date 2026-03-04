@@ -10,8 +10,7 @@ const STORAGE = {
   dailyLogs: "holmeta.dailyLogs",
   lockIn: "holmeta.lockIn",
   entitlement: "holmeta.entitlement",
-  audit: "holmeta.audit",
-  auth: "holmeta.auth"
+  audit: "holmeta.audit"
 };
 
 const ALARMS = {
@@ -46,15 +45,15 @@ const PREMIUM_FEATURES = {
 };
 const TRIAL_FEATURES = {
   lightFilters: true,
-  everythingElse: false,
-  advancedCadence: false,
-  workBlocks: false,
-  timeWindows: false,
-  multiProfiles: false,
-  settingsSync: false,
-  meetingAutoSuppression: false,
-  advancedAnalytics: false,
-  postureWebcam: false
+  everythingElse: true,
+  advancedCadence: true,
+  workBlocks: true,
+  timeWindows: true,
+  multiProfiles: true,
+  settingsSync: true,
+  meetingAutoSuppression: true,
+  advancedAnalytics: true,
+  postureWebcam: true
 };
 const FREE_FEATURES = {
   lightFilters: false,
@@ -675,39 +674,6 @@ async function setEntitlement(entitlement, options = {}) {
   return payload;
 }
 
-async function getAuth() {
-
-  const data = await storageGet(STORAGE.auth);
-  return {
-    extensionToken: "",
-    tokenId: null,
-    userId: null,
-    pairedAt: null,
-    ...(data[STORAGE.auth] || {})
-  };
-}
-
-async function setAuth(authPatch) {
-  const current = await getAuth();
-  const next = {
-    ...current,
-    ...(authPatch || {})
-  };
-  await storageSet({ [STORAGE.auth]: next });
-  return next;
-}
-
-async function clearAuth() {
-  await storageSet({
-    [STORAGE.auth]: {
-      extensionToken: "",
-      tokenId: null,
-      userId: null,
-      pairedAt: null
-    }
-  });
-}
-
 async function getHydration() {
   const data = await storageGet(STORAGE.hydration);
   return data[STORAGE.hydration] || {};
@@ -1221,25 +1187,41 @@ function resolveFunctionUrl(settings, explicit, name) {
   return `${base}/.netlify/functions/${name}`;
 }
 
-function entitlementUrl(settings) {
-  return resolveFunctionUrl(settings, settings.entitlementUrl, "entitlement");
+function validateLicenseUrl(settings) {
+  return resolveFunctionUrl(settings, settings.validateLicenseUrl, "validate-license");
 }
 
-function pairingExchangeUrl(settings) {
-  return resolveFunctionUrl(settings, settings.pairingExchangeUrl, "exchange-pairing-code");
+function randomInstallId() {
+  if (globalThis.crypto?.randomUUID) {
+    return globalThis.crypto.randomUUID();
+  }
+  return "install-" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 10);
 }
 
-async function fetchEntitlementFromApi(url, token) {
-  const headers = {
-    "Content-Type": "application/json"
-  };
-  if (token) {
-    headers.Authorization = `Bearer ${token}`;
+async function ensureInstallId(settings) {
+  const existing = String(settings.installId || "").trim();
+  if (existing) {
+    return {
+      settings,
+      installId: existing
+    };
   }
 
+  const installId = randomInstallId();
+  const next = await setSettings({ installId });
+  return {
+    settings: next,
+    installId
+  };
+}
+
+async function fetchLicenseValidation(url, payload) {
   const response = await fetch(url, {
-    method: "GET",
-    headers
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(payload || {})
   });
 
   const rawBody = await response.text();
@@ -1277,11 +1259,13 @@ async function refreshEntitlement(settings, force = false) {
     }
   }
 
-  const url = entitlementUrl(settings);
-  const auth = await getAuth();
-  const token = String(auth.extensionToken || settings.extensionToken || "").trim();
+  const install = await ensureInstallId(settings);
+  settings = install.settings;
+  const installId = install.installId;
+  const licenseKey = String(settings.licenseKey || "").trim();
+  const url = validateLicenseUrl(settings);
 
-  if (!url || !token) {
+  if (!url || !licenseKey) {
     return setEntitlement({
       active: false,
       status: "inactive",
@@ -1295,17 +1279,20 @@ async function refreshEntitlement(settings, force = false) {
   }
 
   try {
-    const { response, json } = await fetchEntitlementFromApi(url, token);
+    const { response, json } = await fetchLicenseValidation(url, {
+      licenseKey,
+      installId
+    });
     if (!response.ok) {
       throw new Error("Entitlement request failed: " + response.status);
     }
 
     const safe = json && typeof json === "object" ? json : {};
     return setEntitlement({
-      active: Boolean(safe.active),
-      status: safe.status || (safe.active ? "active" : "inactive"),
-      plan: safe.plan || (safe.active ? "2" : "free"),
-      renewsAt: safe.renewsAt || null,
+      active: Boolean(safe.active || safe.valid || safe.entitled),
+      status: safe.status || ((safe.active || safe.valid) ? "active" : "inactive"),
+      plan: safe.plan || ((safe.active || safe.valid) ? "paid" : "free"),
+      renewsAt: safe.renewsAt || safe.expiresAt || null,
       trialEndsAt: safe.trialEndsAt || null,
       stale: false,
       graceUntil: null,
@@ -1341,20 +1328,24 @@ async function refreshEntitlement(settings, force = false) {
 
 async function testEntitlementFetch(settings) {
 
-  const url = entitlementUrl(settings);
+  const install = await ensureInstallId(settings);
+  settings = install.settings;
+  const installId = install.installId;
+  const licenseKey = String(settings.licenseKey || "").trim();
+  const url = validateLicenseUrl(settings);
   if (!url) {
     return {
       ok: false,
-      error: "ENTITLEMENT URL NOT CONFIGURED",
+      error: "VALIDATE LICENSE URL NOT CONFIGURED",
       status: 0
     };
   }
 
-  const auth = await getAuth();
-  const token = String(auth.extensionToken || settings.extensionToken || "").trim();
-
   try {
-    const { response, json, rawBody } = await fetchEntitlementFromApi(url, token);
+    const { response, json, rawBody } = await fetchLicenseValidation(url, {
+      licenseKey,
+      installId
+    });
     const safeBody = json && typeof json === "object" ? json : null;
 
     if (!response.ok) {
@@ -1368,10 +1359,10 @@ async function testEntitlementFetch(settings) {
     }
 
     const entitlement = await setEntitlement({
-      active: Boolean(safeBody?.active),
-      status: safeBody?.status || (safeBody?.active ? "active" : "inactive"),
-      plan: safeBody?.plan || (safeBody?.active ? "2" : "free"),
-      renewsAt: safeBody?.renewsAt || null,
+      active: Boolean(safeBody?.active || safeBody?.valid || safeBody?.entitled),
+      status: safeBody?.status || ((safeBody?.active || safeBody?.valid) ? "active" : "inactive"),
+      plan: safeBody?.plan || (safeBody?.valid ? "paid" : "free"),
+      renewsAt: safeBody?.renewsAt || safeBody?.expiresAt || null,
       trialEndsAt: safeBody?.trialEndsAt || null,
       stale: false,
       graceUntil: null,
@@ -1398,63 +1389,32 @@ async function testEntitlementFetch(settings) {
   }
 }
 
-async function exchangePairingCode(settings, code) {
-  const url = pairingExchangeUrl(settings);
-  if (!url) {
+async function activateLicense(settings, licenseKey) {
+  const clean = String(licenseKey || "").trim().toUpperCase();
+  if (!clean) {
     return {
       ok: false,
-      error: "Pairing exchange endpoint is not configured"
+      error: "LICENSE_KEY_REQUIRED"
     };
   }
 
-  try {
-    const response = await fetch(url, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({ code })
-    });
+  const nextSettings = await setSettings({
+    licenseKey: clean
+  });
+  const entitlement = await refreshEntitlement(nextSettings, true);
 
-    const json = await response.json();
-    if (!response.ok) {
-      return {
-        ok: false,
-        error: json.error || `HTTP ${response.status}`
-      };
-    }
-
-    const token = String(json.token || "").trim();
-    if (!token) {
-      return {
-        ok: false,
-        error: "No token received"
-      };
-    }
-
-    await setAuth({
-      extensionToken: token,
-      tokenId: json.tokenId || null,
-      userId: json.userId || null,
-      pairedAt: new Date().toISOString()
-    });
-
-    const nextSettings = await setSettings({
-      extensionToken: token
-    });
-
-    const entitlement = await refreshEntitlement(nextSettings, true);
-
+  if (!entitlement.active) {
     return {
-      ok: true,
+      ok: false,
+      error: "LICENSE_INVALID_OR_INACTIVE",
       entitlement
     };
-  } catch (error) {
-    return {
-      ok: false,
-      error: error instanceof Error ? error.message : "Pairing exchange failed"
-    };
   }
+
+  return {
+    ok: true,
+    entitlement
+  };
 }
 
 function isPremium(settings, entitlement) {
@@ -1903,7 +1863,7 @@ async function scheduleInfrastructureAlarms(settings) {
   });
 
   chrome.alarms.create(ALARMS.entitlement, {
-    periodInMinutes: 120
+    periodInMinutes: 720
   });
 
   chrome.alarms.create(ALARMS.summary, {
@@ -2544,13 +2504,12 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
     if (message.type === "holmeta-request-state") {
       const domain = HC.normalizeDomain(message.domain || "");
-      const [settings, runtime, entitlement, hydration, calm, auth, lockIn] = await Promise.all([
+      const [settings, runtime, entitlement, hydration, calm, lockIn] = await Promise.all([
         getSettings(),
         getRuntime(),
         getEntitlement(),
         getHydration(),
         getCalm(),
-        getAuth(),
         getLockIn()
       ]);
 
@@ -2561,8 +2520,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         runtime,
         entitlement,
         auth: {
-          paired: Boolean(auth.extensionToken),
-          pairedAt: auth.pairedAt || null
+          paired: Boolean(String(settings.licenseKey || "").trim()),
+          pairedAt: null
         },
         hydrationToday: hydration[HC.todayKey()] || 0,
         calmToday: calm[HC.todayKey()] || 0,
@@ -2627,9 +2586,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       await broadcastFilter(next);
 
       if (
-        Object.prototype.hasOwnProperty.call(message.patch || {}, "entitlementUrl") ||
+        Object.prototype.hasOwnProperty.call(message.patch || {}, "validateLicenseUrl") ||
         Object.prototype.hasOwnProperty.call(message.patch || {}, "apiBaseUrl") ||
-        Object.prototype.hasOwnProperty.call(message.patch || {}, "extensionToken") ||
+        Object.prototype.hasOwnProperty.call(message.patch || {}, "licenseKey") ||
+        Object.prototype.hasOwnProperty.call(message.patch || {}, "installId") ||
         Object.prototype.hasOwnProperty.call(message.patch || {}, "devBypassPremium")
       ) {
         await refreshEntitlement(next, true);
@@ -2957,16 +2917,15 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       return;
     }
 
-    if (message.type === "holmeta-exchange-pairing-code") {
+    if (message.type === "holmeta-activate-license") {
       const settings = await getSettings();
-      const result = await exchangePairingCode(settings, String(message.code || "").trim().toUpperCase());
+      const result = await activateLicense(settings, String(message.licenseKey || "").trim());
       sendResponse(result);
       return;
     }
 
-    if (message.type === "holmeta-clear-extension-token") {
-      await clearAuth();
-      const next = await setSettings({ extensionToken: "" });
+    if (message.type === "holmeta-clear-license") {
+      const next = await setSettings({ licenseKey: "" });
       const entitlement = await refreshEntitlement(next, true);
       sendResponse({ ok: true, entitlement });
       return;

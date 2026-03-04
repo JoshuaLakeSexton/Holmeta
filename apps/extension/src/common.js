@@ -3,8 +3,7 @@
   const OVERLAY_COLOR_IDS = ["amber", "deepRed", "warmGray", "custom"];
   const REMINDER_TYPES = ["eye", "movement", "posture", "hydration", "breathwork", "dailyAudit"];
   const DEFAULT_API_BASE_URL = "https://holmeta.com/.netlify/functions";
-  const DEFAULT_ENTITLEMENT_URL = `${DEFAULT_API_BASE_URL}/entitlement`;
-  const DEFAULT_PAIRING_EXCHANGE_URL = `${DEFAULT_API_BASE_URL}/exchange-pairing-code`;
+  const DEFAULT_VALIDATE_LICENSE_URL = `${DEFAULT_API_BASE_URL}/validate-license`;
   const DEFAULT_CHECKOUT_URL = `${DEFAULT_API_BASE_URL}/create-checkout-session`;
   const DEFAULT_DASHBOARD_URL = "https://holmeta.com/dashboard";
   const CADENCE_MODES = ["interval", "workBlocks", "timeWindows"];
@@ -474,12 +473,15 @@
     ui: { showHud: false },
     onboardingCompleted: false,
     apiBaseUrl: DEFAULT_API_BASE_URL,
-    entitlementUrl: DEFAULT_ENTITLEMENT_URL,
-    pairingExchangeUrl: DEFAULT_PAIRING_EXCHANGE_URL,
+    validateLicenseUrl: DEFAULT_VALIDATE_LICENSE_URL,
+    entitlementUrl: "",
+    pairingExchangeUrl: "",
     pairingCodeCreateUrl: "",
     checkoutUrl: DEFAULT_CHECKOUT_URL,
     dashboardUrl: DEFAULT_DASHBOARD_URL,
     extensionToken: "",
+    licenseKey: "",
+    installId: "",
     disabledDomains: [],
     siteOverrides: {},
     distractorDomains: ["youtube.com", "x.com", "reddit.com"],
@@ -1080,12 +1082,15 @@
     merged.devBypassPremium = Boolean(merged.devBypassPremium);
 
     merged.apiBaseUrl = String(merged.apiBaseUrl || "").trim();
+    merged.validateLicenseUrl = String(merged.validateLicenseUrl || "").trim();
     merged.entitlementUrl = String(merged.entitlementUrl || "").trim();
     merged.pairingExchangeUrl = String(merged.pairingExchangeUrl || "").trim();
     merged.pairingCodeCreateUrl = String(merged.pairingCodeCreateUrl || "").trim();
     merged.checkoutUrl = String(merged.checkoutUrl || "").trim();
     merged.dashboardUrl = String(merged.dashboardUrl || "").trim();
     merged.extensionToken = String(merged.extensionToken || "").trim();
+    merged.licenseKey = String(merged.licenseKey || "").trim().toUpperCase();
+    merged.installId = String(merged.installId || "").trim();
 
     const normalizedOverrides = {};
     const rawOverrides = merged.siteOverrides && typeof merged.siteOverrides === "object" ? merged.siteOverrides : {};

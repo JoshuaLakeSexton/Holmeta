@@ -302,11 +302,8 @@
     const apiBase = validateUrlField($("apiBaseUrl").value, "API BASE URL");
     if (!apiBase.ok) return apiBase;
 
-    const entitlement = validateUrlField($("entitlementUrl").value, "ENTITLEMENT URL");
-    if (!entitlement.ok) return entitlement;
-
-    const pairingExchange = validateUrlField($("pairingExchangeUrl").value, "PAIRING EXCHANGE URL");
-    if (!pairingExchange.ok) return pairingExchange;
+    const validateLicense = validateUrlField($("validateLicenseUrl").value, "VALIDATE LICENSE URL");
+    if (!validateLicense.ok) return validateLicense;
 
     const checkout = validateUrlField($("checkoutUrl").value, "CHECKOUT URL");
     if (!checkout.ok) return checkout;
@@ -318,8 +315,7 @@
       ok: true,
       values: {
         apiBaseUrl: apiBase.value,
-        entitlementUrl: entitlement.value,
-        pairingExchangeUrl: pairingExchange.value,
+        validateLicenseUrl: validateLicense.value,
         checkoutUrl: checkout.value,
         dashboardUrl: dashboard.value
       }
@@ -801,10 +797,10 @@
     $("meetingDomains").value = (state.settings.cadence.global.meetingDomains || []).join(", ");
 
     $("apiBaseUrl").value = state.settings.apiBaseUrl || "";
-    $("entitlementUrl").value = state.settings.entitlementUrl || "";
-    $("pairingExchangeUrl").value = state.settings.pairingExchangeUrl || "";
+    $("validateLicenseUrl").value = state.settings.validateLicenseUrl || "";
     $("checkoutUrl").value = state.settings.checkoutUrl || "";
     $("dashboardUrl").value = state.settings.dashboardUrl || "";
+    $("licenseKeyInput").value = state.settings.licenseKey || "";
     $("devBypassPremium").checked = Boolean(state.settings.devBypassPremium);
 
     $("webcamPostureOptIn").checked = Boolean(state.settings.webcamPostureOptIn);
@@ -859,7 +855,7 @@
       const trialEnded = entitlementStatus === "trialing" && trialDays === 0;
       if (trialStatus) {
         trialStatus.className = trialEnded ? "status-chip status-locked" : "status-chip status-idle";
-        trialStatus.textContent = trialEnded ? "STATUS: TRIAL ENDED" : "STATUS: FREE MODE";
+        trialStatus.textContent = trialEnded ? "STATUS: TRIAL ENDED" : "STATUS: LICENSE REQUIRED";
       }
 
       if (premiumBanner) {
@@ -871,9 +867,10 @@
       }
     }
 
-    $("pairingStatus").textContent = state.auth.paired
-      ? `STATUS: PAIRED ${state.auth.pairedAt ? new Date(state.auth.pairedAt).toLocaleString() : ""}`
-      : "STATUS: NOT PAIRED";
+    const key = String(state.settings.licenseKey || "").trim();
+    $("licenseStatus").textContent = key
+      ? `STATUS: LICENSE STORED (${key.slice(0, 12)}...)`
+      : "STATUS: NO LICENSE";
 
     updateDashboardHint();
     if (!$("accountStatus").textContent.trim()) {
@@ -927,10 +924,10 @@
       perEventMapping: collectPerEventMappingFromForm(),
       webcamPostureOptIn: Boolean($("webcamPostureOptIn").checked),
       apiBaseUrl: $("apiBaseUrl").value.trim(),
-      entitlementUrl: $("entitlementUrl").value.trim(),
-      pairingExchangeUrl: $("pairingExchangeUrl").value.trim(),
+      validateLicenseUrl: $("validateLicenseUrl").value.trim(),
       checkoutUrl: $("checkoutUrl").value.trim(),
       dashboardUrl: $("dashboardUrl").value.trim(),
+      licenseKey: $("licenseKeyInput").value.trim().toUpperCase(),
       devBypassPremium: Boolean($("devBypassPremium").checked)
     };
   }
@@ -1679,26 +1676,29 @@
     $("stopPostureMonitor").addEventListener("click", () => {
       stopPostureMonitor();
     });
-    $("pairExtension").addEventListener("click", async () => {
-      const code = String($("pairingCodeInput").value || "").trim().toUpperCase();
-      if (!code) {
-        $("pairingStatus").textContent = "STATUS: ENTER A PAIRING CODE";
-        setAccountStatus("PAIRING CODE REQUIRED", "error");
+    $("activateLicense").addEventListener("click", async () => {
+      const licenseKey = String($("licenseKeyInput").value || "").trim().toUpperCase();
+      if (!licenseKey) {
+        $("licenseStatus").textContent = "STATUS: ENTER LICENSE KEY";
+        setAccountStatus("LICENSE KEY REQUIRED", "error");
         return;
       }
-      const response = await send({ type: "holmeta-exchange-pairing-code", code });
+
+      const response = await send({ type: "holmeta-activate-license", licenseKey });
       if (!response.ok) {
-        $("pairingStatus").textContent = `STATUS: PAIRING FAILED (${response.error || "UNKNOWN"})`;
-        setAccountStatus("PAIRING FAILED", "error");
+        $("licenseStatus").textContent = `STATUS: LICENSE INVALID (${response.error || "UNKNOWN"})`;
+        setAccountStatus("LICENSE ACTIVATION FAILED", "error");
         return;
       }
-      $("pairingStatus").textContent = "STATUS: PAIRED";
-      setAccountStatus("PAIRING SUCCEEDED", "success");
+
+      $("licenseStatus").textContent = "STATUS: LICENSE ACTIVE";
+      setAccountStatus("LICENSE ACTIVATED", "success");
       await refreshState();
     });
-    $("clearPairing").addEventListener("click", async () => {
-      await send({ type: "holmeta-clear-extension-token" });
-      setAccountStatus("PAIRING CLEARED", "success");
+    $("clearLicense").addEventListener("click", async () => {
+      await send({ type: "holmeta-clear-license" });
+      $("licenseStatus").textContent = "STATUS: NO LICENSE";
+      setAccountStatus("LICENSE CLEARED", "success");
       await refreshState();
     });
     $("refreshEntitlement").addEventListener("click", async () => {
@@ -1720,22 +1720,22 @@
       await openSubscribeFromAccount();
     });
 
-    $("testEntitlementFetch").addEventListener("click", async () => {
-      setAccountStatus("ENTITLEMENT FETCH TEST RUNNING");
+    $("testLicenseValidation").addEventListener("click", async () => {
+      setAccountStatus("LICENSE VALIDATION TEST RUNNING");
 
       const response = await send({ type: "holmeta-test-entitlement-fetch" });
       if (!response?.ok) {
         const suffix = response?.corsLikely ? " (CORS)" : "";
         const detail = response?.error || (response?.status ? `HTTP ${response.status}` : "UNKNOWN");
-        setAccountStatus(`ENTITLEMENT FETCH FAILED${suffix}: ${detail}`, "error");
-        setStatus(`STATUS: ENTITLEMENT FETCH FAILED${suffix}`);
+        setAccountStatus(`LICENSE VALIDATION FAILED${suffix}: ${detail}`, "error");
+        setStatus(`STATUS: LICENSE VALIDATION FAILED${suffix}`);
         return;
       }
 
       const active = Boolean(response.entitlement?.active);
       const plan = response.entitlement?.plan ? String(response.entitlement.plan).toUpperCase() : "FREE";
-      setAccountStatus(`ENTITLEMENT ${response.status || 200}: ${active ? "ACTIVE" : "INACTIVE"} (${plan})`, active ? "success" : "info");
-      setStatus("STATUS: ENTITLEMENT FETCH OK");
+      setAccountStatus(`LICENSE ${response.status || 200}: ${active ? "ACTIVE" : "INACTIVE"} (${plan})`, active ? "success" : "info");
+      setStatus("STATUS: LICENSE VALIDATION OK");
       await refreshState();
     });
 

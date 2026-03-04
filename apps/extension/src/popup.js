@@ -629,7 +629,7 @@
           ? "STATUS: TRIAL"
           : `STATUS: TRIAL ${Math.max(0, trialDays)}D LEFT`;
         copy.textContent = trialDays === null
-          ? "Trial active. Premium cadence and analytics are unlocked."
+          ? "Trial active from your license. Premium controls are unlocked."
           : `Trial active with ${Math.max(0, trialDays)} day(s) remaining.`;
       } else if (state.entitlement.stale) {
         trialChip.className = "status-chip status-warning";
@@ -653,8 +653,8 @@
         copy.textContent = "Trial ended. Subscribe to continue premium controls.";
       } else {
         trialChip.className = "status-chip status-idle";
-        trialChip.textContent = "STATUS: FREE MODE";
-        copy.textContent = "Free mode includes basic filters + interval reminders.";
+        trialChip.textContent = "STATUS: LICENSE REQUIRED";
+        copy.textContent = "Enter a valid Holmeta license key to unlock premium controls.";
       }
 
       banner.hidden = false;
@@ -724,6 +724,7 @@
     $("reminderSoundsToggle").disabled = !state.settings.soundEnabled;
     $("masterVolumeRange").value = String(Math.round(Number(state.settings.masterVolume || 0.35) * 100));
     $("masterVolumeValue").textContent = Math.round(Number(state.settings.masterVolume || 0.35) * 100) + "%";
+    $("licenseKeyInline").value = String(state.settings.licenseKey || "");
 
     if ($("lockInDueTime") && !$("lockInDueTime").value) {
       const nextHour = new Date(Date.now() + 60 * 60 * 1000);
@@ -1209,6 +1210,43 @@
     $("unlockPremium").addEventListener("click", async () => {
       playUiSfx("uiClick");
       await openSubscribeFlow();
+    });
+
+    $("activateLicenseInline").addEventListener("click", async () => {
+      const licenseKey = String($("licenseKeyInline").value || "").trim().toUpperCase();
+      if (!licenseKey) {
+        setInlineStatus("STATUS: LICENSE KEY REQUIRED");
+        playUiSfx("uiError", { force: true });
+        return;
+      }
+
+      const response = await send({
+        type: "holmeta-activate-license",
+        licenseKey
+      });
+
+      if (!response?.ok) {
+        setInlineStatus(`STATUS: LICENSE INVALID (${String(response?.error || "UNKNOWN")})`);
+        playUiSfx("uiError", { force: true });
+        return;
+      }
+
+      setInlineStatus("STATUS: LICENSE ACTIVATED");
+      playUiSfx("uiSuccess", { force: true });
+      await refreshState();
+    });
+
+    $("clearLicenseInline").addEventListener("click", async () => {
+      const response = await send({ type: "holmeta-clear-license" });
+      if (!response?.ok) {
+        setInlineStatus("STATUS: CLEAR LICENSE FAILED");
+        playUiSfx("uiError", { force: true });
+        return;
+      }
+
+      setInlineStatus("STATUS: LICENSE CLEARED");
+      playUiSfx("uiSuccess", { force: true });
+      await refreshState();
     });
 
     $("refreshEntitlement").addEventListener("click", async () => {

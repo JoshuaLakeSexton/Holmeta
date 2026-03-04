@@ -43,72 +43,68 @@ function assert(condition, message) {
 }
 
 async function main() {
-  const baseUrl = normalizeBaseUrl(
-    argValue("--base") || process.env.PUBLIC_BASE_URL || process.env.HOLMETA_BASE_URL
-  );
-  const token = String(argValue("--token") || process.env.HOLMETA_DASHBOARD_TOKEN || "").trim();
-  const email = String(argValue("--email") || process.env.HOLMETA_TEST_EMAIL || "").trim();
-  const plan = String(argValue("--plan") || "monthly_a").trim().toLowerCase();
+  const baseUrl = normalizeBaseUrl(argValue("--base") || process.env.PUBLIC_BASE_URL || process.env.HOLMETA_BASE_URL);
+  const planKey = String(argValue("--plan") || "monthly_a").trim().toLowerCase();
+  const runAllPlans = hasFlag("--all-plans");
+  const installId = String(argValue("--install-id") || "smoke-install").trim();
+  const sessionId = String(argValue("--session-id") || process.env.HOLMETA_CHECKOUT_SESSION_ID || "").trim();
+  const licenseKey = String(argValue("--license") || process.env.HOLMETA_LICENSE_KEY || "").trim();
   const dryRun = hasFlag("--dry-run");
 
   assert(baseUrl, "Missing base URL. Use --base https://holmeta.com");
   const fn = (name) => `${baseUrl}/.netlify/functions/${name}`;
+  const plans = runAllPlans ? ["monthly_a", "monthly_b", "yearly"] : [planKey];
 
   console.log(`[1/4] Checking env flags at ${fn("env-check")}`);
   const envCheck = await requestJson(fn("env-check"));
   assert(envCheck.ok, `env-check failed: HTTP ${envCheck.status}`);
   assert(envCheck.data && typeof envCheck.data === "object", "env-check returned invalid JSON");
-  assert(
-    Boolean(envCheck.data.ok),
-    `Missing required env vars: ${((envCheck.data && envCheck.data.missing) || []).join(", ") || JSON.stringify(envCheck.data)}`
-  );
+  assert(Boolean(envCheck.data.ok), `Missing required env vars: ${((envCheck.data && envCheck.data.missing) || []).join(", ")}`);
   console.log("env-check: ok");
 
-  if (email) {
-    console.log("[2/4] Requesting login code (email delivery test)");
-    const loginRequest = await requestJson(fn("request-login-code"), {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email })
-    });
-    assert(loginRequest.ok, `request-login-code failed: HTTP ${loginRequest.status}`);
-    console.log("request-login-code: ok");
-  } else {
-    console.log("[2/4] Skipping login-code request (no --email provided)");
-  }
-
-  if (token && !dryRun) {
-    console.log("[3/4] Creating Stripe checkout session");
+  console.log("[2/4] Creating checkout session");
+  for (const selectedPlan of plans) {
     const checkout = await requestJson(fn("create-checkout-session"), {
       method: "POST",
       headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`
+        "Content-Type": "application/json"
       },
-      body: JSON.stringify({ plan })
+      body: JSON.stringify({ planKey: selectedPlan, installId })
     });
-    assert(checkout.ok, `create-checkout-session failed: HTTP ${checkout.status}`);
-    assert(checkout.data?.url, "create-checkout-session returned no url");
-    console.log(`create-checkout-session: ok (${String(checkout.data.url).slice(0, 80)}...)`);
-  } else {
-    console.log("[3/4] Skipping checkout session (missing --token or --dry-run enabled)");
+    assert(checkout.ok, `create-checkout-session failed for ${selectedPlan}: HTTP ${checkout.status}`);
+    assert(checkout.data?.url, `create-checkout-session returned no url for ${selectedPlan}`);
+    console.log(`${selectedPlan}: ok (${String(checkout.data.url).slice(0, 100)}...)`);
   }
 
-  if (token) {
-    console.log("[4/4] Fetching entitlement");
-    const entitlement = await requestJson(fn("entitlement"), {
-      headers: {
-        Authorization: `Bearer ${token}`
-      }
-    });
-    assert(entitlement.ok, `entitlement failed: HTTP ${entitlement.status}`);
-    console.log(
-      `entitlement: ok (status=${entitlement.data?.status || "unknown"}, entitled=${Boolean(
-        entitlement.data?.entitled
-      )})`
-    );
+  if (!sessionId) {
+    console.log("[3/4] Skipping get-license (no --session-id provided)");
+    console.log("Complete checkout in Stripe, then rerun with --session-id=<CHECKOUT_SESSION_ID>.");
   } else {
-    console.log("[4/4] Skipping entitlement check (no --token provided)");
+    console.log("[3/4] Fetching one-time license from success session");
+    const getLicense = await requestJson(`${fn("get-license")}?session_id=${encodeURIComponent(sessionId)}`);
+    assert(getLicense.ok, `get-license failed: HTTP ${getLicense.status}`);
+    assert(getLicense.data?.licenseKey, "get-license returned no licenseKey");
+    console.log("get-license: ok");
+  }
+
+  if (!licenseKey || dryRun) {
+    console.log("[4/4] Skipping validate-license (no --license provided or --dry-run)");
+  } else {
+    console.log("[4/4] Validating license");
+    const validation = await requestJson(fn("validate-license"), {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ licenseKey, installId })
+    });
+
+    assert(validation.ok, `validate-license failed: HTTP ${validation.status}`);
+    assert(validation.data && typeof validation.data === "object", "validate-license returned invalid JSON");
+    assert(Boolean(validation.data.valid), `validate-license returned invalid: ${JSON.stringify(validation.data)}`);
+    console.log(
+      `validate-license: ok (status=${String(validation.data.status || "unknown")}, plan=${String(validation.data.plan || "none")})`
+    );
   }
 
   console.log("E2E smoke completed.");

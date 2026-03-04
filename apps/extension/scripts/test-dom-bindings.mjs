@@ -46,13 +46,13 @@ async function main() {
   ]);
 
   assertCriticalIds("options", optionsHtmlIds, [
-    "pairingCodeInput",
-    "pairExtension",
-    "clearPairing",
+    "licenseKeyInput",
+    "activateLicense",
+    "clearLicense",
     "refreshEntitlement",
     "openDashboard",
     "testDashboardUrl",
-    "testEntitlementFetch"
+    "testLicenseValidation"
   ]);
 
   console.log("Extension DOM binding tests passed.");

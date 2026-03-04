@@ -451,11 +451,8 @@
           <label for="apiBaseUrl">API BASE URL</label>
           <input id="apiBaseUrl" type="text" placeholder="https://holmeta.com/.netlify/functions" />
 
-          <label for="entitlementUrl">ENTITLEMENT URL</label>
-          <input id="entitlementUrl" type="text" placeholder="https://.../.netlify/functions/entitlement" />
-
-          <label for="pairingExchangeUrl">PAIRING EXCHANGE URL</label>
-          <input id="pairingExchangeUrl" type="text" placeholder="https://.../.netlify/functions/exchange-pairing-code" />
+          <label for="validateLicenseUrl">VALIDATE LICENSE URL</label>
+          <input id="validateLicenseUrl" type="text" placeholder="https://.../.netlify/functions/validate-license" />
 
           <label for="checkoutUrl">CHECKOUT URL</label>
           <input id="checkoutUrl" type="text" placeholder="https://.../.netlify/functions/create-checkout-session" />
@@ -466,10 +463,10 @@
             <p id="dashboardHint" class="field-help">Default: derived from API BASE URL + /dashboard when override is empty.</p>
           </div>
 
-          <label for="pairingCodeInput">PAIRING CODE</label>
+          <label for="licenseKeyInput">LICENSE KEY</label>
           <div class="field-stack">
-            <input id="pairingCodeInput" type="text" placeholder="HM-XXXXXX" />
-            <p class="field-help">Use format HM-XXXXXX. Generate this from Dashboard → Pair Extension.</p>
+            <input id="licenseKeyInput" type="text" placeholder="HOLMETA-XXXX-XXXX-XXXX-XXXX" />
+            <p class="field-help">Paste the key from Billing Success after Stripe checkout.</p>
           </div>
 
           <label for="devBypassPremium">DEV BYPASS PREMIUM</label>
@@ -484,16 +481,16 @@
         <div id="premiumBanner" class="premium-banner" hidden>TRIAL ENDED - SUBSCRIBE TO CONTINUE PREMIUM CONTROLS.</div>
 
         <div class="account-actions">
-          <button id="pairExtension" class="primary">PAIR EXTENSION</button>
-          <button id="clearPairing" class="secondary">CLEAR PAIRING</button>
+          <button id="activateLicense" class="primary">ACTIVATE LICENSE</button>
+          <button id="clearLicense" class="secondary">CLEAR LICENSE</button>
           <button id="refreshEntitlement" class="secondary">REFRESH ENTITLEMENT</button>
-          <button id="testEntitlementFetch" class="secondary">TEST ENTITLEMENT FETCH</button>
+          <button id="testLicenseValidation" class="secondary">TEST LICENSE VALIDATION</button>
           <button id="openDashboard" class="secondary">OPEN DASHBOARD</button>
           <button id="testDashboardUrl" class="secondary">TEST DASHBOARD URL</button>
           <button id="subscribeNow" class="primary">SUBSCRIBE</button>
         </div>
 
-        <p id="pairingStatus" class="meta-line">STATUS: NOT PAIRED</p>
+        <p id="licenseStatus" class="meta-line">STATUS: NO LICENSE</p>
         <p id="accountStatus" class="meta-line">STATUS: READY</p>
       </section>
     </main>

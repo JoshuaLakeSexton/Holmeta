@@ -3,15 +3,14 @@ import { corsPreflight, json, methodNotAllowed } from "./_lib/http";
 
 const REQUIRED_KEYS = [
   "DATABASE_URL",
-  "APP_JWT_SECRET",
   "STRIPE_SECRET_KEY",
   "STRIPE_WEBHOOK_SECRET",
   "STRIPE_PRICE_MONTHLY_A",
   "STRIPE_PRICE_MONTHLY_B",
   "STRIPE_PRICE_YEARLY",
-  "RESEND_API_KEY",
-  "HOLMETA_EMAIL_FROM",
-  "PUBLIC_BASE_URL"
+  "PUBLIC_BASE_URL",
+  "TRIAL_DAYS",
+  "LICENSE_SALT"
 ] as const;
 
 function hasValue(name: string): boolean {
@@ -28,9 +27,10 @@ export const handler: Handler = async (event) => {
     return methodNotAllowed(["GET", "OPTIONS"]);
   }
 
-  const env = Object.fromEntries(
-    REQUIRED_KEYS.map((key) => [key, hasValue(key)])
-  ) as Record<(typeof REQUIRED_KEYS)[number], boolean>;
+  const env = Object.fromEntries(REQUIRED_KEYS.map((key) => [key, hasValue(key)])) as Record<
+    (typeof REQUIRED_KEYS)[number],
+    boolean
+  >;
 
   const legacyMonthlyFallback = hasValue("STRIPE_PRICE_ID_2");
   if (!env.STRIPE_PRICE_MONTHLY_A && legacyMonthlyFallback) {

@@ -6,17 +6,14 @@ import { prisma } from "./_lib/prisma";
 import { reportServerEvent } from "./_lib/monitor";
 import { requireEnvVars } from "./_lib/env";
 import { resolvePlanFromPriceId, normalizedPlan, type PlanKey } from "./_lib/plans";
-import { getOrCreateUserByEmail, normalizeEmail } from "./_lib/users";
+import { deriveLicenseKey, hashLicenseKey } from "./_lib/license";
 
 function toDateFromUnix(seconds: number | null | undefined): Date | null {
   if (!seconds) return null;
   return new Date(seconds * 1000);
 }
 
-function metadataValue(
-  metadata: Stripe.Metadata | null | undefined,
-  keys: string[]
-): string {
+function metadataValue(metadata: Stripe.Metadata | null | undefined, keys: string[]): string {
   if (!metadata) return "";
   for (const key of keys) {
     const value = String(metadata[key] || "").trim();
@@ -27,10 +24,7 @@ function metadataValue(
   return "";
 }
 
-function planFromMetadataOrPrice(
-  metadata: Stripe.Metadata | null | undefined,
-  priceId: string | null
-): PlanKey | null {
+function planFromMetadataOrPrice(metadata: Stripe.Metadata | null | undefined, priceId: string | null): PlanKey | null {
   const fromMeta = normalizedPlan(metadataValue(metadata, ["plan_key", "plan", "tier"]));
   if (fromMeta) return fromMeta;
   return resolvePlanFromPriceId(priceId);
@@ -50,10 +44,9 @@ async function markEventReceived(stripeEventId: string, type: string): Promise<b
     });
     return true;
   } catch (error) {
-    const code =
-      typeof error === "object" && error && "code" in error
-        ? String((error as { code?: string }).code || "")
-        : "";
+    const code = typeof error === "object" && error && "code" in error
+      ? String((error as { code?: string }).code || "")
+      : "";
 
     if (code === "P2002") {
       return false;
@@ -63,107 +56,86 @@ async function markEventReceived(stripeEventId: string, type: string): Promise<b
   }
 }
 
-async function resolveUserIdForCustomer(customerId: string): Promise<string> {
-  if (!customerId) {
-    return "";
-  }
-
-  const stripeCustomer = await prisma.stripeCustomer.findUnique({ where: { customerId } });
-  return stripeCustomer?.userId || "";
-}
-
-async function resolveUserIdFromCheckoutSession(session: Stripe.Checkout.Session): Promise<string> {
-  const metadataUser = metadataValue(session.metadata, ["user_id", "userId"]);
-  if (metadataUser) {
-    return metadataUser;
-  }
-
-  const customerId = typeof session.customer === "string" ? session.customer : "";
-  if (customerId) {
-    const mapped = await resolveUserIdForCustomer(customerId);
-    if (mapped) {
-      return mapped;
-    }
-  }
-
-  const email = normalizeEmail(String(session.customer_details?.email || session.customer_email || ""));
-  if (email) {
-    const user = await getOrCreateUserByEmail(email);
-    if (user) {
-      return user.id;
-    }
-  }
-
-  return "";
-}
-
-async function upsertSubscriptionForUser(userId: string, subscription: Stripe.Subscription) {
+async function upsertLicenseFromSubscription(params: {
+  checkoutSessionId: string;
+  customerId: string;
+  subscription: Stripe.Subscription;
+  fallbackPlanKey?: string;
+}) {
+  const { checkoutSessionId, customerId, subscription, fallbackPlanKey } = params;
   const priceId = extractPrimaryPriceId(subscription);
-  const tier = planFromMetadataOrPrice(subscription.metadata, priceId);
+  const planKey = planFromMetadataOrPrice(subscription.metadata, priceId) || fallbackPlanKey || "monthly_a";
 
-  await prisma.subscription.upsert({
-    where: { userId },
+  const licenseKey = deriveLicenseKey(checkoutSessionId, subscription.id);
+  const licenseHash = hashLicenseKey(licenseKey);
+
+  await prisma.license.upsert({
+    where: {
+      stripeSubscriptionId: subscription.id
+    },
     create: {
-      userId,
+      licenseHash,
+      stripeCustomerId: customerId || null,
       stripeSubscriptionId: subscription.id,
-      priceId,
+      stripeCheckoutSessionId: checkoutSessionId,
+      planKey,
       status: String(subscription.status || "inactive").toLowerCase(),
-      tier: tier || "none",
       currentPeriodEnd: toDateFromUnix(subscription.current_period_end),
-      trialEnd: toDateFromUnix(subscription.trial_end),
-      cancelAtPeriodEnd: Boolean(subscription.cancel_at_period_end)
+      trialEnd: toDateFromUnix(subscription.trial_end)
     },
     update: {
-      stripeSubscriptionId: subscription.id,
-      priceId,
+      licenseHash,
+      stripeCustomerId: customerId || null,
+      stripeCheckoutSessionId: checkoutSessionId,
+      planKey,
       status: String(subscription.status || "inactive").toLowerCase(),
-      tier: tier || "none",
       currentPeriodEnd: toDateFromUnix(subscription.current_period_end),
-      trialEnd: toDateFromUnix(subscription.trial_end),
-      cancelAtPeriodEnd: Boolean(subscription.cancel_at_period_end)
+      trialEnd: toDateFromUnix(subscription.trial_end)
+    }
+  });
+
+  await prisma.licenseReveal.upsert({
+    where: {
+      stripeCheckoutSessionId: checkoutSessionId
+    },
+    create: {
+      stripeCheckoutSessionId: checkoutSessionId
+    },
+    update: {}
+  });
+}
+
+async function updateLicenseStatusBySubscription(subscription: Stripe.Subscription) {
+  const priceId = extractPrimaryPriceId(subscription);
+  const planKey = planFromMetadataOrPrice(subscription.metadata, priceId);
+
+  await prisma.license.updateMany({
+    where: {
+      stripeSubscriptionId: subscription.id
+    },
+    data: {
+      status: String(subscription.status || "inactive").toLowerCase(),
+      planKey: planKey || undefined,
+      currentPeriodEnd: toDateFromUnix(subscription.current_period_end),
+      trialEnd: toDateFromUnix(subscription.trial_end)
     }
   });
 }
 
-async function handleCheckoutCompleted(stripe: Stripe, session: Stripe.Checkout.Session) {
-  const userId = await resolveUserIdFromCheckoutSession(session);
-  if (!userId) {
-    await reportServerEvent("warn", "stripe_webhook_checkout_missing_user");
+async function updateLicenseStatusFromInvoice(invoice: Stripe.Invoice) {
+  const subscriptionId = typeof invoice.subscription === "string" ? invoice.subscription : "";
+  if (!subscriptionId) {
     return;
   }
 
-  const customerId = typeof session.customer === "string" ? session.customer : "";
-  if (customerId) {
-    await prisma.stripeCustomer.upsert({
-      where: { userId },
-      create: { userId, customerId },
-      update: { customerId }
-    });
-  }
-
-  if (typeof session.subscription === "string") {
-    const subscription = await stripe.subscriptions.retrieve(session.subscription);
-    await upsertSubscriptionForUser(userId, subscription);
-  }
-}
-
-async function handleSubscriptionChanged(subscription: Stripe.Subscription) {
-  let userId = metadataValue(subscription.metadata, ["user_id", "userId"]);
-  if (!userId) {
-    const customerId = typeof subscription.customer === "string" ? subscription.customer : "";
-    if (customerId) {
-      userId = await resolveUserIdForCustomer(customerId);
+  await prisma.license.updateMany({
+    where: {
+      stripeSubscriptionId: subscriptionId
+    },
+    data: {
+      status: "past_due"
     }
-  }
-
-  if (!userId) {
-    await reportServerEvent("warn", "stripe_webhook_subscription_missing_user", {
-      subscriptionId: subscription.id
-    });
-    return;
-  }
-
-  await upsertSubscriptionForUser(userId, subscription);
+  });
 }
 
 export const handler: Handler = async (event) => {
@@ -180,7 +152,7 @@ export const handler: Handler = async (event) => {
     return methodNotAllowed(["POST", "OPTIONS"]);
   }
 
-  const missingEnv = requireEnvVars(["DATABASE_URL", "STRIPE_SECRET_KEY", "STRIPE_WEBHOOK_SECRET"]);
+  const missingEnv = requireEnvVars(["DATABASE_URL", "STRIPE_SECRET_KEY", "STRIPE_WEBHOOK_SECRET", "LICENSE_SALT"]);
   if (missingEnv) {
     await reportServerEvent("error", "stripe_webhook_server_env_missing");
     return missingEnv;
@@ -231,7 +203,21 @@ export const handler: Handler = async (event) => {
 
   try {
     if (stripeEvent.type === "checkout.session.completed") {
-      await handleCheckoutCompleted(stripe, stripeEvent.data.object as Stripe.Checkout.Session);
+      const session = stripeEvent.data.object as Stripe.Checkout.Session;
+      const checkoutSessionId = String(session.id || "").trim();
+      const customerId = typeof session.customer === "string" ? session.customer : "";
+      const subscriptionId = typeof session.subscription === "string" ? session.subscription : "";
+      const fallbackPlanKey = normalizedPlan(metadataValue(session.metadata, ["plan_key", "plan"])) || "monthly_a";
+
+      if (checkoutSessionId && subscriptionId) {
+        const subscription = await stripe.subscriptions.retrieve(subscriptionId);
+        await upsertLicenseFromSubscription({
+          checkoutSessionId,
+          customerId,
+          subscription,
+          fallbackPlanKey
+        });
+      }
     }
 
     if (
@@ -239,7 +225,11 @@ export const handler: Handler = async (event) => {
       stripeEvent.type === "customer.subscription.updated" ||
       stripeEvent.type === "customer.subscription.deleted"
     ) {
-      await handleSubscriptionChanged(stripeEvent.data.object as Stripe.Subscription);
+      await updateLicenseStatusBySubscription(stripeEvent.data.object as Stripe.Subscription);
+    }
+
+    if (stripeEvent.type === "invoice.payment_failed") {
+      await updateLicenseStatusFromInvoice(stripeEvent.data.object as Stripe.Invoice);
     }
 
     await reportServerEvent("info", "stripe_webhook_processed", {

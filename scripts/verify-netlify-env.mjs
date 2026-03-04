@@ -10,16 +10,14 @@ const webDir = path.join(repoRoot, "apps/web");
 
 const requiredKeys = [
   "DATABASE_URL",
-  "APP_JWT_SECRET",
   "STRIPE_SECRET_KEY",
+  "STRIPE_WEBHOOK_SECRET",
   "STRIPE_PRICE_MONTHLY_A",
   "STRIPE_PRICE_MONTHLY_B",
   "STRIPE_PRICE_YEARLY",
-  "STRIPE_WEBHOOK_SECRET",
-  "RESEND_API_KEY",
-  "HOLMETA_EMAIL_FROM",
   "PUBLIC_BASE_URL",
-  "TRIAL_DAYS"
+  "TRIAL_DAYS",
+  "LICENSE_SALT"
 ];
 
 function runNetlifyEnvList() {
@@ -89,7 +87,7 @@ function main() {
   console.log("Netlify env verification passed.");
   for (const key of requiredKeys) {
     if (key === "STRIPE_PRICE_MONTHLY_A" && !String(envMap?.STRIPE_PRICE_MONTHLY_A || "").trim()) {
-      console.log(`- STRIPE_PRICE_MONTHLY_A: fallback to STRIPE_PRICE_ID_2`);
+      console.log("- STRIPE_PRICE_MONTHLY_A: fallback to STRIPE_PRICE_ID_2");
     } else {
       console.log(`- ${key}: present`);
     }

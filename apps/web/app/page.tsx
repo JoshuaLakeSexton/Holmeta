@@ -31,7 +31,7 @@ const capabilities = [
   },
   {
     title: "Local-first Defaults",
-    body: "sensitive settings stay on-device; account only for entitlements."
+    body: "sensitive settings stay on-device; license checks only unlock paid modules."
   }
 ];
 
@@ -127,10 +127,10 @@ export default function HomePage() {
               <strong>1)</strong> Install the extension for your browser.
             </li>
             <li>
-              <strong>2)</strong> Create an account (used for subscription + syncing non-sensitive prefs if enabled).
+              <strong>2)</strong> Choose a plan and complete Stripe Checkout.
             </li>
             <li>
-              <strong>3)</strong> Pair &amp; enable modules in the dashboard → the extension unlocks Premium modules.
+              <strong>3)</strong> Copy your license key from Billing Success and activate it in the extension.
             </li>
           </ol>
         </Panel>
@@ -149,7 +149,7 @@ export default function HomePage() {
           <Accordion title="Tech Notes">
             <ul className="hm-list">
               <li>MV3 extension + web dashboard</li>
-              <li>Entitlements via secure server functions</li>
+              <li>License validation + entitlements via secure server functions</li>
               <li>Minimal telemetry (or none) — document what you actually do</li>
             </ul>
           </Accordion>
@@ -181,7 +181,7 @@ export default function HomePage() {
             </article>
           </div>
           <div className="hm-cta-row">
-            <Button href="/dashboard" variant="primary">
+            <Button href="/dashboard/subscribe" variant="primary">
               Start Trial
             </Button>
             <p className="hm-meta">3 days · Cancel anytime.</p>
@@ -228,15 +228,16 @@ export default function HomePage() {
 
             <FAQItem question="What data do you store?">
               <p className="hm-meta">
-                Account, subscription, and entitlement records. Sensitive browsing behavior is not required
+                License and subscription records required for billing. Sensitive browsing behavior is not
+                required
                 for core operation.
               </p>
             </FAQItem>
 
             <FAQItem question="I installed it—how do I “pair” and unlock Premium?">
               <p className="hm-meta">
-                Open the dashboard, generate/paste your pairing details, then refresh entitlement in the
-                extension.
+                Open billing success, copy your license key, then paste it in Extension Options and
+                click Activate.
               </p>
             </FAQItem>
 

@@ -7,12 +7,10 @@ export default function BillingCancelPage() {
       <Panel>
         <p className="hm-kicker">BILLING</p>
         <h1 className="hm-title">checkout cancelled</h1>
-        <p className="hm-meta">
-          No changes were made. You can restart checkout from the dashboard at any time.
-        </p>
+        <p className="hm-meta">No charge was made. Restart checkout when ready.</p>
         <div className="hm-cta-row">
-          <Button href="/dashboard" variant="primary">
-            OPEN DASHBOARD
+          <Button href="/dashboard/subscribe" variant="primary">
+            START CHECKOUT
           </Button>
           <Button href="/">BACK TO HOME</Button>
         </div>

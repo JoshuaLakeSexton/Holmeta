@@ -1,10 +1,25 @@
 import type { Handler } from "@netlify/functions";
 import Stripe from "stripe";
-import { corsPreflight, json, methodNotAllowed, getOrigin } from "./_lib/http";
-import { requireToken } from "./_lib/token";
-import { prisma } from "./_lib/prisma";
-import { reportServerEvent } from "./_lib/monitor";
+
+import { corsPreflight, json, methodNotAllowed, parseJsonBody } from "./_lib/http";
 import { requireEnvVars } from "./_lib/env";
+
+type Body = {
+  session_id?: string | null;
+};
+
+function sessionIdFromEvent(event: Parameters<Handler>[0], body: Body): string {
+  const fromBody = String(body.session_id || "").trim();
+  if (fromBody) {
+    return fromBody;
+  }
+  const fromQuery = new URLSearchParams(event.rawUrl.split("?")[1] || "").get("session_id") || "";
+  return String(fromQuery).trim();
+}
+
+function normalizeBaseUrl(value: string): string {
+  return String(value || "").trim().replace(/\/$/, "");
+}
 
 export const handler: Handler = async (event) => {
   const preflight = corsPreflight(event);
@@ -13,55 +28,60 @@ export const handler: Handler = async (event) => {
   }
 
   if (event.httpMethod === "GET") {
-    return json(200, { ok: true, hint: "Use POST" });
+    return json(200, { ok: true, hint: "Use POST with { session_id } or pass ?session_id=" });
   }
 
   if (event.httpMethod !== "POST") {
-    return methodNotAllowed(["POST", "OPTIONS"]);
+    return methodNotAllowed(["GET", "POST", "OPTIONS"]);
   }
 
-  const missingEnv = requireEnvVars(["DATABASE_URL", "APP_JWT_SECRET"]);
+  const missingEnv = requireEnvVars(["STRIPE_SECRET_KEY", "PUBLIC_BASE_URL"]);
   if (missingEnv) {
-    await reportServerEvent("error", "portal_server_env_missing");
     return missingEnv;
   }
 
-  const claims = requireToken(event, ["dashboard"]);
-  if (!claims) {
-    await reportServerEvent("warn", "portal_unauthorized");
-    return json(401, { error: "Unauthorized" });
-  }
-
-  const stripeKey = process.env.STRIPE_SECRET_KEY;
-  if (!stripeKey) {
-    await reportServerEvent("warn", "portal_stub_mode", { userId: claims.sub });
-    return json(200, {
-      stub: true,
-      url: `${getOrigin(event)}/dashboard?portal=stub`
+  const body = parseJsonBody<Body>(event);
+  const sessionId = sessionIdFromEvent(event, body);
+  if (!sessionId) {
+    return json(400, {
+      ok: false,
+      error: "Missing session_id",
+      code: "SESSION_ID_REQUIRED"
     });
   }
 
-  const stripeCustomer = await prisma.stripeCustomer.findUnique({
-    where: { userId: claims.sub }
-  });
-
-  if (!stripeCustomer) {
-    await reportServerEvent("warn", "portal_missing_customer", { userId: claims.sub });
-    return json(404, { error: "No Stripe customer for this account" });
-  }
-
-  const stripe = new Stripe(stripeKey, {
+  const stripe = new Stripe(String(process.env.STRIPE_SECRET_KEY || "").trim(), {
     apiVersion: "2025-02-24.acacia"
   });
 
-  const portal = await stripe.billingPortal.sessions.create({
-    customer: stripeCustomer.customerId,
-    return_url: `${getOrigin(event)}/dashboard`
-  });
+  try {
+    const checkout = await stripe.checkout.sessions.retrieve(sessionId);
+    const customerId = typeof checkout.customer === "string"
+      ? checkout.customer
+      : checkout.customer?.id || "";
 
-  await reportServerEvent("info", "portal_session_created", { userId: claims.sub });
+    if (!customerId) {
+      return json(404, {
+        ok: false,
+        error: "No customer associated with this checkout session",
+        code: "CUSTOMER_NOT_FOUND"
+      });
+    }
 
-  return json(200, {
-    url: portal.url
-  });
+    const portal = await stripe.billingPortal.sessions.create({
+      customer: customerId,
+      return_url: `${normalizeBaseUrl(process.env.PUBLIC_BASE_URL || "")}/dashboard`
+    });
+
+    return json(200, {
+      ok: true,
+      url: portal.url
+    });
+  } catch (error) {
+    return json(500, {
+      ok: false,
+      error: error instanceof Error ? error.message : "Unable to create portal session",
+      code: "PORTAL_SESSION_FAILED"
+    });
+  }
 };

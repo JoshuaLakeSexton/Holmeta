@@ -621,13 +621,12 @@ h3 {
   color: var(--c-warn);
 }
 
-#pairingCodeInput {
+#licenseKeyInput {
   max-width: 280px;
 }
 
 #apiBaseUrl,
-#entitlementUrl,
-#pairingExchangeUrl,
+#validateLicenseUrl,
 #checkoutUrl,
 #dashboardUrl {
   max-width: 520px;

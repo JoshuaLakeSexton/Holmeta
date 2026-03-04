@@ -2,8 +2,6 @@ import type { Handler } from "@netlify/functions";
 import Stripe from "stripe";
 
 import { corsPreflight, json, methodNotAllowed, parseJsonBody } from "./_lib/http";
-import { prisma } from "./_lib/prisma";
-import { requireToken } from "./_lib/token";
 import { reportServerEvent } from "./_lib/monitor";
 import { requireEnvVars } from "./_lib/env";
 import {
@@ -14,10 +12,9 @@ import {
 } from "./_lib/plans";
 
 interface CheckoutBody {
+  planKey?: string | null;
   plan?: string | null;
-  interval?: string | null;
-  priceKey?: string | null;
-  priceId?: string | null;
+  installId?: string | null;
 }
 
 function trialDaysFromEnv(): number {
@@ -39,30 +36,10 @@ function normalizeBaseUrl(raw: string): string {
 }
 
 function resolveRequestedPlan(body: CheckoutBody): PlanKey {
-  const direct = normalizedPlan(body.plan || body.priceKey);
+  const direct = normalizedPlan(body.planKey || body.plan);
   if (direct) {
     return direct;
   }
-
-  const interval = String(body.interval || "").trim().toLowerCase();
-  if (interval === "yearly" || interval === "annual") {
-    return "yearly";
-  }
-  if (interval === "monthly") {
-    return "monthly_a";
-  }
-
-  const explicitPriceId = String(body.priceId || "").trim();
-  if (explicitPriceId) {
-    const monthlyA = resolvePriceIdForPlan("monthly_a");
-    const monthlyB = resolvePriceIdForPlan("monthly_b");
-    const yearly = resolvePriceIdForPlan("yearly");
-
-    if (explicitPriceId === monthlyB) return "monthly_b";
-    if (explicitPriceId === yearly) return "yearly";
-    if (explicitPriceId === monthlyA) return "monthly_a";
-  }
-
   return "monthly_a";
 }
 
@@ -84,7 +61,7 @@ export const handler: Handler = async (event) => {
     return methodNotAllowed(["POST", "OPTIONS"]);
   }
 
-  const missingEnv = requireEnvVars(["APP_JWT_SECRET", "DATABASE_URL", "STRIPE_SECRET_KEY", "PUBLIC_BASE_URL"]);
+  const missingEnv = requireEnvVars(["STRIPE_SECRET_KEY", "PUBLIC_BASE_URL"]);
   if (missingEnv) {
     await reportServerEvent("error", "checkout_server_env_missing");
     return missingEnv;
@@ -99,31 +76,12 @@ export const handler: Handler = async (event) => {
     });
   }
 
-  const claims = requireToken(event, ["dashboard"]);
-  if (!claims?.sub) {
-    await reportServerEvent("warn", "checkout_unauthorized");
-    return json(401, {
-      error: "Authenticate in dashboard first.",
-      code: "UNAUTHORIZED"
-    });
-  }
-
-  const user = await prisma.user.findUnique({ where: { id: claims.sub } });
-  if (!user) {
-    await reportServerEvent("warn", "checkout_user_not_found", { userId: claims.sub });
-    return json(401, {
-      error: "Account not found. Sign in again.",
-      code: "USER_NOT_FOUND"
-    });
-  }
-
   const body = parseJsonBody<CheckoutBody>(event);
   const planKey = resolveRequestedPlan(body);
   const resolvedPriceId = resolvePriceIdForPlan(planKey);
   if (!resolvedPriceId) {
     const requiredName = requiredPriceEnvForPlan(planKey);
     await reportServerEvent("error", "checkout_missing_price_mapping", {
-      userId: user.id,
       planKey,
       requiredName
     });
@@ -145,41 +103,14 @@ export const handler: Handler = async (event) => {
 
   const baseUrl = normalizeBaseUrl(publicBaseUrl);
   const trialDays = trialDaysFromEnv();
+  const installId = String(body.installId || "").trim();
 
   const stripe = new Stripe(stripeKey, {
     apiVersion: "2025-02-24.acacia"
   });
 
-  const existing = await prisma.stripeCustomer.findUnique({
-    where: { userId: user.id }
-  });
-
-  let customerId = existing?.customerId || "";
-  if (!customerId) {
-    const customer = await stripe.customers.create({
-      email: user.email,
-      metadata: {
-        product: "holmeta",
-        userId: user.id
-      }
-    });
-
-    customerId = customer.id;
-    await prisma.stripeCustomer.upsert({
-      where: { userId: user.id },
-      create: {
-        userId: user.id,
-        customerId
-      },
-      update: {
-        customerId
-      }
-    });
-  }
-
   const session = await stripe.checkout.sessions.create({
     mode: "subscription",
-    customer: customerId,
     payment_method_collection: "always",
     allow_promotion_codes: true,
     line_items: [
@@ -191,15 +122,13 @@ export const handler: Handler = async (event) => {
     subscription_data: {
       trial_period_days: trialDays,
       metadata: {
-        user_id: user.id,
-        email: user.email,
-        plan_key: planKey
+        plan_key: planKey,
+        install_id: installId
       }
     },
     metadata: {
-      user_id: user.id,
-      email: user.email,
-      plan_key: planKey
+      plan_key: planKey,
+      install_id: installId
     },
     success_url: `${baseUrl}/billing/success?session_id={CHECKOUT_SESSION_ID}`,
     cancel_url: `${baseUrl}/billing/cancel`
@@ -207,7 +136,6 @@ export const handler: Handler = async (event) => {
 
   if (!session.url) {
     await reportServerEvent("error", "checkout_session_missing_url", {
-      userId: user.id,
       planKey
     });
     return json(500, {
@@ -217,7 +145,6 @@ export const handler: Handler = async (event) => {
   }
 
   await reportServerEvent("info", "checkout_session_created", {
-    userId: user.id,
     planKey,
     trialDays
   });
@@ -225,6 +152,6 @@ export const handler: Handler = async (event) => {
   return json(200, {
     ok: true,
     url: session.url,
-    plan: planKey
+    planKey
   });
 };

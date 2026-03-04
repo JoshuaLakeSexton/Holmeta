@@ -1,67 +1,19 @@
 import type { Handler } from "@netlify/functions";
-import crypto from "node:crypto";
-import { corsPreflight, json, methodNotAllowed, parseJsonBody } from "./_lib/http";
-import { prisma } from "./_lib/prisma";
-import { normalizePairingCode } from "./_lib/codes";
-import { signExtensionToken } from "./_lib/token";
-import { requireEnvVars } from "./_lib/env";
-
-interface ExchangeBody {
-  code?: string;
-}
+import { corsPreflight, json, methodNotAllowed } from "./_lib/http";
 
 export const handler: Handler = async (event) => {
   const preflight = corsPreflight(event);
   if (preflight) {
     return preflight;
   }
+
   if (event.httpMethod !== "POST") {
-    return methodNotAllowed(["POST"]);
+    return methodNotAllowed(["POST", "OPTIONS"]);
   }
 
-  const missingEnv = requireEnvVars(["DATABASE_URL", "APP_JWT_SECRET"]);
-  if (missingEnv) {
-    return missingEnv;
-  }
-
-  const body = parseJsonBody<ExchangeBody>(event);
-  const code = normalizePairingCode(body.code || "");
-
-  if (!code) {
-    return json(400, { error: "Pairing code is required" });
-  }
-
-  const pairingCode = await prisma.pairingCode.findUnique({
-    where: { code }
-  });
-
-  if (!pairingCode || pairingCode.usedAt || pairingCode.expiresAt.getTime() <= Date.now()) {
-    return json(401, { error: "Invalid or expired pairing code" });
-  }
-
-  const tokenId = crypto.randomUUID();
-
-  await prisma.$transaction(async (tx) => {
-    await tx.pairingCode.update({
-      where: { id: pairingCode.id },
-      data: { usedAt: new Date() }
-    });
-
-    await tx.extensionToken.create({
-      data: {
-        tokenId,
-        userId: pairingCode.userId
-      }
-    });
-  });
-
-  const token = signExtensionToken(pairingCode.userId, tokenId);
-
-  return json(200, {
-    ok: true,
-    token,
-    tokenId,
-    userId: pairingCode.userId,
-    issuedAt: new Date().toISOString()
+  return json(410, {
+    ok: false,
+    error: "Pairing code flow is disabled for launch. Activate extension with a license key.",
+    code: "PAIRING_REMOVED"
   });
 };

@@ -1,41 +1,19 @@
 import type { Handler } from "@netlify/functions";
-import { json, methodNotAllowed, parseJsonBody } from "./_lib/http";
-import { requireToken } from "./_lib/token";
-import { entitlementForUser } from "./_lib/entitlement";
-import { requireEnvVars } from "./_lib/env";
+import { corsPreflight, json, methodNotAllowed } from "./_lib/http";
 
 export const handler: Handler = async (event) => {
+  const preflight = corsPreflight(event);
+  if (preflight) {
+    return preflight;
+  }
+
   if (event.httpMethod !== "GET" && event.httpMethod !== "POST") {
-    return methodNotAllowed(["GET", "POST"]);
+    return methodNotAllowed(["GET", "POST", "OPTIONS"]);
   }
 
-  const missingEnv = requireEnvVars(["DATABASE_URL", "APP_JWT_SECRET"]);
-  if (missingEnv) {
-    return missingEnv;
-  }
-
-  const claims = requireToken(event, ["dashboard", "extension"]);
-  if (!claims) {
-    return json(401, { error: "Unauthorized" });
-  }
-
-  const entitlement = await entitlementForUser(claims.sub);
-  if (!entitlement.active || !entitlement.features.settingsSync) {
-    return json(402, {
-      error: "Premium required for settings sync"
-    });
-  }
-
-  if (event.httpMethod === "GET") {
-    return json(200, {
-      syncedAt: null,
-      settings: {}
-    });
-  }
-
-  const payload = parseJsonBody<Record<string, unknown>>(event);
-  return json(200, {
-    syncedAt: new Date().toISOString(),
-    accepted: payload
+  return json(410, {
+    ok: false,
+    error: "Settings sync is not enabled for no-login launch.",
+    code: "SYNC_DISABLED"
   });
 };
