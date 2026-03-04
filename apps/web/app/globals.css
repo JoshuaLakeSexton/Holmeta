@@ -78,9 +78,87 @@ h1,
   animation: hm-neon-pulse 2.8s ease-in-out infinite;
 }
 
+main :where(
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6,
+  strong,
+  .hm-title,
+  .hm-subtitle,
+  .hm-brand,
+  .hm-btn,
+  .hm-chip,
+  .hm-proof-caption,
+  .hm-status-value,
+  .hm-feature-item strong
+) {
+  text-shadow:
+    0 0 1px rgba(243, 243, 244, 0.6),
+    0 0 6px rgba(255, 179, 0, 0.28),
+    0 0 14px rgba(255, 179, 0, 0.18);
+  animation: hm-neon-pulse 2.8s ease-in-out infinite;
+}
+
+main :where(
+  .hm-kicker,
+  .hm-label,
+  .hm-meta,
+  .meta-line,
+  .hm-plan-kicker,
+  .hm-warning-line,
+  .hm-list,
+  .hm-list li,
+  .hm-chip--warning,
+  .status-warning,
+  .hm-chip--locked,
+  .status-locked
+) {
+  animation: none;
+}
+
+.hm-btn--primary,
+.hm-btn.primary,
+.btn-primary,
+button.primary {
+  box-shadow:
+    0 0 0 1px rgba(196, 32, 33, 0.46),
+    0 0 8px rgba(196, 32, 33, 0.44),
+    0 0 18px rgba(196, 32, 33, 0.24);
+}
+
+.hm-btn--primary:hover,
+.hm-btn.primary:hover,
+.btn-primary:hover,
+button.primary:hover {
+  box-shadow:
+    0 0 0 1px rgba(196, 32, 33, 0.62),
+    0 0 12px rgba(196, 32, 33, 0.58),
+    0 0 24px rgba(196, 32, 33, 0.34);
+}
+
 @media (prefers-reduced-motion: reduce) {
   h1,
-  .hm-title {
+  .hm-title,
+  main :where(
+    h1,
+    h2,
+    h3,
+    h4,
+    h5,
+    h6,
+    strong,
+    .hm-title,
+    .hm-subtitle,
+    .hm-brand,
+    .hm-btn,
+    .hm-chip,
+    .hm-proof-caption,
+    .hm-status-value,
+    .hm-feature-item strong
+  ) {
     animation: none;
   }
 }
