@@ -37,6 +37,20 @@ a {
   gap: var(--s-4);
 }
 
+.hm-web-nav {
+  position: fixed;
+  top: var(--s-3);
+  right: var(--s-3);
+  z-index: 90;
+  display: flex;
+  gap: var(--s-2);
+  align-items: center;
+}
+
+.hm-web-nav-btn {
+  min-width: 92px;
+}
+
 .hm-panel {
   padding: var(--s-5) var(--s-5) calc(var(--s-5) + var(--s-1));
 }
@@ -160,6 +174,19 @@ button.primary:hover {
     .hm-feature-item strong
   ) {
     animation: none;
+  }
+}
+
+@media (max-width: 760px) {
+  .hm-web-nav {
+    right: var(--s-2);
+    top: var(--s-2);
+    gap: var(--s-1);
+  }
+
+  .hm-web-nav-btn {
+    min-width: 80px;
+    padding: 0 var(--s-2);
   }
 }
 
