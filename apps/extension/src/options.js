@@ -247,12 +247,24 @@
   function accountSettingsDraft() {
     const apiBaseInput = $("apiBaseUrl");
     const dashboardInput = $("dashboardUrl");
+    const checkoutSessionInput = $("checkoutSessionId");
 
     return {
       ...state.settings,
       apiBaseUrl: apiBaseInput ? String(apiBaseInput.value || "").trim() : state.settings.apiBaseUrl || "",
-      dashboardUrl: dashboardInput ? String(dashboardInput.value || "").trim() : state.settings.dashboardUrl || ""
+      dashboardUrl: dashboardInput ? String(dashboardInput.value || "").trim() : state.settings.dashboardUrl || "",
+      checkoutSessionId: checkoutSessionInput ? String(checkoutSessionInput.value || "").trim() : state.settings.checkoutSessionId || ""
     };
+  }
+
+  function currentCheckoutSessionId() {
+    const value = $("checkoutSessionId")?.value;
+    return String(value || state.settings.checkoutSessionId || "").trim();
+  }
+
+  function currentLicenseKeyValue() {
+    const value = $("licenseKeyInput")?.value;
+    return String(value || state.settings.licenseKey || "").trim().toUpperCase();
   }
 
   function updateDashboardHint() {
@@ -378,6 +390,41 @@
     return { ok: true };
   }
 
+  function commandCenterUrl() {
+    if (!chrome.runtime?.getURL) {
+      return "";
+    }
+    return chrome.runtime.getURL("popup.html");
+  }
+
+  function openCommandCenterHome() {
+    const url = commandCenterUrl();
+    if (!url) {
+      setAccountStatus("HOME ROUTE UNAVAILABLE", "error");
+      setStatus("STATUS: HOME ROUTE UNAVAILABLE");
+      return { ok: false, error: "HOME_ROUTE_UNAVAILABLE" };
+    }
+
+    window.location.assign(url);
+    return { ok: true };
+  }
+
+  function handleOptionsBack() {
+    if (window.history.length > 1) {
+      window.history.back();
+      return { ok: true, method: "history.back" };
+    }
+
+    const fallback = openCommandCenterHome();
+    if (fallback.ok) {
+      return { ok: true, method: "command-center-fallback" };
+    }
+
+    setAccountStatus("BACK ACTION UNAVAILABLE", "error");
+    setStatus("STATUS: BACK ACTION UNAVAILABLE");
+    return { ok: false, error: "BACK_UNAVAILABLE" };
+  }
+
   async function openSubscribeFromAccount() {
     const dashboardRaw = $("dashboardUrl").value.trim();
     const resolved = HC.resolveDashboardUrl(accountSettingsDraft(), dashboardRaw);
@@ -419,9 +466,137 @@
     return opened;
   }
 
+  async function openBillingSuccessFromAccount() {
+    const sessionId = currentCheckoutSessionId();
+    if (!sessionId) {
+      setAccountStatus("CHECKOUT SESSION ID REQUIRED", "error");
+      setStatus("STATUS: CHECKOUT SESSION ID REQUIRED");
+      return { ok: false, error: "SESSION_ID_REQUIRED" };
+    }
+
+    const resolved = HC.resolveBillingSuccessUrl(accountSettingsDraft(), sessionId);
+    if (!resolved.ok) {
+      setAccountStatus("BILLING SUCCESS URL INVALID", "error");
+      setStatus("STATUS: BILLING SUCCESS URL INVALID");
+      return { ok: false, error: resolved.error || "INVALID_BILLING_SUCCESS_URL" };
+    }
+
+    const opened = await HC.openExternal(resolved.url);
+    if (!opened.ok) {
+      setAccountStatus("OPEN LICENSE PAGE FAILED (" + (opened.message || opened.error || "UNKNOWN") + ")", "error");
+      setStatus("STATUS: OPEN LICENSE PAGE FAILED");
+      return opened;
+    }
+
+    setAccountStatus("LICENSE PAGE OPENED", "success");
+    setStatus("STATUS: LICENSE PAGE OPENED");
+    return opened;
+  }
+
+  async function openBillingPortalFromAccount() {
+    const sessionId = currentCheckoutSessionId();
+    const licenseKey = currentLicenseKeyValue();
+    if (!sessionId && !licenseKey) {
+      setAccountStatus("SESSION ID OR LICENSE KEY REQUIRED", "error");
+      setStatus("STATUS: SESSION ID OR LICENSE KEY REQUIRED");
+      return { ok: false, error: "PORTAL_LOOKUP_REQUIRED" };
+    }
+
+    const endpoint = HC.resolvePortalSessionUrl(accountSettingsDraft());
+    if (!endpoint.ok) {
+      setAccountStatus("API BASE URL INVALID", "error");
+      setStatus("STATUS: API BASE URL INVALID");
+      return { ok: false, error: endpoint.error || "INVALID_API_BASE" };
+    }
+
+    setAccountStatus("OPENING BILLING PORTAL");
+    setStatus("STATUS: OPENING BILLING PORTAL");
+
+    try {
+      const response = await fetch(endpoint.url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          session_id: sessionId || null,
+          license_key: licenseKey || null
+        })
+      });
+
+      let payload = {};
+      try {
+        payload = await response.json();
+      } catch (_) {
+        payload = {};
+      }
+
+      if (!response.ok || !payload?.url) {
+        const detail = payload?.error || payload?.code || `HTTP ${response.status}`;
+        setAccountStatus(`BILLING PORTAL FAILED: ${String(detail)}`, "error");
+        setStatus("STATUS: BILLING PORTAL FAILED");
+        return { ok: false, error: String(detail) };
+      }
+
+      const opened = await HC.openExternal(payload.url);
+      if (!opened.ok) {
+        setAccountStatus("BILLING PORTAL OPEN FAILED (" + (opened.message || opened.error || "UNKNOWN") + ")", "error");
+        setStatus("STATUS: BILLING PORTAL OPEN FAILED");
+        return opened;
+      }
+
+      setAccountStatus("BILLING PORTAL OPENED", "success");
+      setStatus("STATUS: BILLING PORTAL OPENED");
+      return opened;
+    } catch (error) {
+      setAccountStatus("BILLING PORTAL REQUEST FAILED", "error");
+      setStatus("STATUS: BILLING PORTAL REQUEST FAILED");
+      return {
+        ok: false,
+        error: error instanceof Error ? error.message : "PORTAL_REQUEST_FAILED"
+      };
+    }
+  }
+
+  async function openRefundHelpFromAccount() {
+    const resolved = HC.resolveBillingHelpUrl(accountSettingsDraft());
+    if (!resolved.ok) {
+      setAccountStatus("BILLING HELP URL INVALID", "error");
+      setStatus("STATUS: BILLING HELP URL INVALID");
+      return { ok: false, error: resolved.error || "INVALID_BILLING_HELP_URL" };
+    }
+
+    const opened = await HC.openExternal(resolved.url);
+    if (!opened.ok) {
+      setAccountStatus("REFUND HELP OPEN FAILED (" + (opened.message || opened.error || "UNKNOWN") + ")", "error");
+      setStatus("STATUS: REFUND HELP OPEN FAILED");
+      return opened;
+    }
+
+    setAccountStatus("REFUND HELP OPENED", "success");
+    setStatus("STATUS: REFUND HELP OPENED");
+    return opened;
+  }
+
   function setRangeValue(rangeId, valueId, percent) {
     $(rangeId).value = String(percent);
     $(valueId).textContent = `${Math.round(percent)}%`;
+  }
+
+  function setInputValueIfIdle(id, nextValue) {
+    const input = $(id);
+    if (!input) {
+      return;
+    }
+
+    if (document.activeElement === input) {
+      return;
+    }
+
+    const safeValue = String(nextValue || "");
+    if (input.value !== safeValue) {
+      input.value = safeValue;
+    }
   }
 
   function parseWindowsText(value) {
@@ -796,11 +971,12 @@
     $("meetingModeAuto").checked = Boolean(state.settings.cadence.global.meetingModeAuto);
     $("meetingDomains").value = (state.settings.cadence.global.meetingDomains || []).join(", ");
 
-    $("apiBaseUrl").value = state.settings.apiBaseUrl || "";
-    $("validateLicenseUrl").value = state.settings.validateLicenseUrl || "";
-    $("checkoutUrl").value = state.settings.checkoutUrl || "";
-    $("dashboardUrl").value = state.settings.dashboardUrl || "";
-    $("licenseKeyInput").value = state.settings.licenseKey || "";
+    setInputValueIfIdle("apiBaseUrl", state.settings.apiBaseUrl || "");
+    setInputValueIfIdle("validateLicenseUrl", state.settings.validateLicenseUrl || "");
+    setInputValueIfIdle("checkoutUrl", state.settings.checkoutUrl || "");
+    setInputValueIfIdle("dashboardUrl", state.settings.dashboardUrl || "");
+    setInputValueIfIdle("licenseKeyInput", state.settings.licenseKey || "");
+    setInputValueIfIdle("checkoutSessionId", state.settings.checkoutSessionId || "");
     $("devBypassPremium").checked = Boolean(state.settings.devBypassPremium);
 
     $("webcamPostureOptIn").checked = Boolean(state.settings.webcamPostureOptIn);
@@ -927,6 +1103,7 @@
       validateLicenseUrl: $("validateLicenseUrl").value.trim(),
       checkoutUrl: $("checkoutUrl").value.trim(),
       dashboardUrl: $("dashboardUrl").value.trim(),
+      checkoutSessionId: $("checkoutSessionId").value.trim(),
       licenseKey: $("licenseKeyInput").value.trim().toUpperCase(),
       devBypassPremium: Boolean($("devBypassPremium").checked)
     };
@@ -1422,6 +1599,16 @@
 
     bindPrimaryHoverSfx();
 
+    $("optionsBack").addEventListener("click", () => {
+      playUiSfx("uiClick");
+      handleOptionsBack();
+    });
+
+    $("optionsHome").addEventListener("click", () => {
+      playUiSfx("uiClick");
+      openCommandCenterHome();
+    });
+
     document.addEventListener("click", (event) => {
       const button = event.target?.closest?.("button");
       if (!button) {
@@ -1576,6 +1763,23 @@
       updateDashboardHint();
     });
 
+    $("checkoutSessionId").addEventListener("input", debounce(async () => {
+      await patchSettings({
+        checkoutSessionId: $("checkoutSessionId").value.trim()
+      });
+    }, 220));
+
+    $("licenseKeyInput").addEventListener("input", (event) => {
+      const target = event.target;
+      if (!(target instanceof HTMLInputElement)) {
+        return;
+      }
+      const normalized = String(target.value || "").trim().toUpperCase();
+      if (target.value !== normalized) {
+        target.value = normalized;
+      }
+    });
+
     $("applyCadenceProfile").addEventListener("click", async () => {
       await send({ type: "holmeta-apply-cadence-preset", presetId: $("cadenceProfile").value });
       await refreshState();
@@ -1716,6 +1920,19 @@
     $("testDashboardUrl").addEventListener("click", async () => {
       await openDashboardFromAccount();
     });
+
+    $("openBillingSuccess").addEventListener("click", async () => {
+      await openBillingSuccessFromAccount();
+    });
+
+    $("openBillingPortal").addEventListener("click", async () => {
+      await openBillingPortalFromAccount();
+    });
+
+    $("openRefundHelp").addEventListener("click", async () => {
+      await openRefundHelpFromAccount();
+    });
+
     $("subscribeNow").addEventListener("click", async () => {
       await openSubscribeFromAccount();
     });
