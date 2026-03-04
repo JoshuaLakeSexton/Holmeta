@@ -3,6 +3,7 @@ import type { Handler } from "@netlify/functions";
 import { corsPreflight, json, methodNotAllowed, parseJsonBody } from "./_lib/http";
 import { requireEnvVars } from "./_lib/env";
 import { prisma } from "./_lib/prisma";
+import { reportServerEvent } from "./_lib/monitor";
 import {
   buildLicenseEntitlement,
   hashLicenseKey,
@@ -69,44 +70,79 @@ export const handler: Handler = async (event) => {
   const licenseKey = licenseFromEvent(event, body);
 
   // Timing padding: always compute a hash once.
-  const hashCandidate = hashLicenseKey(licenseKey || "HOLMETA-INVALID-INVALID-INVALID-INVALID");
+  let hashCandidate = "";
+  try {
+    hashCandidate = hashLicenseKey(licenseKey || "HOLMETA-INVALID-INVALID-INVALID-INVALID");
+  } catch {
+    return json(500, {
+      ok: false,
+      error: "License validation unavailable",
+      code: "ENTITLEMENT_HASH_FAILED"
+    });
+  }
 
   if (!licenseKey || !licenseLooksValidShape(licenseKey)) {
     return json(200, invalidResponse());
   }
 
-  const license = await prisma.license.findUnique({
-    where: {
-      licenseHash: hashCandidate
-    },
-    select: {
-      status: true,
-      planKey: true,
-      trialEnd: true,
-      currentPeriodEnd: true
+  try {
+    const license = await prisma.license.findUnique({
+      where: {
+        licenseHash: hashCandidate
+      },
+      select: {
+        status: true,
+        planKey: true,
+        trialEnd: true,
+        currentPeriodEnd: true
+      }
+    });
+
+    if (!license) {
+      return json(200, invalidResponse());
     }
-  });
 
-  if (!license) {
-    return json(200, invalidResponse());
+    const normalized = buildLicenseEntitlement({
+      status: normalizeSubscriptionStatus(license.status),
+      planKey: license.planKey,
+      trialEnd: license.trialEnd,
+      currentPeriodEnd: license.currentPeriodEnd
+    });
+
+    return json(200, {
+      ok: true,
+      valid: normalized.valid,
+      entitled: normalized.entitled,
+      active: normalized.active,
+      status: normalized.status,
+      plan: normalized.plan,
+      renewsAt: normalized.renewsAt,
+      trialEndsAt: normalized.trialEndsAt,
+      features: normalized.features
+    });
+  } catch (error) {
+    const code = typeof error === "object" && error && "code" in error
+      ? String((error as { code?: string }).code || "")
+      : "";
+    const schemaMissing = code === "P2021";
+    await reportServerEvent("error", "entitlement_lookup_failed", {
+      schemaMissing,
+      code: code || null,
+      error: error instanceof Error ? error.message : "unknown"
+    });
+
+    if (schemaMissing) {
+      return json(503, {
+        ok: false,
+        error: "Entitlement store is not ready",
+        code: "ENTITLEMENT_SCHEMA_MISSING"
+      });
+    }
+
+    return json(500, {
+      ok: false,
+      error: "Entitlement lookup failed",
+      code: "ENTITLEMENT_LOOKUP_FAILED"
+    });
   }
-
-  const normalized = buildLicenseEntitlement({
-    status: normalizeSubscriptionStatus(license.status),
-    planKey: license.planKey,
-    trialEnd: license.trialEnd,
-    currentPeriodEnd: license.currentPeriodEnd
-  });
-
-  return json(200, {
-    ok: true,
-    valid: normalized.valid,
-    entitled: normalized.entitled,
-    active: normalized.active,
-    status: normalized.status,
-    plan: normalized.plan,
-    renewsAt: normalized.renewsAt,
-    trialEndsAt: normalized.trialEndsAt,
-    features: normalized.features
-  });
 };

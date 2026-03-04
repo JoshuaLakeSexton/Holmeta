@@ -109,49 +109,80 @@ export const handler: Handler = async (event) => {
     apiVersion: "2025-02-24.acacia"
   });
 
-  const session = await stripe.checkout.sessions.create({
-    mode: "subscription",
-    payment_method_collection: "always",
-    allow_promotion_codes: true,
-    line_items: [
-      {
-        price: resolvedPriceId,
-        quantity: 1
-      }
-    ],
-    subscription_data: {
-      trial_period_days: trialDays,
+  try {
+    const session = await stripe.checkout.sessions.create({
+      mode: "subscription",
+      payment_method_collection: "always",
+      allow_promotion_codes: true,
+      line_items: [
+        {
+          price: resolvedPriceId,
+          quantity: 1
+        }
+      ],
+      subscription_data: {
+        trial_period_days: trialDays,
+        metadata: {
+          plan_key: planKey,
+          install_id: installId
+        }
+      },
       metadata: {
         plan_key: planKey,
         install_id: installId
-      }
-    },
-    metadata: {
-      plan_key: planKey,
-      install_id: installId
-    },
-    success_url: `${baseUrl}/billing/success?session_id={CHECKOUT_SESSION_ID}`,
-    cancel_url: `${baseUrl}/billing/cancel`
-  });
+      },
+      success_url: `${baseUrl}/billing/success?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${baseUrl}/billing/cancel`
+    });
 
-  if (!session.url) {
-    await reportServerEvent("error", "checkout_session_missing_url", {
+    if (!session.url) {
+      await reportServerEvent("error", "checkout_session_missing_url", {
+        planKey
+      });
+      return json(500, {
+        error: "Stripe Checkout session returned no URL.",
+        code: "CHECKOUT_URL_MISSING"
+      });
+    }
+
+    await reportServerEvent("info", "checkout_session_created", {
+      planKey,
+      trialDays
+    });
+
+    return json(200, {
+      ok: true,
+      url: session.url,
       planKey
     });
-    return json(500, {
-      error: "Stripe Checkout session returned no URL.",
-      code: "CHECKOUT_URL_MISSING"
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Unable to create checkout session";
+    await reportServerEvent("error", "checkout_session_create_failed", {
+      planKey,
+      error: message
+    });
+
+    const lower = message.toLowerCase();
+    if (lower.includes("inactive")) {
+      return json(409, {
+        ok: false,
+        error: `Configured Stripe price is inactive for ${planKey}.`,
+        code: "PRICE_INACTIVE"
+      });
+    }
+
+    if (lower.includes("recurring price")) {
+      return json(409, {
+        ok: false,
+        error: `Configured Stripe price must be recurring for ${planKey}.`,
+        code: "PRICE_NOT_RECURRING"
+      });
+    }
+
+    return json(502, {
+      ok: false,
+      error: "Unable to create checkout session",
+      code: "CHECKOUT_CREATE_FAILED"
     });
   }
-
-  await reportServerEvent("info", "checkout_session_created", {
-    planKey,
-    trialDays
-  });
-
-  return json(200, {
-    ok: true,
-    url: session.url,
-    planKey
-  });
 };

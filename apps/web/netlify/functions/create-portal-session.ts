@@ -3,6 +3,7 @@ import Stripe from "stripe";
 
 import { corsPreflight, json, methodNotAllowed, parseJsonBody } from "./_lib/http";
 import { requireEnvVars } from "./_lib/env";
+import { reportServerEvent } from "./_lib/monitor";
 
 type Body = {
   session_id?: string | null;
@@ -78,9 +79,13 @@ export const handler: Handler = async (event) => {
       url: portal.url
     });
   } catch (error) {
+    await reportServerEvent("error", "portal_session_failed", {
+      error: error instanceof Error ? error.message : "unknown"
+    });
+
     return json(500, {
       ok: false,
-      error: error instanceof Error ? error.message : "Unable to create portal session",
+      error: "Unable to create portal session",
       code: "PORTAL_SESSION_FAILED"
     });
   }
