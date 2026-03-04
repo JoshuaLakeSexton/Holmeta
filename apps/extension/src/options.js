@@ -45,6 +45,7 @@
       updatedAt: 0
     }
   };
+  const UI_STATE_KEY = HS?.STATE_KEY || "holmeta_ui_state_v1";
 
   const $ = (id) => document.getElementById(id);
 
@@ -74,25 +75,66 @@
     });
   }
 
+  function normalizeLocalUiState(raw) {
+    const source = raw && typeof raw === "object" ? raw : {};
+    return {
+      version: 1,
+      notes: String(source.notes || ""),
+      licenseKeyDraft: String(source.licenseKeyDraft || "").trim().toUpperCase(),
+      checkoutSessionDraft: String(source.checkoutSessionDraft || "").trim(),
+      domainsDraft: String(source.domainsDraft || "").trim(),
+      updatedAt: Number(source.updatedAt || 0)
+    };
+  }
+
+  function readUiStateFallback() {
+    return new Promise((resolve) => {
+      chrome.storage.local.get([UI_STATE_KEY], (result) => {
+        if (chrome.runtime?.lastError) {
+          resolve(normalizeLocalUiState(state.uiState));
+          return;
+        }
+        resolve(normalizeLocalUiState(result?.[UI_STATE_KEY]));
+      });
+    });
+  }
+
+  function patchUiStateFallback(patch) {
+    return new Promise(async (resolve) => {
+      const current = await readUiStateFallback();
+      const next = normalizeLocalUiState({
+        ...current,
+        ...(patch || {}),
+        updatedAt: Date.now()
+      });
+      chrome.storage.local.set({ [UI_STATE_KEY]: next }, () => {
+        resolve({
+          ok: !chrome.runtime?.lastError,
+          state: next
+        });
+      });
+    });
+  }
+
   async function loadUiState() {
-    if (!HS?.readUiState) {
-      return;
-    }
     try {
-      state.uiState = await HS.readUiState();
+      if (HS?.readUiState) {
+        state.uiState = await HS.readUiState();
+      } else {
+        state.uiState = await readUiStateFallback();
+      }
     } catch (_) {
-      state.uiState = HS.DEFAULT_STATE ? { ...HS.DEFAULT_STATE } : state.uiState;
+      state.uiState = normalizeLocalUiState(state.uiState);
     }
   }
 
   async function persistUiStatePatch(patch) {
-    if (!HS?.patchUiState) {
-      return;
-    }
     try {
-      const result = await HS.patchUiState(patch || {});
+      const result = HS?.patchUiState
+        ? await HS.patchUiState(patch || {})
+        : await patchUiStateFallback(patch || {});
       if (result?.state) {
-        state.uiState = result.state;
+        state.uiState = normalizeLocalUiState(result.state);
       }
     } catch (_) {
       // Keep options responsive if local draft write fails.
