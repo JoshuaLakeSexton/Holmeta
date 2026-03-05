@@ -7,6 +7,7 @@
     notes: "",
     search: "",
     tagFilter: "",
+    groupFilter: "",
     hasReminderOnly: false,
     saveTags: "",
     groupName: "",
@@ -16,6 +17,8 @@
     customReminderAt: "",
     exportSource: "inbox",
     lightIntensity: 78,
+    snippetTitle: "",
+    snippetBody: "",
     updatedAt: 0
   };
 
@@ -26,6 +29,7 @@
       notes: String(source.notes || ""),
       search: String(source.search || ""),
       tagFilter: String(source.tagFilter || ""),
+      groupFilter: String(source.groupFilter || ""),
       hasReminderOnly: Boolean(source.hasReminderOnly),
       saveTags: String(source.saveTags || ""),
       groupName: String(source.groupName || ""),
@@ -36,6 +40,8 @@
       customReminderAt: String(source.customReminderAt || ""),
       exportSource: String(source.exportSource || "inbox") || "inbox",
       lightIntensity: Math.max(0, Math.min(100, Math.round(Number(source.lightIntensity || 78)))),
+      snippetTitle: String(source.snippetTitle || ""),
+      snippetBody: String(source.snippetBody || ""),
       updatedAt: Number(source.updatedAt || 0)
     };
   }

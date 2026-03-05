@@ -37,11 +37,13 @@ async function main() {
     "saveCurrentTab",
     "saveNoteInput",
     "searchInput",
-    "inboxList",
+    "workboardList",
     "licenseKeyInput",
     "activateLicense",
     "saveSession",
-    "copyLinkPack"
+    "copyLinkPack",
+    "workflowList",
+    "snippetList"
   ]);
 
   assertCriticalIds("options", optionsHtmlIds, [

@@ -8,6 +8,7 @@
   const DEFAULT_DRAFTS = {
     search: "",
     tagFilter: "",
+    groupFilter: "",
     hasReminderOnly: false,
     saveNote: "",
     saveTags: "",
@@ -16,7 +17,9 @@
     licenseKey: "",
     customReminderAt: "",
     exportSource: "inbox",
-    lightIntensity: 78
+    lightIntensity: 78,
+    snippetTitle: "",
+    snippetBody: ""
   };
 
   const state = {
@@ -27,6 +30,8 @@
       reminders: [],
       sessions: [],
       resumeQueue: [],
+      snippets: [],
+      dailyWorkflow: [],
       premium: {
         status: "invalid",
         statusText: "",
@@ -97,6 +102,7 @@
     return {
       search: String(source.search || ""),
       tagFilter: String(source.tagFilter || ""),
+      groupFilter: String(source.groupFilter || ""),
       hasReminderOnly: Boolean(source.hasReminderOnly),
       saveNote: String(source.saveNote || ""),
       saveTags: String(source.saveTags || ""),
@@ -106,7 +112,9 @@
       licenseKey: String(source.licenseKey || ""),
       customReminderAt: String(source.customReminderAt || ""),
       exportSource: String(source.exportSource || "inbox") || "inbox",
-      lightIntensity: Math.max(0, Math.min(100, Math.round(Number(source.lightIntensity || 78))))
+      lightIntensity: Math.max(0, Math.min(100, Math.round(Number(source.lightIntensity || 78)))),
+      snippetTitle: String(source.snippetTitle || ""),
+      snippetBody: String(source.snippetBody || "")
     };
   }
 
@@ -115,6 +123,7 @@
       return HS.readUiState().then((uiState) => normalizeDrafts({
         search: uiState.search || "",
         tagFilter: uiState.tagFilter || "",
+        groupFilter: uiState.groupFilter || "",
         hasReminderOnly: uiState.hasReminderOnly || false,
         saveNote: uiState.notes || "",
         saveTags: uiState.saveTags || "",
@@ -123,7 +132,9 @@
         licenseKey: uiState.licenseKeyDraft || "",
         customReminderAt: uiState.customReminderAt || "",
         exportSource: uiState.exportSource || "inbox",
-        lightIntensity: uiState.lightIntensity || 78
+        lightIntensity: uiState.lightIntensity || 78,
+        snippetTitle: uiState.snippetTitle || "",
+        snippetBody: uiState.snippetBody || ""
       }));
     }
     return new Promise((resolve) => {
@@ -143,6 +154,7 @@
       return HS.patchUiState({
         search: normalized.search,
         tagFilter: normalized.tagFilter,
+        groupFilter: normalized.groupFilter,
         hasReminderOnly: normalized.hasReminderOnly,
         notes: normalized.saveNote,
         saveTags: normalized.saveTags,
@@ -151,7 +163,9 @@
         licenseKeyDraft: normalized.licenseKey,
         customReminderAt: normalized.customReminderAt,
         exportSource: normalized.exportSource,
-        lightIntensity: normalized.lightIntensity
+        lightIntensity: normalized.lightIntensity,
+        snippetTitle: normalized.snippetTitle,
+        snippetBody: normalized.snippetBody
       }).then((result) => ({ ok: Boolean(result?.ok) }));
     }
     return new Promise((resolve) => {
@@ -255,6 +269,7 @@
     const items = Array.isArray(state.core?.items) ? [...state.core.items] : [];
     const search = String(state.drafts.search || "").trim().toLowerCase();
     const tagFilter = String(state.drafts.tagFilter || "").trim();
+    const groupFilter = String(state.drafts.groupFilter || "").trim();
     const onlyReminder = Boolean(state.drafts.hasReminderOnly);
     const reminders = reminderByItemId();
 
@@ -278,6 +293,13 @@
       if (tagFilter) {
         const tags = Array.isArray(item.tags) ? item.tags : [];
         if (!tags.includes(tagFilter)) {
+          return false;
+        }
+      }
+
+      if (groupFilter) {
+        const itemGroup = String(item.groupName || "").trim();
+        if (itemGroup !== groupFilter) {
           return false;
         }
       }
@@ -338,6 +360,39 @@
     }
   }
 
+  function renderGroupFilterOptions() {
+    const select = $("groupFilter");
+    if (!(select instanceof HTMLSelectElement)) {
+      return;
+    }
+
+    const current = String(state.drafts.groupFilter || "");
+    const allGroups = [...new Set((state.core.items || [])
+      .map((item) => String(item?.groupName || "").trim())
+      .filter(Boolean))]
+      .sort((a, b) => a.localeCompare(b));
+
+    select.innerHTML = "";
+    const anyOption = document.createElement("option");
+    anyOption.value = "";
+    anyOption.textContent = "ALL GROUPS";
+    select.appendChild(anyOption);
+
+    allGroups.forEach((groupName) => {
+      const option = document.createElement("option");
+      option.value = groupName;
+      option.textContent = groupName;
+      select.appendChild(option);
+    });
+
+    if (current && allGroups.includes(current)) {
+      select.value = current;
+    } else {
+      select.value = "";
+      state.drafts.groupFilter = "";
+    }
+  }
+
   function renderExportSources() {
     const select = $("exportSource");
     if (!(select instanceof HTMLSelectElement)) {
@@ -352,7 +407,7 @@
 
     const inboxOpt = document.createElement("option");
     inboxOpt.value = "inbox";
-    inboxOpt.textContent = "CURRENT DASHBOARD";
+    inboxOpt.textContent = "CURRENT WORKBOARD";
     select.appendChild(inboxOpt);
 
     tags.forEach((tag) => {
@@ -368,6 +423,14 @@
       opt.textContent = `SESSION: ${session.name}`;
       select.appendChild(opt);
     });
+
+    const workflow = Array.isArray(state.core.dailyWorkflow) ? state.core.dailyWorkflow : [];
+    if (workflow.length) {
+      const workflowOpt = document.createElement("option");
+      workflowOpt.value = "workflow:daily";
+      workflowOpt.textContent = "DAILY WORKFLOW";
+      select.appendChild(workflowOpt);
+    }
 
     const validValues = new Set([...select.options].map((option) => option.value));
     if (validValues.has(selected)) {
@@ -396,7 +459,7 @@
           <span class="item-title">${escapeHtml(item.title || "Untitled")}</span>
           <span class="item-meta">${escapeHtml(item.domain || "")}</span>
         </div>
-        <div class="item-actions">
+        <div class="item-inline-actions">
           <button type="button" class="secondary" data-resume-action="open" data-item-id="${item.id}">OPEN</button>
           <button type="button" class="secondary" data-resume-action="remove" data-item-id="${item.id}">REMOVE</button>
         </div>
@@ -422,7 +485,7 @@
           <span class="item-title">${escapeHtml(session.name)}</span>
           <span class="item-meta">${escapeHtml(formatWhen(session.createdAt))} · ${session.tabs.length} tabs</span>
         </div>
-        <div class="item-actions">
+        <div class="item-inline-actions">
           <button type="button" class="secondary" data-session-action="open" data-session-id="${session.id}" data-premium>OPEN</button>
           <button type="button" class="secondary" data-session-action="remove" data-session-id="${session.id}" data-premium>REMOVE</button>
         </div>
@@ -430,8 +493,60 @@
     `).join("");
   }
 
-  function renderInboxList() {
-    const list = $("inboxList");
+  function renderWorkflowList() {
+    const list = $("workflowList");
+    if (!(list instanceof HTMLUListElement)) {
+      return;
+    }
+
+    const entries = Array.isArray(state.core.dailyWorkflow) ? state.core.dailyWorkflow : [];
+    if (!entries.length) {
+      list.innerHTML = '<li class="small-note">NO DAILY WORKFLOW TABS.</li>';
+      return;
+    }
+
+    list.innerHTML = entries.map((entry) => `
+      <li class="item-card">
+        <div class="item-main">
+          <span class="item-title">${escapeHtml(entry.title || entry.url || "Untitled")}</span>
+          <span class="item-meta">${escapeHtml(entry.domain || "")}</span>
+        </div>
+        <div class="item-inline-actions">
+          <button type="button" class="secondary" data-workflow-action="open" data-workflow-url="${encodeURIComponent(String(entry.url || ""))}">OPEN</button>
+          <button type="button" class="secondary" data-workflow-action="remove" data-workflow-id="${entry.id}">REMOVE</button>
+        </div>
+      </li>
+    `).join("");
+  }
+
+  function renderSnippetList() {
+    const list = $("snippetList");
+    if (!(list instanceof HTMLUListElement)) {
+      return;
+    }
+
+    const snippets = Array.isArray(state.core.snippets) ? state.core.snippets : [];
+    if (!snippets.length) {
+      list.innerHTML = '<li class="small-note">NO SAVED SNIPPETS.</li>';
+      return;
+    }
+
+    list.innerHTML = snippets.map((snippet) => `
+      <li class="item-card">
+        <div class="item-main">
+          <span class="item-title">${escapeHtml(snippet.title || "Snippet")}</span>
+          <span class="item-meta">${escapeHtml((snippet.tags || []).join(", ") || "UNTAGGED")}</span>
+        </div>
+        <div class="item-inline-actions">
+          <button type="button" class="secondary" data-snippet-action="copy" data-snippet-id="${snippet.id}">COPY</button>
+          <button type="button" class="secondary" data-snippet-action="delete" data-snippet-id="${snippet.id}">DELETE</button>
+        </div>
+      </li>
+    `).join("");
+  }
+
+  function renderWorkboardList() {
+    const list = $("workboardList");
     if (!(list instanceof HTMLUListElement)) {
       return;
     }
@@ -452,6 +567,14 @@
       const reminderPill = reminder
         ? `<span class="pill warn">REMINDER ${reminder.type === "time" ? formatWhen(reminder.when) : "NEXT VISIT"}</span>`
         : "";
+      const contextType = String(item.contextType || "").trim();
+      const contextKey = String(item.contextKey || "").trim();
+      const contextPill = contextType
+        ? `<span class="pill">${escapeHtml(contextType.toUpperCase())}${contextKey ? ` · ${escapeHtml(contextKey)}` : ""}</span>`
+        : "";
+      const groupPill = item.groupName
+        ? `<span class="pill">GROUP · ${escapeHtml(item.groupName)}</span>`
+        : "";
 
       return `
         <li class="item-card" data-item-id="${item.id}">
@@ -464,6 +587,7 @@
               <summary>⋯</summary>
               <div class="item-actions">
                 <button type="button" class="secondary" data-item-action="edit" data-item-id="${item.id}">EDIT NOTE</button>
+                <button type="button" class="secondary" data-item-action="snippet" data-item-id="${item.id}" data-premium>SAVE SNIPPET</button>
                 <button type="button" class="secondary" data-item-action="remind" data-item-id="${item.id}" data-premium>REMIND</button>
                 <button type="button" class="secondary" data-item-action="resume" data-item-id="${item.id}" data-premium>${resumeLabel}</button>
                 <button type="button" class="secondary" data-item-action="remove" data-item-id="${item.id}">REMOVE</button>
@@ -472,6 +596,8 @@
           </div>
           <div class="tag-list">
             ${item.pinned ? '<span class="pill">PINNED</span>' : ""}
+            ${groupPill}
+            ${contextPill}
             ${reminderPill}
             ${tags.map((tag) => `<span class="tag">${escapeHtml(tag)}</span>`).join("")}
           </div>
@@ -570,16 +696,24 @@
     setControlValueIfIdle("saveTagsInput", state.drafts.saveTags || "");
     setControlValueIfIdle("customReminderAt", state.drafts.customReminderAt || "");
     setControlValueIfIdle("lightIntensity", state.drafts.lightIntensity || 78);
+    setControlValueIfIdle("snippetTitleInput", state.drafts.snippetTitle || "");
+    setControlValueIfIdle("snippetBodyInput", state.drafts.snippetBody || "");
 
     const hasReminderOnly = $("hasReminderOnly");
     if (hasReminderOnly instanceof HTMLInputElement) {
       hasReminderOnly.checked = Boolean(state.drafts.hasReminderOnly);
+    }
+
+    const groupFilter = $("groupFilter");
+    if (groupFilter instanceof HTMLSelectElement) {
+      groupFilter.value = String(state.drafts.groupFilter || "");
     }
   }
 
   function render() {
     renderPremiumState();
     renderTagFilterOptions();
+    renderGroupFilterOptions();
     renderExportSources();
     renderControls();
     renderLightControls();
@@ -587,8 +721,10 @@
     renderFocusBlockerControls();
     renderDrawers();
     renderResumeList();
-    renderInboxList();
+    renderWorkboardList();
+    renderWorkflowList();
     renderSessionList();
+    renderSnippetList();
     renderEditors();
     renderUndoButton();
   }
@@ -712,6 +848,8 @@
       if (session) {
         links = session.tabs.map((tab) => normalizeLink(tab));
       }
+    } else if (source === "workflow:daily") {
+      links = (state.core.dailyWorkflow || []).map((entry) => normalizeLink(entry));
     } else if (source.startsWith("tag:")) {
       const tag = source.slice("tag:".length);
       links = (state.core.items || [])
@@ -1062,7 +1200,7 @@
       }
       state.drafts.search = String(target.value || "");
       queueDraftPersist();
-      renderInboxList();
+      renderWorkboardList();
     });
 
     $("tagFilter")?.addEventListener("change", (event) => {
@@ -1072,7 +1210,17 @@
       }
       state.drafts.tagFilter = String(target.value || "");
       queueDraftPersist();
-      renderInboxList();
+      renderWorkboardList();
+    });
+
+    $("groupFilter")?.addEventListener("change", (event) => {
+      const target = event.target;
+      if (!(target instanceof HTMLSelectElement)) {
+        return;
+      }
+      state.drafts.groupFilter = String(target.value || "");
+      queueDraftPersist();
+      renderWorkboardList();
     });
 
     $("hasReminderOnly")?.addEventListener("change", (event) => {
@@ -1082,7 +1230,7 @@
       }
       state.drafts.hasReminderOnly = Boolean(target.checked);
       queueDraftPersist();
-      renderInboxList();
+    renderWorkboardList();
     });
 
     $("saveNoteInput")?.addEventListener("input", (event) => {
@@ -1100,6 +1248,24 @@
         return;
       }
       state.drafts.groupName = String(target.value || "");
+      queueDraftPersist();
+    });
+
+    $("snippetTitleInput")?.addEventListener("input", (event) => {
+      const target = event.target;
+      if (!(target instanceof HTMLInputElement)) {
+        return;
+      }
+      state.drafts.snippetTitle = String(target.value || "");
+      queueDraftPersist();
+    });
+
+    $("snippetBodyInput")?.addEventListener("input", (event) => {
+      const target = event.target;
+      if (!(target instanceof HTMLTextAreaElement)) {
+        return;
+      }
+      state.drafts.snippetBody = String(target.value || "");
       queueDraftPersist();
     });
 
@@ -1407,7 +1573,8 @@
       }
       const payload = {
         note: String(state.drafts.saveNote || ""),
-        tags: parsedTags
+        tags: parsedTags,
+        groupName
       };
       const response = await send({ type: "holmeta-core-save-current-tab", payload });
       if (!response?.ok) {
@@ -1419,6 +1586,7 @@
       state.undo.untilTs = Date.now() + SAVE_UNDO_WINDOW_MS;
       state.drafts.saveNote = "";
       state.drafts.saveTags = "";
+      state.drafts.groupName = groupName;
       queueDraftPersist();
       setSaveFeedback("SAVED ✓");
       await refreshState();
@@ -1493,6 +1661,57 @@
       state.drafts.groupName = name;
       queueDraftPersist();
       setSaveFeedback("STATUS: TAB GROUP SAVED");
+      await refreshState();
+    });
+
+    $("saveSnippet")?.addEventListener("click", async () => {
+      if (!isPremiumActive()) {
+        setSaveFeedback("STATUS: PREMIUM REQUIRED FOR SNIPPETS", true);
+        return;
+      }
+      const payload = {
+        title: String(state.drafts.snippetTitle || "").trim(),
+        body: String(state.drafts.snippetBody || ""),
+        tags: parseTagCsv(state.drafts.saveTags || "")
+      };
+      const response = await send({ type: "holmeta-core-save-snippet", payload });
+      if (!response?.ok) {
+        setSaveFeedback("STATUS: SNIPPET SAVE FAILED", true);
+        return;
+      }
+      state.drafts.snippetTitle = "";
+      state.drafts.snippetBody = "";
+      queueDraftPersist();
+      setSaveFeedback("STATUS: SNIPPET SAVED");
+      await refreshState();
+    });
+
+    $("workflowAddCurrent")?.addEventListener("click", async () => {
+      const response = await send({ type: "holmeta-core-workflow-action", payload: { action: "add_current" } });
+      if (!response?.ok) {
+        setSaveFeedback("STATUS: DAILY WORKFLOW ADD FAILED", true);
+        return;
+      }
+      setSaveFeedback("STATUS: ADDED TO DAILY WORKFLOW");
+      await refreshState();
+    });
+
+    $("workflowOpenAll")?.addEventListener("click", async () => {
+      const response = await send({ type: "holmeta-core-workflow-action", payload: { action: "open_all" } });
+      if (!response?.ok) {
+        setSaveFeedback("STATUS: DAILY WORKFLOW EMPTY", true);
+        return;
+      }
+      setSaveFeedback(`STATUS: OPENED ${Number(response.opened || 0)} WORKFLOW TAB(S)`);
+    });
+
+    $("workflowClear")?.addEventListener("click", async () => {
+      const response = await send({ type: "holmeta-core-workflow-action", payload: { action: "clear" } });
+      if (!response?.ok) {
+        setSaveFeedback("STATUS: WORKFLOW CLEAR FAILED", true);
+        return;
+      }
+      setSaveFeedback("STATUS: DAILY WORKFLOW CLEARED");
       await refreshState();
     });
 
@@ -1600,7 +1819,7 @@
       await copyLinkPack();
     });
 
-    $("inboxList")?.addEventListener("click", async (event) => {
+    $("workboardList")?.addEventListener("click", async (event) => {
       const target = event.target;
       const button = target instanceof HTMLElement ? target.closest("button[data-item-action]") : null;
       if (!button) {
@@ -1631,6 +1850,29 @@
       if (action === "remind") {
         state.selectedReminderItemId = itemId;
         renderEditors();
+        return;
+      }
+
+      if (action === "snippet") {
+        const item = itemById(itemId);
+        if (!item) {
+          return;
+        }
+        const response = await send({
+          type: "holmeta-core-save-snippet",
+          payload: {
+            sourceItemId: item.id,
+            title: item.title,
+            body: item.note || item.url,
+            tags: Array.isArray(item.tags) ? item.tags : []
+          }
+        });
+        if (!response?.ok) {
+          setSaveFeedback("STATUS: SNIPPET SAVE FAILED", true);
+          return;
+        }
+        setSaveFeedback("STATUS: SNIPPET SAVED FROM ITEM");
+        await refreshState();
         return;
       }
 
@@ -1707,6 +1949,63 @@
           return;
         }
         await send({ type: "holmeta-core-delete-session", sessionId });
+        await refreshState();
+      }
+    });
+
+    $("workflowList")?.addEventListener("click", async (event) => {
+      const target = event.target;
+      const button = target instanceof HTMLElement ? target.closest("button[data-workflow-action]") : null;
+      if (!button) {
+        return;
+      }
+      const action = button.getAttribute("data-workflow-action") || "";
+      if (action === "open") {
+        const encoded = button.getAttribute("data-workflow-url") || "";
+        const url = encoded ? decodeURIComponent(encoded) : "";
+        if (url) {
+          await safeOpen(url);
+        }
+        return;
+      }
+      if (action === "remove") {
+        const workflowId = button.getAttribute("data-workflow-id") || "";
+        if (!workflowId) {
+          return;
+        }
+        await send({ type: "holmeta-core-workflow-action", payload: { action: "remove", workflowId } });
+        await refreshState();
+      }
+    });
+
+    $("snippetList")?.addEventListener("click", async (event) => {
+      const target = event.target;
+      const button = target instanceof HTMLElement ? target.closest("button[data-snippet-action]") : null;
+      if (!button) {
+        return;
+      }
+      const snippetId = button.getAttribute("data-snippet-id") || "";
+      if (!snippetId) {
+        return;
+      }
+      const action = button.getAttribute("data-snippet-action") || "";
+      const snippet = (state.core.snippets || []).find((entry) => entry.id === snippetId);
+      if (!snippet) {
+        return;
+      }
+
+      if (action === "copy") {
+        try {
+          await navigator.clipboard.writeText(String(snippet.body || ""));
+          setSaveFeedback("STATUS: SNIPPET COPIED");
+        } catch (_) {
+          setSaveFeedback("STATUS: SNIPPET COPY FAILED", true);
+        }
+        return;
+      }
+
+      if (action === "delete") {
+        await send({ type: "holmeta-core-delete-snippet", snippetId });
         await refreshState();
       }
     });

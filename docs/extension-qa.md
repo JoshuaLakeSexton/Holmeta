@@ -15,12 +15,13 @@
 - Click `UNDO SAVE` in 5 seconds and confirm item is removed.
 - Trigger shortcut (`save_current_tab`) and verify save works.
 
-## 3) Inbox + Minimal Actions
+## 3) Workboard + Minimal Actions
 - Save multiple tabs.
 - Search by title/domain/note and verify filtering.
-- Use tag filter and `HAS REMINDER`.
+- Use tag filter, group filter, and `HAS REMINDER`.
 - Open item action menu (`⋯`) and verify:
   - `EDIT NOTE`
+  - `SAVE SNIPPET` (premium)
   - `REMIND` (premium)
   - `ADD/REMOVE RESUME` (premium)
   - `REMOVE`
@@ -40,7 +41,15 @@
 - Open `SETTINGS` drawer.
 - `SAVE SESSION` captures current window tabs.
 - `OPEN` on a session restores tabs.
-- `COPY LINK PACK` copies markdown links for selected source.
+- `COPY LINK PACK` copies markdown links for selected source (workboard/tag/session/daily workflow).
+
+## 6b) Daily Workflow + Snippets
+- Click `ADD TO DAILY WORKFLOW` from quick save panel.
+- Verify entry appears in `DAILY WORKFLOW`.
+- `OPEN ALL` opens each saved workflow tab.
+- `CLEAR` removes all workflow tabs.
+- Save snippet via `SAVE SNIPPET` in settings drawer or from item menu.
+- Verify snippet can be copied and deleted.
 
 ## 7) Light Controls (Premium)
 - Open `LIGHT` drawer.

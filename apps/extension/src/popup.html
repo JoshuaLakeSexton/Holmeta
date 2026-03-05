@@ -29,7 +29,10 @@
           <input id="groupNameInput" class="input" type="text" placeholder="e.g. Client ABC, Sprint 14" />
           <label for="saveTagsInput" class="meta-label">TAGS (PREMIUM)</label>
           <input id="saveTagsInput" class="input" type="text" placeholder="client, project, topic" />
-          <button id="saveWindowGroup" class="secondary" data-premium>SAVE WINDOW AS GROUP</button>
+          <div class="button-grid two">
+            <button id="saveWindowGroup" class="secondary" data-premium>SAVE WINDOW AS GROUP</button>
+            <button id="workflowAddCurrent" class="secondary" data-premium>ADD TO DAILY WORKFLOW</button>
+          </div>
         </div>
         <div id="saveFeedback" class="small-note">STATUS: READY</div>
         <button id="undoSave" class="secondary" hidden>UNDO SAVE</button>
@@ -49,7 +52,7 @@
 
       <section class="panel dashboard-panel">
         <div class="inbox-header">
-          <p class="kicker">SAVED DASHBOARD</p>
+          <p class="kicker">WORKBOARD</p>
           <button id="openTools" class="secondary">COMMANDS</button>
         </div>
 
@@ -57,6 +60,9 @@
           <input id="searchInput" class="input" type="search" placeholder="Search title, url, note, tags" />
           <select id="tagFilter" class="select">
             <option value="">ALL TAGS</option>
+          </select>
+          <select id="groupFilter" class="select">
+            <option value="">ALL GROUPS</option>
           </select>
           <label class="inline-check">
             <input id="hasReminderOnly" type="checkbox" />
@@ -72,8 +78,16 @@
           </div>
         </div>
         <ul id="resumeList" class="mini-list"></ul>
-
-        <ul id="inboxList" class="inbox-list"></ul>
+        <ul id="workboardList" class="inbox-list"></ul>
+        <div class="hm-hr"></div>
+        <div class="inbox-header">
+          <p class="kicker">DAILY WORKFLOW</p>
+          <div class="resume-actions">
+            <button id="workflowOpenAll" class="secondary" data-premium>OPEN ALL</button>
+            <button id="workflowClear" class="secondary" data-premium>CLEAR</button>
+          </div>
+        </div>
+        <ul id="workflowList" class="mini-list"></ul>
       </section>
 
       <section class="panel tool-dock">
@@ -281,8 +295,16 @@
           <button id="copyLinkPack" class="secondary" data-premium>COPY LINK PACK</button>
         </div>
         <select id="exportSource" class="select" data-premium>
-          <option value="inbox">CURRENT DASHBOARD</option>
+          <option value="inbox">CURRENT WORKBOARD</option>
         </select>
+        <div class="hm-hr"></div>
+        <p class="kicker">SNIPPETS</p>
+        <label for="snippetTitleInput" class="meta-label">TITLE</label>
+        <input id="snippetTitleInput" class="input" type="text" placeholder="Snippet title" />
+        <label for="snippetBodyInput" class="meta-label">SNIPPET BODY</label>
+        <textarea id="snippetBodyInput" class="input" rows="3" placeholder="Paste reusable command, template, or context note"></textarea>
+        <button id="saveSnippet" class="secondary" data-premium>SAVE SNIPPET</button>
+        <ul id="snippetList" class="mini-list"></ul>
         <ul id="sessionList" class="mini-list"></ul>
       </section>
     </main>

@@ -28,6 +28,8 @@ const CORE_SCHEMA_VERSION = 1;
 const CORE_MAX_ITEMS = 1200;
 const CORE_MAX_SESSIONS = 120;
 const CORE_RESUME_LIMIT = 7;
+const CORE_MAX_SNIPPETS = 200;
+const CORE_MAX_WORKFLOW_ITEMS = 32;
 const ENTITLEMENT_GRACE_MS = 72 * 60 * 60 * 1000;
 const NOTIFICATION_ICON = "src/assets/icons/icon48.png";
 const BLOCKER_RULE_ID_BASE = 47000;
@@ -202,6 +204,72 @@ function suggestedTagsForDomain(domain) {
   }
   const matched = DOMAIN_TAG_HINTS.find((hint) => hint.test.test(safe));
   return matched ? [...matched.tags] : [];
+}
+
+function inferContextFromUrl(url, title) {
+  const safeUrl = normalizeHttpUrl(url);
+  const safeTitle = String(title || "").trim();
+  const domain = normalizeDomain(safeUrl);
+  const context = {
+    type: "general",
+    key: domain,
+    tags: []
+  };
+
+  if (!safeUrl) {
+    return context;
+  }
+
+  let parsed = null;
+  try {
+    parsed = new URL(safeUrl);
+  } catch (_) {
+    return context;
+  }
+
+  const pathParts = parsed.pathname.split("/").filter(Boolean);
+  const host = domain;
+
+  if (host === "github.com" || host === "gitlab.com") {
+    if (pathParts.length >= 2) {
+      const repoKey = `${pathParts[0]}/${pathParts[1]}`;
+      context.type = "repo";
+      context.key = repoKey;
+      context.tags.push(`repo:${repoKey}`, "Dev");
+      if (pathParts[2] === "issues" || pathParts[2] === "pull" || pathParts[2] === "pulls") {
+        context.type = "ticket";
+        context.tags.push("Debug", "Ticket");
+      }
+    } else {
+      context.tags.push("Dev");
+    }
+  } else if (host.includes("linear.app") || host.includes("jira.")) {
+    context.type = "ticket";
+    context.key = host;
+    context.tags.push("Ticket", "Planning");
+  } else if (host === "figma.com") {
+    context.type = "design";
+    context.key = host;
+    context.tags.push("Design", "Reference");
+  } else if (host === "docs.google.com" || host === "notion.so") {
+    context.type = "docs";
+    context.key = host;
+    context.tags.push("Docs");
+  } else if (host === "youtube.com" || host === "vimeo.com") {
+    context.type = "video";
+    context.key = host;
+    context.tags.push("Video");
+  }
+
+  if (safeTitle && /debug|incident|fix|root cause|rca/i.test(safeTitle)) {
+    context.tags.push("DebugTrail");
+  }
+  if (host) {
+    context.tags.push(`client:${host}`);
+  }
+
+  context.tags = normalizeTags(context.tags);
+  return context;
 }
 
 function normalizeEntitlementStatus(rawStatus, activeHint = false) {
@@ -617,7 +685,34 @@ function normalizeSavedItem(rawItem, nowTs = Date.now()) {
     note: String(source.note || "").slice(0, 2000),
     tags: normalizeTags(source.tags || []),
     pinned: Boolean(source.pinned),
-    favicon: String(source.favicon || "").trim()
+    favicon: String(source.favicon || "").trim(),
+    groupName: String(source.groupName || "").trim().slice(0, 120),
+    contextType: String(source.contextType || "general").trim().slice(0, 40) || "general",
+    contextKey: String(source.contextKey || domain || "").trim().slice(0, 180)
+  };
+}
+
+function normalizeSnippet(rawSnippet, nowTs = Date.now()) {
+  const source = rawSnippet && typeof rawSnippet === "object" ? rawSnippet : {};
+  return {
+    id: String(source.id || createId("snp")),
+    title: String(source.title || "Snippet").trim().slice(0, 160) || "Snippet",
+    body: String(source.body || "").slice(0, 6000),
+    tags: normalizeTags(source.tags || []),
+    sourceItemId: String(source.sourceItemId || "").trim(),
+    createdAt: Number(source.createdAt || nowTs)
+  };
+}
+
+function normalizeWorkflowEntry(rawEntry, nowTs = Date.now()) {
+  const source = rawEntry && typeof rawEntry === "object" ? rawEntry : {};
+  const url = normalizeHttpUrl(source.url || "");
+  return {
+    id: String(source.id || createId("wf")),
+    title: String(source.title || url || "Untitled").trim().slice(0, 300) || "Untitled",
+    url,
+    domain: normalizeDomain(source.domain || url),
+    createdAt: Number(source.createdAt || nowTs)
   };
 }
 
@@ -671,6 +766,12 @@ function normalizeCoreState(rawCore) {
   const resumeQueue = Array.isArray(source.resumeQueue)
     ? source.resumeQueue.map((id) => String(id || "")).filter(Boolean)
     : [];
+  const snippets = Array.isArray(source.snippets)
+    ? source.snippets.map((snippet) => normalizeSnippet(snippet, nowTs)).filter((snippet) => snippet.body.trim())
+    : [];
+  const dailyWorkflow = Array.isArray(source.dailyWorkflow)
+    ? source.dailyWorkflow.map((entry) => normalizeWorkflowEntry(entry, nowTs)).filter((entry) => entry.url)
+    : [];
 
   return {
     schemaVersion: CORE_SCHEMA_VERSION,
@@ -685,7 +786,11 @@ function normalizeCoreState(rawCore) {
     items: items.slice(0, CORE_MAX_ITEMS).sort((a, b) => Number(b.createdAt || 0) - Number(a.createdAt || 0)),
     reminders,
     sessions: sessions.slice(0, CORE_MAX_SESSIONS).sort((a, b) => Number(b.createdAt || 0) - Number(a.createdAt || 0)),
-    resumeQueue: [...new Set(resumeQueue)].slice(0, CORE_RESUME_LIMIT)
+    resumeQueue: [...new Set(resumeQueue)].slice(0, CORE_RESUME_LIMIT),
+    snippets: snippets.slice(0, CORE_MAX_SNIPPETS).sort((a, b) => Number(b.createdAt || 0) - Number(a.createdAt || 0)),
+    dailyWorkflow: dailyWorkflow
+      .slice(0, CORE_MAX_WORKFLOW_ITEMS)
+      .sort((a, b) => Number(b.createdAt || 0) - Number(a.createdAt || 0))
   };
 }
 
@@ -880,8 +985,16 @@ async function coreSaveCurrentTab(payload = {}) {
   const nowTs = Date.now();
   const note = String(payload.note || "").slice(0, 2000);
   const requestedTags = normalizeTags(payload.tags || []);
+  const groupName = String(payload.groupName || "").trim().slice(0, 120);
+  const inferred = inferContextFromUrl(url, activeTab.title || "");
+  const inferredTags = normalizeTags([...(inferred.tags || []), ...suggestedTagsForDomain(normalizeDomain(url))]);
+  const mergedRequested = normalizeTags([
+    ...requestedTags,
+    ...(groupName ? [`group:${groupName}`] : []),
+    ...inferredTags
+  ]);
   const tags = snapshot.premiumActive
-    ? (requestedTags.length ? requestedTags : suggestedTagsForDomain(normalizeDomain(url)))
+    ? (mergedRequested.length ? mergedRequested : suggestedTagsForDomain(normalizeDomain(url)))
     : [];
 
   const existing = core.items.find((item) => item.url === url);
@@ -896,6 +1009,9 @@ async function coreSaveCurrentTab(payload = {}) {
     if (snapshot.premiumActive) {
       existing.tags = tags;
     }
+    existing.groupName = groupName || existing.groupName || "";
+    existing.contextType = inferred.type || existing.contextType || "general";
+    existing.contextKey = inferred.key || existing.contextKey || existing.domain || "";
     savedItem = existing;
   } else {
     savedItem = normalizeSavedItem({
@@ -907,7 +1023,10 @@ async function coreSaveCurrentTab(payload = {}) {
       note,
       tags,
       pinned: false,
-      favicon: String(activeTab.favIconUrl || "").trim()
+      favicon: String(activeTab.favIconUrl || "").trim(),
+      groupName,
+      contextType: inferred.type || "general",
+      contextKey: inferred.key || normalizeDomain(url)
     }, nowTs);
     core.items.unshift(savedItem);
   }
@@ -1173,6 +1292,120 @@ async function coreDeleteSession(sessionId) {
   }
   const saved = await writeCoreState(core);
   return { ok: true, core: saved };
+}
+
+async function coreSaveSnippet(payload = {}) {
+  const [settings, entitlement, core] = await Promise.all([getSettings(), getEntitlement(), getCoreState()]);
+  const snapshot = premiumSnapshot(settings, entitlement);
+  if (!snapshot.premiumActive) {
+    return { ok: false, error: "PREMIUM_REQUIRED", premium: snapshot };
+  }
+
+  const sourceItemId = String(payload.sourceItemId || "").trim();
+  const sourceItem = sourceItemId
+    ? core.items.find((entry) => entry.id === sourceItemId)
+    : null;
+
+  const body = String(payload.body || sourceItem?.note || "").slice(0, 6000);
+  if (!body.trim()) {
+    return { ok: false, error: "SNIPPET_BODY_REQUIRED", premium: snapshot };
+  }
+
+  const tags = normalizeTags([
+    ...(Array.isArray(payload.tags) ? payload.tags : []),
+    ...(Array.isArray(sourceItem?.tags) ? sourceItem.tags : [])
+  ]);
+
+  const snippet = normalizeSnippet({
+    id: createId("snp"),
+    title: String(payload.title || sourceItem?.title || "Snippet"),
+    body,
+    tags,
+    sourceItemId: sourceItemId || "",
+    createdAt: Date.now()
+  });
+
+  core.snippets = [snippet, ...(Array.isArray(core.snippets) ? core.snippets : [])].slice(0, CORE_MAX_SNIPPETS);
+  const saved = await writeCoreState(core);
+  return { ok: true, snippet, core: saved, premium: snapshot };
+}
+
+async function coreDeleteSnippet(snippetId) {
+  const [settings, entitlement, core] = await Promise.all([getSettings(), getEntitlement(), getCoreState()]);
+  const snapshot = premiumSnapshot(settings, entitlement);
+  if (!snapshot.premiumActive) {
+    return { ok: false, error: "PREMIUM_REQUIRED", premium: snapshot };
+  }
+
+  const before = Array.isArray(core.snippets) ? core.snippets.length : 0;
+  core.snippets = (core.snippets || []).filter((entry) => entry.id !== String(snippetId || ""));
+  if (core.snippets.length === before) {
+    return { ok: false, error: "SNIPPET_NOT_FOUND", premium: snapshot };
+  }
+  const saved = await writeCoreState(core);
+  return { ok: true, core: saved, premium: snapshot };
+}
+
+async function coreWorkflowAction(payload = {}) {
+  const [settings, entitlement, core, tabs] = await Promise.all([
+    getSettings(),
+    getEntitlement(),
+    getCoreState(),
+    tabsQuery({ active: true, currentWindow: true })
+  ]);
+  const snapshot = premiumSnapshot(settings, entitlement);
+  if (!snapshot.premiumActive) {
+    return { ok: false, error: "PREMIUM_REQUIRED", premium: snapshot };
+  }
+
+  const action = String(payload.action || "").trim();
+  if (action === "open_all") {
+    const entries = Array.isArray(core.dailyWorkflow) ? core.dailyWorkflow : [];
+    if (!entries.length) {
+      return { ok: false, error: "WORKFLOW_EMPTY", premium: snapshot };
+    }
+    for (const entry of [...entries].reverse()) {
+      if (entry?.url) {
+        chrome.tabs.create({ url: entry.url });
+      }
+    }
+    return { ok: true, opened: entries.length, premium: snapshot, core };
+  }
+
+  if (action === "clear") {
+    core.dailyWorkflow = [];
+    const saved = await writeCoreState(core);
+    return { ok: true, core: saved, premium: snapshot };
+  }
+
+  if (action === "remove") {
+    const id = String(payload.workflowId || "").trim();
+    const before = Array.isArray(core.dailyWorkflow) ? core.dailyWorkflow.length : 0;
+    core.dailyWorkflow = (core.dailyWorkflow || []).filter((entry) => entry.id !== id);
+    if (core.dailyWorkflow.length === before) {
+      return { ok: false, error: "WORKFLOW_ENTRY_NOT_FOUND", premium: snapshot };
+    }
+    const saved = await writeCoreState(core);
+    return { ok: true, core: saved, premium: snapshot };
+  }
+
+  const activeTab = tabs.find((tab) => Number.isInteger(tab?.id) && isHttpUrl(tab?.url));
+  if (!activeTab?.url) {
+    return { ok: false, error: "NO_ACTIVE_HTTP_TAB", premium: snapshot };
+  }
+  const entry = normalizeWorkflowEntry({
+    id: createId("wf"),
+    title: String(activeTab.title || activeTab.url),
+    url: normalizeHttpUrl(activeTab.url),
+    domain: normalizeDomain(activeTab.url),
+    createdAt: Date.now()
+  });
+  core.dailyWorkflow = [
+    entry,
+    ...(core.dailyWorkflow || []).filter((item) => item.url !== entry.url)
+  ].slice(0, CORE_MAX_WORKFLOW_ITEMS);
+  const saved = await writeCoreState(core);
+  return { ok: true, core: saved, entry, premium: snapshot };
 }
 
 async function coreResumeAction(payload = {}) {
@@ -1825,6 +2058,21 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
 
     if (message.type === "holmeta-core-delete-session") {
       sendResponse(await coreDeleteSession(message.sessionId));
+      return;
+    }
+
+    if (message.type === "holmeta-core-save-snippet") {
+      sendResponse(await coreSaveSnippet(message.payload || {}));
+      return;
+    }
+
+    if (message.type === "holmeta-core-delete-snippet") {
+      sendResponse(await coreDeleteSnippet(message.snippetId));
+      return;
+    }
+
+    if (message.type === "holmeta-core-workflow-action") {
+      sendResponse(await coreWorkflowAction(message.payload || {}));
       return;
     }
 

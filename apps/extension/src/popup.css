@@ -228,6 +228,19 @@ body::before {
   justify-content: flex-start;
 }
 
+.item-inline-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.item-inline-actions button {
+  min-height: 30px;
+  height: 30px;
+  font-size: 11px;
+  letter-spacing: var(--ls-meta);
+}
+
 .pill {
   display: inline-flex;
   align-items: center;
@@ -354,6 +367,10 @@ body::before {
   }
 
   .tool-nav {
+    grid-template-columns: 1fr;
+  }
+
+  .item-inline-actions {
     grid-template-columns: 1fr;
   }
 }
