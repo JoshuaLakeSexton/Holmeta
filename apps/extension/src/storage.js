@@ -5,9 +5,16 @@
   const DEFAULT_STATE = {
     version: VERSION,
     notes: "",
+    search: "",
+    tagFilter: "",
+    hasReminderOnly: false,
+    saveTags: "",
     licenseKeyDraft: "",
     checkoutSessionDraft: "",
     domainsDraft: "",
+    customReminderAt: "",
+    exportSource: "inbox",
+    lightIntensity: 78,
     updatedAt: 0
   };
 
@@ -16,9 +23,16 @@
     return {
       version: VERSION,
       notes: String(source.notes || ""),
+      search: String(source.search || ""),
+      tagFilter: String(source.tagFilter || ""),
+      hasReminderOnly: Boolean(source.hasReminderOnly),
+      saveTags: String(source.saveTags || ""),
       licenseKeyDraft: String(source.licenseKeyDraft || "").trim().toUpperCase(),
       checkoutSessionDraft: String(source.checkoutSessionDraft || "").trim(),
       domainsDraft: String(source.domainsDraft || "").trim(),
+      customReminderAt: String(source.customReminderAt || ""),
+      exportSource: String(source.exportSource || "inbox") || "inbox",
+      lightIntensity: Math.max(0, Math.min(100, Math.round(Number(source.lightIntensity || 78)))),
       updatedAt: Number(source.updatedAt || 0)
     };
   }

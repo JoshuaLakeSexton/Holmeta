@@ -124,6 +124,13 @@ body::before {
   gap: var(--s-2);
 }
 
+.item-head {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--s-2);
+  align-items: start;
+}
+
 .item-main {
   display: grid;
   gap: 4px;
@@ -157,16 +164,54 @@ body::before {
   letter-spacing: var(--ls-body);
 }
 
+.item-menu {
+  position: relative;
+  min-width: 36px;
+}
+
+.item-menu summary {
+  list-style: none;
+  width: 36px;
+  height: 32px;
+  border: 1px solid var(--c-border);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--ff-mono);
+  letter-spacing: var(--ls-head);
+  color: var(--c-text);
+  cursor: pointer;
+  user-select: none;
+  background: rgba(20, 17, 15, 0.78);
+}
+
+.item-menu summary::-webkit-details-marker {
+  display: none;
+}
+
+.item-menu[open] summary {
+  border-color: var(--c-warn);
+}
+
 .item-actions {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 4px);
+  z-index: 3;
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: var(--s-2);
+  gap: 4px;
+  min-width: 160px;
+  border: 1px solid var(--c-border);
+  background: rgba(20, 17, 15, 0.96);
+  padding: 6px;
 }
 
 .item-actions button {
-  min-height: 32px;
-  height: 32px;
-  padding: 0 var(--s-2);
+  min-height: 30px;
+  height: 30px;
+  font-size: 11px;
+  letter-spacing: var(--ls-meta);
+  justify-content: flex-start;
 }
 
 .pill {
@@ -214,6 +259,42 @@ body::before {
   gap: var(--s-2);
 }
 
+.compact-actions {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.tool-dock {
+  padding-top: var(--s-2);
+}
+
+.tool-nav {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--s-2);
+}
+
+.tool-button {
+  min-height: 34px;
+  height: 34px;
+  font-size: 11px;
+}
+
+.drawer-panel {
+  display: grid;
+  gap: var(--s-2);
+}
+
+.slider-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--s-2);
+}
+
+.range {
+  width: 100%;
+}
+
 .compact-grid {
   grid-template-columns: repeat(2, minmax(0, 1fr));
   margin-top: var(--s-2);
@@ -228,11 +309,15 @@ body::before {
 }
 
 @media (max-width: 380px) {
-  .item-actions {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+  .button-row {
+    grid-template-columns: 1fr;
   }
 
-  .button-row {
+  .compact-actions {
+    grid-template-columns: 1fr;
+  }
+
+  .tool-nav {
     grid-template-columns: 1fr;
   }
 }

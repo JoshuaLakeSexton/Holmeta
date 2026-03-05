@@ -1,5 +1,6 @@
 (() => {
   const HC = globalThis.HolmetaCommon;
+  const HS = globalThis.HolmetaPopupStorage || null;
 
   const DRAFT_KEY = "holmeta.popup.drafts.v3";
   const SAVE_UNDO_WINDOW_MS = 5000;
@@ -12,7 +13,8 @@
     saveTags: "",
     licenseKey: "",
     customReminderAt: "",
-    exportSource: "inbox"
+    exportSource: "inbox",
+    lightIntensity: 78
   };
 
   const state = {
@@ -42,6 +44,9 @@
     drafts: { ...DEFAULT_DRAFTS },
     selectedItemId: "",
     selectedReminderItemId: "",
+    activeDomain: "",
+    activeTabUrl: "",
+    activeDrawer: "",
     undo: {
       itemId: "",
       untilTs: 0
@@ -49,6 +54,8 @@
   };
 
   let persistTimer = null;
+  let hydrationComplete = false;
+  const editingIds = new Set();
 
   const $ = (id) => document.getElementById(id);
 
@@ -70,7 +77,7 @@
     if (!(element instanceof HTMLInputElement || element instanceof HTMLTextAreaElement || element instanceof HTMLSelectElement)) {
       return;
     }
-    if (document.activeElement === element) {
+    if (document.activeElement === element || editingIds.has(id)) {
       return;
     }
     const safe = String(value ?? "");
@@ -89,11 +96,25 @@
       saveTags: String(source.saveTags || ""),
       licenseKey: String(source.licenseKey || "").trim().toUpperCase(),
       customReminderAt: String(source.customReminderAt || ""),
-      exportSource: String(source.exportSource || "inbox") || "inbox"
+      exportSource: String(source.exportSource || "inbox") || "inbox",
+      lightIntensity: Math.max(0, Math.min(100, Math.round(Number(source.lightIntensity || 78))))
     };
   }
 
   function readDrafts() {
+    if (HS?.readUiState) {
+      return HS.readUiState().then((uiState) => normalizeDrafts({
+        search: uiState.search || "",
+        tagFilter: uiState.tagFilter || "",
+        hasReminderOnly: uiState.hasReminderOnly || false,
+        saveNote: uiState.notes || "",
+        saveTags: uiState.saveTags || "",
+        licenseKey: uiState.licenseKeyDraft || "",
+        customReminderAt: uiState.customReminderAt || "",
+        exportSource: uiState.exportSource || "inbox",
+        lightIntensity: uiState.lightIntensity || 78
+      }));
+    }
     return new Promise((resolve) => {
       chrome.storage.local.get([DRAFT_KEY], (data) => {
         if (chrome.runtime?.lastError) {
@@ -106,6 +127,20 @@
   }
 
   function writeDrafts(nextDrafts) {
+    if (HS?.patchUiState) {
+      const normalized = normalizeDrafts(nextDrafts || {});
+      return HS.patchUiState({
+        search: normalized.search,
+        tagFilter: normalized.tagFilter,
+        hasReminderOnly: normalized.hasReminderOnly,
+        notes: normalized.saveNote,
+        saveTags: normalized.saveTags,
+        licenseKeyDraft: normalized.licenseKey,
+        customReminderAt: normalized.customReminderAt,
+        exportSource: normalized.exportSource,
+        lightIntensity: normalized.lightIntensity
+      }).then((result) => ({ ok: Boolean(result?.ok) }));
+    }
     return new Promise((resolve) => {
       const normalized = normalizeDrafts(nextDrafts || {});
       chrome.storage.local.set({ [DRAFT_KEY]: normalized }, () => {
@@ -115,12 +150,23 @@
   }
 
   function queueDraftPersist() {
+    if (!hydrationComplete) {
+      return;
+    }
     if (persistTimer) {
       clearTimeout(persistTimer);
     }
     persistTimer = setTimeout(() => {
       writeDrafts(state.drafts);
     }, 360);
+  }
+
+  function flushDraftPersist() {
+    if (persistTimer) {
+      clearTimeout(persistTimer);
+      persistTimer = null;
+    }
+    return writeDrafts(state.drafts);
   }
 
   function isPremiumActive() {
@@ -389,20 +435,25 @@
 
       return `
         <li class="item-card" data-item-id="${item.id}">
-          <button type="button" class="item-open secondary" data-item-action="open" data-item-id="${item.id}">
-            <span class="item-title">${escapeHtml(item.title || item.url)}</span>
-            <span class="item-meta">${escapeHtml(item.domain || "")}</span>
-          </button>
+          <div class="item-head">
+            <button type="button" class="item-open secondary" data-item-action="open" data-item-id="${item.id}">
+              <span class="item-title">${escapeHtml(item.title || item.url)}</span>
+              <span class="item-meta">${escapeHtml(item.domain || "")}</span>
+            </button>
+            <details class="item-menu">
+              <summary>⋯</summary>
+              <div class="item-actions">
+                <button type="button" class="secondary" data-item-action="edit" data-item-id="${item.id}">EDIT NOTE</button>
+                <button type="button" class="secondary" data-item-action="remind" data-item-id="${item.id}" data-premium>REMIND</button>
+                <button type="button" class="secondary" data-item-action="resume" data-item-id="${item.id}" data-premium>${resumeLabel}</button>
+                <button type="button" class="secondary" data-item-action="remove" data-item-id="${item.id}">REMOVE</button>
+              </div>
+            </details>
+          </div>
           <div class="tag-list">
             ${item.pinned ? '<span class="pill">PINNED</span>' : ""}
             ${reminderPill}
             ${tags.map((tag) => `<span class="tag">${escapeHtml(tag)}</span>`).join("")}
-          </div>
-          <div class="item-actions">
-            <button type="button" class="secondary" data-item-action="edit" data-item-id="${item.id}">EDIT</button>
-            <button type="button" class="secondary" data-item-action="remind" data-item-id="${item.id}" data-premium>REMIND</button>
-            <button type="button" class="secondary" data-item-action="resume" data-item-id="${item.id}" data-premium>${resumeLabel}</button>
-            <button type="button" class="secondary" data-item-action="remove" data-item-id="${item.id}">REMOVE</button>
           </div>
         </li>
       `;
@@ -498,6 +549,7 @@
     setControlValueIfIdle("saveTagsInput", state.drafts.saveTags || "");
     setControlValueIfIdle("licenseKeyInput", state.drafts.licenseKey || "");
     setControlValueIfIdle("customReminderAt", state.drafts.customReminderAt || "");
+    setControlValueIfIdle("lightIntensity", state.drafts.lightIntensity || 78);
 
     const hasReminderOnly = $("hasReminderOnly");
     if (hasReminderOnly instanceof HTMLInputElement) {
@@ -510,6 +562,9 @@
     renderTagFilterOptions();
     renderExportSources();
     renderControls();
+    renderLightControls();
+    renderWellnessControls();
+    renderDrawers();
     renderResumeList();
     renderInboxList();
     renderSessionList();
@@ -520,7 +575,8 @@
   async function refreshState() {
     const [coreResponse, stateResponse] = await Promise.all([
       send({ type: "holmeta-core-get-state" }),
-      send({ type: "holmeta-request-state", domain: "" })
+      send({ type: "holmeta-request-state", domain: state.activeDomain || "" }),
+      loadActiveTabContext()
     ]);
 
     if (!coreResponse?.ok) {
@@ -665,7 +721,178 @@
     return { title, url };
   }
 
+  function lightModeToPreset(mode) {
+    if (mode === "red_mono") return "redNightMax";
+    if (mode === "red_overlay") return "redNightStrong";
+    if (mode === "dim") return "contrastGuard";
+    if (mode === "grayscale") return "grayscale";
+    return "nightWarmStrong";
+  }
+
+  function presetToLightMode(presetId) {
+    if (presetId === "redNightMax") return "red_mono";
+    if (presetId === "redNightStrong") return "red_overlay";
+    if (presetId === "contrastGuard") return "dim";
+    if (presetId === "grayscale") return "grayscale";
+    return "warm";
+  }
+
+  function getWellnessSettings() {
+    const source = state.settings?.wellness && typeof state.settings.wellness === "object"
+      ? state.settings.wellness
+      : {};
+    return {
+      breaksEnabled: Boolean(source.breaksEnabled),
+      breaksIntervalMin: Math.max(15, Math.min(180, Math.round(Number(source.breaksIntervalMin || 50)))),
+      eyeEnabled: Boolean(source.eyeEnabled),
+      eyeIntervalMin: Math.max(10, Math.min(120, Math.round(Number(source.eyeIntervalMin || 20))))
+    };
+  }
+
+  function renderDrawers() {
+    const light = $("lightDrawer");
+    const wellness = $("wellnessDrawer");
+    const settings = $("settingsDrawer");
+    if (light) light.hidden = state.activeDrawer !== "light";
+    if (wellness) wellness.hidden = state.activeDrawer !== "wellness";
+    if (settings) settings.hidden = state.activeDrawer !== "settings";
+  }
+
+  function renderLightControls() {
+    const modeSelect = $("lightModeSelect");
+    const intensity = $("lightIntensity");
+    const intensityValue = $("lightIntensityValue");
+    const enabledToggle = $("lightEnabledToggle");
+    const siteToggle = $("lightSiteToggle");
+    const domainLabel = $("activeDomainLabel");
+
+    if (modeSelect instanceof HTMLSelectElement) {
+      modeSelect.value = presetToLightMode(String(state.settings.filterPreset || ""));
+    }
+    if (intensity instanceof HTMLInputElement) {
+      const safe = Math.max(0, Math.min(100, Math.round(Number(state.settings.filterIntensity || 0) * 100)));
+      if (!editingIds.has("lightIntensity")) {
+        intensity.value = String(safe);
+      }
+      if (intensityValue) {
+        intensityValue.textContent = `${safe}%`;
+      }
+    }
+    if (enabledToggle instanceof HTMLInputElement) {
+      enabledToggle.checked = Boolean(state.settings.filterEnabled);
+    }
+
+    if (domainLabel) {
+      domainLabel.textContent = state.activeDomain ? `THIS SITE: ${state.activeDomain}` : "THIS SITE: --";
+    }
+    if (siteToggle instanceof HTMLInputElement) {
+      if (!state.activeDomain) {
+        siteToggle.checked = true;
+        siteToggle.disabled = true;
+      } else {
+        const override = state.settings.siteOverrides?.[state.activeDomain];
+        siteToggle.disabled = false;
+        siteToggle.checked = override?.enabled !== false;
+      }
+    }
+  }
+
+  function renderWellnessControls() {
+    const wellness = getWellnessSettings();
+    const breaksEnabled = $("breaksEnabledToggle");
+    const breakInterval = $("breakIntervalSelect");
+    const eyeEnabled = $("eyeEnabledToggle");
+    const eyeInterval = $("eyeIntervalSelect");
+
+    if (breaksEnabled instanceof HTMLInputElement) {
+      breaksEnabled.checked = wellness.breaksEnabled;
+    }
+    if (breakInterval instanceof HTMLSelectElement) {
+      breakInterval.value = String(wellness.breaksIntervalMin);
+    }
+    if (eyeEnabled instanceof HTMLInputElement) {
+      eyeEnabled.checked = wellness.eyeEnabled;
+    }
+    if (eyeInterval instanceof HTMLSelectElement) {
+      eyeInterval.value = String(wellness.eyeIntervalMin);
+    }
+  }
+
+  async function loadActiveTabContext() {
+    return new Promise((resolve) => {
+      chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+        const tab = Array.isArray(tabs) ? tabs[0] : null;
+        const safeUrl = String(tab?.url || "");
+        state.activeTabUrl = safeUrl;
+        try {
+          const parsed = new URL(safeUrl);
+          state.activeDomain = HC.normalizeDomain(parsed.hostname);
+        } catch (_) {
+          state.activeDomain = "";
+        }
+        resolve();
+      });
+    });
+  }
+
   function bindEvents() {
+    document.addEventListener("focusin", (event) => {
+      const target = event.target;
+      if (!(target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement || target instanceof HTMLSelectElement)) {
+        return;
+      }
+      if (target.id) {
+        editingIds.add(target.id);
+      }
+    });
+
+    document.addEventListener("focusout", (event) => {
+      const target = event.target;
+      if (!(target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement || target instanceof HTMLSelectElement)) {
+        return;
+      }
+      if (target.id) {
+        editingIds.delete(target.id);
+      }
+      queueDraftPersist();
+    });
+
+    window.addEventListener("beforeunload", () => {
+      flushDraftPersist();
+    });
+
+    document.addEventListener("click", (event) => {
+      const target = event.target;
+      if (!(target instanceof HTMLElement)) {
+        return;
+      }
+      if (!target.closest(".item-menu")) {
+        document.querySelectorAll(".item-menu[open]").forEach((menu) => {
+          menu.removeAttribute("open");
+        });
+      }
+    });
+
+    $("toolLight")?.addEventListener("click", () => {
+      state.activeDrawer = state.activeDrawer === "light" ? "" : "light";
+      renderDrawers();
+    });
+
+    $("toolWellness")?.addEventListener("click", () => {
+      state.activeDrawer = state.activeDrawer === "wellness" ? "" : "wellness";
+      renderDrawers();
+    });
+
+    $("toolSettings")?.addEventListener("click", () => {
+      state.activeDrawer = state.activeDrawer === "settings" ? "" : "settings";
+      renderDrawers();
+    });
+
+    $("openTools")?.addEventListener("click", () => {
+      state.activeDrawer = state.activeDrawer === "settings" ? "" : "settings";
+      renderDrawers();
+    });
+
     $("searchInput")?.addEventListener("input", (event) => {
       const target = event.target;
       if (!(target instanceof HTMLInputElement)) {
@@ -719,8 +946,139 @@
       if (!(target instanceof HTMLInputElement)) {
         return;
       }
-      state.drafts.licenseKey = String(target.value || "").toUpperCase();
+      state.drafts.licenseKey = String(target.value || "");
       queueDraftPersist();
+    });
+
+    $("lightIntensity")?.addEventListener("input", (event) => {
+      const target = event.target;
+      if (!(target instanceof HTMLInputElement)) {
+        return;
+      }
+      const value = Math.max(0, Math.min(100, Math.round(Number(target.value || 0))));
+      state.drafts.lightIntensity = value;
+      const label = $("lightIntensityValue");
+      if (label) {
+        label.textContent = `${value}%`;
+      }
+      queueDraftPersist();
+    });
+
+    $("lightApplyNow")?.addEventListener("click", async () => {
+      if (!isPremiumActive()) {
+        setSaveFeedback("STATUS: PREMIUM REQUIRED FOR LIGHT CONTROL", true);
+        return;
+      }
+      const modeSelect = $("lightModeSelect");
+      const enabledToggle = $("lightEnabledToggle");
+      const intensityInput = $("lightIntensity");
+      const mode = modeSelect instanceof HTMLSelectElement ? modeSelect.value : "warm";
+      const enabled = enabledToggle instanceof HTMLInputElement ? Boolean(enabledToggle.checked) : true;
+      const intensity = intensityInput instanceof HTMLInputElement
+        ? Math.max(0, Math.min(100, Math.round(Number(intensityInput.value || 0))))
+        : state.drafts.lightIntensity;
+      state.drafts.lightIntensity = intensity;
+      queueDraftPersist();
+
+      const response = await send({
+        type: "holmeta-update-settings",
+        patch: {
+          filterEnabled: enabled,
+          filterPreset: lightModeToPreset(mode),
+          filterIntensity: intensity / 100
+        }
+      });
+      if (!response?.ok) {
+        setSaveFeedback("STATUS: LIGHT APPLY FAILED", true);
+        return;
+      }
+      await refreshState();
+      setSaveFeedback("STATUS: LIGHT APPLIED");
+    });
+
+    $("lightSaveSite")?.addEventListener("click", async () => {
+      if (!isPremiumActive()) {
+        setSaveFeedback("STATUS: PREMIUM REQUIRED FOR SITE PROFILE", true);
+        return;
+      }
+      if (!state.activeDomain) {
+        setSaveFeedback("STATUS: NO ACTIVE SITE", true);
+        return;
+      }
+      const modeSelect = $("lightModeSelect");
+      const siteToggle = $("lightSiteToggle");
+      const intensityInput = $("lightIntensity");
+      const mode = modeSelect instanceof HTMLSelectElement ? modeSelect.value : "warm";
+      const enabled = siteToggle instanceof HTMLInputElement ? Boolean(siteToggle.checked) : true;
+      const intensity = intensityInput instanceof HTMLInputElement
+        ? Math.max(0, Math.min(100, Math.round(Number(intensityInput.value || 0))))
+        : state.drafts.lightIntensity;
+      const response = await send({
+        type: "holmeta-save-site-profile",
+        domain: state.activeDomain,
+        patch: {
+          enabled,
+          preset: lightModeToPreset(mode),
+          intensity: intensity / 100
+        }
+      });
+      if (!response?.ok) {
+        setSaveFeedback("STATUS: SITE PROFILE SAVE FAILED", true);
+        return;
+      }
+      await refreshState();
+      setSaveFeedback(`STATUS: SITE PROFILE SAVED (${state.activeDomain})`);
+    });
+
+    $("lightClearSite")?.addEventListener("click", async () => {
+      if (!state.activeDomain) {
+        setSaveFeedback("STATUS: NO ACTIVE SITE", true);
+        return;
+      }
+      const response = await send({
+        type: "holmeta-clear-site-profile",
+        domain: state.activeDomain
+      });
+      if (!response?.ok) {
+        setSaveFeedback("STATUS: CLEAR SITE PROFILE FAILED", true);
+        return;
+      }
+      await refreshState();
+      setSaveFeedback(`STATUS: SITE PROFILE CLEARED (${state.activeDomain})`);
+    });
+
+    $("saveWellness")?.addEventListener("click", async () => {
+      if (!isPremiumActive()) {
+        setSaveFeedback("STATUS: PREMIUM REQUIRED FOR WELLNESS", true);
+        return;
+      }
+      const breaksEnabled = $("breaksEnabledToggle");
+      const breakInterval = $("breakIntervalSelect");
+      const eyeEnabled = $("eyeEnabledToggle");
+      const eyeInterval = $("eyeIntervalSelect");
+      const response = await send({
+        type: "holmeta-update-settings",
+        patch: {
+          wellness: {
+            ...getWellnessSettings(),
+            breaksEnabled: breaksEnabled instanceof HTMLInputElement ? Boolean(breaksEnabled.checked) : false,
+            breaksIntervalMin: breakInterval instanceof HTMLSelectElement ? Number(breakInterval.value || 50) : 50,
+            eyeEnabled: eyeEnabled instanceof HTMLInputElement ? Boolean(eyeEnabled.checked) : false,
+            eyeIntervalMin: eyeInterval instanceof HTMLSelectElement ? Number(eyeInterval.value || 20) : 20
+          }
+        }
+      });
+      if (!response?.ok) {
+        setSaveFeedback("STATUS: WELLNESS SAVE FAILED", true);
+        return;
+      }
+      await refreshState();
+      setSaveFeedback("STATUS: WELLNESS SAVED");
+    });
+
+    $("snoozeWellness15")?.addEventListener("click", async () => {
+      await send({ type: "holmeta-snooze-wellness", minutes: 15 });
+      setSaveFeedback("STATUS: WELLNESS SNOOZED 15M");
     });
 
     $("customReminderAt")?.addEventListener("input", (event) => {
@@ -856,6 +1214,10 @@
 
       const action = button.getAttribute("data-item-action") || "";
       const itemId = button.getAttribute("data-item-id") || "";
+      const menu = button.closest(".item-menu");
+      if (menu) {
+        menu.removeAttribute("open");
+      }
       if (!itemId) {
         return;
       }
@@ -1058,6 +1420,8 @@
 
   async function bootstrap() {
     state.drafts = await readDrafts();
+    hydrationComplete = true;
+    await loadActiveTabContext();
     bindEvents();
     await refreshState();
   }

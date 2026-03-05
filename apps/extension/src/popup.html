@@ -47,7 +47,7 @@
       <section class="panel inbox-panel">
         <div class="inbox-header">
           <p class="kicker">INBOX</p>
-          <button id="saveSession" class="secondary" data-premium>SAVE SESSION</button>
+          <button id="openTools" class="secondary">TOOLS</button>
         </div>
 
         <div class="filters-grid">
@@ -71,6 +71,77 @@
         <ul id="resumeList" class="mini-list"></ul>
 
         <ul id="inboxList" class="inbox-list"></ul>
+      </section>
+
+      <section class="panel tool-dock">
+        <div class="tool-nav">
+          <button id="toolLight" class="secondary tool-button">LIGHT</button>
+          <button id="toolWellness" class="secondary tool-button" data-premium>WELLNESS</button>
+          <button id="toolSettings" class="secondary tool-button">SETTINGS</button>
+        </div>
+      </section>
+
+      <section class="panel drawer-panel" id="lightDrawer" hidden>
+        <div class="inbox-header">
+          <p class="kicker">LIGHT CONTROL</p>
+          <span id="activeDomainLabel" class="small-note">THIS SITE: --</span>
+        </div>
+        <label class="inline-check">
+          <input id="lightEnabledToggle" type="checkbox" data-premium />
+          FILTERS ENABLED
+        </label>
+        <label for="lightModeSelect" class="meta-label">MODE</label>
+        <select id="lightModeSelect" class="select" data-premium>
+          <option value="warm">Warm Shift</option>
+          <option value="red_mono">Red Monochrome</option>
+          <option value="red_overlay">Deep Red Overlay</option>
+          <option value="dim">Dim Only</option>
+          <option value="grayscale">Grayscale</option>
+        </select>
+        <label for="lightIntensity" class="meta-label">INTENSITY</label>
+        <div class="slider-row">
+          <input id="lightIntensity" class="range" type="range" min="0" max="100" step="1" data-premium />
+          <span id="lightIntensityValue" class="small-note">0%</span>
+        </div>
+        <label class="inline-check">
+          <input id="lightSiteToggle" type="checkbox" data-premium />
+          ENABLE ON THIS SITE
+        </label>
+        <div class="button-row compact-actions">
+          <button id="lightApplyNow" class="primary" data-premium>APPLY</button>
+          <button id="lightSaveSite" class="secondary" data-premium>SAVE SITE</button>
+          <button id="lightClearSite" class="secondary" data-premium>CLEAR SITE</button>
+        </div>
+      </section>
+
+      <section class="panel drawer-panel" id="wellnessDrawer" hidden>
+        <p class="kicker">WELLNESS NUDGES</p>
+        <label class="inline-check">
+          <input id="breaksEnabledToggle" type="checkbox" data-premium />
+          MICRO-BREAK REMINDER
+        </label>
+        <label for="breakIntervalSelect" class="meta-label">BREAK INTERVAL</label>
+        <select id="breakIntervalSelect" class="select" data-premium>
+          <option value="35">35 MIN</option>
+          <option value="50">50 MIN</option>
+          <option value="65">65 MIN</option>
+          <option value="90">90 MIN</option>
+        </select>
+        <label class="inline-check">
+          <input id="eyeEnabledToggle" type="checkbox" data-premium />
+          20-20-20 EYE PROMPT
+        </label>
+        <label for="eyeIntervalSelect" class="meta-label">EYE INTERVAL</label>
+        <select id="eyeIntervalSelect" class="select" data-premium>
+          <option value="20">20 MIN</option>
+          <option value="30">30 MIN</option>
+          <option value="45">45 MIN</option>
+          <option value="60">60 MIN</option>
+        </select>
+        <div class="button-row compact-actions">
+          <button id="saveWellness" class="primary" data-premium>SAVE</button>
+          <button id="snoozeWellness15" class="secondary" data-premium>SNOOZE 15M</button>
+        </div>
       </section>
 
       <section class="panel action-panel" id="itemEditor" hidden>
@@ -100,9 +171,13 @@
         </div>
       </section>
 
-      <section class="panel sessions-panel">
+      <section class="panel sessions-panel drawer-panel" id="settingsDrawer" hidden>
         <div class="inbox-header">
           <p class="kicker">SESSIONS</p>
+          <button id="saveSession" class="secondary" data-premium>SAVE SESSION</button>
+        </div>
+        <div class="inbox-header">
+          <p class="kicker">SHARE</p>
           <button id="copyLinkPack" class="secondary" data-premium>COPY LINK PACK</button>
         </div>
         <select id="exportSource" class="select" data-premium>

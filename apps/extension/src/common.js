@@ -479,6 +479,7 @@
     pairingCodeCreateUrl: "",
     checkoutUrl: DEFAULT_CHECKOUT_URL,
     dashboardUrl: DEFAULT_DASHBOARD_URL,
+    checkoutSessionId: "",
     extensionToken: "",
     licenseKey: "",
     installId: "",
@@ -487,7 +488,14 @@
     distractorDomains: ["youtube.com", "x.com", "reddit.com"],
     blockerEnabled: false,
     blockerCategories: { ...DEFAULT_BLOCKER_CATEGORIES },
-    cadence: DEFAULT_CADENCE
+    cadence: DEFAULT_CADENCE,
+    wellness: {
+      breaksEnabled: false,
+      breaksIntervalMin: 50,
+      eyeEnabled: false,
+      eyeIntervalMin: 20,
+      snoozeUntilTs: 0
+    }
   };
 
   function emptyReminderMap(initial = 0) {
@@ -658,6 +666,15 @@
     return parsed;
   }
 
+  function joinPath(basePath, suffixPath) {
+    const left = String(basePath || "").replace(/\/+$/, "");
+    const right = String(suffixPath || "").replace(/^\/+/, "");
+    if (!left) {
+      return `/${right}`.replace(/\/{2,}/g, "/");
+    }
+    return `${left}/${right}`.replace(/\/{2,}/g, "/");
+  }
+
   function resolveDashboardUrl(rawSettings, overrideValue = null) {
     const settings = rawSettings || {};
     const override = String(
@@ -709,6 +726,130 @@
       ok: true,
       source: "derived",
       url: derived.toString()
+    };
+  }
+
+  function resolveSiteBaseUrl(rawSettings, dashboardOverride = null) {
+    const resolvedDashboard = resolveDashboardUrl(rawSettings, dashboardOverride);
+    if (!resolvedDashboard.ok) {
+      return resolvedDashboard;
+    }
+
+    const parsed = parseHttpUrl(resolvedDashboard.url);
+    if (!parsed) {
+      return {
+        ok: false,
+        error: "INVALID_URL",
+        message: "Unable to parse resolved dashboard URL.",
+        source: resolvedDashboard.source || "dashboard",
+        url: ""
+      };
+    }
+
+    let pathname = String(parsed.pathname || "/").replace(/\/+$/, "");
+    if (pathname.toLowerCase().endsWith("/dashboard")) {
+      pathname = pathname.slice(0, -"/dashboard".length);
+    }
+
+    parsed.pathname = pathname || "/";
+    parsed.search = "";
+    parsed.hash = "";
+
+    return {
+      ok: true,
+      source: resolvedDashboard.source || "dashboard",
+      url: parsed.toString()
+    };
+  }
+
+  function resolveBillingSuccessUrl(rawSettings, sessionId = "", dashboardOverride = null) {
+    const baseResolved = resolveSiteBaseUrl(rawSettings, dashboardOverride);
+    if (!baseResolved.ok) {
+      return baseResolved;
+    }
+
+    const parsed = parseHttpUrl(baseResolved.url);
+    if (!parsed) {
+      return {
+        ok: false,
+        error: "INVALID_URL",
+        message: "Unable to build billing success URL.",
+        source: baseResolved.source || "derived",
+        url: ""
+      };
+    }
+
+    parsed.pathname = joinPath(parsed.pathname || "/", "billing/success");
+    parsed.search = "";
+    parsed.hash = "";
+
+    const safeSessionId = String(sessionId || "").trim();
+    if (safeSessionId) {
+      parsed.searchParams.set("session_id", safeSessionId);
+    }
+
+    return {
+      ok: true,
+      source: baseResolved.source || "derived",
+      url: parsed.toString()
+    };
+  }
+
+  function resolveBillingHelpUrl(rawSettings, dashboardOverride = null) {
+    const baseResolved = resolveSiteBaseUrl(rawSettings, dashboardOverride);
+    if (!baseResolved.ok) {
+      return baseResolved;
+    }
+
+    const parsed = parseHttpUrl(baseResolved.url);
+    if (!parsed) {
+      return {
+        ok: false,
+        error: "INVALID_URL",
+        message: "Unable to build billing help URL.",
+        source: baseResolved.source || "derived",
+        url: ""
+      };
+    }
+
+    parsed.pathname = joinPath(parsed.pathname || "/", "billing/help");
+    parsed.search = "";
+    parsed.hash = "";
+
+    return {
+      ok: true,
+      source: baseResolved.source || "derived",
+      url: parsed.toString()
+    };
+  }
+
+  function resolvePortalSessionUrl(rawSettings, apiBaseOverride = null) {
+    const settings = rawSettings || {};
+    const apiBaseRaw = String(
+      apiBaseOverride !== null && apiBaseOverride !== undefined
+        ? apiBaseOverride
+        : settings.apiBaseUrl || ""
+    ).trim();
+
+    const parsed = parseHttpUrl(apiBaseRaw);
+    if (!parsed) {
+      return {
+        ok: false,
+        error: "INVALID_API_BASE",
+        message: "Set a valid API base URL.",
+        source: "apiBase",
+        url: ""
+      };
+    }
+
+    parsed.pathname = joinPath(parsed.pathname || "/", "create-portal-session");
+    parsed.search = "";
+    parsed.hash = "";
+
+    return {
+      ok: true,
+      source: "apiBase",
+      url: parsed.toString()
     };
   }
 
@@ -1088,6 +1229,7 @@
     merged.pairingCodeCreateUrl = String(merged.pairingCodeCreateUrl || "").trim();
     merged.checkoutUrl = String(merged.checkoutUrl || "").trim();
     merged.dashboardUrl = String(merged.dashboardUrl || "").trim();
+    merged.checkoutSessionId = String(merged.checkoutSessionId || "").trim();
     merged.extensionToken = String(merged.extensionToken || "").trim();
     merged.licenseKey = String(merged.licenseKey || "").trim().toUpperCase();
     merged.installId = String(merged.installId || "").trim();
@@ -1115,6 +1257,14 @@
 
     merged.siteOverrides = normalizedOverrides;
     merged.cadence = normalizeCadence(merged.cadence, merged, rawSource);
+    const wellnessSource = merged.wellness && typeof merged.wellness === "object" ? merged.wellness : {};
+    merged.wellness = {
+      breaksEnabled: Boolean(wellnessSource.breaksEnabled),
+      breaksIntervalMin: Math.round(clamp(Number(wellnessSource.breaksIntervalMin || 50), 15, 180)),
+      eyeEnabled: Boolean(wellnessSource.eyeEnabled),
+      eyeIntervalMin: Math.round(clamp(Number(wellnessSource.eyeIntervalMin || 20), 10, 120)),
+      snoozeUntilTs: Math.max(0, Number(wellnessSource.snoozeUntilTs || 0))
+    };
 
     // Legacy compatibility fields used by older UI paths.
     merged.eyeBreakIntervalMin = merged.cadence.reminders.eye.schedule.intervalMin;
@@ -1384,6 +1534,10 @@
 
     settings.webcamPostureOptIn = false;
     settings.cadence.global.meetingModeAuto = false;
+    if (settings.wellness && typeof settings.wellness === "object") {
+      settings.wellness.breaksEnabled = false;
+      settings.wellness.eyeEnabled = false;
+    }
     return normalizeSettings(settings);
   }
 
@@ -1905,6 +2059,10 @@
     setSiteOverride,
     clearSiteOverride,
     resolveDashboardUrl,
+    resolveSiteBaseUrl,
+    resolveBillingSuccessUrl,
+    resolveBillingHelpUrl,
+    resolvePortalSessionUrl,
     openExternal,
     resolveSfxKeyForEvent,
     computeHydrationStreak,

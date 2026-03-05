@@ -10,7 +10,9 @@ const STORAGE = {
 
 const ALARMS = {
   entitlement: "holmeta-entitlement",
-  reminderPrefix: "holmeta-core-reminder-"
+  reminderPrefix: "holmeta-core-reminder-",
+  wellnessBreak: "holmeta-wellness-break",
+  wellnessEye: "holmeta-wellness-eye"
 };
 
 const NOTIFICATIONS = {
@@ -53,6 +55,23 @@ function alarmsGetAll() {
 
 function tabsQuery(queryInfo = {}) {
   return new Promise((resolve) => chrome.tabs.query(queryInfo, resolve));
+}
+
+function tabsSendMessage(tabId, payload) {
+  return new Promise((resolve) => {
+    if (!Number.isInteger(tabId) || tabId < 0 || !chrome.tabs?.sendMessage) {
+      resolve({ ok: false, error: "INVALID_TAB" });
+      return;
+    }
+    chrome.tabs.sendMessage(tabId, payload, (response) => {
+      const err = chrome.runtime?.lastError;
+      if (err) {
+        resolve({ ok: false, error: err.message || "SEND_MESSAGE_FAILED" });
+        return;
+      }
+      resolve({ ok: true, response: response || null });
+    });
+  });
 }
 
 function notify(id, options) {
@@ -109,8 +128,27 @@ function normalizeDomain(rawDomainOrUrl) {
   return HC.normalizeDomain(safe.replace(/^www\./, ""));
 }
 
+function hostnameFromUrl(rawUrl) {
+  const safe = normalizeHttpUrl(rawUrl);
+  if (!safe) {
+    return "";
+  }
+  try {
+    return normalizeDomain(new URL(safe).hostname);
+  } catch (_) {
+    return "";
+  }
+}
+
 function createId(prefix = "id") {
   return `${prefix}-${Date.now()}-${Math.random().toString(16).slice(2, 10)}`;
+}
+
+function createInstallId() {
+  if (globalThis.crypto?.randomUUID) {
+    return globalThis.crypto.randomUUID();
+  }
+  return `inst-${Date.now()}-${Math.random().toString(16).slice(2, 12)}`;
 }
 
 function normalizeTags(rawTags) {
@@ -171,6 +209,19 @@ function normalizeEntitlement(raw) {
   };
 }
 
+function normalizeWellness(settings) {
+  const source = settings?.wellness && typeof settings.wellness === "object"
+    ? settings.wellness
+    : {};
+  return {
+    breaksEnabled: Boolean(source.breaksEnabled),
+    breaksIntervalMin: Math.max(15, Math.min(180, Math.round(Number(source.breaksIntervalMin || 50)))),
+    eyeEnabled: Boolean(source.eyeEnabled),
+    eyeIntervalMin: Math.max(10, Math.min(120, Math.round(Number(source.eyeIntervalMin || 20)))),
+    snoozeUntilTs: Math.max(0, Number(source.snoozeUntilTs || 0))
+  };
+}
+
 async function getSettings() {
   const data = await storageGet(STORAGE.settings);
   return HC.normalizeSettings(data[STORAGE.settings] || {});
@@ -201,6 +252,100 @@ async function writeEntitlement(nextEntitlement) {
   const normalized = normalizeEntitlement(nextEntitlement || {});
   await storageSet({ [STORAGE.entitlement]: normalized });
   return normalized;
+}
+
+function effectiveSettingsForTier(settings, entitlement) {
+  const premiumActive = Boolean(settings?.devBypassPremium || entitlement?.active);
+  const normalized = HC.normalizeSettings(settings || {});
+  if (!premiumActive) {
+    normalized.filterEnabled = false;
+    normalized.wellness = {
+      ...normalizeWellness(normalized),
+      breaksEnabled: false,
+      eyeEnabled: false
+    };
+  } else {
+    normalized.wellness = normalizeWellness(normalized);
+  }
+  return normalized;
+}
+
+function computeFilterPayloadForUrl(settings, entitlement, rawUrlOrHost) {
+  const effective = effectiveSettingsForTier(settings, entitlement);
+  const host = hostnameFromUrl(rawUrlOrHost) || normalizeDomain(rawUrlOrHost);
+  return HC.computeFilterPayload(effective, new Date(), host);
+}
+
+async function applyFilterToTab(tab, settingsInput = null, entitlementInput = null) {
+  const safeUrl = normalizeHttpUrl(tab?.url || "");
+  if (!safeUrl || !Number.isInteger(tab?.id)) {
+    return { ok: false, error: "INVALID_TAB" };
+  }
+  const settings = settingsInput || (await getSettings());
+  const entitlement = entitlementInput || (await getEntitlement());
+  const payload = computeFilterPayloadForUrl(settings, entitlement, safeUrl);
+  return tabsSendMessage(tab.id, {
+    type: "holmeta-apply-filter",
+    payload
+  });
+}
+
+async function applyFiltersToActiveTabs(settingsInput = null, entitlementInput = null) {
+  const [settings, entitlement, tabs] = await Promise.all([
+    settingsInput ? Promise.resolve(settingsInput) : getSettings(),
+    entitlementInput ? Promise.resolve(entitlementInput) : getEntitlement(),
+    tabsQuery({ active: true, currentWindow: true })
+  ]);
+
+  const activeTabs = Array.isArray(tabs) ? tabs.filter((tab) => normalizeHttpUrl(tab?.url || "")) : [];
+  const results = [];
+  for (const tab of activeTabs) {
+    results.push(await applyFilterToTab(tab, settings, entitlement));
+  }
+  return {
+    ok: true,
+    count: results.filter((entry) => entry.ok).length
+  };
+}
+
+async function sendReminderToActiveTab(payload) {
+  const tabs = await tabsQuery({ active: true, currentWindow: true });
+  const tab = Array.isArray(tabs) ? tabs.find((entry) => normalizeHttpUrl(entry?.url || "")) : null;
+  if (!tab || !Number.isInteger(tab.id)) {
+    return { ok: false, error: "NO_ACTIVE_HTTP_TAB" };
+  }
+  return tabsSendMessage(tab.id, {
+    type: "holmeta-reminder",
+    payload
+  });
+}
+
+async function scheduleWellnessAlarms(settingsInput = null, entitlementInput = null) {
+  const [settings, entitlement] = await Promise.all([
+    settingsInput ? Promise.resolve(settingsInput) : getSettings(),
+    entitlementInput ? Promise.resolve(entitlementInput) : getEntitlement()
+  ]);
+  const premiumActive = Boolean(settings?.devBypassPremium || entitlement?.active);
+  const wellness = normalizeWellness(settings);
+
+  await Promise.all([alarmsClear(ALARMS.wellnessBreak), alarmsClear(ALARMS.wellnessEye)]);
+
+  if (!premiumActive) {
+    return;
+  }
+  if (wellness.snoozeUntilTs > Date.now()) {
+    return;
+  }
+  if (wellness.breaksEnabled) {
+    chrome.alarms.create(ALARMS.wellnessBreak, {
+      periodInMinutes: wellness.breaksIntervalMin
+    });
+  }
+  if (wellness.eyeEnabled) {
+    chrome.alarms.create(ALARMS.wellnessEye, {
+      periodInMinutes: wellness.eyeIntervalMin
+    });
+  }
 }
 
 function coreReminderAlarmName(reminderId) {
@@ -690,6 +835,22 @@ async function triggerCoreReminder(reminderId, reason = "time") {
     return { ok: false, error: "ITEM_NOT_FOUND" };
   }
 
+  await sendReminderToActiveTab({
+    reminderType: "followUp",
+    title: "FOLLOW UP",
+    message: reason === "next_visit"
+      ? `You returned to ${item.domain || "this site"}.`
+      : `Return to: ${item.title}`,
+    defaultSnoozeMin: 10,
+    delivery: {
+      overlay: true,
+      notification: false,
+      popupOnly: false,
+      sound: false,
+      gentle: true
+    }
+  });
+
   await notify(coreReminderNotificationId(reminder.id), {
     type: "basic",
     iconUrl: NOTIFICATION_ICON,
@@ -873,9 +1034,14 @@ async function coreGetState() {
 }
 
 async function bootstrap() {
-  const [settings, core] = await Promise.all([getSettings(), getCoreState()]);
-  await refreshEntitlement(settings, true);
+  let settings = await getSettings();
+  if (!String(settings.installId || "").trim()) {
+    settings = await updateSettings({ installId: createInstallId() });
+  }
+  const core = await getCoreState();
+  const entitlement = await refreshEntitlement(settings, true);
   await rescheduleCoreReminders(core);
+  await scheduleWellnessAlarms(settings, entitlement);
   chrome.alarms.create(ALARMS.entitlement, {
     periodInMinutes: 30
   });
@@ -893,6 +1059,29 @@ chrome.commands?.onCommand?.addListener(async (command) => {
   try {
     if (command === "save_current_tab") {
       await coreSaveCurrentTab({});
+      return;
+    }
+    if (command === "toggle-filters") {
+      const settings = await getSettings();
+      const nextSettings = await updateSettings({ filterEnabled: !settings.filterEnabled });
+      const entitlement = await getEntitlement();
+      await applyFiltersToActiveTabs(nextSettings, entitlement);
+      return;
+    }
+    if (command === "toggle-color-accurate") {
+      const settings = await getSettings();
+      const nextSettings = await updateSettings({ colorAccurate: !settings.colorAccurate });
+      const entitlement = await getEntitlement();
+      await applyFiltersToActiveTabs(nextSettings, entitlement);
+      return;
+    }
+    if (command === "increase-intensity" || command === "decrease-intensity") {
+      const settings = await getSettings();
+      const delta = command === "increase-intensity" ? 0.05 : -0.05;
+      const next = Math.max(0, Math.min(1, Number(settings.filterIntensity || 0) + delta));
+      const nextSettings = await updateSettings({ filterIntensity: next });
+      const entitlement = await getEntitlement();
+      await applyFiltersToActiveTabs(nextSettings, entitlement);
     }
   } catch (_) {
     // no-op
@@ -907,7 +1096,70 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
 
   if (name === ALARMS.entitlement) {
     const settings = await getSettings();
-    await refreshEntitlement(settings, false);
+    const entitlement = await refreshEntitlement(settings, false);
+    await scheduleWellnessAlarms(settings, entitlement);
+    return;
+  }
+
+  if (name === ALARMS.wellnessBreak) {
+    const [settings, entitlement] = await Promise.all([getSettings(), getEntitlement()]);
+    const wellness = normalizeWellness(settings);
+    if (wellness.snoozeUntilTs > Date.now()) {
+      return;
+    }
+    if (!Boolean(settings?.devBypassPremium || entitlement?.active) || !wellness.breaksEnabled) {
+      return;
+    }
+    await sendReminderToActiveTab({
+      reminderType: "movement",
+      title: "MICRO BREAK",
+      message: "Stand up, reset shoulders, and blink for 30 seconds.",
+      defaultSnoozeMin: 15,
+      delivery: {
+        overlay: true,
+        notification: false,
+        popupOnly: false,
+        sound: false,
+        gentle: true
+      }
+    });
+    await notify("holmeta-wellness-break", {
+      type: "basic",
+      iconUrl: NOTIFICATION_ICON,
+      title: "holmeta break",
+      message: "Micro-break time: stand, blink, reset."
+    });
+    return;
+  }
+
+  if (name === ALARMS.wellnessEye) {
+    const [settings, entitlement] = await Promise.all([getSettings(), getEntitlement()]);
+    const wellness = normalizeWellness(settings);
+    if (wellness.snoozeUntilTs > Date.now()) {
+      return;
+    }
+    if (!Boolean(settings?.devBypassPremium || entitlement?.active) || !wellness.eyeEnabled) {
+      return;
+    }
+    await sendReminderToActiveTab({
+      reminderType: "eye",
+      title: "20-20-20",
+      message: "Look 20 feet away for 20 seconds.",
+      defaultSnoozeMin: 15,
+      delivery: {
+        overlay: true,
+        notification: false,
+        popupOnly: false,
+        sound: false,
+        gentle: true
+      }
+    });
+    await notify("holmeta-wellness-eye", {
+      type: "basic",
+      iconUrl: NOTIFICATION_ICON,
+      title: "holmeta eye reset",
+      message: "20-20-20 reset: look far for 20 seconds."
+    });
     return;
   }
 
@@ -921,6 +1173,8 @@ chrome.tabs.onUpdated.addListener(async (_tabId, changeInfo, tab) => {
   if (changeInfo.status !== "complete" || !tab?.url) {
     return;
   }
+  const [settings, entitlement] = await Promise.all([getSettings(), getEntitlement()]);
+  await applyFilterToTab(tab, settings, entitlement);
   await handleCoreNextVisit(tab.url);
 });
 
@@ -965,10 +1219,17 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   (async () => {
     if (message.type === "holmeta-request-state") {
       const [settings, entitlement] = await Promise.all([getSettings(), getEntitlement()]);
+      const requestedDomain = normalizeDomain(message.domain || message.hostname || "");
+      const filterPayload = HC.computeFilterPayload(
+        effectiveSettingsForTier(settings, entitlement),
+        new Date(),
+        requestedDomain
+      );
       sendResponse({
         ok: true,
         settings,
         entitlement,
+        filterPayload,
         runtime: {},
         auth: {
           paired: Boolean(String(settings.licenseKey || "").trim()),
@@ -978,38 +1239,68 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
       return;
     }
 
+    if (message.type === "holmeta-content-ready") {
+      const [settings, entitlement] = await Promise.all([getSettings(), getEntitlement()]);
+      const requestedDomain = normalizeDomain(message.domain || message.hostname || "");
+      const filterPayload = HC.computeFilterPayload(
+        effectiveSettingsForTier(settings, entitlement),
+        new Date(),
+        requestedDomain
+      );
+      sendResponse({
+        ok: true,
+        settings,
+        entitlement,
+        filterPayload,
+        runtime: {}
+      });
+      return;
+    }
+
     if (message.type === "holmeta-update-settings") {
       const patch = message.patch && typeof message.patch === "object" ? message.patch : {};
-      const allowedPatch = {
-        apiBaseUrl: Object.prototype.hasOwnProperty.call(patch, "apiBaseUrl") ? String(patch.apiBaseUrl || "") : undefined,
-        validateLicenseUrl: Object.prototype.hasOwnProperty.call(patch, "validateLicenseUrl") ? String(patch.validateLicenseUrl || "") : undefined,
-        checkoutUrl: Object.prototype.hasOwnProperty.call(patch, "checkoutUrl") ? String(patch.checkoutUrl || "") : undefined,
-        dashboardUrl: Object.prototype.hasOwnProperty.call(patch, "dashboardUrl") ? String(patch.dashboardUrl || "") : undefined,
-        devBypassPremium: Object.prototype.hasOwnProperty.call(patch, "devBypassPremium") ? Boolean(patch.devBypassPremium) : undefined,
-        installId: Object.prototype.hasOwnProperty.call(patch, "installId") ? String(patch.installId || "") : undefined,
-        licenseKey: Object.prototype.hasOwnProperty.call(patch, "licenseKey") ? String(patch.licenseKey || "").trim().toUpperCase() : undefined
-      };
-
-      const cleanedPatch = Object.fromEntries(
-        Object.entries(allowedPatch).filter(([, value]) => value !== undefined)
-      );
+      const cleanedPatch = { ...patch };
+      if (Object.prototype.hasOwnProperty.call(cleanedPatch, "licenseKey")) {
+        cleanedPatch.licenseKey = String(cleanedPatch.licenseKey || "").trim().toUpperCase();
+      }
+      if (Object.prototype.hasOwnProperty.call(cleanedPatch, "installId")) {
+        cleanedPatch.installId = String(cleanedPatch.installId || "").trim();
+      }
+      if (Object.prototype.hasOwnProperty.call(cleanedPatch, "apiBaseUrl")) {
+        cleanedPatch.apiBaseUrl = String(cleanedPatch.apiBaseUrl || "").trim();
+      }
+      if (Object.prototype.hasOwnProperty.call(cleanedPatch, "validateLicenseUrl")) {
+        cleanedPatch.validateLicenseUrl = String(cleanedPatch.validateLicenseUrl || "").trim();
+      }
+      if (Object.prototype.hasOwnProperty.call(cleanedPatch, "checkoutUrl")) {
+        cleanedPatch.checkoutUrl = String(cleanedPatch.checkoutUrl || "").trim();
+      }
+      if (Object.prototype.hasOwnProperty.call(cleanedPatch, "dashboardUrl")) {
+        cleanedPatch.dashboardUrl = String(cleanedPatch.dashboardUrl || "").trim();
+      }
 
       const settings = await updateSettings(cleanedPatch);
-      if (
+      const entitlement = (
         Object.prototype.hasOwnProperty.call(cleanedPatch, "validateLicenseUrl")
         || Object.prototype.hasOwnProperty.call(cleanedPatch, "licenseKey")
         || Object.prototype.hasOwnProperty.call(cleanedPatch, "devBypassPremium")
-      ) {
-        await refreshEntitlement(settings, true);
-      }
+      )
+        ? await refreshEntitlement(settings, true)
+        : await getEntitlement();
 
-      sendResponse({ ok: true, settings });
+      await Promise.all([
+        applyFiltersToActiveTabs(settings, entitlement),
+        scheduleWellnessAlarms(settings, entitlement)
+      ]);
+
+      sendResponse({ ok: true, settings, entitlement });
       return;
     }
 
     if (message.type === "holmeta-refresh-entitlement") {
       const settings = await getSettings();
       const entitlement = await refreshEntitlement(settings, true);
+      await scheduleWellnessAlarms(settings, entitlement);
       sendResponse({ ok: true, entitlement });
       return;
     }
@@ -1026,6 +1317,7 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
         sendResponse({ ok: false, error: entitlement.error || "LICENSE_INVALID_OR_INACTIVE", entitlement });
         return;
       }
+      await scheduleWellnessAlarms(settings, entitlement);
       sendResponse({ ok: true, entitlement });
       return;
     }
@@ -1033,7 +1325,62 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     if (message.type === "holmeta-clear-license") {
       const settings = await updateSettings({ licenseKey: "" });
       const entitlement = await refreshEntitlement(settings, true);
+      await scheduleWellnessAlarms(settings, entitlement);
       sendResponse({ ok: true, entitlement });
+      return;
+    }
+
+    if (message.type === "holmeta-reapply-filter") {
+      const [settings, entitlement] = await Promise.all([getSettings(), getEntitlement()]);
+      await applyFiltersToActiveTabs(settings, entitlement);
+      sendResponse({ ok: true });
+      return;
+    }
+
+    if (message.type === "holmeta-save-site-profile") {
+      const domain = normalizeDomain(message.domain || "");
+      if (!domain) {
+        sendResponse({ ok: false, error: "INVALID_DOMAIN" });
+        return;
+      }
+      const patch = message.patch && typeof message.patch === "object" ? message.patch : {};
+      const settings = await getSettings();
+      const nextSettings = HC.setSiteOverride(settings, domain, patch);
+      await writeSettings(nextSettings);
+      const entitlement = await getEntitlement();
+      await applyFiltersToActiveTabs(nextSettings, entitlement);
+      sendResponse({ ok: true, settings: nextSettings });
+      return;
+    }
+
+    if (message.type === "holmeta-clear-site-profile") {
+      const domain = normalizeDomain(message.domain || "");
+      if (!domain) {
+        sendResponse({ ok: false, error: "INVALID_DOMAIN" });
+        return;
+      }
+      const settings = await getSettings();
+      const nextSettings = HC.clearSiteOverride(settings, domain);
+      await writeSettings(nextSettings);
+      const entitlement = await getEntitlement();
+      await applyFiltersToActiveTabs(nextSettings, entitlement);
+      sendResponse({ ok: true, settings: nextSettings });
+      return;
+    }
+
+    if (message.type === "holmeta-snooze-wellness") {
+      const minutes = Math.max(5, Math.min(240, Math.round(Number(message.minutes || 15))));
+      const settings = await getSettings();
+      const wellness = normalizeWellness(settings);
+      const nextSettings = await updateSettings({
+        wellness: {
+          ...wellness,
+          snoozeUntilTs: Date.now() + minutes * 60 * 1000
+        }
+      });
+      const entitlement = await getEntitlement();
+      await scheduleWellnessAlarms(nextSettings, entitlement);
+      sendResponse({ ok: true, settings: nextSettings });
       return;
     }
 
@@ -1110,6 +1457,174 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
 
     if (message.type === "holmeta-core-reset-state") {
       sendResponse(await coreResetState());
+      return;
+    }
+
+    if (message.type === "holmeta-toggle-color-accurate") {
+      const settings = await getSettings();
+      const nextSettings = await updateSettings({ colorAccurate: !settings.colorAccurate });
+      const entitlement = await getEntitlement();
+      await applyFiltersToActiveTabs(nextSettings, entitlement);
+      sendResponse({ ok: true, settings: nextSettings });
+      return;
+    }
+
+    if (message.type === "holmeta-get-trends") {
+      sendResponse({
+        ok: true,
+        dailyLogs: [],
+        hydration: {},
+        calm: {}
+      });
+      return;
+    }
+
+    if (message.type === "holmeta-get-filter-debug") {
+      const [settings, entitlement] = await Promise.all([getSettings(), getEntitlement()]);
+      const payload = computeFilterPayloadForUrl(settings, entitlement, message.domain || "");
+      sendResponse({
+        ok: true,
+        payload,
+        debug: payload.debug || {}
+      });
+      return;
+    }
+
+    if (message.type === "holmeta-get-cadence-preview") {
+      sendResponse({
+        ok: true,
+        rows: []
+      });
+      return;
+    }
+
+    if (message.type === "holmeta-test-entitlement-fetch") {
+      const settings = await getSettings();
+      const entitlement = await refreshEntitlement(settings, true);
+      sendResponse({
+        ok: true,
+        status: 200,
+        entitlement
+      });
+      return;
+    }
+
+    if (message.type === "holmeta-test-reminder") {
+      await sendReminderToActiveTab({
+        reminderType: String(message.reminderType || "custom"),
+        title: "TEST REMINDER",
+        message: "Reminder dispatch is working.",
+        delivery: {
+          overlay: true,
+          notification: false,
+          popupOnly: false,
+          sound: false,
+          gentle: true
+        }
+      });
+      sendResponse({ ok: true });
+      return;
+    }
+
+    if (message.type === "holmeta-save-daily-log") {
+      sendResponse({ ok: true });
+      return;
+    }
+
+    if (message.type === "holmeta-get-audit") {
+      sendResponse({ ok: true, audit: null });
+      return;
+    }
+
+    if (message.type === "holmeta-save-audit") {
+      sendResponse({ ok: true });
+      return;
+    }
+
+    if (message.type === "holmeta-start-focus" || message.type === "holmeta-panic-focus") {
+      sendResponse({ ok: true });
+      return;
+    }
+
+    if (message.type === "holmeta-snooze-all") {
+      const minutes = Math.max(5, Math.min(240, Math.round(Number(message.minutes || 15))));
+      const settings = await getSettings();
+      const next = await updateSettings({
+        cadence: {
+          ...(settings.cadence || {}),
+          global: {
+            ...(settings.cadence?.global || {}),
+            snoozeAllUntilTs: Date.now() + minutes * 60 * 1000
+          }
+        }
+      });
+      sendResponse({ ok: true, settings: next });
+      return;
+    }
+
+    if (message.type === "holmeta-panic-off") {
+      const minutes = Math.max(5, Math.min(240, Math.round(Number(message.minutes || 30))));
+      const settings = await getSettings();
+      const next = await updateSettings({
+        cadence: {
+          ...(settings.cadence || {}),
+          global: {
+            ...(settings.cadence?.global || {}),
+            panicUntilTs: Date.now() + minutes * 60 * 1000
+          }
+        }
+      });
+      const entitlement = await getEntitlement();
+      await applyFiltersToActiveTabs(next, entitlement);
+      sendResponse({ ok: true, settings: next });
+      return;
+    }
+
+    if (message.type === "holmeta-toggle-meeting-mode") {
+      const enabled = Boolean(message.enabled);
+      const settings = await getSettings();
+      const next = await updateSettings({
+        cadence: {
+          ...(settings.cadence || {}),
+          global: {
+            ...(settings.cadence?.global || {}),
+            meetingModeManual: enabled
+          }
+        }
+      });
+      sendResponse({ ok: true, settings: next });
+      return;
+    }
+
+    if (message.type === "holmeta-apply-cadence-preset") {
+      const settings = await getSettings();
+      const presetId = String(message.presetId || "balanced");
+      const next = HC.applyCadencePreset(settings, presetId);
+      await writeSettings(next);
+      sendResponse({ ok: true, settings: next });
+      return;
+    }
+
+    if (message.type === "holmeta-activity-ping") {
+      sendResponse({ ok: true });
+      return;
+    }
+
+    if (message.type === "holmeta-reminder-action") {
+      if (message.action === "snooze") {
+        const minutes = Math.max(5, Math.min(120, Math.round(Number(message.minutes || 15))));
+        const settings = await getSettings();
+        const wellness = normalizeWellness(settings);
+        const nextSettings = await updateSettings({
+          wellness: {
+            ...wellness,
+            snoozeUntilTs: Date.now() + minutes * 60 * 1000
+          }
+        });
+        const entitlement = await getEntitlement();
+        await scheduleWellnessAlarms(nextSettings, entitlement);
+      }
+      sendResponse({ ok: true });
       return;
     }
 

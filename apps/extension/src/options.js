@@ -39,13 +39,21 @@
     uiState: HS?.DEFAULT_STATE ? { ...HS.DEFAULT_STATE } : {
       version: 1,
       notes: "",
+      search: "",
+      tagFilter: "",
+      hasReminderOnly: false,
+      saveTags: "",
       licenseKeyDraft: "",
       checkoutSessionDraft: "",
       domainsDraft: "",
+      customReminderAt: "",
+      exportSource: "inbox",
+      lightIntensity: 78,
       updatedAt: 0
     }
   };
   const UI_STATE_KEY = HS?.STATE_KEY || "holmeta_ui_state_v1";
+  const editingIds = new Set();
 
   const $ = (id) => document.getElementById(id);
 
@@ -80,9 +88,16 @@
     return {
       version: 1,
       notes: String(source.notes || ""),
+      search: String(source.search || ""),
+      tagFilter: String(source.tagFilter || ""),
+      hasReminderOnly: Boolean(source.hasReminderOnly),
+      saveTags: String(source.saveTags || ""),
       licenseKeyDraft: String(source.licenseKeyDraft || "").trim().toUpperCase(),
       checkoutSessionDraft: String(source.checkoutSessionDraft || "").trim(),
       domainsDraft: String(source.domainsDraft || "").trim(),
+      customReminderAt: String(source.customReminderAt || ""),
+      exportSource: String(source.exportSource || "inbox") || "inbox",
+      lightIntensity: Math.max(0, Math.min(100, Math.round(Number(source.lightIntensity || 78)))),
       updatedAt: Number(source.updatedAt || 0)
     };
   }
@@ -683,7 +698,7 @@
       return;
     }
 
-    if (document.activeElement === input) {
+    if (document.activeElement === input || editingIds.has(id)) {
       return;
     }
 
@@ -1712,6 +1727,26 @@
   }
 
   function bindEvents() {
+    document.addEventListener("focusin", (event) => {
+      const target = event.target;
+      if (!(target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement || target instanceof HTMLSelectElement)) {
+        return;
+      }
+      if (target.id) {
+        editingIds.add(target.id);
+      }
+    });
+
+    document.addEventListener("focusout", (event) => {
+      const target = event.target;
+      if (!(target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement || target instanceof HTMLSelectElement)) {
+        return;
+      }
+      if (target.id) {
+        editingIds.delete(target.id);
+      }
+    });
+
     const autoPatchFilter = debounce((patch) => {
       patchSettings(patch);
     }, 160);
