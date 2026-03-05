@@ -8,232 +8,108 @@
   </head>
   <body>
     <main class="popup-shell">
-      <header class="panel header">
+      <header class="panel topbar">
         <div>
-          <p class="kicker">FIELD OPERATION</p>
-          <h1 class="popup-title">holmeta command center</h1>
+          <p class="kicker">HOLMETA</p>
+          <h1 class="popup-title">SAVE. RECALL. FOLLOW UP.</h1>
         </div>
-        <div class="header-right">
-          <div class="nav-row">
-            <button id="popupBack" class="secondary">BACK</button>
-            <button id="popupHome" class="secondary">HOME</button>
-          </div>
-          <p id="statusChip" class="status-chip status-active">STATUS: ACTIVE</p>
+        <div class="chip-stack">
+          <p id="modeChip" class="status-chip status-idle">STATUS: FREE</p>
+          <p id="premiumChip" class="status-chip status-locked">PREMIUM: LOCKED</p>
         </div>
       </header>
 
-      <section class="panel readouts">
-        <article class="readout-card">
-          <p class="readout-label">NEXT REMINDER</p>
-          <p class="readout-value" id="nextReminderReadout">--:--</p>
-          <p class="readout-meta" id="nextReminderMeta">TYPE: NONE</p>
-        </article>
-        <article class="readout-card">
-          <p class="readout-label">TODAY COMPLETION</p>
-          <p class="readout-value" id="completionReadout">0 / 0</p>
-          <p class="readout-meta" id="completionMeta">READY</p>
-        </article>
-        <article class="readout-card">
-          <p class="readout-label">FOCUS TIMER</p>
-          <p class="readout-value" id="focusReadout">IDLE</p>
-          <p class="readout-meta" id="focusMeta">MODE: READY</p>
-        </article>
-        <article class="readout-card">
-          <p class="readout-label">FILTER MODE</p>
-          <p class="readout-value" id="filterReadout">Night Warm</p>
-          <p class="readout-meta" id="filterMeta">INTENSITY: 78%</p>
-        </article>
+      <section class="panel save-panel">
+        <p class="kicker">QUICK SAVE</p>
+        <button id="saveCurrentTab" class="primary save-button">SAVE THIS TAB</button>
+        <div class="save-drafts">
+          <label for="saveNoteInput" class="meta-label">WHY SAVE THIS?</label>
+          <textarea id="saveNoteInput" class="input" rows="2" placeholder="Short context"></textarea>
+          <label for="saveTagsInput" class="meta-label">TAGS (PREMIUM)</label>
+          <input id="saveTagsInput" class="input" type="text" placeholder="client, project, topic" />
+        </div>
+        <div id="saveFeedback" class="small-note">STATUS: READY</div>
+        <button id="undoSave" class="secondary" hidden>UNDO SAVE</button>
       </section>
 
-      <section class="panel command-panel">
-        <p class="kicker">FOCUS SESSION CONTROLS</p>
-        <p class="small-note command-help">
-          Start a timed deep-work block. Distractor domains are blocked during active focus sessions.
-        </p>
-        <div class="button-grid focus-grid">
-          <button class="primary" data-focus="25">START 25M</button>
-          <button data-focus="50">START 50M</button>
-          <button data-focus="90">START 90M</button>
-          <button id="stopFocus" class="danger">END FOCUS</button>
-        </div>
-
-        <p class="kicker command-subhead">QUICK SAFETY CONTROLS</p>
-        <p class="small-note command-help">
-          Temporary controls for overlays and reminders. Your saved schedules stay unchanged.
-        </p>
-        <div class="button-grid safety-grid">
-          <button id="filterToggle">TOGGLE FILTERS</button>
-          <button id="meetingToggle">MEETING QUIET: OFF</button>
-          <button id="snoozeAll" data-minutes="15">SNOOZE REMINDERS 15M</button>
-          <button id="panicOff" class="danger">PAUSE OVERLAYS 30M</button>
-        </div>
-      </section>
-
-      <section class="panel">
-        <p class="kicker">LOCK IN</p>
-        <div class="lockin-add-row">
-          <input id="lockInTitle" class="input" type="text" maxlength="140" placeholder="TODAY TO-DO ITEM" />
-          <input id="lockInDueTime" class="input" type="time" value="09:00" />
-          <button id="lockInAdd">ADD TO-DO</button>
-        </div>
-        <div class="button-row compact-row">
-          <button id="lockInTestAlarm" class="secondary">TEST LOCK IN ALARM</button>
-        </div>
-        <div id="lockInList" class="lockin-list"></div>
-        <p id="lockInStatus" class="small-note">STATUS: LOCK IN READY</p>
-      </section>
-
-      <section class="panel">
-        <p class="kicker">SOUND ENGINE</p>
-        <div class="toggle-grid">
-          <label><input id="soundEnabledToggle" type="checkbox" /> MASTER SOUND</label>
-          <label><input id="hoverEnabledToggle" type="checkbox" /> HOVER CUES</label>
-          <label><input id="reminderSoundsToggle" type="checkbox" /> REMINDER SFX</label>
-          <label><input id="uiClickSfxQuick" type="checkbox" checked disabled /> UI CLICK SFX ACTIVE</label>
-        </div>
-        <div class="control-row">
-          <label class="meta-label" for="masterVolumeRange">MASTER VOLUME</label>
-          <input id="masterVolumeRange" type="range" min="0" max="100" step="1" />
-          <span id="masterVolumeValue" class="mono">35%</span>
-        </div>
+      <section class="panel premium-panel" id="premiumPanel">
+        <p class="kicker">PREMIUM UNLOCK</p>
+        <p class="small-note" id="premiumCopy">Unlock reminders, sessions, resume queue, export, and tags.</p>
+        <label for="licenseKeyInput" class="meta-label">LICENSE KEY</label>
+        <input id="licenseKeyInput" class="input" type="text" placeholder="HOLMETA-XXXX-XXXX-XXXX-XXXX" />
         <div class="button-row">
-          <button id="soundTestPing">TEST PING</button>
+          <button id="activateLicense" class="primary">ACTIVATE</button>
+          <button id="refreshPremium" class="secondary">REFRESH</button>
+          <button id="openSubscribe" class="secondary">UNLOCK PREMIUM</button>
         </div>
       </section>
 
-      <section class="panel">
-        <p class="kicker">FILTER CONTROL</p>
-        <div class="control-row">
-          <label class="meta-label" for="presetSelect">PRESET</label>
-          <select id="presetSelect" class="select">
-            <optgroup label="Mild">
-              <option value="blueShieldMild">Blue Shield (Mild)</option>
-              <option value="nightWarmMild">Night Warm (Mild)</option>
-              <option value="contrastGuard">Contrast Guard</option>
-            </optgroup>
-            <optgroup label="Strong">
-              <option value="blueShieldStrong">Blue Shield (Strong)</option>
-              <option value="nightWarmStrong">Night Warm (Strong)</option>
-              <option value="redNightStrong">Red Night (Strong)</option>
-              <option value="redBlocker">Red Blocker</option>
-              <option value="grayscale">Grayscale</option>
-            </optgroup>
-            <optgroup label="Max">
-              <option value="blueShieldMax">Blue Shield (Max)</option>
-              <option value="nightWarmMax">Night Warm (Max)</option>
-              <option value="redNightMax">Red Night (Max)</option>
-              <option value="migraineSafe">Migraine Safe</option>
-            </optgroup>
+      <section class="panel inbox-panel">
+        <div class="inbox-header">
+          <p class="kicker">INBOX</p>
+          <button id="saveSession" class="secondary" data-premium>SAVE SESSION</button>
+        </div>
+
+        <div class="filters-grid">
+          <input id="searchInput" class="input" type="search" placeholder="Search title, url, note, tags" />
+          <select id="tagFilter" class="select">
+            <option value="">ALL TAGS</option>
           </select>
-          <span class="mono">SET</span>
+          <label class="inline-check">
+            <input id="hasReminderOnly" type="checkbox" />
+            HAS REMINDER
+          </label>
         </div>
 
-        <div class="control-row">
-          <label class="meta-label" for="intensityRange">INTENSITY</label>
-          <input id="intensityRange" type="range" min="0" max="100" step="1" />
-          <span id="intensityValue" class="mono">78%</span>
+        <div class="resume-head">
+          <p class="meta-label">RESUME QUEUE</p>
+          <div class="resume-actions">
+            <button id="resumeNext" class="secondary" data-premium>OPEN NEXT</button>
+            <button id="resumeClear" class="secondary" data-premium>CLEAR</button>
+          </div>
         </div>
+        <ul id="resumeList" class="mini-list"></ul>
 
-        <div class="control-row">
-          <label class="meta-label" for="cadencePresetSelect">CADENCE PROFILE</label>
-          <select id="cadencePresetSelect" class="select" data-premium>
-            <option value="balanced">Balanced</option>
-            <option value="deepWork">Deep Work</option>
-            <option value="highStrain">High Strain</option>
-            <option value="gentle">Gentle</option>
-            <option value="night">Night</option>
-          </select>
-          <button id="applyCadencePreset" data-premium>APPLY</button>
-        </div>
-
-        <div class="toggle-grid">
-          <label><input id="colorAccurateToggle" type="checkbox" /> COLOR ACCURATE</label>
-          <label><input id="meetingManualToggle" type="checkbox" /> MEETING (MANUAL)</label>
-        </div>
-
-        <label for="focusDomains" class="textarea-label meta-label">DISTRACTOR DOMAINS (CSV)</label>
-        <textarea id="focusDomains" rows="2" class="input" placeholder="youtube.com, x.com"></textarea>
-        <p class="small-note">Set one domain per comma. Applies to focus mode and blocker engine.</p>
-
-        <p class="meta-label blocker-label">BLOCK BY CATEGORY</p>
-        <div class="blocker-categories">
-          <button id="catSocial" type="button" class="secondary blocker-cat" data-category="social">SOCIAL MEDIA</button>
-          <button id="catNews" type="button" class="secondary blocker-cat" data-category="news">NEWS</button>
-          <button id="catVideo" type="button" class="secondary blocker-cat" data-category="video">VIDEO</button>
-          <button id="catAdult" type="button" class="secondary blocker-cat" data-category="adult">18+ (PORN)</button>
-        </div>
-
-        <div class="row-inline blocker-status-row">
-          <p id="blockerStateChip" class="status-chip status-idle">STATUS: BLOCKERS PAUSED</p>
-          <p id="blockerDomainCount" class="small-note">ACTIVE DOMAINS: 0</p>
-        </div>
-
-        <div class="button-row blocker-actions">
-          <button id="activateBlockers" class="danger">ACTIVATE BLOCKERS</button>
-          <button id="pauseBlockers" class="secondary">PAUSE BLOCKERS</button>
-          <button id="saveFocusDomains">SAVE DOMAIN LIST</button>
-        </div>
+        <ul id="inboxList" class="inbox-list"></ul>
       </section>
 
-      <section class="panel">
-        <p class="kicker">TEST REMINDERS</p>
-        <div class="button-grid compact">
-          <button data-test-reminder="eye">TEST EYE</button>
-          <button data-test-reminder="movement">TEST MOVE</button>
-          <button data-test-reminder="posture">TEST POSTURE</button>
-          <button data-test-reminder="hydration">TEST HYDRATE</button>
-          <button data-test-reminder="breathwork" data-premium>TEST BREATH</button>
-          <button data-test-reminder="dailyAudit" data-premium>TEST AUDIT</button>
-        </div>
-        <p id="testStatus" class="small-note">STATUS: READY</p>
-      </section>
-
-      <section class="panel">
-        <p class="kicker">BREAKDOWN</p>
-        <div id="completionBreakdown" class="breakdown-grid"></div>
-      </section>
-
-      <section class="panel">
-        <p class="kicker">QUICK NOTES</p>
-        <label class="textarea-label meta-label" for="quickNotes">TODAY NOTES</label>
-        <textarea id="quickNotes" rows="3" class="input" placeholder="TYPE NOTES YOU WANT TO KEEP LOCALLY"></textarea>
-        <p id="quickNotesStatus" class="small-note">STATUS: NOTES READY</p>
-      </section>
-
-      <section class="panel paywall" id="paywallPanel">
-        <p class="kicker">PREMIUM CONTROL LAYER</p>
-        <div class="row-inline">
-          <p id="entitlementStatus" class="status-chip status-locked">STATUS: LOCKED</p>
-          <p id="trialChip" class="status-chip status-idle">STATUS: FREE MODE</p>
-        </div>
-        <div id="premiumBanner" class="premium-banner" hidden>TRIAL ENDED - SUBSCRIBE TO CONTINUE.</div>
-        <p class="small-note" id="paywallCopy">
-          Free mode keeps basic filters + interval eye reminders. Premium unlocks advanced cadence and analytics.
-        </p>
-        <label class="textarea-label meta-label" for="licenseKeyInline">LICENSE KEY</label>
-        <input id="licenseKeyInline" class="input" type="text" placeholder="HOLMETA-XXXX-XXXX-XXXX-XXXX" />
-        <label class="textarea-label meta-label" for="checkoutSessionInline">CHECKOUT SESSION ID</label>
-        <input id="checkoutSessionInline" class="input" type="text" placeholder="cs_live_... (from billing success URL)" />
-        <p class="small-note">Need your key or cancel? Use session id from Stripe success URL, then open billing tools below.</p>
+      <section class="panel action-panel" id="itemEditor" hidden>
+        <p class="kicker" id="itemEditorTitle">EDIT ITEM</p>
+        <input id="editNoteInput" class="input" type="text" placeholder="Note" />
+        <input id="editTagsInput" class="input" type="text" placeholder="tag1, tag2" data-premium />
         <div class="button-row">
-          <button id="activateLicenseInline" class="primary">ACTIVATE LICENSE</button>
-          <button id="clearLicenseInline" class="secondary">CLEAR LICENSE</button>
-          <button id="unlockPremium" class="primary">SUBSCRIBE</button>
-          <button id="refreshEntitlement" class="secondary">REFRESH</button>
-        </div>
-        <div class="button-row billing-actions">
-          <button id="openLicensePageInline" class="secondary">OPEN LICENSE PAGE</button>
-          <button id="openCancelPortalInline" class="secondary">MANAGE BILLING / CANCEL</button>
-          <button id="openRefundHelpInline" class="secondary">REFUND HELP</button>
+          <button id="saveItemMeta" class="primary">SAVE</button>
+          <button id="cancelItemMeta" class="secondary">CLOSE</button>
         </div>
       </section>
 
-      <footer class="panel footer-actions">
-        <button id="openHud" class="secondary">OPEN HUD</button>
-        <button id="closeHud" class="secondary">CLOSE HUD</button>
-        <button id="openDashboard" class="secondary">OPEN DASHBOARD</button>
-        <button id="openOptions" class="secondary">OPEN OPS CONSOLE</button>
-      </footer>
+      <section class="panel action-panel" id="reminderEditor" hidden>
+        <p class="kicker" id="reminderEditorTitle">SET REMINDER</p>
+        <div class="button-grid compact-grid">
+          <button class="secondary" data-reminder-preset="30m">IN 30 MIN</button>
+          <button class="secondary" data-reminder-preset="tomorrow">TOMORROW</button>
+          <button class="secondary" data-reminder-preset="visit-domain">NEXT SITE VISIT</button>
+          <button class="secondary" data-reminder-preset="visit-page">NEXT PAGE VISIT</button>
+        </div>
+        <label for="customReminderAt" class="meta-label">CUSTOM DATE/TIME</label>
+        <input id="customReminderAt" class="input" type="datetime-local" />
+        <div class="button-row">
+          <button id="applyCustomReminder" class="primary" data-premium>SET CUSTOM</button>
+          <button id="clearReminder" class="secondary" data-premium>CLEAR REMINDER</button>
+          <button id="closeReminderEditor" class="secondary">CLOSE</button>
+        </div>
+      </section>
+
+      <section class="panel sessions-panel">
+        <div class="inbox-header">
+          <p class="kicker">SESSIONS</p>
+          <button id="copyLinkPack" class="secondary" data-premium>COPY LINK PACK</button>
+        </div>
+        <select id="exportSource" class="select" data-premium>
+          <option value="inbox">CURRENT INBOX</option>
+        </select>
+        <ul id="sessionList" class="mini-list"></ul>
+      </section>
     </main>
 
     <script src="common.js"></script>

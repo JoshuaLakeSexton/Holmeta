@@ -34,15 +34,14 @@ async function main() {
 
   // Critical controls that must exist for launch.
   assertCriticalIds("popup", popupHtmlIds, [
-    "statusChip",
-    "stopFocus",
-    "filterToggle",
-    "meetingToggle",
-    "snoozeAll",
-    "panicOff",
-    "unlockPremium",
-    "refreshEntitlement",
-    "openDashboard"
+    "saveCurrentTab",
+    "saveNoteInput",
+    "searchInput",
+    "inboxList",
+    "licenseKeyInput",
+    "activateLicense",
+    "saveSession",
+    "copyLinkPack"
   ]);
 
   assertCriticalIds("options", optionsHtmlIds, [

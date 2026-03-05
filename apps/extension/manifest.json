@@ -26,6 +26,7 @@
     "alarms",
     "notifications",
     "tabs",
+    "webNavigation",
     "sidePanel",
     "declarativeNetRequest",
     "idle"
@@ -37,6 +38,13 @@
     "<all_urls>"
   ],
   "commands": {
+    "save_current_tab": {
+      "description": "Quick save current tab to holmeta",
+      "suggested_key": {
+        "default": "Alt+Shift+S",
+        "mac": "Command+Shift+S"
+      }
+    },
     "toggle-filters": {
       "description": "Toggle filters on or off",
       "suggested_key": {

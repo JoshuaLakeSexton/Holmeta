@@ -10,7 +10,8 @@ const STORAGE = {
   dailyLogs: "holmeta.dailyLogs",
   lockIn: "holmeta.lockIn",
   entitlement: "holmeta.entitlement",
-  audit: "holmeta.audit"
+  audit: "holmeta.audit",
+  core: "holmeta.core.v1"
 };
 
 const ALARMS = {
@@ -25,6 +26,12 @@ const LOCKIN_ALARM_PREFIX = "holmeta-lockin-";
 const LOCKIN_NOTIFICATION_PREFIX = "holmeta-lockin-notification-";
 const LOCKIN_MAX_ITEMS = 24;
 const LOCKIN_DEFAULT_SNOOZE_MIN = 10;
+const CORE_REMINDER_ALARM_PREFIX = "holmeta-core-reminder-";
+const CORE_REMINDER_NOTIFICATION_PREFIX = "holmeta-core-reminder-notification-";
+const CORE_SCHEMA_VERSION = 1;
+const CORE_RESUME_LIMIT = 7;
+const CORE_MAX_ITEMS = 1200;
+const CORE_MAX_SESSIONS = 120;
 
 const FOCUS_RULE_IDS = Array.from({ length: 120 }, (_, i) => 9000 + i);
 const BLOCKER_RULE_IDS = Array.from({ length: 300 }, (_, i) => 9400 + i);
@@ -689,6 +696,568 @@ async function getDailyLogs() {
   return data[STORAGE.dailyLogs] || [];
 }
 
+function coreReminderAlarmName(reminderId) {
+  return `${CORE_REMINDER_ALARM_PREFIX}${String(reminderId || "")}`;
+}
+
+function coreReminderNotificationId(reminderId) {
+  return `${CORE_REMINDER_NOTIFICATION_PREFIX}${String(reminderId || "")}`;
+}
+
+function createCoreId(prefix = "id") {
+  return `${prefix}-${Date.now()}-${Math.random().toString(16).slice(2, 10)}`;
+}
+
+function normalizeDomainFromUrl(rawUrl) {
+  const safe = String(rawUrl || "").trim();
+  if (!safe) {
+    return "";
+  }
+
+  try {
+    const parsed = new URL(safe);
+    const host = String(parsed.hostname || "").toLowerCase().replace(/^www\./, "");
+    return HC.normalizeDomain(host);
+  } catch (_) {
+    return HC.normalizeDomain(safe);
+  }
+}
+
+function normalizeTags(rawTags) {
+  if (!Array.isArray(rawTags)) {
+    return [];
+  }
+
+  const cleaned = rawTags
+    .map((tag) => String(tag || "").trim().replace(/\s+/g, " "))
+    .filter(Boolean)
+    .slice(0, 12);
+  return [...new Set(cleaned)];
+}
+
+const DOMAIN_TAG_HINTS = [
+  { test: /(^|\.)github\.com$/, tags: ["Dev"] },
+  { test: /(^|\.)gitlab\.com$/, tags: ["Dev"] },
+  { test: /(^|\.)figma\.com$/, tags: ["Design"] },
+  { test: /(^|\.)docs\.google\.com$/, tags: ["Docs"] },
+  { test: /(^|\.)notion\.so$/, tags: ["Docs"] },
+  { test: /(^|\.)jira\./, tags: ["Planning"] },
+  { test: /(^|\.)linear\.app$/, tags: ["Planning"] },
+  { test: /(^|\.)miro\.com$/, tags: ["Design"] }
+];
+
+function suggestedTagsForDomain(domain) {
+  const safe = String(domain || "").trim().toLowerCase();
+  if (!safe) {
+    return [];
+  }
+  const matched = DOMAIN_TAG_HINTS.find((hint) => hint.test.test(safe));
+  return matched ? [...matched.tags] : [];
+}
+
+function normalizeSavedItem(rawItem, nowTs = Date.now()) {
+  const source = rawItem && typeof rawItem === "object" ? rawItem : {};
+  const url = String(source.url || "").trim();
+  const domain = normalizeDomainFromUrl(url || source.domain || "");
+  const title = String(source.title || url || "Untitled").trim().slice(0, 300);
+
+  return {
+    id: String(source.id || createCoreId("itm")),
+    url,
+    title: title || "Untitled",
+    domain,
+    createdAt: Number(source.createdAt || nowTs),
+    note: String(source.note || "").slice(0, 2000),
+    tags: normalizeTags(source.tags || []),
+    pinned: Boolean(source.pinned),
+    favicon: String(source.favicon || "").trim()
+  };
+}
+
+function normalizeReminder(rawReminder, nowTs = Date.now()) {
+  const source = rawReminder && typeof rawReminder === "object" ? rawReminder : {};
+  const type = source.type === "next_visit" ? "next_visit" : "time";
+  const when = Number(source.when || 0);
+
+  return {
+    id: String(source.id || createCoreId("rem")),
+    itemId: String(source.itemId || ""),
+    type,
+    when: Number.isFinite(when) ? when : 0,
+    match: {
+      domain: String(source?.match?.domain || "").trim().toLowerCase(),
+      url: String(source?.match?.url || "").trim()
+    },
+    createdAt: Number(source.createdAt || nowTs),
+    firedAt: Number(source.firedAt || 0)
+  };
+}
+
+function normalizeSessionBundle(rawSession, nowTs = Date.now()) {
+  const source = rawSession && typeof rawSession === "object" ? rawSession : {};
+  const tabs = Array.isArray(source.tabs)
+    ? source.tabs
+        .map((tab) => ({
+          title: String(tab?.title || tab?.url || "Untitled").trim().slice(0, 300),
+          url: String(tab?.url || "").trim()
+        }))
+        .filter((tab) => tab.url)
+    : [];
+
+  return {
+    id: String(source.id || createCoreId("ses")),
+    name: String(source.name || "Session").trim().slice(0, 120) || "Session",
+    createdAt: Number(source.createdAt || nowTs),
+    tabs: tabs.slice(0, 300)
+  };
+}
+
+function normalizeCoreState(rawCore) {
+  const source = rawCore && typeof rawCore === "object" ? rawCore : {};
+  const nowTs = Date.now();
+  const items = Array.isArray(source.items) ? source.items.map((item) => normalizeSavedItem(item, nowTs)).filter((item) => item.url) : [];
+  const reminders = Array.isArray(source.reminders) ? source.reminders.map((reminder) => normalizeReminder(reminder, nowTs)).filter((rem) => rem.itemId) : [];
+  const sessions = Array.isArray(source.sessions) ? source.sessions.map((session) => normalizeSessionBundle(session, nowTs)).filter((session) => session.tabs.length) : [];
+  const resumeQueue = Array.isArray(source.resumeQueue)
+    ? source.resumeQueue.map((id) => String(id || "")).filter(Boolean)
+    : [];
+
+  return {
+    schemaVersion: CORE_SCHEMA_VERSION,
+    premium: {
+      licenseKey: String(source?.premium?.licenseKey || "").trim().toUpperCase(),
+      status: String(source?.premium?.status || "invalid"),
+      planKey: String(source?.premium?.planKey || ""),
+      statusText: String(source?.premium?.statusText || ""),
+      lastValidatedAt: Number(source?.premium?.lastValidatedAt || 0),
+      nextCheckAt: Number(source?.premium?.nextCheckAt || 0)
+    },
+    items: items.slice(0, CORE_MAX_ITEMS).sort((a, b) => Number(b.createdAt) - Number(a.createdAt)),
+    reminders,
+    sessions: sessions.slice(0, CORE_MAX_SESSIONS).sort((a, b) => Number(b.createdAt) - Number(a.createdAt)),
+    resumeQueue: [...new Set(resumeQueue)].slice(0, CORE_RESUME_LIMIT)
+  };
+}
+
+async function getCoreState() {
+  const data = await storageGet(STORAGE.core);
+  const normalized = normalizeCoreState(data[STORAGE.core] || {});
+  if (!data[STORAGE.core] || Number(data[STORAGE.core]?.schemaVersion || 0) !== CORE_SCHEMA_VERSION) {
+    await storageSet({ [STORAGE.core]: normalized });
+  }
+  return normalized;
+}
+
+async function writeCoreState(nextState) {
+  const normalized = normalizeCoreState(nextState || {});
+  await storageSet({ [STORAGE.core]: normalized });
+  return normalized;
+}
+
+function premiumSnapshot(settings, entitlement) {
+  const access = entitlementAccess(settings, entitlement);
+  return {
+    status: access.status,
+    premiumActive: Boolean(access.everythingElse),
+    freeActive: true,
+    lockReason: access.everythingElse ? "" : "UNLOCK_PREMIUM",
+    trialing: Boolean(access.trialing),
+    plan: entitlement?.plan || "free",
+    renewsAt: entitlement?.renewsAt || null,
+    trialEndsAt: entitlement?.trialEndsAt || null
+  };
+}
+
+function normalizeCoreLink(url, title = "") {
+  return {
+    title: String(title || url || "Untitled").trim() || "Untitled",
+    url: String(url || "").trim()
+  };
+}
+
+async function rescheduleCoreReminders(coreState) {
+  const alarms = await alarmsGetAll();
+  await Promise.all(
+    alarms
+      .filter((alarm) => String(alarm.name || "").startsWith(CORE_REMINDER_ALARM_PREFIX))
+      .map((alarm) => alarmsClear(alarm.name))
+  );
+
+  const nowTs = Date.now();
+  coreState.reminders.forEach((reminder) => {
+    if (reminder.type !== "time" || reminder.firedAt || !Number(reminder.when)) {
+      return;
+    }
+
+    if (Number(reminder.when) <= nowTs) {
+      return;
+    }
+
+    chrome.alarms.create(coreReminderAlarmName(reminder.id), {
+      when: Number(reminder.when)
+    });
+  });
+}
+
+async function coreSaveCurrentTab(payload = {}) {
+  const [settings, entitlement, core, tabs] = await Promise.all([
+    getSettings(),
+    getEntitlement(),
+    getCoreState(),
+    tabsQuery({ active: true, currentWindow: true })
+  ]);
+
+  const activeTab = tabs.find((tab) => isValidTabId(tab?.id));
+  if (!activeTab?.url || !isHttpUrl(activeTab.url)) {
+    return { ok: false, error: "NO_ACTIVE_HTTP_TAB" };
+  }
+
+  const snapshot = premiumSnapshot(settings, entitlement);
+  const nowTs = Date.now();
+  const normalizedUrl = String(activeTab.url || "").trim();
+  const existing = core.items.find((item) => item.url === normalizedUrl);
+  const requestedTags = normalizeTags(payload.tags || []);
+  const allowPremiumMeta = snapshot.premiumActive;
+  const finalTags = allowPremiumMeta
+    ? (requestedTags.length ? requestedTags : suggestedTagsForDomain(normalizeDomainFromUrl(normalizedUrl)))
+    : [];
+
+  if (existing) {
+    existing.title = String(activeTab.title || existing.title || normalizedUrl).trim().slice(0, 300);
+    existing.domain = normalizeDomainFromUrl(normalizedUrl);
+    existing.createdAt = nowTs;
+    existing.favicon = String(activeTab.favIconUrl || existing.favicon || "").trim();
+    existing.note = String(payload.note ?? existing.note ?? "").slice(0, 2000);
+    if (allowPremiumMeta) {
+      existing.tags = finalTags;
+    }
+  } else {
+    core.items.unshift(
+      normalizeSavedItem({
+        id: createCoreId("itm"),
+        url: normalizedUrl,
+        title: String(activeTab.title || normalizedUrl).trim(),
+        domain: normalizeDomainFromUrl(normalizedUrl),
+        createdAt: nowTs,
+        note: String(payload.note || ""),
+        tags: finalTags,
+        pinned: false,
+        favicon: String(activeTab.favIconUrl || "").trim()
+      }, nowTs)
+    );
+  }
+
+  core.items = core.items.slice(0, CORE_MAX_ITEMS).sort((a, b) => Number(b.createdAt) - Number(a.createdAt));
+  const saved = await writeCoreState(core);
+  return {
+    ok: true,
+    savedItem: saved.items[0],
+    core: saved,
+    premium: snapshot
+  };
+}
+
+async function coreUndoSave(itemId) {
+  const core = await getCoreState();
+  const before = core.items.length;
+  core.items = core.items.filter((item) => item.id !== String(itemId || ""));
+  if (core.items.length === before) {
+    return { ok: false, error: "ITEM_NOT_FOUND" };
+  }
+  core.reminders = core.reminders.filter((rem) => rem.itemId !== String(itemId || ""));
+  core.resumeQueue = core.resumeQueue.filter((id) => id !== String(itemId || ""));
+  const saved = await writeCoreState(core);
+  await rescheduleCoreReminders(saved);
+  return { ok: true, core: saved };
+}
+
+async function coreUpdateItem(payload = {}) {
+  const [settings, entitlement, core] = await Promise.all([getSettings(), getEntitlement(), getCoreState()]);
+  const snapshot = premiumSnapshot(settings, entitlement);
+  const itemId = String(payload.itemId || "").trim();
+  const item = core.items.find((entry) => entry.id === itemId);
+  if (!item) {
+    return { ok: false, error: "ITEM_NOT_FOUND" };
+  }
+
+  if (Object.prototype.hasOwnProperty.call(payload, "note")) {
+    item.note = String(payload.note || "").slice(0, 2000);
+  }
+  if (Object.prototype.hasOwnProperty.call(payload, "pinned")) {
+    item.pinned = Boolean(payload.pinned);
+  }
+  if (Object.prototype.hasOwnProperty.call(payload, "tags") && snapshot.premiumActive) {
+    item.tags = normalizeTags(payload.tags || []);
+  }
+
+  const saved = await writeCoreState(core);
+  return { ok: true, core: saved, item, premium: snapshot };
+}
+
+async function coreRemoveItem(itemId) {
+  const core = await getCoreState();
+  const id = String(itemId || "").trim();
+  const before = core.items.length;
+  core.items = core.items.filter((item) => item.id !== id);
+  if (core.items.length === before) {
+    return { ok: false, error: "ITEM_NOT_FOUND" };
+  }
+  core.reminders = core.reminders.filter((rem) => rem.itemId !== id);
+  core.resumeQueue = core.resumeQueue.filter((queueId) => queueId !== id);
+  const saved = await writeCoreState(core);
+  await rescheduleCoreReminders(saved);
+  return { ok: true, core: saved };
+}
+
+function reminderMatchesUrl(reminder, url) {
+  if (!reminder || reminder.type !== "next_visit" || reminder.firedAt) {
+    return false;
+  }
+  const safeUrl = String(url || "").trim();
+  if (!safeUrl) {
+    return false;
+  }
+  const domain = normalizeDomainFromUrl(safeUrl);
+  const matchDomain = String(reminder.match?.domain || "").trim().toLowerCase();
+  const matchUrl = String(reminder.match?.url || "").trim();
+  if (matchUrl) {
+    return safeUrl === matchUrl;
+  }
+  if (matchDomain) {
+    return domain === matchDomain;
+  }
+  return false;
+}
+
+async function coreSetReminder(payload = {}) {
+  const [settings, entitlement, core] = await Promise.all([getSettings(), getEntitlement(), getCoreState()]);
+  const snapshot = premiumSnapshot(settings, entitlement);
+  if (!snapshot.premiumActive) {
+    return { ok: false, error: "PREMIUM_REQUIRED", premium: snapshot };
+  }
+
+  const itemId = String(payload.itemId || "").trim();
+  const item = core.items.find((entry) => entry.id === itemId);
+  if (!item) {
+    return { ok: false, error: "ITEM_NOT_FOUND" };
+  }
+
+  const reminderType = payload.type === "next_visit" ? "next_visit" : "time";
+  const reminder = normalizeReminder({
+    id: createCoreId("rem"),
+    itemId,
+    type: reminderType,
+    when: reminderType === "time" ? Number(payload.when || 0) : 0,
+    match: reminderType === "next_visit"
+      ? {
+          domain: payload.match?.domain ? String(payload.match.domain).trim().toLowerCase() : item.domain,
+          url: payload.match?.url ? String(payload.match.url).trim() : ""
+        }
+      : {}
+  });
+
+  if (reminderType === "time" && (!Number(reminder.when) || reminder.when <= Date.now())) {
+    return { ok: false, error: "INVALID_REMINDER_TIME" };
+  }
+
+  core.reminders = core.reminders.filter((entry) => entry.itemId !== itemId);
+  core.reminders.unshift(reminder);
+  const saved = await writeCoreState(core);
+  await rescheduleCoreReminders(saved);
+  return { ok: true, core: saved, reminder, premium: snapshot };
+}
+
+async function coreClearReminder(reminderId) {
+  const core = await getCoreState();
+  const id = String(reminderId || "").trim();
+  const before = core.reminders.length;
+  core.reminders = core.reminders.filter((entry) => entry.id !== id);
+  if (core.reminders.length === before) {
+    return { ok: false, error: "REMINDER_NOT_FOUND" };
+  }
+  const saved = await writeCoreState(core);
+  await alarmsClear(coreReminderAlarmName(id));
+  await notificationsClear(coreReminderNotificationId(id));
+  return { ok: true, core: saved };
+}
+
+async function triggerCoreReminder(reminderId, reason = "time") {
+  const core = await getCoreState();
+  const reminder = core.reminders.find((entry) => entry.id === String(reminderId || ""));
+  if (!reminder || reminder.firedAt) {
+    return { ok: false, error: "REMINDER_NOT_FOUND" };
+  }
+
+  const item = core.items.find((entry) => entry.id === reminder.itemId);
+  if (!item) {
+    return { ok: false, error: "ITEM_NOT_FOUND" };
+  }
+
+  const body = reason === "next_visit"
+    ? `You asked to follow up when returning: ${item.domain || item.url}`
+    : `Follow up: ${item.title}`;
+
+  await notificationsCreate(coreReminderNotificationId(reminder.id), {
+    type: "basic",
+    iconUrl: NOTIFICATION_ICON,
+    title: "holmeta reminder",
+    message: body
+  });
+
+  reminder.firedAt = Date.now();
+  const saved = await writeCoreState(core);
+  await alarmsClear(coreReminderAlarmName(reminder.id));
+  return { ok: true, core: saved, reminder };
+}
+
+async function handleCoreNextVisit(url) {
+  if (!isHttpUrl(url)) {
+    return;
+  }
+  const core = await getCoreState();
+  const matches = core.reminders.filter((reminder) => reminderMatchesUrl(reminder, url));
+  if (!matches.length) {
+    return;
+  }
+  for (const reminder of matches) {
+    await triggerCoreReminder(reminder.id, "next_visit");
+  }
+}
+
+async function coreSaveSession(payload = {}) {
+  const [settings, entitlement, core, tabs] = await Promise.all([
+    getSettings(),
+    getEntitlement(),
+    getCoreState(),
+    tabsQuery({ currentWindow: true })
+  ]);
+  const snapshot = premiumSnapshot(settings, entitlement);
+  if (!snapshot.premiumActive) {
+    return { ok: false, error: "PREMIUM_REQUIRED", premium: snapshot };
+  }
+
+  const cleanTabs = tabs
+    .filter((tab) => String(tab?.url || "").trim())
+    .map((tab) => normalizeCoreLink(tab.url, tab.title));
+  if (!cleanTabs.length) {
+    return { ok: false, error: "NO_TABS_IN_WINDOW" };
+  }
+
+  const defaultName = `Session — ${new Date().toLocaleString([], { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}`;
+  const bundle = normalizeSessionBundle({
+    id: createCoreId("ses"),
+    name: String(payload.name || defaultName),
+    createdAt: Date.now(),
+    tabs: cleanTabs
+  });
+  core.sessions.unshift(bundle);
+  core.sessions = core.sessions.slice(0, CORE_MAX_SESSIONS);
+  const saved = await writeCoreState(core);
+  return { ok: true, core: saved, session: bundle, premium: snapshot };
+}
+
+async function coreOpenSession(sessionId) {
+  const core = await getCoreState();
+  const session = core.sessions.find((entry) => entry.id === String(sessionId || ""));
+  if (!session) {
+    return { ok: false, error: "SESSION_NOT_FOUND" };
+  }
+
+  for (const tab of session.tabs) {
+    if (!tab.url) {
+      continue;
+    }
+    chrome.tabs.create({ url: tab.url });
+  }
+  return { ok: true, session };
+}
+
+async function coreDeleteSession(sessionId) {
+  const core = await getCoreState();
+  const before = core.sessions.length;
+  core.sessions = core.sessions.filter((entry) => entry.id !== String(sessionId || ""));
+  if (core.sessions.length === before) {
+    return { ok: false, error: "SESSION_NOT_FOUND" };
+  }
+  const saved = await writeCoreState(core);
+  return { ok: true, core: saved };
+}
+
+async function coreResumeAction(payload = {}) {
+  const [settings, entitlement, core] = await Promise.all([getSettings(), getEntitlement(), getCoreState()]);
+  const snapshot = premiumSnapshot(settings, entitlement);
+  if (!snapshot.premiumActive) {
+    return { ok: false, error: "PREMIUM_REQUIRED", premium: snapshot };
+  }
+
+  const action = String(payload.action || "add").trim();
+  const itemId = String(payload.itemId || "").trim();
+
+  if (action === "clear") {
+    core.resumeQueue = [];
+    const saved = await writeCoreState(core);
+    return { ok: true, core: saved, premium: snapshot };
+  }
+
+  if (action === "open_next") {
+    const nextId = core.resumeQueue[0];
+    if (!nextId) {
+      return { ok: false, error: "RESUME_QUEUE_EMPTY", premium: snapshot };
+    }
+    const item = core.items.find((entry) => entry.id === nextId);
+    if (item?.url) {
+      chrome.tabs.create({ url: item.url });
+    }
+    core.resumeQueue = core.resumeQueue.filter((id) => id !== nextId);
+    const saved = await writeCoreState(core);
+    return { ok: true, core: saved, openedItemId: nextId, premium: snapshot };
+  }
+
+  if (!itemId || !core.items.some((entry) => entry.id === itemId)) {
+    return { ok: false, error: "ITEM_NOT_FOUND", premium: snapshot };
+  }
+
+  if (action === "remove") {
+    core.resumeQueue = core.resumeQueue.filter((id) => id !== itemId);
+    const saved = await writeCoreState(core);
+    return { ok: true, core: saved, premium: snapshot };
+  }
+
+  core.resumeQueue = [itemId, ...core.resumeQueue.filter((id) => id !== itemId)].slice(0, CORE_RESUME_LIMIT);
+  const saved = await writeCoreState(core);
+  return { ok: true, core: saved, premium: snapshot };
+}
+
+async function coreOpenItem(itemId) {
+  const core = await getCoreState();
+  const item = core.items.find((entry) => entry.id === String(itemId || ""));
+  if (!item?.url) {
+    return { ok: false, error: "ITEM_NOT_FOUND" };
+  }
+  chrome.tabs.create({ url: item.url });
+  return { ok: true, item };
+}
+
+async function coreGetState() {
+  const [settings, entitlement, core] = await Promise.all([getSettings(), getEntitlement(), getCoreState()]);
+  const snapshot = premiumSnapshot(settings, entitlement);
+  core.premium = {
+    licenseKey: String(settings.licenseKey || "").trim().toUpperCase(),
+    status: snapshot.premiumActive ? "valid" : "invalid",
+    planKey: snapshot.plan,
+    statusText: snapshot.premiumActive ? "PREMIUM ACTIVE" : "FREE MODE",
+    lastValidatedAt: Date.now(),
+    nextCheckAt: Date.now() + 24 * 60 * 60 * 1000
+  };
+  await writeCoreState(core);
+
+  return {
+    ok: true,
+    core,
+    premium: snapshot
+  };
+}
+
 function normalizeLockInTime(rawTime, fallback = "09:00") {
   const safe = String(rawTime || "").trim();
   if (/^([01]\d|2[0-3]):([0-5]\d)$/.test(safe)) {
@@ -787,6 +1356,13 @@ function parseLockInItemIdFromNotification(notificationId) {
     return "";
   }
   return String(notificationId).slice(LOCKIN_NOTIFICATION_PREFIX.length);
+}
+
+function parseCoreReminderIdFromNotification(notificationId) {
+  if (!String(notificationId || "").startsWith(CORE_REMINDER_NOTIFICATION_PREFIX)) {
+    return "";
+  }
+  return String(notificationId).slice(CORE_REMINDER_NOTIFICATION_PREFIX.length);
 }
 
 function lockInDueTs(item, date = new Date()) {
@@ -2330,11 +2906,13 @@ configureSidePanelDefaults("service-worker-load").catch(() => {});
 
 async function runBootstrap() {
   const settings = await getSettings();
+  const core = await getCoreState();
   await scheduleInfrastructureAlarms(settings);
   await refreshEntitlement(settings, true);
   await configureSidePanelDefaults("bootstrap");
   const runtime = await getRuntime();
   const lockIn = await getLockIn();
+  await rescheduleCoreReminders(core);
   await setPersistentBlockerRules(settings);
   await scheduleCadence(settings, runtime, "bootstrap");
   await scheduleLockIn(lockIn, "bootstrap");
@@ -2374,6 +2952,11 @@ chrome.commands?.onCommand?.addListener(async (command) => {
     if (command === "decrease-intensity") {
       const next = await adjustGlobalIntensity(-0.05);
       await broadcastFilter(next);
+      return;
+    }
+
+    if (command === "save_current_tab") {
+      await coreSaveCurrentTab({});
     }
   } catch (_) {
     // no-op
@@ -2387,6 +2970,14 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
     const reminderType = alarm.name.replace(REMINDER_ALARM_PREFIX, "");
     if (HC.REMINDER_TYPES.includes(reminderType)) {
       await triggerReminder(reminderType);
+    }
+    return;
+  }
+
+  if (alarm.name.startsWith(CORE_REMINDER_ALARM_PREFIX)) {
+    const reminderId = String(alarm.name || "").replace(CORE_REMINDER_ALARM_PREFIX, "");
+    if (reminderId) {
+      await triggerCoreReminder(reminderId, "time");
     }
     return;
   }
@@ -2424,6 +3015,12 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
 });
 
 chrome.notifications.onButtonClicked.addListener(async (notificationId, buttonIndex) => {
+  const coreReminderId = parseCoreReminderIdFromNotification(notificationId);
+  if (coreReminderId) {
+    await notificationsClear(notificationId);
+    return;
+  }
+
   const itemId = parseLockInItemIdFromNotification(notificationId);
   if (!itemId) {
     return;
@@ -2442,6 +3039,18 @@ chrome.notifications.onButtonClicked.addListener(async (notificationId, buttonIn
 });
 
 chrome.notifications.onClicked.addListener(async (notificationId) => {
+  const coreReminderId = parseCoreReminderIdFromNotification(notificationId);
+  if (coreReminderId) {
+    const core = await getCoreState();
+    const reminder = core.reminders.find((entry) => entry.id === coreReminderId);
+    const item = reminder ? core.items.find((entry) => entry.id === reminder.itemId) : null;
+    if (item?.url) {
+      chrome.tabs.create({ url: item.url });
+    }
+    await notificationsClear(notificationId);
+    return;
+  }
+
   const itemId = parseLockInItemIdFromNotification(notificationId);
   if (!itemId) {
     return;
@@ -2469,11 +3078,26 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
   await disableSidePanelForTab(tabId);
 
   if (tab?.url && isHttpUrl(tab.url)) {
+    await handleCoreNextVisit(tab.url);
     await sendStateToTab(tabId);
     const settings = await getSettings();
     const runtime = await getRuntime();
     await updateActionBadge(settings, runtime);
   }
+});
+
+chrome.webNavigation?.onCompleted?.addListener(async (details) => {
+  if (details?.frameId !== 0) {
+    return;
+  }
+
+  if (!details?.url || !isHttpUrl(details.url)) {
+    return;
+  }
+
+  await handleCoreNextVisit(details.url);
+}, {
+  url: [{ schemes: ["http", "https"] }]
 });
 
 chrome.tabs.onCreated.addListener(async (tab) => {
@@ -2539,6 +3163,78 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           effectiveDomains
         }
       });
+      return;
+    }
+
+    if (message.type === "holmeta-core-get-state") {
+      const response = await coreGetState();
+      sendResponse(response);
+      return;
+    }
+
+    if (message.type === "holmeta-core-save-current-tab") {
+      const response = await coreSaveCurrentTab(message.payload || {});
+      sendResponse(response);
+      return;
+    }
+
+    if (message.type === "holmeta-core-undo-save") {
+      const response = await coreUndoSave(message.itemId);
+      sendResponse(response);
+      return;
+    }
+
+    if (message.type === "holmeta-core-open-item") {
+      const response = await coreOpenItem(message.itemId);
+      sendResponse(response);
+      return;
+    }
+
+    if (message.type === "holmeta-core-update-item") {
+      const response = await coreUpdateItem(message.payload || {});
+      sendResponse(response);
+      return;
+    }
+
+    if (message.type === "holmeta-core-remove-item") {
+      const response = await coreRemoveItem(message.itemId);
+      sendResponse(response);
+      return;
+    }
+
+    if (message.type === "holmeta-core-set-reminder") {
+      const response = await coreSetReminder(message.payload || {});
+      sendResponse(response);
+      return;
+    }
+
+    if (message.type === "holmeta-core-clear-reminder") {
+      const response = await coreClearReminder(message.reminderId);
+      sendResponse(response);
+      return;
+    }
+
+    if (message.type === "holmeta-core-save-session") {
+      const response = await coreSaveSession(message.payload || {});
+      sendResponse(response);
+      return;
+    }
+
+    if (message.type === "holmeta-core-open-session") {
+      const response = await coreOpenSession(message.sessionId);
+      sendResponse(response);
+      return;
+    }
+
+    if (message.type === "holmeta-core-delete-session") {
+      const response = await coreDeleteSession(message.sessionId);
+      sendResponse(response);
+      return;
+    }
+
+    if (message.type === "holmeta-core-resume-action") {
+      const response = await coreResumeAction(message.payload || {});
+      sendResponse(response);
       return;
     }
 
