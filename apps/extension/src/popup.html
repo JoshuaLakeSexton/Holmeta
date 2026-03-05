@@ -33,6 +33,11 @@
             <input id="saveSnapshotToggle" type="checkbox" data-premium />
             CAPTURE PAGE PREVIEW
           </label>
+          <label for="snapshotModeSelect" class="meta-label">PREVIEW MODE</label>
+          <select id="snapshotModeSelect" class="select" data-premium>
+            <option value="full">FULL PAGE SNAP</option>
+            <option value="focus">FOCUS CROP</option>
+          </select>
           <div class="button-grid two">
             <button id="saveWindowGroup" class="secondary" data-premium>SAVE WINDOW AS GROUP</button>
             <button id="workflowAddCurrent" class="secondary" data-premium>ADD TO DAILY WORKFLOW</button>
@@ -337,8 +342,10 @@
         </select>
         <div class="button-grid two">
           <button id="openBoard" class="secondary" data-premium>OPEN BOARD</button>
+          <button id="openNextBoard" class="secondary" data-premium>OPEN NEXT</button>
           <button id="saveBoardSession" class="secondary" data-premium>SAVE AS SESSION</button>
           <button id="copyBoardPack" class="secondary" data-premium>COPY BOARD PACK</button>
+          <button id="resetBoardProgress" class="secondary" data-premium>RESET BOARD ORDER</button>
         </div>
         <ul id="boardPreviewList" class="mini-list"></ul>
         <ul id="sessionList" class="mini-list"></ul>

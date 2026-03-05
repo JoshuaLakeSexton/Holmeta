@@ -16,6 +16,7 @@
     saveTags: "",
     groupName: "",
     saveSnapshot: false,
+    snapshotMode: "full",
     focusDomains: "",
     licenseKey: "",
     customReminderAt: "",
@@ -115,6 +116,7 @@
       saveTags: String(source.saveTags || ""),
       groupName: String(source.groupName || ""),
       saveSnapshot: Boolean(source.saveSnapshot),
+      snapshotMode: String(source.snapshotMode || "full") === "focus" ? "focus" : "full",
       focusDomains: String(source.focusDomains || source.domainsDraft || ""),
       // Preserve in-progress typing/paste exactly as entered.
       licenseKey: String(source.licenseKey || ""),
@@ -141,6 +143,7 @@
         saveTags: uiState.saveTags || "",
         groupName: uiState.groupName || "",
         saveSnapshot: Boolean(uiState.saveSnapshot),
+        snapshotMode: uiState.snapshotMode || "full",
         focusDomains: uiState.domainsDraft || "",
         licenseKey: uiState.licenseKeyDraft || "",
         customReminderAt: uiState.customReminderAt || "",
@@ -177,6 +180,7 @@
         saveTags: normalized.saveTags,
         groupName: normalized.groupName,
         saveSnapshot: normalized.saveSnapshot,
+        snapshotMode: normalized.snapshotMode,
         domainsDraft: normalized.focusDomains,
         licenseKeyDraft: normalized.licenseKey,
         customReminderAt: normalized.customReminderAt,
@@ -575,6 +579,7 @@
         </div>
         <div class="item-inline-actions">
           <button type="button" class="secondary" data-board-preview-action="open" data-mode="${entry.mode}" data-value="${encodeURIComponent(String(entry.value || ""))}">OPEN</button>
+          <button type="button" class="secondary" data-board-preview-action="next" data-mode="${entry.mode}" data-value="${encodeURIComponent(String(entry.value || ""))}">NEXT</button>
           <button type="button" class="secondary" data-board-preview-action="copy" data-mode="${entry.mode}" data-value="${encodeURIComponent(String(entry.value || ""))}">COPY</button>
         </div>
       </li>
@@ -776,6 +781,12 @@
       const preview = item.previewDataUrl
         ? `<img class="item-preview" src="${escapeHtml(item.previewDataUrl)}" alt="Saved preview" />`
         : "";
+      const newPill = Number(item.lastOpenedAt || 0) > 0
+        ? ""
+        : '<span class="pill lock">NEW</span>';
+      const previewPill = item.previewDataUrl
+        ? `<span class="pill">PREVIEW · ${(item.previewMode || "full").toUpperCase()}</span>`
+        : "";
 
       return `
         <li class="item-card" data-item-id="${item.id}">
@@ -800,11 +811,13 @@
           </div>
           <div class="tag-list">
             ${item.pinned ? '<span class="pill">PINNED</span>' : ""}
+            ${newPill}
             ${groupPill}
             ${contextPill}
             ${debugPill}
             ${decisionPill}
             ${visualPill}
+            ${previewPill}
             ${reminderPill}
             ${tags.map((tag) => `<span class="tag">${escapeHtml(tag)}</span>`).join("")}
           </div>
@@ -920,6 +933,11 @@
     const saveSnapshotToggle = $("saveSnapshotToggle");
     if (saveSnapshotToggle instanceof HTMLInputElement) {
       saveSnapshotToggle.checked = Boolean(state.drafts.saveSnapshot);
+    }
+    const snapshotModeSelect = $("snapshotModeSelect");
+    if (snapshotModeSelect instanceof HTMLSelectElement) {
+      snapshotModeSelect.value = String(state.drafts.snapshotMode || "full");
+      snapshotModeSelect.disabled = !Boolean(state.drafts.saveSnapshot);
     }
 
     const groupFilter = $("groupFilter");
@@ -1583,6 +1601,19 @@
         return;
       }
       state.drafts.saveSnapshot = Boolean(target.checked);
+      const snapshotModeSelect = $("snapshotModeSelect");
+      if (snapshotModeSelect instanceof HTMLSelectElement) {
+        snapshotModeSelect.disabled = !state.drafts.saveSnapshot;
+      }
+      queueDraftPersist();
+    });
+
+    $("snapshotModeSelect")?.addEventListener("change", (event) => {
+      const target = event.target;
+      if (!(target instanceof HTMLSelectElement)) {
+        return;
+      }
+      state.drafts.snapshotMode = String(target.value || "full") === "focus" ? "focus" : "full";
       queueDraftPersist();
     });
 
@@ -1903,7 +1934,8 @@
         note: String(state.drafts.saveNote || ""),
         tags: parsedTags,
         groupName,
-        captureSnapshot: Boolean(state.drafts.saveSnapshot)
+        captureSnapshot: Boolean(state.drafts.saveSnapshot),
+        previewMode: String(state.drafts.snapshotMode || "full")
       };
       const response = await send({ type: "holmeta-core-save-current-tab", payload });
       if (!response?.ok) {
@@ -2195,6 +2227,50 @@
       await copyBoardPack();
     });
 
+    $("openNextBoard")?.addEventListener("click", async () => {
+      const { mode, value } = boardPayload();
+      if (mode !== "debug" && !value) {
+        setSaveFeedback("STATUS: BOARD SOURCE REQUIRED", true);
+        return;
+      }
+      const response = await send({
+        type: "holmeta-core-board-action",
+        payload: {
+          action: "open_next",
+          mode,
+          value
+        }
+      });
+      if (!response?.ok) {
+        setSaveFeedback("STATUS: BOARD NEXT FAILED", true);
+        return;
+      }
+      setSaveFeedback(`STATUS: OPENED NEXT (${Number(response.currentIndex || 0) + 1})`);
+      await refreshState();
+    });
+
+    $("resetBoardProgress")?.addEventListener("click", async () => {
+      const { mode, value } = boardPayload();
+      if (mode !== "debug" && !value) {
+        setSaveFeedback("STATUS: BOARD SOURCE REQUIRED", true);
+        return;
+      }
+      const response = await send({
+        type: "holmeta-core-board-action",
+        payload: {
+          action: "reset_progress",
+          mode,
+          value
+        }
+      });
+      if (!response?.ok) {
+        setSaveFeedback("STATUS: BOARD RESET FAILED", true);
+        return;
+      }
+      setSaveFeedback("STATUS: BOARD ORDER RESET");
+      await refreshState();
+    });
+
     $("workboardList")?.addEventListener("click", async (event) => {
       const target = event.target;
       const button = target instanceof HTMLElement ? target.closest("button[data-item-action]") : null;
@@ -2457,6 +2533,24 @@
           return;
         }
         setSaveFeedback(`STATUS: OPENED ${Number(response.opened || 0)} BOARD TAB(S)`);
+        return;
+      }
+
+      if (action === "next") {
+        const response = await send({
+          type: "holmeta-core-board-action",
+          payload: {
+            action: "open_next",
+            mode,
+            value
+          }
+        });
+        if (!response?.ok) {
+          setSaveFeedback("STATUS: BOARD NEXT FAILED", true);
+          return;
+        }
+        setSaveFeedback(`STATUS: OPENED NEXT (${Number(response.currentIndex || 0) + 1})`);
+        await refreshState();
         return;
       }
 

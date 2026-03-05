@@ -11,6 +11,7 @@
 ## 2) Quick Save (Primary)
 - Open any HTTP/HTTPS tab.
 - Enable `CAPTURE PAGE PREVIEW` (premium) and save.
+- Switch preview mode (`FULL PAGE SNAP` / `FOCUS CROP`) and verify each mode saves.
 - Click `SAVE THIS TAB`.
 - Confirm `SAVED ✓` appears.
 - Confirm preview thumbnail appears on the saved card (when capture enabled).
@@ -64,9 +65,11 @@
   - Client dossier
   - Debug trail
 - `OPEN BOARD` opens tabs for the selected source.
+- `OPEN NEXT` rotates through the board one page at a time.
+- `RESET BOARD ORDER` resets progression.
 - `SAVE AS SESSION` creates a session entry.
 - `COPY BOARD PACK` copies markdown links for that board.
-- Board preview list renders top boards with one-click open/copy.
+- Board preview list renders top boards with one-click open/next/copy.
 
 ## 7) Light Controls (Premium)
 - Open `LIGHT` drawer.

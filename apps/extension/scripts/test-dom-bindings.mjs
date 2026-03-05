@@ -37,6 +37,7 @@ async function main() {
     "saveCurrentTab",
     "saveNoteInput",
     "saveSnapshotToggle",
+    "snapshotModeSelect",
     "searchInput",
     "workboardList",
     "contextFilter",
@@ -49,6 +50,8 @@ async function main() {
     "boardMode",
     "boardValue",
     "openBoard",
+    "openNextBoard",
+    "resetBoardProgress",
     "boardPreviewList"
   ]);
 

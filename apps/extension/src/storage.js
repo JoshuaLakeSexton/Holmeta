@@ -14,6 +14,7 @@
     saveTags: "",
     groupName: "",
     saveSnapshot: false,
+    snapshotMode: "full",
     licenseKeyDraft: "",
     checkoutSessionDraft: "",
     domainsDraft: "",
@@ -41,6 +42,7 @@
       saveTags: String(source.saveTags || ""),
       groupName: String(source.groupName || ""),
       saveSnapshot: Boolean(source.saveSnapshot),
+      snapshotMode: String(source.snapshotMode || "full") === "focus" ? "focus" : "full",
       // Keep raw draft text untouched while typing; normalize only on activation.
       licenseKeyDraft: String(source.licenseKeyDraft || ""),
       checkoutSessionDraft: String(source.checkoutSessionDraft || "").trim(),

@@ -98,7 +98,7 @@ function blobToDataUrl(blob) {
   });
 }
 
-async function compactPreviewDataUrl(inputDataUrl) {
+async function compactPreviewDataUrl(inputDataUrl, mode = "full") {
   const source = String(inputDataUrl || "");
   if (!source) {
     return "";
@@ -112,15 +112,32 @@ async function compactPreviewDataUrl(inputDataUrl) {
     const bitmap = await createImageBitmap(blob);
     const maxWidth = 300;
     const maxHeight = 168;
-    const scale = Math.min(maxWidth / bitmap.width, maxHeight / bitmap.height, 1);
-    const width = Math.max(1, Math.round(bitmap.width * scale));
-    const height = Math.max(1, Math.round(bitmap.height * scale));
+    let sourceX = 0;
+    let sourceY = 0;
+    let sourceWidth = bitmap.width;
+    let sourceHeight = bitmap.height;
+
+    if (mode === "focus") {
+      const targetAspect = 16 / 9;
+      const sourceAspect = bitmap.width / bitmap.height;
+      if (sourceAspect > targetAspect) {
+        sourceWidth = Math.round(bitmap.height * targetAspect);
+        sourceX = Math.max(0, Math.round((bitmap.width - sourceWidth) / 2));
+      } else {
+        sourceHeight = Math.round(bitmap.width / targetAspect);
+        sourceY = Math.max(0, Math.round((bitmap.height - sourceHeight) / 2));
+      }
+    }
+
+    const scale = Math.min(maxWidth / sourceWidth, maxHeight / sourceHeight, 1);
+    const width = Math.max(1, Math.round(sourceWidth * scale));
+    const height = Math.max(1, Math.round(sourceHeight * scale));
     const canvas = new OffscreenCanvas(width, height);
     const ctx = canvas.getContext("2d");
     if (!ctx) {
       return source;
     }
-    ctx.drawImage(bitmap, 0, 0, width, height);
+    ctx.drawImage(bitmap, sourceX, sourceY, sourceWidth, sourceHeight, 0, 0, width, height);
     const compressed = await canvas.convertToBlob({ type: "image/jpeg", quality: 0.58 });
     const compact = await blobToDataUrl(compressed);
     return compact || source;
@@ -129,12 +146,12 @@ async function compactPreviewDataUrl(inputDataUrl) {
   }
 }
 
-async function captureTabPreview(windowId) {
+async function captureTabPreview(windowId, mode = "full") {
   const primary = await tabsCaptureVisible(windowId, { format: "jpeg", quality: 45 });
   if (!primary.ok || !primary.dataUrl) {
     return "";
   }
-  const compact = await compactPreviewDataUrl(primary.dataUrl);
+  const compact = await compactPreviewDataUrl(primary.dataUrl, mode);
   return String(compact || primary.dataUrl || "");
 }
 
@@ -761,9 +778,11 @@ function normalizeSavedItem(rawItem, nowTs = Date.now()) {
     debugTrail: Boolean(source.debugTrail),
     favicon: String(source.favicon || "").trim(),
     previewDataUrl: String(source.previewDataUrl || "").slice(0, 220000),
+    previewMode: String(source.previewMode || "full") === "focus" ? "focus" : "full",
     groupName: String(source.groupName || "").trim().slice(0, 120),
     contextType: String(source.contextType || "general").trim().slice(0, 40) || "general",
-    contextKey: String(source.contextKey || domain || "").trim().slice(0, 180)
+    contextKey: String(source.contextKey || domain || "").trim().slice(0, 180),
+    lastOpenedAt: Number(source.lastOpenedAt || 0)
   };
 }
 
@@ -848,6 +867,21 @@ function normalizeCoreState(rawCore) {
   const dailyWorkflow = Array.isArray(source.dailyWorkflow)
     ? source.dailyWorkflow.map((entry) => normalizeWorkflowEntry(entry, nowTs)).filter((entry) => entry.url)
     : [];
+  const boardProgressSource = source.boardProgress && typeof source.boardProgress === "object"
+    ? source.boardProgress
+    : {};
+  const boardProgress = Object.fromEntries(
+    Object.entries(boardProgressSource)
+      .map(([key, value]) => {
+        const safeKey = String(key || "").trim().slice(0, 180);
+        if (!safeKey) return null;
+        const index = Math.max(0, Number(value?.index || 0));
+        const updatedAt = Number(value?.updatedAt || 0);
+        return [safeKey, { index, updatedAt }];
+      })
+      .filter(Boolean)
+      .slice(0, 200)
+  );
 
   return {
     schemaVersion: CORE_SCHEMA_VERSION,
@@ -866,7 +900,8 @@ function normalizeCoreState(rawCore) {
     snippets: snippets.slice(0, CORE_MAX_SNIPPETS).sort((a, b) => Number(b.createdAt || 0) - Number(a.createdAt || 0)),
     dailyWorkflow: dailyWorkflow
       .slice(0, CORE_MAX_WORKFLOW_ITEMS)
-      .sort((a, b) => Number(b.createdAt || 0) - Number(a.createdAt || 0))
+      .sort((a, b) => Number(b.createdAt || 0) - Number(a.createdAt || 0)),
+    boardProgress
   };
 }
 
@@ -1079,8 +1114,9 @@ async function coreSaveCurrentTab(payload = {}) {
   const requestedTags = normalizeTags(payload.tags || []);
   const groupName = String(payload.groupName || "").trim().slice(0, 120);
   const inferred = inferContextFromUrl(url, activeTab.title || "");
+  const previewMode = String(payload.previewMode || "full") === "focus" ? "focus" : "full";
   const shouldCapturePreview = snapshot.premiumActive && Boolean(payload.captureSnapshot);
-  const previewDataUrl = shouldCapturePreview ? await captureTabPreview(activeTab.windowId) : "";
+  const previewDataUrl = shouldCapturePreview ? await captureTabPreview(activeTab.windowId, previewMode) : "";
   const inferredTags = normalizeTags([...(inferred.tags || []), ...suggestedTagsForDomain(normalizeDomain(url))]);
   const mergedRequested = normalizeTags([
     ...requestedTags,
@@ -1105,6 +1141,7 @@ async function coreSaveCurrentTab(payload = {}) {
     }
     if (previewDataUrl) {
       existing.previewDataUrl = previewDataUrl;
+      existing.previewMode = previewMode;
     }
     existing.groupName = groupName || existing.groupName || "";
     existing.contextType = inferred.type || existing.contextType || "general";
@@ -1122,6 +1159,7 @@ async function coreSaveCurrentTab(payload = {}) {
       pinned: false,
       favicon: String(activeTab.favIconUrl || "").trim(),
       previewDataUrl: previewDataUrl || "",
+      previewMode,
       groupName,
       contextType: inferred.type || "general",
       contextKey: inferred.key || normalizeDomain(url)
@@ -1154,15 +1192,30 @@ async function coreCaptureItemPreview(itemId) {
   if (!activeTab || normalizeHttpUrl(activeTab.url) !== normalizeHttpUrl(item.url)) {
     return { ok: false, error: "OPEN_ITEM_AND_RETRY", premium: snapshot };
   }
-  const previewDataUrl = await captureTabPreview(activeTab.windowId);
+  const previewMode = String(item.previewMode || "full") === "focus" ? "focus" : "full";
+  const previewDataUrl = await captureTabPreview(activeTab.windowId, previewMode);
   if (!previewDataUrl) {
     return { ok: false, error: "CAPTURE_FAILED", premium: snapshot };
   }
   item.previewDataUrl = previewDataUrl;
+  item.previewMode = previewMode;
   core.items = core.items.slice(0, CORE_MAX_ITEMS).sort((a, b) => Number(b.createdAt || 0) - Number(a.createdAt || 0));
   pruneOldPreviews(core.items);
   const saved = await writeCoreState(core);
   return { ok: true, core: saved, item, premium: snapshot };
+}
+
+function boardKey(mode, value) {
+  const safeMode = String(mode || "").trim() || "group";
+  const safeValue = String(value || "").trim() || "__all__";
+  return `${safeMode}:${safeValue}`;
+}
+
+function markItemOpened(core, itemId, ts = Date.now()) {
+  const item = (core.items || []).find((entry) => entry.id === String(itemId || ""));
+  if (item) {
+    item.lastOpenedAt = ts;
+  }
 }
 
 async function coreUndoSave(itemId) {
@@ -1187,7 +1240,9 @@ async function coreOpenItem(itemId) {
     return { ok: false, error: "ITEM_NOT_FOUND" };
   }
   chrome.tabs.create({ url: item.url });
-  return { ok: true, item };
+  markItemOpened(core, item.id, Date.now());
+  const saved = await writeCoreState(core);
+  return { ok: true, item, core: saved };
 }
 
 async function coreUpdateItem(payload = {}) {
@@ -1600,10 +1655,52 @@ async function coreBoardAction(payload = {}) {
 
   if (action === "open") {
     const uniqueUrls = [...new Set(boardItems.map((item) => item.url).filter(Boolean))];
+    const nowTs = Date.now();
     for (const url of uniqueUrls) {
       chrome.tabs.create({ url });
     }
-    return { ok: true, opened: uniqueUrls.length, premium: snapshot };
+    boardItems.forEach((item) => markItemOpened(core, item.id, nowTs));
+    const saved = await writeCoreState(core);
+    return { ok: true, opened: uniqueUrls.length, premium: snapshot, core: saved };
+  }
+
+  if (action === "open_next") {
+    const safeItems = [...boardItems].sort((a, b) => {
+      const aOpened = Number(a.lastOpenedAt || 0);
+      const bOpened = Number(b.lastOpenedAt || 0);
+      if (aOpened !== bOpened) {
+        return aOpened - bOpened;
+      }
+      return Number(b.createdAt || 0) - Number(a.createdAt || 0);
+    });
+    const key = boardKey(mode, value);
+    const progress = core.boardProgress?.[key] || { index: 0, updatedAt: 0 };
+    const index = Math.max(0, Number(progress.index || 0)) % safeItems.length;
+    const nextItem = safeItems[index] || safeItems[0];
+    if (!nextItem?.url) {
+      return { ok: false, error: "BOARD_EMPTY", premium: snapshot };
+    }
+    chrome.tabs.create({ url: nextItem.url });
+    const nextIndex = (index + 1) % safeItems.length;
+    core.boardProgress = {
+      ...(core.boardProgress || {}),
+      [key]: {
+        index: nextIndex,
+        updatedAt: Date.now()
+      }
+    };
+    markItemOpened(core, nextItem.id, Date.now());
+    const saved = await writeCoreState(core);
+    return { ok: true, opened: 1, currentIndex: index, nextIndex, itemId: nextItem.id, premium: snapshot, core: saved };
+  }
+
+  if (action === "reset_progress") {
+    const key = boardKey(mode, value);
+    const next = { ...(core.boardProgress || {}) };
+    delete next[key];
+    core.boardProgress = next;
+    const saved = await writeCoreState(core);
+    return { ok: true, premium: snapshot, core: saved };
   }
 
   if (action === "save_session") {
@@ -1655,6 +1752,7 @@ async function coreResumeAction(payload = {}) {
     const item = core.items.find((entry) => entry.id === nextId);
     if (item?.url) {
       chrome.tabs.create({ url: item.url });
+      markItemOpened(core, item.id, Date.now());
     }
     core.resumeQueue = core.resumeQueue.filter((id) => id !== nextId);
     const saved = await writeCoreState(core);
@@ -1997,6 +2095,8 @@ chrome.notifications.onClicked.addListener(async (notificationId) => {
   const item = reminder ? core.items.find((entry) => entry.id === reminder.itemId) : null;
   if (item?.url) {
     chrome.tabs.create({ url: item.url });
+    markItemOpened(core, item.id, Date.now());
+    await writeCoreState(core);
   }
   await notificationClear(notificationId);
 });
