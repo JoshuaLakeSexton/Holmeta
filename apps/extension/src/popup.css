@@ -138,6 +138,14 @@ body::before {
   gap: var(--s-2);
 }
 
+.item-preview {
+  width: 100%;
+  max-height: 120px;
+  object-fit: cover;
+  border: 1px solid var(--c-border);
+  background: rgba(20, 17, 15, 0.78);
+}
+
 .item-head {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;

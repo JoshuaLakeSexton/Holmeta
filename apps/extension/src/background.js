@@ -30,6 +30,7 @@ const CORE_MAX_SESSIONS = 120;
 const CORE_RESUME_LIMIT = 7;
 const CORE_MAX_SNIPPETS = 200;
 const CORE_MAX_WORKFLOW_ITEMS = 32;
+const CORE_MAX_PREVIEWS = 48;
 const ENTITLEMENT_GRACE_MS = 72 * 60 * 60 * 1000;
 const NOTIFICATION_ICON = "src/assets/icons/icon48.png";
 const BLOCKER_RULE_ID_BASE = 47000;
@@ -65,6 +66,76 @@ function alarmsGetAll() {
 
 function tabsQuery(queryInfo = {}) {
   return new Promise((resolve) => chrome.tabs.query(queryInfo, resolve));
+}
+
+function tabsCaptureVisible(windowId, options) {
+  return new Promise((resolve) => {
+    if (!chrome.tabs?.captureVisibleTab) {
+      resolve({ ok: false, error: "CAPTURE_UNAVAILABLE", dataUrl: "" });
+      return;
+    }
+    chrome.tabs.captureVisibleTab(windowId, options, (dataUrl) => {
+      const err = chrome.runtime?.lastError;
+      if (err) {
+        resolve({ ok: false, error: err.message || "CAPTURE_FAILED", dataUrl: "" });
+        return;
+      }
+      resolve({ ok: Boolean(dataUrl), dataUrl: String(dataUrl || "") });
+    });
+  });
+}
+
+function blobToDataUrl(blob) {
+  return new Promise((resolve, reject) => {
+    try {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result || ""));
+      reader.onerror = () => reject(new Error("BLOB_READ_FAILED"));
+      reader.readAsDataURL(blob);
+    } catch (error) {
+      reject(error);
+    }
+  });
+}
+
+async function compactPreviewDataUrl(inputDataUrl) {
+  const source = String(inputDataUrl || "");
+  if (!source) {
+    return "";
+  }
+  if (typeof OffscreenCanvas === "undefined" || typeof createImageBitmap !== "function") {
+    return source;
+  }
+  try {
+    const response = await fetch(source);
+    const blob = await response.blob();
+    const bitmap = await createImageBitmap(blob);
+    const maxWidth = 300;
+    const maxHeight = 168;
+    const scale = Math.min(maxWidth / bitmap.width, maxHeight / bitmap.height, 1);
+    const width = Math.max(1, Math.round(bitmap.width * scale));
+    const height = Math.max(1, Math.round(bitmap.height * scale));
+    const canvas = new OffscreenCanvas(width, height);
+    const ctx = canvas.getContext("2d");
+    if (!ctx) {
+      return source;
+    }
+    ctx.drawImage(bitmap, 0, 0, width, height);
+    const compressed = await canvas.convertToBlob({ type: "image/jpeg", quality: 0.58 });
+    const compact = await blobToDataUrl(compressed);
+    return compact || source;
+  } catch (_) {
+    return source;
+  }
+}
+
+async function captureTabPreview(windowId) {
+  const primary = await tabsCaptureVisible(windowId, { format: "jpeg", quality: 45 });
+  if (!primary.ok || !primary.dataUrl) {
+    return "";
+  }
+  const compact = await compactPreviewDataUrl(primary.dataUrl);
+  return String(compact || primary.dataUrl || "");
 }
 
 function dnrUpdateDynamicRules(payload) {
@@ -689,6 +760,7 @@ function normalizeSavedItem(rawItem, nowTs = Date.now()) {
     pinned: Boolean(source.pinned),
     debugTrail: Boolean(source.debugTrail),
     favicon: String(source.favicon || "").trim(),
+    previewDataUrl: String(source.previewDataUrl || "").slice(0, 220000),
     groupName: String(source.groupName || "").trim().slice(0, 120),
     contextType: String(source.contextType || "general").trim().slice(0, 40) || "general",
     contextKey: String(source.contextKey || domain || "").trim().slice(0, 180)
@@ -796,6 +868,22 @@ function normalizeCoreState(rawCore) {
       .slice(0, CORE_MAX_WORKFLOW_ITEMS)
       .sort((a, b) => Number(b.createdAt || 0) - Number(a.createdAt || 0))
   };
+}
+
+function pruneOldPreviews(items) {
+  if (!Array.isArray(items)) {
+    return;
+  }
+  let kept = 0;
+  items.forEach((item) => {
+    if (!item || !item.previewDataUrl) {
+      return;
+    }
+    kept += 1;
+    if (kept > CORE_MAX_PREVIEWS) {
+      item.previewDataUrl = "";
+    }
+  });
 }
 
 async function getCoreState() {
@@ -991,6 +1079,8 @@ async function coreSaveCurrentTab(payload = {}) {
   const requestedTags = normalizeTags(payload.tags || []);
   const groupName = String(payload.groupName || "").trim().slice(0, 120);
   const inferred = inferContextFromUrl(url, activeTab.title || "");
+  const shouldCapturePreview = snapshot.premiumActive && Boolean(payload.captureSnapshot);
+  const previewDataUrl = shouldCapturePreview ? await captureTabPreview(activeTab.windowId) : "";
   const inferredTags = normalizeTags([...(inferred.tags || []), ...suggestedTagsForDomain(normalizeDomain(url))]);
   const mergedRequested = normalizeTags([
     ...requestedTags,
@@ -1013,6 +1103,9 @@ async function coreSaveCurrentTab(payload = {}) {
     if (snapshot.premiumActive) {
       existing.tags = tags;
     }
+    if (previewDataUrl) {
+      existing.previewDataUrl = previewDataUrl;
+    }
     existing.groupName = groupName || existing.groupName || "";
     existing.contextType = inferred.type || existing.contextType || "general";
     existing.contextKey = inferred.key || existing.contextKey || existing.domain || "";
@@ -1028,6 +1121,7 @@ async function coreSaveCurrentTab(payload = {}) {
       tags,
       pinned: false,
       favicon: String(activeTab.favIconUrl || "").trim(),
+      previewDataUrl: previewDataUrl || "",
       groupName,
       contextType: inferred.type || "general",
       contextKey: inferred.key || normalizeDomain(url)
@@ -1036,8 +1130,39 @@ async function coreSaveCurrentTab(payload = {}) {
   }
 
   core.items = core.items.slice(0, CORE_MAX_ITEMS).sort((a, b) => Number(b.createdAt || 0) - Number(a.createdAt || 0));
+  pruneOldPreviews(core.items);
   const saved = await writeCoreState(core);
   return { ok: true, savedItem, core: saved, premium: snapshot };
+}
+
+async function coreCaptureItemPreview(itemId) {
+  const [settings, entitlement, core, tabs] = await Promise.all([
+    getSettings(),
+    getEntitlement(),
+    getCoreState(),
+    tabsQuery({ active: true, currentWindow: true })
+  ]);
+  const snapshot = premiumSnapshot(settings, entitlement);
+  if (!snapshot.premiumActive) {
+    return { ok: false, error: "PREMIUM_REQUIRED", premium: snapshot };
+  }
+  const item = core.items.find((entry) => entry.id === String(itemId || ""));
+  if (!item) {
+    return { ok: false, error: "ITEM_NOT_FOUND", premium: snapshot };
+  }
+  const activeTab = tabs.find((tab) => Number.isInteger(tab?.id) && isHttpUrl(tab?.url));
+  if (!activeTab || normalizeHttpUrl(activeTab.url) !== normalizeHttpUrl(item.url)) {
+    return { ok: false, error: "OPEN_ITEM_AND_RETRY", premium: snapshot };
+  }
+  const previewDataUrl = await captureTabPreview(activeTab.windowId);
+  if (!previewDataUrl) {
+    return { ok: false, error: "CAPTURE_FAILED", premium: snapshot };
+  }
+  item.previewDataUrl = previewDataUrl;
+  core.items = core.items.slice(0, CORE_MAX_ITEMS).sort((a, b) => Number(b.createdAt || 0) - Number(a.createdAt || 0));
+  pruneOldPreviews(core.items);
+  const saved = await writeCoreState(core);
+  return { ok: true, core: saved, item, premium: snapshot };
 }
 
 async function coreUndoSave(itemId) {
@@ -2111,6 +2236,11 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
 
     if (message.type === "holmeta-core-save-current-tab") {
       sendResponse(await coreSaveCurrentTab(message.payload || {}));
+      return;
+    }
+
+    if (message.type === "holmeta-core-capture-item-preview") {
+      sendResponse(await coreCaptureItemPreview(message.itemId));
       return;
     }
 

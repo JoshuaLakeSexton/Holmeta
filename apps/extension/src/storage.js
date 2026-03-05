@@ -13,6 +13,7 @@
     hasReminderOnly: false,
     saveTags: "",
     groupName: "",
+    saveSnapshot: false,
     licenseKeyDraft: "",
     checkoutSessionDraft: "",
     domainsDraft: "",
@@ -39,6 +40,7 @@
       hasReminderOnly: Boolean(source.hasReminderOnly),
       saveTags: String(source.saveTags || ""),
       groupName: String(source.groupName || ""),
+      saveSnapshot: Boolean(source.saveSnapshot),
       // Keep raw draft text untouched while typing; normalize only on activation.
       licenseKeyDraft: String(source.licenseKeyDraft || ""),
       checkoutSessionDraft: String(source.checkoutSessionDraft || "").trim(),

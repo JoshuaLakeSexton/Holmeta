@@ -10,8 +10,10 @@
 
 ## 2) Quick Save (Primary)
 - Open any HTTP/HTTPS tab.
+- Enable `CAPTURE PAGE PREVIEW` (premium) and save.
 - Click `SAVE THIS TAB`.
 - Confirm `SAVED ✓` appears.
+- Confirm preview thumbnail appears on the saved card (when capture enabled).
 - Click `UNDO SAVE` in 5 seconds and confirm item is removed.
 - Trigger shortcut (`save_current_tab`) and verify save works.
 
@@ -21,8 +23,9 @@
 - Use tag filter, group filter, context filter, and `HAS REMINDER`.
 - Toggle `DEBUG TRAIL ONLY` and verify only debug-marked items remain.
 - Open item action menu (`⋯`) and verify:
-  - `EDIT NOTE`
+  - `EDIT NOTE` (note + decision + visual refs + debug trail toggle)
   - `SAVE SNIPPET` (premium)
+  - `CAPTURE PREVIEW` (premium; requires active page for that item)
   - `OPEN CONTEXT` (premium)
   - `REMIND` (premium)
   - `ADD/REMOVE RESUME` (premium)
@@ -63,6 +66,7 @@
 - `OPEN BOARD` opens tabs for the selected source.
 - `SAVE AS SESSION` creates a session entry.
 - `COPY BOARD PACK` copies markdown links for that board.
+- Board preview list renders top boards with one-click open/copy.
 
 ## 7) Light Controls (Premium)
 - Open `LIGHT` drawer.

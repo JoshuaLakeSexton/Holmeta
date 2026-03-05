@@ -36,6 +36,7 @@ async function main() {
   assertCriticalIds("popup", popupHtmlIds, [
     "saveCurrentTab",
     "saveNoteInput",
+    "saveSnapshotToggle",
     "searchInput",
     "workboardList",
     "contextFilter",
@@ -47,7 +48,8 @@ async function main() {
     "snippetList",
     "boardMode",
     "boardValue",
-    "openBoard"
+    "openBoard",
+    "boardPreviewList"
   ]);
 
   assertCriticalIds("options", optionsHtmlIds, [

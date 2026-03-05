@@ -29,6 +29,10 @@
           <input id="groupNameInput" class="input" type="text" placeholder="e.g. Client ABC, Sprint 14" />
           <label for="saveTagsInput" class="meta-label">TAGS (PREMIUM)</label>
           <input id="saveTagsInput" class="input" type="text" placeholder="client, project, topic" />
+          <label class="inline-check">
+            <input id="saveSnapshotToggle" type="checkbox" data-premium />
+            CAPTURE PAGE PREVIEW
+          </label>
           <div class="button-grid two">
             <button id="saveWindowGroup" class="secondary" data-premium>SAVE WINDOW AS GROUP</button>
             <button id="workflowAddCurrent" class="secondary" data-premium>ADD TO DAILY WORKFLOW</button>
@@ -336,6 +340,7 @@
           <button id="saveBoardSession" class="secondary" data-premium>SAVE AS SESSION</button>
           <button id="copyBoardPack" class="secondary" data-premium>COPY BOARD PACK</button>
         </div>
+        <ul id="boardPreviewList" class="mini-list"></ul>
         <ul id="sessionList" class="mini-list"></ul>
       </section>
     </main>
