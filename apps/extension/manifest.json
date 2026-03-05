@@ -67,11 +67,7 @@
       }
     },
     "decrease-intensity": {
-      "description": "Decrease filter intensity",
-      "suggested_key": {
-        "default": "Alt+Shift+Down",
-        "mac": "Command+Shift+Down"
-      }
+      "description": "Decrease filter intensity"
     }
   },
   "content_scripts": [
