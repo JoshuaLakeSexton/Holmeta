@@ -52,11 +52,11 @@
         "mac": "Command+Shift+F"
       }
     },
-    "toggle-color-accurate": {
-      "description": "Toggle color accurate mode",
+    "toggle-red-mode": {
+      "description": "Toggle red night mode",
       "suggested_key": {
-        "default": "Alt+Shift+C",
-        "mac": "Command+Shift+C"
+        "default": "Alt+Shift+R",
+        "mac": "Command+Shift+R"
       }
     },
     "increase-intensity": {

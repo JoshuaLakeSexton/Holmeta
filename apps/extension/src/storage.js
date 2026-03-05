@@ -9,6 +9,7 @@
     tagFilter: "",
     hasReminderOnly: false,
     saveTags: "",
+    groupName: "",
     licenseKeyDraft: "",
     checkoutSessionDraft: "",
     domainsDraft: "",
@@ -27,6 +28,7 @@
       tagFilter: String(source.tagFilter || ""),
       hasReminderOnly: Boolean(source.hasReminderOnly),
       saveTags: String(source.saveTags || ""),
+      groupName: String(source.groupName || ""),
       // Keep raw draft text untouched while typing; normalize only on activation.
       licenseKeyDraft: String(source.licenseKeyDraft || ""),
       checkoutSessionDraft: String(source.checkoutSessionDraft || "").trim(),

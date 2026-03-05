@@ -28,6 +28,9 @@
   const HISTORY_PATCH_FLAG = "__holmeta_history_patch__";
 
   let activityLastSentAt = 0;
+  let scrollBurstStartedAt = 0;
+  let lastScrollEventAt = 0;
+  let scrollCooldownUntil = 0;
   let focusHudInterval = null;
   let focusSession = null;
   let refreshTimer = null;
@@ -168,6 +171,26 @@
       html.holmeta-design-mode video,
       html.holmeta-design-mode canvas {
         image-rendering: auto;
+      }
+
+      html.holmeta-reading-mode aside,
+      html.holmeta-reading-mode [role="complementary"],
+      html.holmeta-reading-mode [class*="sidebar"],
+      html.holmeta-reading-mode [id*="sidebar"],
+      html.holmeta-reading-mode .ads,
+      html.holmeta-reading-mode [class*="ad-"],
+      html.holmeta-reading-mode [id*="ad-"] {
+        display: none !important;
+      }
+
+      html.holmeta-dopamine-hide ytd-reel-shelf-renderer,
+      html.holmeta-dopamine-hide ytd-rich-section-renderer,
+      html.holmeta-dopamine-hide ytd-watch-next-secondary-results-renderer,
+      html.holmeta-dopamine-hide #related,
+      html.holmeta-dopamine-hide [aria-label*="Shorts"],
+      html.holmeta-dopamine-hide [data-testid="sidebarColumn"],
+      html.holmeta-dopamine-hide [aria-label*="Trending"] {
+        display: none !important;
       }
     `;
   }
@@ -540,7 +563,12 @@
   }
 
   function clearFilterState() {
-    document.documentElement.classList.remove("holmeta-filter-on", "holmeta-filter-root", "holmeta-media-exclude", "holmeta-design-mode");
+    document.documentElement.classList.remove(
+      "holmeta-filter-on",
+      "holmeta-filter-root",
+      "holmeta-media-exclude",
+      "holmeta-design-mode"
+    );
     document.documentElement.style.removeProperty("--holmeta-css-stack");
 
     if (document.body) {
@@ -555,6 +583,11 @@
       layer.style.mixBlendMode = "normal";
       layer.style.pointerEvents = "none";
     }
+  }
+
+  function applyContentModeClasses() {
+    document.documentElement.classList.toggle("holmeta-reading-mode", Boolean(latestSettings?.readingModeEnabled));
+    document.documentElement.classList.toggle("holmeta-dopamine-hide", Boolean(latestSettings?.dopamineHygieneEnabled));
   }
 
   function removeModals() {
@@ -609,11 +642,13 @@
   function applyPipeline(payload) {
     if (!payload || !payload.matrixString) {
       clearFilterState();
+      applyContentModeClasses();
       return;
     }
 
     if (!payload.active) {
       clearFilterState();
+      applyContentModeClasses();
       return;
     }
 
@@ -629,6 +664,7 @@
     document.documentElement.classList.add("holmeta-filter-on");
     document.documentElement.classList.toggle("holmeta-media-exclude", Boolean(media.excludeMedia));
     document.documentElement.classList.toggle("holmeta-design-mode", Boolean(media.designMode));
+    applyContentModeClasses();
 
     const applyOnBody = Boolean(document.body);
     if (applyOnBody && document.body) {
@@ -1164,6 +1200,36 @@
       window.addEventListener(
         eventName,
         () => {
+          if (eventName === "scroll") {
+            const now = Date.now();
+            if (now > scrollCooldownUntil) {
+              if (!scrollBurstStartedAt || now - lastScrollEventAt > 2500) {
+                scrollBurstStartedAt = now;
+              }
+              const pauseEnabled = Boolean(latestSettings?.wellness?.scrollPauseEnabled);
+              const thresholdMin = Math.max(5, Math.min(90, Math.round(Number(latestSettings?.wellness?.scrollPauseMin || 15))));
+              if (pauseEnabled && scrollBurstStartedAt && now - scrollBurstStartedAt >= thresholdMin * 60 * 1000) {
+                scrollCooldownUntil = now + thresholdMin * 60 * 1000;
+                scrollBurstStartedAt = now;
+                showGenericReminder({
+                  reminderType: "scroll",
+                  title: "SCROLL PAUSE",
+                  message: "Pause for 30 seconds. Blink, reset posture, then continue.",
+                  defaultSnoozeMin: 10,
+                  delivery: {
+                    overlay: true,
+                    notification: false,
+                    popupOnly: false,
+                    sound: false,
+                    gentle: true
+                  }
+                });
+              }
+            }
+            lastScrollEventAt = now;
+          } else if (eventName === "click" || eventName === "keydown") {
+            scrollBurstStartedAt = 0;
+          }
           pingActivity(eventName);
         },
         { passive: true }

@@ -14,6 +14,9 @@ const ALARMS = {
   reminderPrefix: "holmeta-core-reminder-",
   wellnessBreak: "holmeta-wellness-break",
   wellnessEye: "holmeta-wellness-eye",
+  wellnessBlink: "holmeta-wellness-blink",
+  wellnessPosture: "holmeta-wellness-posture",
+  wellnessStand: "holmeta-wellness-stand",
   focusEnd: "holmeta-focus-end"
 };
 
@@ -240,6 +243,14 @@ function normalizeWellness(settings) {
     breaksIntervalMin: Math.max(15, Math.min(180, Math.round(Number(source.breaksIntervalMin || 50)))),
     eyeEnabled: Boolean(source.eyeEnabled),
     eyeIntervalMin: Math.max(10, Math.min(120, Math.round(Number(source.eyeIntervalMin || 20)))),
+    blinkEnabled: Boolean(source.blinkEnabled),
+    blinkIntervalMin: Math.max(10, Math.min(120, Math.round(Number(source.blinkIntervalMin || 25)))),
+    postureEnabled: Boolean(source.postureEnabled),
+    postureIntervalMin: Math.max(15, Math.min(180, Math.round(Number(source.postureIntervalMin || 45)))),
+    standEnabled: Boolean(source.standEnabled),
+    standIntervalMin: Math.max(15, Math.min(180, Math.round(Number(source.standIntervalMin || 60)))),
+    scrollPauseEnabled: Boolean(source.scrollPauseEnabled),
+    scrollPauseMin: Math.max(5, Math.min(90, Math.round(Number(source.scrollPauseMin || 15)))),
     snoozeUntilTs: Math.max(0, Number(source.snoozeUntilTs || 0))
   };
 }
@@ -326,10 +337,17 @@ function effectiveSettingsForTier(settings, entitlement) {
   const normalized = HC.normalizeSettings(settings || {});
   if (!premiumActive) {
     normalized.filterEnabled = false;
+    normalized.blockerEnabled = false;
+    normalized.readingModeEnabled = false;
+    normalized.dopamineHygieneEnabled = false;
     normalized.wellness = {
       ...normalizeWellness(normalized),
       breaksEnabled: false,
-      eyeEnabled: false
+      eyeEnabled: false,
+      blinkEnabled: false,
+      postureEnabled: false,
+      standEnabled: false,
+      scrollPauseEnabled: false
     };
   } else {
     normalized.wellness = normalizeWellness(normalized);
@@ -395,7 +413,13 @@ async function scheduleWellnessAlarms(settingsInput = null, entitlementInput = n
   const premiumActive = Boolean(settings?.devBypassPremium || entitlement?.active);
   const wellness = normalizeWellness(settings);
 
-  await Promise.all([alarmsClear(ALARMS.wellnessBreak), alarmsClear(ALARMS.wellnessEye)]);
+  await Promise.all([
+    alarmsClear(ALARMS.wellnessBreak),
+    alarmsClear(ALARMS.wellnessEye),
+    alarmsClear(ALARMS.wellnessBlink),
+    alarmsClear(ALARMS.wellnessPosture),
+    alarmsClear(ALARMS.wellnessStand)
+  ]);
 
   if (!premiumActive) {
     return;
@@ -411,6 +435,21 @@ async function scheduleWellnessAlarms(settingsInput = null, entitlementInput = n
   if (wellness.eyeEnabled) {
     chrome.alarms.create(ALARMS.wellnessEye, {
       periodInMinutes: wellness.eyeIntervalMin
+    });
+  }
+  if (wellness.blinkEnabled) {
+    chrome.alarms.create(ALARMS.wellnessBlink, {
+      periodInMinutes: wellness.blinkIntervalMin
+    });
+  }
+  if (wellness.postureEnabled) {
+    chrome.alarms.create(ALARMS.wellnessPosture, {
+      periodInMinutes: wellness.postureIntervalMin
+    });
+  }
+  if (wellness.standEnabled) {
+    chrome.alarms.create(ALARMS.wellnessStand, {
+      periodInMinutes: wellness.standIntervalMin
     });
   }
 }
@@ -1276,9 +1315,14 @@ chrome.commands?.onCommand?.addListener(async (command) => {
       await applyFiltersToActiveTabs(nextSettings, entitlement);
       return;
     }
-    if (command === "toggle-color-accurate") {
+    if (command === "toggle-red-mode") {
       const settings = await getSettings();
-      const nextSettings = await updateSettings({ colorAccurate: !settings.colorAccurate });
+      const nextPreset = settings.filterPreset === "redNightMax" ? "nightWarmStrong" : "redNightMax";
+      const nextSettings = await updateSettings({
+        filterEnabled: true,
+        colorAccurate: false,
+        filterPreset: nextPreset
+      });
       const entitlement = await getEntitlement();
       await applyFiltersToActiveTabs(nextSettings, entitlement);
       return;
@@ -1377,6 +1421,81 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
       iconUrl: NOTIFICATION_ICON,
       title: "holmeta eye reset",
       message: "20-20-20 reset: look far for 20 seconds."
+    });
+    return;
+  }
+
+  if (name === ALARMS.wellnessBlink) {
+    const [settings, entitlement] = await Promise.all([getSettings(), getEntitlement()]);
+    const wellness = normalizeWellness(settings);
+    if (wellness.snoozeUntilTs > Date.now()) {
+      return;
+    }
+    if (!Boolean(settings?.devBypassPremium || entitlement?.active) || !wellness.blinkEnabled) {
+      return;
+    }
+    await sendReminderToActiveTab({
+      reminderType: "blink",
+      title: "BLINK RESET",
+      message: "Blink slowly 8-10 times to refresh focus.",
+      defaultSnoozeMin: 10,
+      delivery: {
+        overlay: true,
+        notification: false,
+        popupOnly: false,
+        sound: false,
+        gentle: true
+      }
+    });
+    return;
+  }
+
+  if (name === ALARMS.wellnessPosture) {
+    const [settings, entitlement] = await Promise.all([getSettings(), getEntitlement()]);
+    const wellness = normalizeWellness(settings);
+    if (wellness.snoozeUntilTs > Date.now()) {
+      return;
+    }
+    if (!Boolean(settings?.devBypassPremium || entitlement?.active) || !wellness.postureEnabled) {
+      return;
+    }
+    await sendReminderToActiveTab({
+      reminderType: "posture",
+      title: "POSTURE CUE",
+      message: "Chin tuck. Shoulders down. Relax jaw.",
+      defaultSnoozeMin: 15,
+      delivery: {
+        overlay: true,
+        notification: false,
+        popupOnly: false,
+        sound: false,
+        gentle: true
+      }
+    });
+    return;
+  }
+
+  if (name === ALARMS.wellnessStand) {
+    const [settings, entitlement] = await Promise.all([getSettings(), getEntitlement()]);
+    const wellness = normalizeWellness(settings);
+    if (wellness.snoozeUntilTs > Date.now()) {
+      return;
+    }
+    if (!Boolean(settings?.devBypassPremium || entitlement?.active) || !wellness.standEnabled) {
+      return;
+    }
+    await sendReminderToActiveTab({
+      reminderType: "stand",
+      title: "STAND / MOVE",
+      message: "Stand for a minute and reset your neck + hips.",
+      defaultSnoozeMin: 15,
+      delivery: {
+        overlay: true,
+        notification: false,
+        popupOnly: false,
+        sound: false,
+        gentle: true
+      }
     });
     return;
   }
@@ -1569,6 +1688,44 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
       return;
     }
 
+    if (message.type === "holmeta-hotkey-action") {
+      const action = String(message.action || "").trim();
+      const settings = await getSettings();
+      let nextSettings = settings;
+
+      if (action === "toggle-filters") {
+        nextSettings = await updateSettings({ filterEnabled: !settings.filterEnabled });
+      } else if (action === "toggle-red-mode") {
+        const nextPreset = settings.filterPreset === "redNightMax" ? "nightWarmStrong" : "redNightMax";
+        nextSettings = await updateSettings({
+          filterEnabled: true,
+          colorAccurate: false,
+          filterPreset: nextPreset
+        });
+      } else if (action === "intensity-up" || action === "intensity-down") {
+        const delta = action === "intensity-up" ? 0.05 : -0.05;
+        const next = Math.max(0, Math.min(1, Number(settings.filterIntensity || 0) + delta));
+        nextSettings = await updateSettings({ filterIntensity: next });
+      } else if (action === "eye-relief") {
+        nextSettings = await updateSettings({
+          filterEnabled: true,
+          colorAccurate: false,
+          filterPreset: "migraineSafe",
+          filterIntensity: Math.max(Number(settings.filterIntensity || 0), 0.85),
+          filterContrast: 0.85,
+          filterDimming: 0.35
+        });
+      } else {
+        sendResponse({ ok: false, error: "UNKNOWN_HOTKEY_ACTION" });
+        return;
+      }
+
+      const entitlement = await getEntitlement();
+      await applyFiltersToActiveTabs(nextSettings, entitlement);
+      sendResponse({ ok: true, settings: nextSettings });
+      return;
+    }
+
     if (message.type === "holmeta-save-site-profile") {
       const domain = normalizeDomain(message.domain || "");
       if (!domain) {
@@ -1744,8 +1901,8 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     if (message.type === "holmeta-test-reminder") {
       await sendReminderToActiveTab({
         reminderType: String(message.reminderType || "custom"),
-        title: "TEST REMINDER",
-        message: "Reminder dispatch is working.",
+        title: String(message.title || "TEST REMINDER"),
+        message: String(message.message || "Reminder dispatch is working."),
         delivery: {
           overlay: true,
           notification: false,

@@ -456,6 +456,10 @@
     applyToMedia: false,
     excludeMedia: true,
     designMode: false,
+    readingModeEnabled: false,
+    dopamineHygieneEnabled: false,
+    lateNightProtection: true,
+    lateNightHour: 22,
     wakeTime: "07:00",
     sleepTime: "23:00",
     rampMinutes: 60,
@@ -494,6 +498,14 @@
       breaksIntervalMin: 50,
       eyeEnabled: false,
       eyeIntervalMin: 20,
+      blinkEnabled: false,
+      blinkIntervalMin: 25,
+      postureEnabled: false,
+      postureIntervalMin: 45,
+      standEnabled: false,
+      standIntervalMin: 60,
+      scrollPauseEnabled: false,
+      scrollPauseMin: 15,
       snoozeUntilTs: 0
     }
   };
@@ -1173,6 +1185,12 @@
     merged.filterContrast = clamp(merged.filterContrast, 0.35, 2.4);
     merged.filterSaturation = clamp(merged.filterSaturation, 0, 2.2);
     merged.filterGamma = clamp(merged.filterGamma, 0.5, 1.8);
+    merged.readingModeEnabled = Boolean(merged.readingModeEnabled);
+    merged.dopamineHygieneEnabled = Boolean(merged.dopamineHygieneEnabled);
+    merged.lateNightProtection = Object.prototype.hasOwnProperty.call(rawSource, "lateNightProtection")
+      ? Boolean(merged.lateNightProtection)
+      : Boolean(DEFAULT_SETTINGS.lateNightProtection);
+    merged.lateNightHour = Math.round(clamp(Number(merged.lateNightHour || DEFAULT_SETTINGS.lateNightHour), 18, 23));
     merged.overlayBlendMode = FILTER_BLEND_MODES.includes(merged.overlayBlendMode)
       ? merged.overlayBlendMode
       : DEFAULT_SETTINGS.overlayBlendMode;
@@ -1263,6 +1281,14 @@
       breaksIntervalMin: Math.round(clamp(Number(wellnessSource.breaksIntervalMin || 50), 15, 180)),
       eyeEnabled: Boolean(wellnessSource.eyeEnabled),
       eyeIntervalMin: Math.round(clamp(Number(wellnessSource.eyeIntervalMin || 20), 10, 120)),
+      blinkEnabled: Boolean(wellnessSource.blinkEnabled),
+      blinkIntervalMin: Math.round(clamp(Number(wellnessSource.blinkIntervalMin || 25), 10, 120)),
+      postureEnabled: Boolean(wellnessSource.postureEnabled),
+      postureIntervalMin: Math.round(clamp(Number(wellnessSource.postureIntervalMin || 45), 15, 180)),
+      standEnabled: Boolean(wellnessSource.standEnabled),
+      standIntervalMin: Math.round(clamp(Number(wellnessSource.standIntervalMin || 60), 15, 180)),
+      scrollPauseEnabled: Boolean(wellnessSource.scrollPauseEnabled),
+      scrollPauseMin: Math.round(clamp(Number(wellnessSource.scrollPauseMin || 15), 5, 90)),
       snoozeUntilTs: Math.max(0, Number(wellnessSource.snoozeUntilTs || 0))
     };
 
@@ -1537,6 +1563,10 @@
     if (settings.wellness && typeof settings.wellness === "object") {
       settings.wellness.breaksEnabled = false;
       settings.wellness.eyeEnabled = false;
+      settings.wellness.blinkEnabled = false;
+      settings.wellness.postureEnabled = false;
+      settings.wellness.standEnabled = false;
+      settings.wellness.scrollPauseEnabled = false;
     }
     return normalizeSettings(settings);
   }
@@ -1552,8 +1582,8 @@
 
     const siteEnabled = siteEnabledFromOverride && !isDomainDisabled(settings, safeHost);
 
-    const presetId = normalizePresetId(override?.preset || settings.filterPreset);
-    const preset = getPresetById(presetId);
+    let presetId = normalizePresetId(override?.preset || settings.filterPreset);
+    let preset = getPresetById(presetId);
 
     const hasOverrideIntensity = Boolean(override && Object.prototype.hasOwnProperty.call(override, "intensity") && override.intensity !== null && override.intensity !== "");
     const baseIntensity = hasOverrideIntensity
@@ -1563,7 +1593,18 @@
     const circadian = circadianBoost(settings, date);
     const scheduleFloor = preset.group === "Max" ? 0.96 : preset.group === "Strong" ? 0.9 : 0.84;
     const circadianBlend = scheduleFloor + (1 - scheduleFloor) * circadian;
-    const effectiveIntensity = clamp(baseIntensity * circadianBlend, 0, 1);
+    let effectiveIntensity = clamp(baseIntensity * circadianBlend, 0, 1);
+
+    if (settings.lateNightProtection) {
+      const hour = date.getHours();
+      const lateNightHour = Math.round(clamp(Number(settings.lateNightHour || 22), 18, 23));
+      const lateNightActive = hour >= lateNightHour || hour < 5;
+      if (lateNightActive && !settings.colorAccurate) {
+        presetId = "redNightStrong";
+        preset = getPresetById(presetId);
+        effectiveIntensity = Math.max(effectiveIntensity, 0.82);
+      }
+    }
 
     const panicUntil = Number(settings.cadence?.global?.panicUntilTs || 0);
     const panicActive = panicUntil > date.getTime();

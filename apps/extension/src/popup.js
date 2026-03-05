@@ -11,6 +11,7 @@
     hasReminderOnly: false,
     saveNote: "",
     saveTags: "",
+    groupName: "",
     focusDomains: "",
     licenseKey: "",
     customReminderAt: "",
@@ -99,6 +100,7 @@
       hasReminderOnly: Boolean(source.hasReminderOnly),
       saveNote: String(source.saveNote || ""),
       saveTags: String(source.saveTags || ""),
+      groupName: String(source.groupName || ""),
       focusDomains: String(source.focusDomains || source.domainsDraft || ""),
       // Preserve in-progress typing/paste exactly as entered.
       licenseKey: String(source.licenseKey || ""),
@@ -116,6 +118,7 @@
         hasReminderOnly: uiState.hasReminderOnly || false,
         saveNote: uiState.notes || "",
         saveTags: uiState.saveTags || "",
+        groupName: uiState.groupName || "",
         focusDomains: uiState.domainsDraft || "",
         licenseKey: uiState.licenseKeyDraft || "",
         customReminderAt: uiState.customReminderAt || "",
@@ -143,6 +146,7 @@
         hasReminderOnly: normalized.hasReminderOnly,
         notes: normalized.saveNote,
         saveTags: normalized.saveTags,
+        groupName: normalized.groupName,
         domainsDraft: normalized.focusDomains,
         licenseKeyDraft: normalized.licenseKey,
         customReminderAt: normalized.customReminderAt,
@@ -189,6 +193,13 @@
         .map((part) => part.trim().replace(/\s+/g, " "))
         .filter(Boolean)
     )].slice(0, 12);
+  }
+
+  function normalizeGroupName(value) {
+    return String(value || "")
+      .trim()
+      .replace(/\s+/g, " ")
+      .slice(0, 80);
   }
 
   function escapeHtml(value) {
@@ -341,7 +352,7 @@
 
     const inboxOpt = document.createElement("option");
     inboxOpt.value = "inbox";
-    inboxOpt.textContent = "CURRENT INBOX";
+    inboxOpt.textContent = "CURRENT DASHBOARD";
     select.appendChild(inboxOpt);
 
     tags.forEach((tag) => {
@@ -555,6 +566,7 @@
   function renderControls() {
     setControlValueIfIdle("searchInput", state.drafts.search || "");
     setControlValueIfIdle("saveNoteInput", state.drafts.saveNote || "");
+    setControlValueIfIdle("groupNameInput", state.drafts.groupName || "");
     setControlValueIfIdle("saveTagsInput", state.drafts.saveTags || "");
     setControlValueIfIdle("customReminderAt", state.drafts.customReminderAt || "");
     setControlValueIfIdle("lightIntensity", state.drafts.lightIntensity || 78);
@@ -787,7 +799,15 @@
       breaksEnabled: Boolean(source.breaksEnabled),
       breaksIntervalMin: Math.max(15, Math.min(180, Math.round(Number(source.breaksIntervalMin || 50)))),
       eyeEnabled: Boolean(source.eyeEnabled),
-      eyeIntervalMin: Math.max(10, Math.min(120, Math.round(Number(source.eyeIntervalMin || 20))))
+      eyeIntervalMin: Math.max(10, Math.min(120, Math.round(Number(source.eyeIntervalMin || 20)))),
+      blinkEnabled: Boolean(source.blinkEnabled),
+      blinkIntervalMin: Math.max(10, Math.min(120, Math.round(Number(source.blinkIntervalMin || 25)))),
+      postureEnabled: Boolean(source.postureEnabled),
+      postureIntervalMin: Math.max(15, Math.min(180, Math.round(Number(source.postureIntervalMin || 45)))),
+      standEnabled: Boolean(source.standEnabled),
+      standIntervalMin: Math.max(15, Math.min(180, Math.round(Number(source.standIntervalMin || 60)))),
+      scrollPauseEnabled: Boolean(source.scrollPauseEnabled),
+      scrollPauseMin: Math.max(5, Math.min(90, Math.round(Number(source.scrollPauseMin || 15))))
     };
   }
 
@@ -870,6 +890,16 @@
     const breakInterval = $("breakIntervalSelect");
     const eyeEnabled = $("eyeEnabledToggle");
     const eyeInterval = $("eyeIntervalSelect");
+    const blinkEnabled = $("blinkEnabledToggle");
+    const blinkInterval = $("blinkIntervalSelect");
+    const postureEnabled = $("postureEnabledToggle");
+    const postureInterval = $("postureIntervalSelect");
+    const standEnabled = $("standEnabledToggle");
+    const standInterval = $("standIntervalSelect");
+    const scrollPauseEnabled = $("scrollPauseEnabledToggle");
+    const scrollPauseSelect = $("scrollPauseSelect");
+    const readingModeToggle = $("readingModeToggle");
+    const dopamineHygieneToggle = $("dopamineHygieneToggle");
 
     if (breaksEnabled instanceof HTMLInputElement) {
       breaksEnabled.checked = wellness.breaksEnabled;
@@ -882,6 +912,36 @@
     }
     if (eyeInterval instanceof HTMLSelectElement) {
       eyeInterval.value = String(wellness.eyeIntervalMin);
+    }
+    if (blinkEnabled instanceof HTMLInputElement) {
+      blinkEnabled.checked = Boolean(wellness.blinkEnabled);
+    }
+    if (blinkInterval instanceof HTMLSelectElement) {
+      blinkInterval.value = String(wellness.blinkIntervalMin || 25);
+    }
+    if (postureEnabled instanceof HTMLInputElement) {
+      postureEnabled.checked = Boolean(wellness.postureEnabled);
+    }
+    if (postureInterval instanceof HTMLSelectElement) {
+      postureInterval.value = String(wellness.postureIntervalMin || 45);
+    }
+    if (standEnabled instanceof HTMLInputElement) {
+      standEnabled.checked = Boolean(wellness.standEnabled);
+    }
+    if (standInterval instanceof HTMLSelectElement) {
+      standInterval.value = String(wellness.standIntervalMin || 60);
+    }
+    if (scrollPauseEnabled instanceof HTMLInputElement) {
+      scrollPauseEnabled.checked = Boolean(wellness.scrollPauseEnabled);
+    }
+    if (scrollPauseSelect instanceof HTMLSelectElement) {
+      scrollPauseSelect.value = String(wellness.scrollPauseMin || 15);
+    }
+    if (readingModeToggle instanceof HTMLInputElement) {
+      readingModeToggle.checked = Boolean(state.settings.readingModeEnabled);
+    }
+    if (dopamineHygieneToggle instanceof HTMLInputElement) {
+      dopamineHygieneToggle.checked = Boolean(state.settings.dopamineHygieneEnabled);
     }
   }
 
@@ -1034,6 +1094,15 @@
       queueDraftPersist();
     });
 
+    $("groupNameInput")?.addEventListener("input", (event) => {
+      const target = event.target;
+      if (!(target instanceof HTMLInputElement)) {
+        return;
+      }
+      state.drafts.groupName = String(target.value || "");
+      queueDraftPersist();
+    });
+
     $("saveTagsInput")?.addEventListener("input", (event) => {
       const target = event.target;
       if (!(target instanceof HTMLInputElement)) {
@@ -1158,6 +1227,92 @@
       setSaveFeedback(`STATUS: SITE PROFILE CLEARED (${state.activeDomain})`);
     });
 
+    async function saveSitePreset(profileId) {
+      if (!isPremiumActive()) {
+        setSaveFeedback("STATUS: PREMIUM REQUIRED FOR SITE PROFILE", true);
+        return;
+      }
+      if (!state.activeDomain) {
+        setSaveFeedback("STATUS: NO ACTIVE SITE", true);
+        return;
+      }
+      const presetMap = {
+        docs: { enabled: true, preset: "nightWarmStrong", intensity: 0.72 },
+        code: { enabled: true, preset: "blueShieldStrong", intensity: 0.6 },
+        video: { enabled: true, preset: "nightWarmMild", intensity: 0.42 }
+      };
+      const patch = presetMap[profileId];
+      if (!patch) {
+        return;
+      }
+      const response = await send({
+        type: "holmeta-save-site-profile",
+        domain: state.activeDomain,
+        patch
+      });
+      if (!response?.ok) {
+        setSaveFeedback("STATUS: SITE PRESET SAVE FAILED", true);
+        return;
+      }
+      setSaveFeedback(`STATUS: ${profileId.toUpperCase()} PROFILE SAVED`);
+      await refreshState();
+    }
+
+    $("sitePresetDocs")?.addEventListener("click", async () => saveSitePreset("docs"));
+    $("sitePresetCode")?.addEventListener("click", async () => saveSitePreset("code"));
+    $("sitePresetVideo")?.addEventListener("click", async () => saveSitePreset("video"));
+
+    $("saveGlobalLightDefault")?.addEventListener("click", async () => {
+      if (!isPremiumActive()) {
+        setSaveFeedback("STATUS: PREMIUM REQUIRED FOR GLOBAL DEFAULT", true);
+        return;
+      }
+      const modeSelect = $("lightModeSelect");
+      const intensityInput = $("lightIntensity");
+      const enabledToggle = $("lightEnabledToggle");
+      const mode = modeSelect instanceof HTMLSelectElement ? modeSelect.value : "warm";
+      const intensity = intensityInput instanceof HTMLInputElement
+        ? Math.max(0, Math.min(100, Math.round(Number(intensityInput.value || 0))))
+        : state.drafts.lightIntensity;
+      const enabled = enabledToggle instanceof HTMLInputElement ? Boolean(enabledToggle.checked) : true;
+      const response = await send({
+        type: "holmeta-update-settings",
+        patch: {
+          filterEnabled: enabled,
+          filterPreset: lightModeToPreset(mode),
+          filterIntensity: intensity / 100
+        }
+      });
+      if (!response?.ok) {
+        setSaveFeedback("STATUS: GLOBAL DEFAULT SAVE FAILED", true);
+        return;
+      }
+      setSaveFeedback("STATUS: GLOBAL DEFAULT SAVED");
+      await refreshState();
+    });
+
+    $("hotkeyToggleFilters")?.addEventListener("click", async () => {
+      await send({ type: "holmeta-hotkey-action", action: "toggle-filters" });
+      await refreshState();
+    });
+    $("hotkeyToggleRed")?.addEventListener("click", async () => {
+      await send({ type: "holmeta-hotkey-action", action: "toggle-red-mode" });
+      await refreshState();
+    });
+    $("hotkeyIntensityUp")?.addEventListener("click", async () => {
+      await send({ type: "holmeta-hotkey-action", action: "intensity-up" });
+      await refreshState();
+    });
+    $("hotkeyIntensityDown")?.addEventListener("click", async () => {
+      await send({ type: "holmeta-hotkey-action", action: "intensity-down" });
+      await refreshState();
+    });
+    $("hotkeyEyeRelief")?.addEventListener("click", async () => {
+      await send({ type: "holmeta-hotkey-action", action: "eye-relief" });
+      setSaveFeedback("STATUS: EYE RELIEF APPLIED");
+      await refreshState();
+    });
+
     $("saveWellness")?.addEventListener("click", async () => {
       if (!isPremiumActive()) {
         setSaveFeedback("STATUS: PREMIUM REQUIRED FOR WELLNESS", true);
@@ -1167,15 +1322,35 @@
       const breakInterval = $("breakIntervalSelect");
       const eyeEnabled = $("eyeEnabledToggle");
       const eyeInterval = $("eyeIntervalSelect");
+      const blinkEnabled = $("blinkEnabledToggle");
+      const blinkInterval = $("blinkIntervalSelect");
+      const postureEnabled = $("postureEnabledToggle");
+      const postureInterval = $("postureIntervalSelect");
+      const standEnabled = $("standEnabledToggle");
+      const standInterval = $("standIntervalSelect");
+      const scrollPauseEnabled = $("scrollPauseEnabledToggle");
+      const scrollPauseSelect = $("scrollPauseSelect");
+      const readingModeToggle = $("readingModeToggle");
+      const dopamineHygieneToggle = $("dopamineHygieneToggle");
       const response = await send({
         type: "holmeta-update-settings",
         patch: {
+          readingModeEnabled: readingModeToggle instanceof HTMLInputElement ? Boolean(readingModeToggle.checked) : false,
+          dopamineHygieneEnabled: dopamineHygieneToggle instanceof HTMLInputElement ? Boolean(dopamineHygieneToggle.checked) : false,
           wellness: {
             ...getWellnessSettings(),
             breaksEnabled: breaksEnabled instanceof HTMLInputElement ? Boolean(breaksEnabled.checked) : false,
             breaksIntervalMin: breakInterval instanceof HTMLSelectElement ? Number(breakInterval.value || 50) : 50,
             eyeEnabled: eyeEnabled instanceof HTMLInputElement ? Boolean(eyeEnabled.checked) : false,
-            eyeIntervalMin: eyeInterval instanceof HTMLSelectElement ? Number(eyeInterval.value || 20) : 20
+            eyeIntervalMin: eyeInterval instanceof HTMLSelectElement ? Number(eyeInterval.value || 20) : 20,
+            blinkEnabled: blinkEnabled instanceof HTMLInputElement ? Boolean(blinkEnabled.checked) : false,
+            blinkIntervalMin: blinkInterval instanceof HTMLSelectElement ? Number(blinkInterval.value || 25) : 25,
+            postureEnabled: postureEnabled instanceof HTMLInputElement ? Boolean(postureEnabled.checked) : false,
+            postureIntervalMin: postureInterval instanceof HTMLSelectElement ? Number(postureInterval.value || 45) : 45,
+            standEnabled: standEnabled instanceof HTMLInputElement ? Boolean(standEnabled.checked) : false,
+            standIntervalMin: standInterval instanceof HTMLSelectElement ? Number(standInterval.value || 60) : 60,
+            scrollPauseEnabled: scrollPauseEnabled instanceof HTMLInputElement ? Boolean(scrollPauseEnabled.checked) : false,
+            scrollPauseMin: scrollPauseSelect instanceof HTMLSelectElement ? Number(scrollPauseSelect.value || 15) : 15
           }
         }
       });
@@ -1185,6 +1360,20 @@
       }
       await refreshState();
       setSaveFeedback("STATUS: WELLNESS SAVED");
+    });
+
+    $("runBreathingReset")?.addEventListener("click", async () => {
+      if (!isPremiumActive()) {
+        setSaveFeedback("STATUS: PREMIUM REQUIRED FOR BREATH RESET", true);
+        return;
+      }
+      await send({
+        type: "holmeta-test-reminder",
+        reminderType: "breathwork",
+        title: "BREATH RESET",
+        message: "Box breathe for 30 seconds."
+      });
+      setSaveFeedback("STATUS: BREATH RESET STARTED");
     });
 
     $("snoozeWellness15")?.addEventListener("click", async () => {
@@ -1211,9 +1400,14 @@
     });
 
     $("saveCurrentTab")?.addEventListener("click", async () => {
+      const groupName = normalizeGroupName(state.drafts.groupName);
+      const parsedTags = parseTagCsv(state.drafts.saveTags);
+      if (groupName) {
+        parsedTags.unshift(`group:${groupName}`);
+      }
       const payload = {
         note: String(state.drafts.saveNote || ""),
-        tags: parseTagCsv(state.drafts.saveTags)
+        tags: parsedTags
       };
       const response = await send({ type: "holmeta-core-save-current-tab", payload });
       if (!response?.ok) {
@@ -1281,6 +1475,25 @@
         return;
       }
       await safeOpen(checkoutUrl);
+    });
+
+    $("saveWindowGroup")?.addEventListener("click", async () => {
+      if (!isPremiumActive()) {
+        setSaveFeedback("STATUS: PREMIUM REQUIRED FOR GROUP SAVE", true);
+        return;
+      }
+      const groupName = normalizeGroupName(state.drafts.groupName);
+      const fallback = `Group — ${new Date().toLocaleString([], { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}`;
+      const name = groupName || fallback;
+      const response = await send({ type: "holmeta-core-save-session", payload: { name } });
+      if (!response?.ok) {
+        setSaveFeedback(`STATUS: GROUP SAVE FAILED (${String(response?.error || "UNKNOWN")})`, true);
+        return;
+      }
+      state.drafts.groupName = name;
+      queueDraftPersist();
+      setSaveFeedback("STATUS: TAB GROUP SAVED");
+      await refreshState();
     });
 
     $("focusStart25")?.addEventListener("click", async () => {

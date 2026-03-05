@@ -25,8 +25,11 @@
         <div class="save-drafts">
           <label for="saveNoteInput" class="meta-label">WHY SAVE THIS?</label>
           <textarea id="saveNoteInput" class="input" rows="2" placeholder="Short context"></textarea>
+          <label for="groupNameInput" class="meta-label">GROUP (PROJECT / CLIENT)</label>
+          <input id="groupNameInput" class="input" type="text" placeholder="e.g. Client ABC, Sprint 14" />
           <label for="saveTagsInput" class="meta-label">TAGS (PREMIUM)</label>
           <input id="saveTagsInput" class="input" type="text" placeholder="client, project, topic" />
+          <button id="saveWindowGroup" class="secondary" data-premium>SAVE WINDOW AS GROUP</button>
         </div>
         <div id="saveFeedback" class="small-note">STATUS: READY</div>
         <button id="undoSave" class="secondary" hidden>UNDO SAVE</button>
@@ -44,10 +47,10 @@
         </div>
       </section>
 
-      <section class="panel inbox-panel">
+      <section class="panel dashboard-panel">
         <div class="inbox-header">
-          <p class="kicker">INBOX</p>
-          <button id="openTools" class="secondary">TOOLS</button>
+          <p class="kicker">SAVED DASHBOARD</p>
+          <button id="openTools" class="secondary">COMMANDS</button>
         </div>
 
         <div class="filters-grid">
@@ -112,10 +115,25 @@
           <button id="lightSaveSite" class="secondary" data-premium>SAVE SITE</button>
           <button id="lightClearSite" class="secondary" data-premium>CLEAR SITE</button>
         </div>
+        <p class="meta-label">SITE PROFILE PRESETS</p>
+        <div class="button-grid compact-grid">
+          <button id="sitePresetDocs" class="secondary" data-premium>DOCS PROFILE</button>
+          <button id="sitePresetCode" class="secondary" data-premium>CODE PROFILE</button>
+          <button id="sitePresetVideo" class="secondary" data-premium>VIDEO PROFILE</button>
+          <button id="saveGlobalLightDefault" class="secondary" data-premium>SAVE GLOBAL DEFAULT</button>
+        </div>
+        <p class="meta-label">HOTKEY ACTIONS</p>
+        <div class="button-grid compact-grid">
+          <button id="hotkeyToggleFilters" class="secondary">TOGGLE FILTERS · ⇧⌥F</button>
+          <button id="hotkeyToggleRed" class="secondary">TOGGLE RED MODE · ⇧⌥R</button>
+          <button id="hotkeyIntensityUp" class="secondary">INTENSITY + · ⇧⌥↑</button>
+          <button id="hotkeyIntensityDown" class="secondary">INTENSITY -</button>
+          <button id="hotkeyEyeRelief" class="danger">EYE RELIEF NOW</button>
+        </div>
       </section>
 
       <section class="panel drawer-panel" id="wellnessDrawer" hidden>
-        <p class="kicker">WELLNESS NUDGES</p>
+        <p class="kicker">EYE + NERVOUS SYSTEM</p>
         <label class="inline-check">
           <input id="breaksEnabledToggle" type="checkbox" data-premium />
           MICRO-BREAK REMINDER
@@ -138,8 +156,61 @@
           <option value="45">45 MIN</option>
           <option value="60">60 MIN</option>
         </select>
+        <label class="inline-check">
+          <input id="blinkEnabledToggle" type="checkbox" data-premium />
+          BLINK CUE
+        </label>
+        <label for="blinkIntervalSelect" class="meta-label">BLINK INTERVAL</label>
+        <select id="blinkIntervalSelect" class="select" data-premium>
+          <option value="20">20 MIN</option>
+          <option value="25">25 MIN</option>
+          <option value="30">30 MIN</option>
+          <option value="45">45 MIN</option>
+        </select>
+        <label class="inline-check">
+          <input id="postureEnabledToggle" type="checkbox" data-premium />
+          POSTURE CUE
+        </label>
+        <label for="postureIntervalSelect" class="meta-label">POSTURE INTERVAL</label>
+        <select id="postureIntervalSelect" class="select" data-premium>
+          <option value="30">30 MIN</option>
+          <option value="45">45 MIN</option>
+          <option value="60">60 MIN</option>
+          <option value="90">90 MIN</option>
+        </select>
+        <label class="inline-check">
+          <input id="standEnabledToggle" type="checkbox" data-premium />
+          STAND / SIT CYCLE
+        </label>
+        <label for="standIntervalSelect" class="meta-label">STAND INTERVAL</label>
+        <select id="standIntervalSelect" class="select" data-premium>
+          <option value="45">45 MIN</option>
+          <option value="60">60 MIN</option>
+          <option value="75">75 MIN</option>
+          <option value="90">90 MIN</option>
+        </select>
+        <label class="inline-check">
+          <input id="scrollPauseEnabledToggle" type="checkbox" data-premium />
+          SCROLL FATIGUE LIMITER
+        </label>
+        <label for="scrollPauseSelect" class="meta-label">SCROLL LIMIT</label>
+        <select id="scrollPauseSelect" class="select" data-premium>
+          <option value="10">10 MIN</option>
+          <option value="15">15 MIN</option>
+          <option value="20">20 MIN</option>
+          <option value="30">30 MIN</option>
+        </select>
+        <label class="inline-check">
+          <input id="readingModeToggle" type="checkbox" data-premium />
+          READING MODE
+        </label>
+        <label class="inline-check">
+          <input id="dopamineHygieneToggle" type="checkbox" data-premium />
+          HIDE SHORTS / REELS / RECOMMENDS
+        </label>
         <div class="button-row compact-actions">
           <button id="saveWellness" class="primary" data-premium>SAVE</button>
+          <button id="runBreathingReset" class="secondary" data-premium>BREATH RESET 30S</button>
           <button id="snoozeWellness15" class="secondary" data-premium>SNOOZE 15M</button>
         </div>
       </section>
@@ -210,7 +281,7 @@
           <button id="copyLinkPack" class="secondary" data-premium>COPY LINK PACK</button>
         </div>
         <select id="exportSource" class="select" data-premium>
-          <option value="inbox">CURRENT INBOX</option>
+          <option value="inbox">CURRENT DASHBOARD</option>
         </select>
         <ul id="sessionList" class="mini-list"></ul>
       </section>

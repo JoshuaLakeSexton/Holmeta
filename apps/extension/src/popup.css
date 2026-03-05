@@ -273,6 +273,21 @@ body::before {
   gap: var(--s-2);
 }
 
+.button-grid {
+  margin-top: var(--s-2);
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--s-2);
+}
+
+.button-grid.two {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.button-grid.three {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
 .compact-actions {
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
@@ -324,6 +339,13 @@ body::before {
 
 @media (max-width: 380px) {
   .button-row {
+    grid-template-columns: 1fr;
+  }
+
+  .button-grid,
+  .button-grid.two,
+  .button-grid.three,
+  .compact-grid {
     grid-template-columns: 1fr;
   }
 
