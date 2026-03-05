@@ -9,6 +9,8 @@
     search: "",
     tagFilter: "",
     groupFilter: "",
+    contextFilter: "",
+    debugOnly: false,
     hasReminderOnly: false,
     saveNote: "",
     saveTags: "",
@@ -17,6 +19,8 @@
     licenseKey: "",
     customReminderAt: "",
     exportSource: "inbox",
+    boardMode: "group",
+    boardValue: "",
     lightIntensity: 78,
     snippetTitle: "",
     snippetBody: ""
@@ -103,6 +107,8 @@
       search: String(source.search || ""),
       tagFilter: String(source.tagFilter || ""),
       groupFilter: String(source.groupFilter || ""),
+      contextFilter: String(source.contextFilter || ""),
+      debugOnly: Boolean(source.debugOnly),
       hasReminderOnly: Boolean(source.hasReminderOnly),
       saveNote: String(source.saveNote || ""),
       saveTags: String(source.saveTags || ""),
@@ -112,6 +118,8 @@
       licenseKey: String(source.licenseKey || ""),
       customReminderAt: String(source.customReminderAt || ""),
       exportSource: String(source.exportSource || "inbox") || "inbox",
+      boardMode: String(source.boardMode || "group") || "group",
+      boardValue: String(source.boardValue || ""),
       lightIntensity: Math.max(0, Math.min(100, Math.round(Number(source.lightIntensity || 78)))),
       snippetTitle: String(source.snippetTitle || ""),
       snippetBody: String(source.snippetBody || "")
@@ -124,6 +132,8 @@
         search: uiState.search || "",
         tagFilter: uiState.tagFilter || "",
         groupFilter: uiState.groupFilter || "",
+        contextFilter: uiState.contextFilter || "",
+        debugOnly: Boolean(uiState.debugOnly),
         hasReminderOnly: uiState.hasReminderOnly || false,
         saveNote: uiState.notes || "",
         saveTags: uiState.saveTags || "",
@@ -132,6 +142,8 @@
         licenseKey: uiState.licenseKeyDraft || "",
         customReminderAt: uiState.customReminderAt || "",
         exportSource: uiState.exportSource || "inbox",
+        boardMode: uiState.boardMode || "group",
+        boardValue: uiState.boardValue || "",
         lightIntensity: uiState.lightIntensity || 78,
         snippetTitle: uiState.snippetTitle || "",
         snippetBody: uiState.snippetBody || ""
@@ -155,6 +167,8 @@
         search: normalized.search,
         tagFilter: normalized.tagFilter,
         groupFilter: normalized.groupFilter,
+        contextFilter: normalized.contextFilter,
+        debugOnly: normalized.debugOnly,
         hasReminderOnly: normalized.hasReminderOnly,
         notes: normalized.saveNote,
         saveTags: normalized.saveTags,
@@ -163,6 +177,8 @@
         licenseKeyDraft: normalized.licenseKey,
         customReminderAt: normalized.customReminderAt,
         exportSource: normalized.exportSource,
+        boardMode: normalized.boardMode,
+        boardValue: normalized.boardValue,
         lightIntensity: normalized.lightIntensity,
         snippetTitle: normalized.snippetTitle,
         snippetBody: normalized.snippetBody
@@ -270,6 +286,8 @@
     const search = String(state.drafts.search || "").trim().toLowerCase();
     const tagFilter = String(state.drafts.tagFilter || "").trim();
     const groupFilter = String(state.drafts.groupFilter || "").trim();
+    const contextFilter = String(state.drafts.contextFilter || "").trim();
+    const debugOnly = Boolean(state.drafts.debugOnly);
     const onlyReminder = Boolean(state.drafts.hasReminderOnly);
     const reminders = reminderByItemId();
 
@@ -283,6 +301,10 @@
           item.title,
           item.url,
           item.note,
+          item.decisionNote,
+          item.visualNotes,
+          item.contextKey,
+          item.contextType,
           ...(Array.isArray(item.tags) ? item.tags : [])
         ].join("\n").toLowerCase();
         if (!haystack.includes(search)) {
@@ -302,6 +324,16 @@
         if (itemGroup !== groupFilter) {
           return false;
         }
+      }
+
+      if (contextFilter) {
+        if (String(item.contextType || "").trim() !== contextFilter) {
+          return false;
+        }
+      }
+
+      if (debugOnly && !Boolean(item.debugTrail)) {
+        return false;
       }
 
       if (onlyReminder && !reminders.has(String(item.id || ""))) {
@@ -390,6 +422,98 @@
     } else {
       select.value = "";
       state.drafts.groupFilter = "";
+    }
+  }
+
+  function renderContextFilterOptions() {
+    const select = $("contextFilter");
+    if (!(select instanceof HTMLSelectElement)) {
+      return;
+    }
+
+    const current = String(state.drafts.contextFilter || "");
+    const contexts = [...new Set((state.core.items || [])
+      .map((item) => String(item?.contextType || "").trim())
+      .filter(Boolean))]
+      .sort((a, b) => a.localeCompare(b));
+
+    select.innerHTML = "";
+    const anyOption = document.createElement("option");
+    anyOption.value = "";
+    anyOption.textContent = "ALL CONTEXTS";
+    select.appendChild(anyOption);
+
+    contexts.forEach((contextType) => {
+      const option = document.createElement("option");
+      option.value = contextType;
+      option.textContent = contextType.toUpperCase();
+      select.appendChild(option);
+    });
+
+    if (current && contexts.includes(current)) {
+      select.value = current;
+    } else {
+      select.value = "";
+      state.drafts.contextFilter = "";
+    }
+  }
+
+  function currentBoardOptions(mode) {
+    const items = Array.isArray(state.core.items) ? state.core.items : [];
+    const safeMode = String(mode || "group").trim();
+    if (safeMode === "context") {
+      return [...new Set(items.map((item) => String(item?.contextKey || "").trim()).filter(Boolean))]
+        .sort((a, b) => a.localeCompare(b))
+        .map((value) => ({ value, label: value }));
+    }
+    if (safeMode === "client") {
+      return [...new Set(items
+        .flatMap((item) => Array.isArray(item.tags) ? item.tags : [])
+        .filter((tag) => String(tag).startsWith("client:"))
+        .map((tag) => String(tag).slice("client:".length))
+        .filter(Boolean))]
+        .sort((a, b) => a.localeCompare(b))
+        .map((value) => ({ value, label: value }));
+    }
+    if (safeMode === "debug") {
+      return [{ value: "__debug__", label: "DEBUG TRAIL" }];
+    }
+    return [...new Set(items.map((item) => String(item?.groupName || "").trim()).filter(Boolean))]
+      .sort((a, b) => a.localeCompare(b))
+      .map((value) => ({ value, label: value }));
+  }
+
+  function renderBoardOptions() {
+    const modeSelect = $("boardMode");
+    const valueSelect = $("boardValue");
+    if (!(modeSelect instanceof HTMLSelectElement) || !(valueSelect instanceof HTMLSelectElement)) {
+      return;
+    }
+
+    const mode = String(state.drafts.boardMode || "group");
+    if (modeSelect.value !== mode) {
+      modeSelect.value = mode;
+    }
+    const options = currentBoardOptions(mode);
+    const selected = String(state.drafts.boardValue || "");
+    valueSelect.innerHTML = "";
+    const placeholder = document.createElement("option");
+    placeholder.value = "";
+    placeholder.textContent = options.length ? "SELECT BOARD" : "NO BOARDS";
+    valueSelect.appendChild(placeholder);
+    options.forEach((entry) => {
+      const option = document.createElement("option");
+      option.value = entry.value;
+      option.textContent = entry.label;
+      valueSelect.appendChild(option);
+    });
+
+    const valid = new Set(options.map((entry) => entry.value));
+    if (selected && valid.has(selected)) {
+      valueSelect.value = selected;
+    } else {
+      valueSelect.value = "";
+      state.drafts.boardValue = "";
     }
   }
 
@@ -509,9 +633,10 @@
       <li class="item-card">
         <div class="item-main">
           <span class="item-title">${escapeHtml(entry.title || entry.url || "Untitled")}</span>
-          <span class="item-meta">${escapeHtml(entry.domain || "")}</span>
+          <span class="item-meta">${escapeHtml(entry.domain || "")}${Number(entry.completedAt || 0) > 0 ? " · DONE" : ""}</span>
         </div>
         <div class="item-inline-actions">
+          <button type="button" class="secondary" data-workflow-action="toggle" data-workflow-id="${entry.id}">${Number(entry.completedAt || 0) > 0 ? "UNDO" : "DONE"}</button>
           <button type="button" class="secondary" data-workflow-action="open" data-workflow-url="${encodeURIComponent(String(entry.url || ""))}">OPEN</button>
           <button type="button" class="secondary" data-workflow-action="remove" data-workflow-id="${entry.id}">REMOVE</button>
         </div>
@@ -575,6 +700,15 @@
       const groupPill = item.groupName
         ? `<span class="pill">GROUP · ${escapeHtml(item.groupName)}</span>`
         : "";
+      const debugPill = item.debugTrail
+        ? '<span class="pill warn">DEBUG TRAIL</span>'
+        : "";
+      const decisionPill = item.decisionNote
+        ? '<span class="pill">DECISION</span>'
+        : "";
+      const visualPill = item.visualNotes
+        ? '<span class="pill">REF</span>'
+        : "";
 
       return `
         <li class="item-card" data-item-id="${item.id}">
@@ -588,6 +722,7 @@
               <div class="item-actions">
                 <button type="button" class="secondary" data-item-action="edit" data-item-id="${item.id}">EDIT NOTE</button>
                 <button type="button" class="secondary" data-item-action="snippet" data-item-id="${item.id}" data-premium>SAVE SNIPPET</button>
+                <button type="button" class="secondary" data-item-action="context" data-item-id="${item.id}" data-premium>OPEN CONTEXT</button>
                 <button type="button" class="secondary" data-item-action="remind" data-item-id="${item.id}" data-premium>REMIND</button>
                 <button type="button" class="secondary" data-item-action="resume" data-item-id="${item.id}" data-premium>${resumeLabel}</button>
                 <button type="button" class="secondary" data-item-action="remove" data-item-id="${item.id}">REMOVE</button>
@@ -598,6 +733,9 @@
             ${item.pinned ? '<span class="pill">PINNED</span>' : ""}
             ${groupPill}
             ${contextPill}
+            ${debugPill}
+            ${decisionPill}
+            ${visualPill}
             ${reminderPill}
             ${tags.map((tag) => `<span class="tag">${escapeHtml(tag)}</span>`).join("")}
           </div>
@@ -660,7 +798,13 @@
 
     if (selectedItem) {
       setControlValueIfIdle("editNoteInput", selectedItem.note || "");
+      setControlValueIfIdle("editDecisionInput", selectedItem.decisionNote || "");
+      setControlValueIfIdle("editVisualInput", selectedItem.visualNotes || "");
       setControlValueIfIdle("editTagsInput", (selectedItem.tags || []).join(", "));
+      const debugToggle = $("editDebugTrail");
+      if (debugToggle instanceof HTMLInputElement) {
+        debugToggle.checked = Boolean(selectedItem.debugTrail);
+      }
       const title = $("itemEditorTitle");
       if (title) {
         title.textContent = `EDIT ITEM · ${String(selectedItem.domain || "").toUpperCase()}`;
@@ -708,12 +852,34 @@
     if (groupFilter instanceof HTMLSelectElement) {
       groupFilter.value = String(state.drafts.groupFilter || "");
     }
+
+    const contextFilter = $("contextFilter");
+    if (contextFilter instanceof HTMLSelectElement) {
+      contextFilter.value = String(state.drafts.contextFilter || "");
+    }
+
+    const debugOnly = $("debugOnly");
+    if (debugOnly instanceof HTMLInputElement) {
+      debugOnly.checked = Boolean(state.drafts.debugOnly);
+    }
+
+    const boardMode = $("boardMode");
+    if (boardMode instanceof HTMLSelectElement) {
+      boardMode.value = String(state.drafts.boardMode || "group");
+    }
+
+    const boardValue = $("boardValue");
+    if (boardValue instanceof HTMLSelectElement) {
+      boardValue.value = String(state.drafts.boardValue || "");
+    }
   }
 
   function render() {
     renderPremiumState();
     renderTagFilterOptions();
     renderGroupFilterOptions();
+    renderContextFilterOptions();
+    renderBoardOptions();
     renderExportSources();
     renderControls();
     renderLightControls();
@@ -874,6 +1040,42 @@
       setSaveFeedback("STATUS: LINK PACK COPIED ✓");
     } catch (_) {
       setSaveFeedback("STATUS: COPY FAILED", true);
+    }
+  }
+
+  function boardPayload() {
+    const mode = String(state.drafts.boardMode || "group");
+    const raw = String(state.drafts.boardValue || "");
+    const value = mode === "debug" ? "__debug__" : raw;
+    return { mode, value };
+  }
+
+  async function copyBoardPack() {
+    const { mode, value } = boardPayload();
+    if ((mode !== "debug" && !value) || !isPremiumActive()) {
+      setSaveFeedback("STATUS: BOARD SOURCE REQUIRED", true);
+      return;
+    }
+    const response = await send({
+      type: "holmeta-core-board-action",
+      payload: {
+        action: "inspect",
+        mode,
+        value
+      }
+    });
+    if (!response?.ok || !Array.isArray(response.boardItems) || !response.boardItems.length) {
+      setSaveFeedback("STATUS: BOARD EMPTY", true);
+      return;
+    }
+    const markdown = response.boardItems
+      .map((entry) => `- [${String(entry.title || "Untitled")}](${String(entry.url || "")})`)
+      .join("\n");
+    try {
+      await navigator.clipboard.writeText(markdown);
+      setSaveFeedback("STATUS: BOARD PACK COPIED ✓");
+    } catch (_) {
+      setSaveFeedback("STATUS: BOARD COPY FAILED", true);
     }
   }
 
@@ -1223,6 +1425,26 @@
       renderWorkboardList();
     });
 
+    $("contextFilter")?.addEventListener("change", (event) => {
+      const target = event.target;
+      if (!(target instanceof HTMLSelectElement)) {
+        return;
+      }
+      state.drafts.contextFilter = String(target.value || "");
+      queueDraftPersist();
+      renderWorkboardList();
+    });
+
+    $("debugOnly")?.addEventListener("change", (event) => {
+      const target = event.target;
+      if (!(target instanceof HTMLInputElement)) {
+        return;
+      }
+      state.drafts.debugOnly = Boolean(target.checked);
+      queueDraftPersist();
+      renderWorkboardList();
+    });
+
     $("hasReminderOnly")?.addEventListener("change", (event) => {
       const target = event.target;
       if (!(target instanceof HTMLInputElement)) {
@@ -1565,6 +1787,26 @@
       queueDraftPersist();
     });
 
+    $("boardMode")?.addEventListener("change", (event) => {
+      const target = event.target;
+      if (!(target instanceof HTMLSelectElement)) {
+        return;
+      }
+      state.drafts.boardMode = String(target.value || "group");
+      state.drafts.boardValue = "";
+      queueDraftPersist();
+      renderBoardOptions();
+    });
+
+    $("boardValue")?.addEventListener("change", (event) => {
+      const target = event.target;
+      if (!(target instanceof HTMLSelectElement)) {
+        return;
+      }
+      state.drafts.boardValue = String(target.value || "");
+      queueDraftPersist();
+    });
+
     $("saveCurrentTab")?.addEventListener("click", async () => {
       const groupName = normalizeGroupName(state.drafts.groupName);
       const parsedTags = parseTagCsv(state.drafts.saveTags);
@@ -1819,6 +2061,53 @@
       await copyLinkPack();
     });
 
+    $("openBoard")?.addEventListener("click", async () => {
+      const { mode, value } = boardPayload();
+      if (mode !== "debug" && !value) {
+        setSaveFeedback("STATUS: BOARD SOURCE REQUIRED", true);
+        return;
+      }
+      const response = await send({
+        type: "holmeta-core-board-action",
+        payload: {
+          action: "open",
+          mode,
+          value
+        }
+      });
+      if (!response?.ok) {
+        setSaveFeedback("STATUS: BOARD OPEN FAILED", true);
+        return;
+      }
+      setSaveFeedback(`STATUS: OPENED ${Number(response.opened || 0)} BOARD TAB(S)`);
+    });
+
+    $("saveBoardSession")?.addEventListener("click", async () => {
+      const { mode, value } = boardPayload();
+      if (mode !== "debug" && !value) {
+        setSaveFeedback("STATUS: BOARD SOURCE REQUIRED", true);
+        return;
+      }
+      const response = await send({
+        type: "holmeta-core-board-action",
+        payload: {
+          action: "save_session",
+          mode,
+          value
+        }
+      });
+      if (!response?.ok) {
+        setSaveFeedback("STATUS: BOARD SESSION SAVE FAILED", true);
+        return;
+      }
+      setSaveFeedback("STATUS: BOARD SAVED AS SESSION");
+      await refreshState();
+    });
+
+    $("copyBoardPack")?.addEventListener("click", async () => {
+      await copyBoardPack();
+    });
+
     $("workboardList")?.addEventListener("click", async (event) => {
       const target = event.target;
       const button = target instanceof HTMLElement ? target.closest("button[data-item-action]") : null;
@@ -1873,6 +2162,28 @@
         }
         setSaveFeedback("STATUS: SNIPPET SAVED FROM ITEM");
         await refreshState();
+        return;
+      }
+
+      if (action === "context") {
+        const item = itemById(itemId);
+        if (!item || !item.contextKey) {
+          setSaveFeedback("STATUS: NO CONTEXT KEY", true);
+          return;
+        }
+        const response = await send({
+          type: "holmeta-core-board-action",
+          payload: {
+            action: "open",
+            mode: "context",
+            value: item.contextKey
+          }
+        });
+        if (!response?.ok) {
+          setSaveFeedback("STATUS: CONTEXT OPEN FAILED", true);
+          return;
+        }
+        setSaveFeedback(`STATUS: OPENED ${Number(response.opened || 0)} CONTEXT TAB(S)`);
         return;
       }
 
@@ -1975,6 +2286,16 @@
         }
         await send({ type: "holmeta-core-workflow-action", payload: { action: "remove", workflowId } });
         await refreshState();
+        return;
+      }
+
+      if (action === "toggle") {
+        const workflowId = button.getAttribute("data-workflow-id") || "";
+        if (!workflowId) {
+          return;
+        }
+        await send({ type: "holmeta-core-workflow-action", payload: { action: "toggle_done", workflowId } });
+        await refreshState();
       }
     });
 
@@ -2017,16 +2338,25 @@
       }
 
       const noteInput = $("editNoteInput");
+      const decisionInput = $("editDecisionInput");
+      const visualInput = $("editVisualInput");
       const tagsInput = $("editTagsInput");
+      const debugInput = $("editDebugTrail");
       const note = noteInput instanceof HTMLInputElement ? noteInput.value : "";
+      const decisionNote = decisionInput instanceof HTMLInputElement ? decisionInput.value : "";
+      const visualNotes = visualInput instanceof HTMLTextAreaElement ? visualInput.value : "";
       const tags = tagsInput instanceof HTMLInputElement ? parseTagCsv(tagsInput.value) : [];
+      const debugTrail = debugInput instanceof HTMLInputElement ? Boolean(debugInput.checked) : false;
 
       const response = await send({
         type: "holmeta-core-update-item",
         payload: {
           itemId,
           note,
-          tags
+          decisionNote,
+          visualNotes,
+          tags,
+          debugTrail
         }
       });
 

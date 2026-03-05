@@ -683,8 +683,11 @@ function normalizeSavedItem(rawItem, nowTs = Date.now()) {
     domain,
     createdAt: Number(source.createdAt || nowTs),
     note: String(source.note || "").slice(0, 2000),
+    decisionNote: String(source.decisionNote || "").slice(0, 1200),
+    visualNotes: String(source.visualNotes || "").slice(0, 2000),
     tags: normalizeTags(source.tags || []),
     pinned: Boolean(source.pinned),
+    debugTrail: Boolean(source.debugTrail),
     favicon: String(source.favicon || "").trim(),
     groupName: String(source.groupName || "").trim().slice(0, 120),
     contextType: String(source.contextType || "general").trim().slice(0, 40) || "general",
@@ -712,7 +715,8 @@ function normalizeWorkflowEntry(rawEntry, nowTs = Date.now()) {
     title: String(source.title || url || "Untitled").trim().slice(0, 300) || "Untitled",
     url,
     domain: normalizeDomain(source.domain || url),
-    createdAt: Number(source.createdAt || nowTs)
+    createdAt: Number(source.createdAt || nowTs),
+    completedAt: Number(source.completedAt || 0)
   };
 }
 
@@ -1073,8 +1077,20 @@ async function coreUpdateItem(payload = {}) {
   if (Object.prototype.hasOwnProperty.call(payload, "note")) {
     item.note = String(payload.note || "").slice(0, 2000);
   }
+  if (Object.prototype.hasOwnProperty.call(payload, "decisionNote")) {
+    item.decisionNote = String(payload.decisionNote || "").slice(0, 1200);
+  }
+  if (Object.prototype.hasOwnProperty.call(payload, "visualNotes")) {
+    item.visualNotes = String(payload.visualNotes || "").slice(0, 2000);
+  }
   if (Object.prototype.hasOwnProperty.call(payload, "pinned")) {
     item.pinned = Boolean(payload.pinned);
+  }
+  if (Object.prototype.hasOwnProperty.call(payload, "debugTrail") && snapshot.premiumActive) {
+    item.debugTrail = Boolean(payload.debugTrail);
+  }
+  if (Object.prototype.hasOwnProperty.call(payload, "groupName") && snapshot.premiumActive) {
+    item.groupName = String(payload.groupName || "").trim().slice(0, 120);
   }
   if (Object.prototype.hasOwnProperty.call(payload, "tags") && snapshot.premiumActive) {
     item.tags = normalizeTags(payload.tags || []);
@@ -1389,6 +1405,17 @@ async function coreWorkflowAction(payload = {}) {
     return { ok: true, core: saved, premium: snapshot };
   }
 
+  if (action === "toggle_done") {
+    const id = String(payload.workflowId || "").trim();
+    const entry = (core.dailyWorkflow || []).find((item) => item.id === id);
+    if (!entry) {
+      return { ok: false, error: "WORKFLOW_ENTRY_NOT_FOUND", premium: snapshot };
+    }
+    entry.completedAt = Number(entry.completedAt || 0) > 0 ? 0 : Date.now();
+    const saved = await writeCoreState(core);
+    return { ok: true, core: saved, premium: snapshot };
+  }
+
   const activeTab = tabs.find((tab) => Number.isInteger(tab?.id) && isHttpUrl(tab?.url));
   if (!activeTab?.url) {
     return { ok: false, error: "NO_ACTIVE_HTTP_TAB", premium: snapshot };
@@ -1406,6 +1433,77 @@ async function coreWorkflowAction(payload = {}) {
   ].slice(0, CORE_MAX_WORKFLOW_ITEMS);
   const saved = await writeCoreState(core);
   return { ok: true, core: saved, entry, premium: snapshot };
+}
+
+function selectBoardItems(core, mode, value) {
+  const items = Array.isArray(core?.items) ? core.items : [];
+  const safeMode = String(mode || "").trim();
+  const safeValue = String(value || "").trim();
+
+  if (safeMode === "debug") {
+    return items.filter((item) => Boolean(item.debugTrail));
+  }
+  if (safeMode === "group") {
+    if (!safeValue) return [];
+    return items.filter((item) => String(item.groupName || "").trim() === safeValue);
+  }
+  if (safeMode === "context") {
+    if (!safeValue) return [];
+    return items.filter((item) => String(item.contextKey || "").trim() === safeValue);
+  }
+  if (safeMode === "client") {
+    if (!safeValue) return [];
+    return items.filter((item) => (Array.isArray(item.tags) ? item.tags : []).includes(`client:${safeValue}`));
+  }
+  return [];
+}
+
+async function coreBoardAction(payload = {}) {
+  const [settings, entitlement, core] = await Promise.all([getSettings(), getEntitlement(), getCoreState()]);
+  const snapshot = premiumSnapshot(settings, entitlement);
+  if (!snapshot.premiumActive) {
+    return { ok: false, error: "PREMIUM_REQUIRED", premium: snapshot };
+  }
+
+  const action = String(payload.action || "").trim();
+  const mode = String(payload.mode || "group").trim();
+  const value = String(payload.value || "").trim();
+  const boardItems = selectBoardItems(core, mode, value);
+  if (!boardItems.length) {
+    return { ok: false, error: "BOARD_EMPTY", premium: snapshot };
+  }
+
+  if (action === "open") {
+    const uniqueUrls = [...new Set(boardItems.map((item) => item.url).filter(Boolean))];
+    for (const url of uniqueUrls) {
+      chrome.tabs.create({ url });
+    }
+    return { ok: true, opened: uniqueUrls.length, premium: snapshot };
+  }
+
+  if (action === "save_session") {
+    const defaultName = `Board — ${mode.toUpperCase()} ${value || "DEBUG"}`;
+    const session = normalizeSession({
+      id: createId("ses"),
+      name: String(payload.name || defaultName),
+      createdAt: Date.now(),
+      tabs: boardItems.map((item) => ({ title: item.title, url: item.url }))
+    });
+    core.sessions.unshift(session);
+    core.sessions = core.sessions.slice(0, CORE_MAX_SESSIONS);
+    const saved = await writeCoreState(core);
+    return { ok: true, core: saved, session, premium: snapshot };
+  }
+
+  return {
+    ok: true,
+    premium: snapshot,
+    boardItems: boardItems.map((item) => ({
+      id: item.id,
+      title: item.title,
+      url: item.url
+    }))
+  };
 }
 
 async function coreResumeAction(payload = {}) {
@@ -2073,6 +2171,11 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
 
     if (message.type === "holmeta-core-workflow-action") {
       sendResponse(await coreWorkflowAction(message.payload || {}));
+      return;
+    }
+
+    if (message.type === "holmeta-core-board-action") {
+      sendResponse(await coreBoardAction(message.payload || {}));
       return;
     }
 

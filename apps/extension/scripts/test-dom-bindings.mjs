@@ -38,12 +38,16 @@ async function main() {
     "saveNoteInput",
     "searchInput",
     "workboardList",
+    "contextFilter",
     "licenseKeyInput",
     "activateLicense",
     "saveSession",
     "copyLinkPack",
     "workflowList",
-    "snippetList"
+    "snippetList",
+    "boardMode",
+    "boardValue",
+    "openBoard"
   ]);
 
   assertCriticalIds("options", optionsHtmlIds, [

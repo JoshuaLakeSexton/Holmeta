@@ -15,13 +15,15 @@
 - Click `UNDO SAVE` in 5 seconds and confirm item is removed.
 - Trigger shortcut (`save_current_tab`) and verify save works.
 
-## 3) Workboard + Minimal Actions
+## 3) Workboard + Context Filtering
 - Save multiple tabs.
-- Search by title/domain/note and verify filtering.
-- Use tag filter, group filter, and `HAS REMINDER`.
+- Search by title/domain/note/decision/ref and verify filtering.
+- Use tag filter, group filter, context filter, and `HAS REMINDER`.
+- Toggle `DEBUG TRAIL ONLY` and verify only debug-marked items remain.
 - Open item action menu (`⋯`) and verify:
   - `EDIT NOTE`
   - `SAVE SNIPPET` (premium)
+  - `OPEN CONTEXT` (premium)
   - `REMIND` (premium)
   - `ADD/REMOVE RESUME` (premium)
   - `REMOVE`
@@ -46,10 +48,21 @@
 ## 6b) Daily Workflow + Snippets
 - Click `ADD TO DAILY WORKFLOW` from quick save panel.
 - Verify entry appears in `DAILY WORKFLOW`.
+- Toggle `DONE/UNDO` and verify state updates.
 - `OPEN ALL` opens each saved workflow tab.
 - `CLEAR` removes all workflow tabs.
 - Save snippet via `SAVE SNIPPET` in settings drawer or from item menu.
 - Verify snippet can be copied and deleted.
+
+## 6c) Boards + Dossiers
+- In `REFERENCE BOARDS`, choose each board type:
+  - Group board
+  - Context board
+  - Client dossier
+  - Debug trail
+- `OPEN BOARD` opens tabs for the selected source.
+- `SAVE AS SESSION` creates a session entry.
+- `COPY BOARD PACK` copies markdown links for that board.
 
 ## 7) Light Controls (Premium)
 - Open `LIGHT` drawer.

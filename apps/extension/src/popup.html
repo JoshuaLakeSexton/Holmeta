@@ -64,9 +64,16 @@
           <select id="groupFilter" class="select">
             <option value="">ALL GROUPS</option>
           </select>
+          <select id="contextFilter" class="select">
+            <option value="">ALL CONTEXTS</option>
+          </select>
           <label class="inline-check">
             <input id="hasReminderOnly" type="checkbox" />
             HAS REMINDER
+          </label>
+          <label class="inline-check">
+            <input id="debugOnly" type="checkbox" />
+            DEBUG TRAIL ONLY
           </label>
         </div>
 
@@ -232,7 +239,13 @@
       <section class="panel action-panel" id="itemEditor" hidden>
         <p class="kicker" id="itemEditorTitle">EDIT ITEM</p>
         <input id="editNoteInput" class="input" type="text" placeholder="Note" />
+        <input id="editDecisionInput" class="input" type="text" placeholder="Decision log (we chose X because Y)" />
+        <textarea id="editVisualInput" class="input" rows="2" placeholder="Visual refs (font / color / component)"></textarea>
         <input id="editTagsInput" class="input" type="text" placeholder="tag1, tag2" data-premium />
+        <label class="inline-check">
+          <input id="editDebugTrail" type="checkbox" data-premium />
+          MARK AS DEBUG TRAIL
+        </label>
         <div class="button-row">
           <button id="saveItemMeta" class="primary">SAVE</button>
           <button id="cancelItemMeta" class="secondary">CLOSE</button>
@@ -305,6 +318,24 @@
         <textarea id="snippetBodyInput" class="input" rows="3" placeholder="Paste reusable command, template, or context note"></textarea>
         <button id="saveSnippet" class="secondary" data-premium>SAVE SNIPPET</button>
         <ul id="snippetList" class="mini-list"></ul>
+        <div class="hm-hr"></div>
+        <p class="kicker">REFERENCE BOARDS</p>
+        <label for="boardMode" class="meta-label">BOARD TYPE</label>
+        <select id="boardMode" class="select" data-premium>
+          <option value="group">GROUP BOARD</option>
+          <option value="context">CONTEXT BOARD</option>
+          <option value="client">CLIENT DOSSIER</option>
+          <option value="debug">DEBUG TRAIL</option>
+        </select>
+        <label for="boardValue" class="meta-label">BOARD SOURCE</label>
+        <select id="boardValue" class="select" data-premium>
+          <option value="">SELECT BOARD</option>
+        </select>
+        <div class="button-grid two">
+          <button id="openBoard" class="secondary" data-premium>OPEN BOARD</button>
+          <button id="saveBoardSession" class="secondary" data-premium>SAVE AS SESSION</button>
+          <button id="copyBoardPack" class="secondary" data-premium>COPY BOARD PACK</button>
+        </div>
         <ul id="sessionList" class="mini-list"></ul>
       </section>
     </main>
