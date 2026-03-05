@@ -5,14 +5,16 @@ const HC = globalThis.HolmetaCommon;
 const STORAGE = {
   settings: "holmeta.settings",
   entitlement: "holmeta.entitlement",
-  core: "holmeta.core.v1"
+  core: "holmeta.core.v1",
+  runtime: "holmeta.runtime.v1"
 };
 
 const ALARMS = {
   entitlement: "holmeta-entitlement",
   reminderPrefix: "holmeta-core-reminder-",
   wellnessBreak: "holmeta-wellness-break",
-  wellnessEye: "holmeta-wellness-eye"
+  wellnessEye: "holmeta-wellness-eye",
+  focusEnd: "holmeta-focus-end"
 };
 
 const NOTIFICATIONS = {
@@ -25,6 +27,9 @@ const CORE_MAX_SESSIONS = 120;
 const CORE_RESUME_LIMIT = 7;
 const ENTITLEMENT_GRACE_MS = 72 * 60 * 60 * 1000;
 const NOTIFICATION_ICON = "src/assets/icons/icon48.png";
+const BLOCKER_RULE_ID_BASE = 47000;
+const BLOCKER_RULE_ID_MAX = 47499;
+const BLOCKER_RULE_LIMIT = BLOCKER_RULE_ID_MAX - BLOCKER_RULE_ID_BASE + 1;
 
 const DOMAIN_TAG_HINTS = [
   { test: /(^|\.)github\.com$/, tags: ["Dev"] },
@@ -55,6 +60,23 @@ function alarmsGetAll() {
 
 function tabsQuery(queryInfo = {}) {
   return new Promise((resolve) => chrome.tabs.query(queryInfo, resolve));
+}
+
+function dnrUpdateDynamicRules(payload) {
+  return new Promise((resolve) => {
+    if (!chrome.declarativeNetRequest?.updateDynamicRules) {
+      resolve({ ok: false, error: "DNR_UNAVAILABLE" });
+      return;
+    }
+    chrome.declarativeNetRequest.updateDynamicRules(payload, () => {
+      const err = chrome.runtime?.lastError;
+      if (err) {
+        resolve({ ok: false, error: err.message || "DNR_UPDATE_FAILED" });
+        return;
+      }
+      resolve({ ok: true });
+    });
+  });
 }
 
 function tabsSendMessage(tabId, payload) {
@@ -254,6 +276,51 @@ async function writeEntitlement(nextEntitlement) {
   return normalized;
 }
 
+function normalizeBlockerRuleIds(rawValue) {
+  if (!Array.isArray(rawValue)) {
+    return [];
+  }
+  return rawValue
+    .map((id) => Number(id))
+    .filter((id) => Number.isInteger(id) && id >= BLOCKER_RULE_ID_BASE && id <= BLOCKER_RULE_ID_MAX);
+}
+
+function normalizeRuntimeState(rawRuntime) {
+  const normalized = HC.normalizeRuntime(rawRuntime || {});
+  normalized.blockerRuleIds = normalizeBlockerRuleIds(rawRuntime?.blockerRuleIds || normalized.blockerRuleIds || []);
+  return normalized;
+}
+
+async function getRuntimeState() {
+  const data = await storageGet(STORAGE.runtime);
+  const normalized = normalizeRuntimeState(data[STORAGE.runtime] || {});
+  if (!data[STORAGE.runtime]) {
+    await storageSet({ [STORAGE.runtime]: normalized });
+  }
+  return normalized;
+}
+
+async function writeRuntimeState(nextRuntime) {
+  const normalized = normalizeRuntimeState(nextRuntime || {});
+  await storageSet({ [STORAGE.runtime]: normalized });
+  return normalized;
+}
+
+async function updateRuntimeState(patch) {
+  const current = await getRuntimeState();
+  const next = normalizeRuntimeState({
+    ...current,
+    ...(patch || {})
+  });
+  await storageSet({ [STORAGE.runtime]: next });
+  return next;
+}
+
+function isFocusSessionActive(runtime) {
+  const endsAt = Number(runtime?.focusSession?.endsAt || 0);
+  return endsAt > Date.now();
+}
+
 function effectiveSettingsForTier(settings, entitlement) {
   const premiumActive = Boolean(settings?.devBypassPremium || entitlement?.active);
   const normalized = HC.normalizeSettings(settings || {});
@@ -346,6 +413,131 @@ async function scheduleWellnessAlarms(settingsInput = null, entitlementInput = n
       periodInMinutes: wellness.eyeIntervalMin
     });
   }
+}
+
+function buildBlockerRules(domains) {
+  const safeDomains = Array.isArray(domains) ? domains.slice(0, BLOCKER_RULE_LIMIT) : [];
+  return safeDomains.map((domain, index) => ({
+    id: BLOCKER_RULE_ID_BASE + index,
+    priority: 1,
+    action: { type: "block" },
+    condition: {
+      // Block direct navigations to distracting domains.
+      urlFilter: `||${domain}^`,
+      resourceTypes: ["main_frame"]
+    }
+  }));
+}
+
+async function sendFocusHudToActiveTab(runtimeInput = null) {
+  const runtime = runtimeInput || (await getRuntimeState());
+  const tabs = await tabsQuery({ active: true, currentWindow: true });
+  const activeTab = Array.isArray(tabs) ? tabs.find((tab) => normalizeHttpUrl(tab?.url || "")) : null;
+  if (!activeTab || !Number.isInteger(activeTab.id)) {
+    return { ok: false, error: "NO_ACTIVE_HTTP_TAB" };
+  }
+  return tabsSendMessage(activeTab.id, {
+    type: "holmeta-focus-hud",
+    focusSession: runtime.focusSession || null
+  });
+}
+
+async function applyBlockerRules(settingsInput = null, entitlementInput = null, runtimeInput = null) {
+  const [settings, entitlement, runtime] = await Promise.all([
+    settingsInput ? Promise.resolve(settingsInput) : getSettings(),
+    entitlementInput ? Promise.resolve(entitlementInput) : getEntitlement(),
+    runtimeInput ? Promise.resolve(runtimeInput) : getRuntimeState()
+  ]);
+
+  const premiumActive = Boolean(settings?.devBypassPremium || entitlement?.active);
+  const focusActive = isFocusSessionActive(runtime);
+  const desiredEnabled = premiumActive && (Boolean(settings.blockerEnabled) || focusActive);
+  const domains = HC.effectiveDistractorDomains(settings);
+  const previousRuleIds = normalizeBlockerRuleIds(runtime.blockerRuleIds || []);
+
+  if (!desiredEnabled || !domains.length) {
+    if (previousRuleIds.length) {
+      await dnrUpdateDynamicRules({ removeRuleIds: previousRuleIds, addRules: [] });
+    }
+    const nextRuntime = await writeRuntimeState({
+      ...runtime,
+      blockerRuleIds: [],
+      blockerActive: false
+    });
+    return {
+      ok: true,
+      blockerActive: false,
+      runtime: nextRuntime
+    };
+  }
+
+  const addRules = buildBlockerRules(domains);
+  const nextRuleIds = addRules.map((rule) => rule.id);
+  const result = await dnrUpdateDynamicRules({
+    removeRuleIds: previousRuleIds,
+    addRules
+  });
+  if (!result.ok) {
+    return {
+      ok: false,
+      error: result.error || "BLOCKER_RULE_UPDATE_FAILED",
+      blockerActive: false
+    };
+  }
+
+  const nextRuntime = await writeRuntimeState({
+    ...runtime,
+    blockerRuleIds: nextRuleIds,
+    blockerActive: true
+  });
+  return {
+    ok: true,
+    blockerActive: true,
+    ruleCount: nextRuleIds.length,
+    runtime: nextRuntime
+  };
+}
+
+async function startFocusSession(minutesInput = 25) {
+  const [settings, entitlement, runtime] = await Promise.all([getSettings(), getEntitlement(), getRuntimeState()]);
+  const minutes = Math.max(5, Math.min(180, Math.round(Number(minutesInput || 25))));
+  const nowTs = Date.now();
+  const focusSession = {
+    startedAt: nowTs,
+    endsAt: nowTs + minutes * 60 * 1000,
+    durationMin: minutes
+  };
+  const nextRuntime = await writeRuntimeState({
+    ...runtime,
+    focusSession
+  });
+  chrome.alarms.create(ALARMS.focusEnd, { when: focusSession.endsAt });
+  await applyBlockerRules(settings, entitlement, nextRuntime);
+  await sendFocusHudToActiveTab(nextRuntime);
+  return { ok: true, focusSession, runtime: nextRuntime };
+}
+
+async function stopFocusSession(reason = "manual") {
+  const [settings, entitlement, runtime] = await Promise.all([getSettings(), getEntitlement(), getRuntimeState()]);
+  const hadFocus = Boolean(runtime.focusSession && Number(runtime.focusSession.endsAt || 0));
+  await alarmsClear(ALARMS.focusEnd);
+  const nextRuntime = await writeRuntimeState({
+    ...runtime,
+    focusSession: null
+  });
+  await applyBlockerRules(settings, entitlement, nextRuntime);
+  await sendFocusHudToActiveTab(nextRuntime);
+
+  if (hadFocus && reason === "complete") {
+    await notify("holmeta-focus-complete", {
+      type: "basic",
+      iconUrl: NOTIFICATION_ICON,
+      title: "holmeta focus",
+      message: "Focus session complete."
+    });
+  }
+
+  return { ok: true, runtime: nextRuntime };
 }
 
 function coreReminderAlarmName(reminderId) {
@@ -1040,11 +1232,27 @@ async function bootstrap() {
   }
   const core = await getCoreState();
   const entitlement = await refreshEntitlement(settings, true);
+  let runtime = await getRuntimeState();
+  if (!isFocusSessionActive(runtime) && runtime.focusSession) {
+    runtime = await writeRuntimeState({
+      ...runtime,
+      focusSession: null
+    });
+  }
   await rescheduleCoreReminders(core);
   await scheduleWellnessAlarms(settings, entitlement);
+  await applyBlockerRules(settings, entitlement, runtime);
   chrome.alarms.create(ALARMS.entitlement, {
     periodInMinutes: 30
   });
+  if (isFocusSessionActive(runtime)) {
+    chrome.alarms.create(ALARMS.focusEnd, {
+      when: Number(runtime.focusSession.endsAt)
+    });
+    await sendFocusHudToActiveTab(runtime);
+  } else {
+    await alarmsClear(ALARMS.focusEnd);
+  }
 }
 
 chrome.runtime.onInstalled.addListener(() => {
@@ -1097,7 +1305,17 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
   if (name === ALARMS.entitlement) {
     const settings = await getSettings();
     const entitlement = await refreshEntitlement(settings, false);
+    const runtime = await getRuntimeState();
     await scheduleWellnessAlarms(settings, entitlement);
+    await applyBlockerRules(settings, entitlement, runtime);
+    if (isFocusSessionActive(runtime)) {
+      await sendFocusHudToActiveTab(runtime);
+    }
+    return;
+  }
+
+  if (name === ALARMS.focusEnd) {
+    await stopFocusSession("complete");
     return;
   }
 
@@ -1173,8 +1391,14 @@ chrome.tabs.onUpdated.addListener(async (_tabId, changeInfo, tab) => {
   if (changeInfo.status !== "complete" || !tab?.url) {
     return;
   }
-  const [settings, entitlement] = await Promise.all([getSettings(), getEntitlement()]);
+  const [settings, entitlement, runtime] = await Promise.all([getSettings(), getEntitlement(), getRuntimeState()]);
   await applyFilterToTab(tab, settings, entitlement);
+  if (isFocusSessionActive(runtime) && Number.isInteger(tab.id)) {
+    await tabsSendMessage(tab.id, {
+      type: "holmeta-focus-hud",
+      focusSession: runtime.focusSession || null
+    });
+  }
   await handleCoreNextVisit(tab.url);
 });
 
@@ -1218,7 +1442,7 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
 
   (async () => {
     if (message.type === "holmeta-request-state") {
-      const [settings, entitlement] = await Promise.all([getSettings(), getEntitlement()]);
+      const [settings, entitlement, runtime] = await Promise.all([getSettings(), getEntitlement(), getRuntimeState()]);
       const requestedDomain = normalizeDomain(message.domain || message.hostname || "");
       const filterPayload = HC.computeFilterPayload(
         effectiveSettingsForTier(settings, entitlement),
@@ -1230,7 +1454,7 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
         settings,
         entitlement,
         filterPayload,
-        runtime: {},
+        runtime,
         auth: {
           paired: Boolean(String(settings.licenseKey || "").trim()),
           pairedAt: null
@@ -1240,7 +1464,7 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     }
 
     if (message.type === "holmeta-content-ready") {
-      const [settings, entitlement] = await Promise.all([getSettings(), getEntitlement()]);
+      const [settings, entitlement, runtime] = await Promise.all([getSettings(), getEntitlement(), getRuntimeState()]);
       const requestedDomain = normalizeDomain(message.domain || message.hostname || "");
       const filterPayload = HC.computeFilterPayload(
         effectiveSettingsForTier(settings, entitlement),
@@ -1252,7 +1476,7 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
         settings,
         entitlement,
         filterPayload,
-        runtime: {}
+        runtime
       });
       return;
     }
@@ -1292,6 +1516,8 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
         applyFiltersToActiveTabs(settings, entitlement),
         scheduleWellnessAlarms(settings, entitlement)
       ]);
+      const runtime = await getRuntimeState();
+      await applyBlockerRules(settings, entitlement, runtime);
 
       sendResponse({ ok: true, settings, entitlement });
       return;
@@ -1300,7 +1526,9 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     if (message.type === "holmeta-refresh-entitlement") {
       const settings = await getSettings();
       const entitlement = await refreshEntitlement(settings, true);
+      const runtime = await getRuntimeState();
       await scheduleWellnessAlarms(settings, entitlement);
+      await applyBlockerRules(settings, entitlement, runtime);
       sendResponse({ ok: true, entitlement });
       return;
     }
@@ -1317,7 +1545,9 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
         sendResponse({ ok: false, error: entitlement.error || "LICENSE_INVALID_OR_INACTIVE", entitlement });
         return;
       }
+      const runtime = await getRuntimeState();
       await scheduleWellnessAlarms(settings, entitlement);
+      await applyBlockerRules(settings, entitlement, runtime);
       sendResponse({ ok: true, entitlement });
       return;
     }
@@ -1325,7 +1555,9 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     if (message.type === "holmeta-clear-license") {
       const settings = await updateSettings({ licenseKey: "" });
       const entitlement = await refreshEntitlement(settings, true);
+      const runtime = await getRuntimeState();
       await scheduleWellnessAlarms(settings, entitlement);
+      await applyBlockerRules(settings, entitlement, runtime);
       sendResponse({ ok: true, entitlement });
       return;
     }
@@ -1541,8 +1773,16 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
       return;
     }
 
-    if (message.type === "holmeta-start-focus" || message.type === "holmeta-panic-focus") {
-      sendResponse({ ok: true });
+    if (message.type === "holmeta-start-focus") {
+      const minutes = Math.max(5, Math.min(180, Math.round(Number(message.minutes || 25))));
+      const result = await startFocusSession(minutes);
+      sendResponse(result);
+      return;
+    }
+
+    if (message.type === "holmeta-panic-focus") {
+      const result = await stopFocusSession("manual");
+      sendResponse(result);
       return;
     }
 

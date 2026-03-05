@@ -11,6 +11,7 @@
     hasReminderOnly: false,
     saveNote: "",
     saveTags: "",
+    focusDomains: "",
     licenseKey: "",
     customReminderAt: "",
     exportSource: "inbox",
@@ -40,6 +41,10 @@
       freeActive: true,
       lockReason: "UNLOCK_PREMIUM",
       plan: "free"
+    },
+    runtime: {
+      focusSession: null,
+      blockerActive: false
     },
     drafts: { ...DEFAULT_DRAFTS },
     selectedItemId: "",
@@ -94,6 +99,7 @@
       hasReminderOnly: Boolean(source.hasReminderOnly),
       saveNote: String(source.saveNote || ""),
       saveTags: String(source.saveTags || ""),
+      focusDomains: String(source.focusDomains || source.domainsDraft || ""),
       // Preserve in-progress typing/paste exactly as entered.
       licenseKey: String(source.licenseKey || ""),
       customReminderAt: String(source.customReminderAt || ""),
@@ -110,6 +116,7 @@
         hasReminderOnly: uiState.hasReminderOnly || false,
         saveNote: uiState.notes || "",
         saveTags: uiState.saveTags || "",
+        focusDomains: uiState.domainsDraft || "",
         licenseKey: uiState.licenseKeyDraft || "",
         customReminderAt: uiState.customReminderAt || "",
         exportSource: uiState.exportSource || "inbox",
@@ -136,6 +143,7 @@
         hasReminderOnly: normalized.hasReminderOnly,
         notes: normalized.saveNote,
         saveTags: normalized.saveTags,
+        domainsDraft: normalized.focusDomains,
         licenseKeyDraft: normalized.licenseKey,
         customReminderAt: normalized.customReminderAt,
         exportSource: normalized.exportSource,
@@ -564,6 +572,7 @@
     renderControls();
     renderLightControls();
     renderWellnessControls();
+    renderFocusBlockerControls();
     renderDrawers();
     renderResumeList();
     renderInboxList();
@@ -594,6 +603,9 @@
 
     if (stateResponse?.settings) {
       state.settings = HC.normalizeSettings(stateResponse.settings);
+    }
+    if (stateResponse?.runtime && typeof stateResponse.runtime === "object") {
+      state.runtime = stateResponse.runtime;
     }
 
     render();
@@ -721,6 +733,36 @@
     return { title, url };
   }
 
+  function blockerPatchFromControls(forceEnabled = null) {
+    const blockerEnabledToggle = $("blockerEnabledToggle");
+    const social = $("blockCategorySocial");
+    const news = $("blockCategoryNews");
+    const video = $("blockCategoryVideo");
+    const adult = $("blockCategoryAdult");
+    const domainsRaw = String($("focusDomains")?.value || state.drafts.focusDomains || "");
+
+    const nextEnabled = forceEnabled === null
+      ? Boolean(blockerEnabledToggle instanceof HTMLInputElement ? blockerEnabledToggle.checked : state.settings.blockerEnabled)
+      : Boolean(forceEnabled);
+
+    const categories = {
+      social: Boolean(social instanceof HTMLInputElement ? social.checked : state.settings?.blockerCategories?.social),
+      news: Boolean(news instanceof HTMLInputElement ? news.checked : state.settings?.blockerCategories?.news),
+      video: Boolean(video instanceof HTMLInputElement ? video.checked : state.settings?.blockerCategories?.video),
+      adult: Boolean(adult instanceof HTMLInputElement ? adult.checked : state.settings?.blockerCategories?.adult)
+    };
+
+    const domains = HC.parseDomainList(domainsRaw);
+    state.drafts.focusDomains = domainsRaw;
+    queueDraftPersist();
+
+    return {
+      blockerEnabled: nextEnabled,
+      distractorDomains: domains,
+      blockerCategories: categories
+    };
+  }
+
   function lightModeToPreset(mode) {
     if (mode === "red_mono") return "redNightMax";
     if (mode === "red_overlay") return "redNightStrong";
@@ -747,6 +789,31 @@
       eyeEnabled: Boolean(source.eyeEnabled),
       eyeIntervalMin: Math.max(10, Math.min(120, Math.round(Number(source.eyeIntervalMin || 20))))
     };
+  }
+
+  function getBlockerCategoriesFromSettings() {
+    const source = state.settings?.blockerCategories && typeof state.settings.blockerCategories === "object"
+      ? state.settings.blockerCategories
+      : {};
+    return {
+      social: Boolean(source.social),
+      news: Boolean(source.news),
+      video: Boolean(source.video),
+      adult: Boolean(source.adult)
+    };
+  }
+
+  function getFocusStatusText() {
+    const focusSession = state.runtime?.focusSession || null;
+    if (!focusSession || !Number(focusSession.endsAt)) {
+      return "FOCUS: IDLE";
+    }
+    const remainingMs = Number(focusSession.endsAt) - Date.now();
+    if (remainingMs <= 0) {
+      return "FOCUS: IDLE";
+    }
+    const totalMin = Math.max(1, Math.ceil(remainingMs / 60000));
+    return `FOCUS: ${totalMin}M LEFT`;
   }
 
   function renderDrawers() {
@@ -815,6 +882,41 @@
     }
     if (eyeInterval instanceof HTMLSelectElement) {
       eyeInterval.value = String(wellness.eyeIntervalMin);
+    }
+  }
+
+  function renderFocusBlockerControls() {
+    const focusStatus = $("focusStatus");
+    if (focusStatus) {
+      focusStatus.textContent = getFocusStatusText();
+    }
+
+    const blockerEnabledToggle = $("blockerEnabledToggle");
+    if (blockerEnabledToggle instanceof HTMLInputElement) {
+      blockerEnabledToggle.checked = Boolean(state.settings.blockerEnabled);
+    }
+
+    const categories = getBlockerCategoriesFromSettings();
+    const social = $("blockCategorySocial");
+    const news = $("blockCategoryNews");
+    const video = $("blockCategoryVideo");
+    const adult = $("blockCategoryAdult");
+    if (social instanceof HTMLInputElement) social.checked = categories.social;
+    if (news instanceof HTMLInputElement) news.checked = categories.news;
+    if (video instanceof HTMLInputElement) video.checked = categories.video;
+    if (adult instanceof HTMLInputElement) adult.checked = categories.adult;
+
+    const fallbackDomains = Array.isArray(state.settings?.distractorDomains)
+      ? state.settings.distractorDomains.join(", ")
+      : "";
+    setControlValueIfIdle("focusDomains", state.drafts.focusDomains || fallbackDomains);
+
+    const toggleButton = $("toggleBlockerActive");
+    if (toggleButton instanceof HTMLButtonElement) {
+      const enabled = Boolean(state.settings.blockerEnabled);
+      toggleButton.textContent = enabled ? "PAUSE BLOCKER" : "ACTIVATE BLOCKER";
+      toggleButton.classList.toggle("danger", enabled);
+      toggleButton.classList.toggle("secondary", !enabled);
     }
   }
 
@@ -938,6 +1040,15 @@
         return;
       }
       state.drafts.saveTags = String(target.value || "");
+      queueDraftPersist();
+    });
+
+    $("focusDomains")?.addEventListener("input", (event) => {
+      const target = event.target;
+      if (!(target instanceof HTMLTextAreaElement)) {
+        return;
+      }
+      state.drafts.focusDomains = String(target.value || "");
       queueDraftPersist();
     });
 
@@ -1170,6 +1281,77 @@
         return;
       }
       await safeOpen(checkoutUrl);
+    });
+
+    $("focusStart25")?.addEventListener("click", async () => {
+      const response = await send({ type: "holmeta-start-focus", minutes: 25 });
+      if (!response?.ok) {
+        setSaveFeedback("STATUS: FOCUS START FAILED", true);
+        return;
+      }
+      setSaveFeedback("STATUS: FOCUS 25M STARTED");
+      await refreshState();
+    });
+
+    $("focusStart50")?.addEventListener("click", async () => {
+      const response = await send({ type: "holmeta-start-focus", minutes: 50 });
+      if (!response?.ok) {
+        setSaveFeedback("STATUS: FOCUS START FAILED", true);
+        return;
+      }
+      setSaveFeedback("STATUS: FOCUS 50M STARTED");
+      await refreshState();
+    });
+
+    $("focusStart90")?.addEventListener("click", async () => {
+      const response = await send({ type: "holmeta-start-focus", minutes: 90 });
+      if (!response?.ok) {
+        setSaveFeedback("STATUS: FOCUS START FAILED", true);
+        return;
+      }
+      setSaveFeedback("STATUS: FOCUS 90M STARTED");
+      await refreshState();
+    });
+
+    $("focusStop")?.addEventListener("click", async () => {
+      const response = await send({ type: "holmeta-panic-focus" });
+      if (!response?.ok) {
+        setSaveFeedback("STATUS: STOP FOCUS FAILED", true);
+        return;
+      }
+      setSaveFeedback("STATUS: FOCUS STOPPED");
+      await refreshState();
+    });
+
+    $("applyBlockerConfig")?.addEventListener("click", async () => {
+      if (!isPremiumActive()) {
+        setSaveFeedback("STATUS: PREMIUM REQUIRED FOR BLOCKER", true);
+        return;
+      }
+      const patch = blockerPatchFromControls(null);
+      const response = await send({ type: "holmeta-update-settings", patch });
+      if (!response?.ok) {
+        setSaveFeedback("STATUS: BLOCKER SAVE FAILED", true);
+        return;
+      }
+      setSaveFeedback(patch.blockerEnabled ? "STATUS: BLOCKER ACTIVE" : "STATUS: BLOCKER SAVED");
+      await refreshState();
+    });
+
+    $("toggleBlockerActive")?.addEventListener("click", async () => {
+      if (!isPremiumActive()) {
+        setSaveFeedback("STATUS: PREMIUM REQUIRED FOR BLOCKER", true);
+        return;
+      }
+      const nextEnabled = !Boolean(state.settings.blockerEnabled);
+      const patch = blockerPatchFromControls(nextEnabled);
+      const response = await send({ type: "holmeta-update-settings", patch });
+      if (!response?.ok) {
+        setSaveFeedback("STATUS: BLOCKER TOGGLE FAILED", true);
+        return;
+      }
+      setSaveFeedback(nextEnabled ? "STATUS: BLOCKER ACTIVE" : "STATUS: BLOCKER PAUSED");
+      await refreshState();
     });
 
     $("saveSession")?.addEventListener("click", async () => {

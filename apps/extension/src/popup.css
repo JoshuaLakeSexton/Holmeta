@@ -93,6 +93,20 @@ body::before {
   margin: 0;
 }
 
+.category-grid {
+  margin-top: var(--s-2);
+}
+
+.category-check {
+  width: 100%;
+  justify-content: flex-start;
+}
+
+#focusDomains {
+  min-height: 72px;
+  height: 72px;
+}
+
 .inbox-header,
 .resume-head {
   display: flex;

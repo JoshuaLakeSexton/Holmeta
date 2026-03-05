@@ -173,6 +173,35 @@
 
       <section class="panel sessions-panel drawer-panel" id="settingsDrawer" hidden>
         <div class="inbox-header">
+          <p class="kicker">FOCUS + BLOCKER</p>
+          <p id="focusStatus" class="small-note">FOCUS: IDLE</p>
+        </div>
+        <div class="button-grid compact-grid">
+          <button class="secondary" id="focusStart25">FOCUS 25M</button>
+          <button class="secondary" id="focusStart50">FOCUS 50M</button>
+          <button class="secondary" id="focusStart90">FOCUS 90M</button>
+          <button class="danger" id="focusStop">STOP FOCUS</button>
+        </div>
+        <label class="inline-check">
+          <input id="blockerEnabledToggle" type="checkbox" data-premium />
+          BLOCKER ACTIVE
+        </label>
+        <label for="focusDomains" class="meta-label">DISTRACTOR DOMAINS (CSV)</label>
+        <textarea id="focusDomains" class="input" rows="2" placeholder="youtube.com, x.com, reddit.com"></textarea>
+        <p class="small-note">One domain per comma. Categories merge into this list.</p>
+        <div class="button-grid compact-grid category-grid">
+          <label class="inline-check category-check"><input id="blockCategorySocial" type="checkbox" data-premium />SOCIAL</label>
+          <label class="inline-check category-check"><input id="blockCategoryNews" type="checkbox" data-premium />NEWS</label>
+          <label class="inline-check category-check"><input id="blockCategoryVideo" type="checkbox" data-premium />VIDEO</label>
+          <label class="inline-check category-check"><input id="blockCategoryAdult" type="checkbox" data-premium />18+</label>
+        </div>
+        <div class="button-grid two">
+          <button id="applyBlockerConfig" class="primary" data-premium>APPLY BLOCKER</button>
+          <button id="toggleBlockerActive" class="secondary" data-premium>PAUSE BLOCKER</button>
+        </div>
+
+        <div class="hm-hr"></div>
+        <div class="inbox-header">
           <p class="kicker">SESSIONS</p>
           <button id="saveSession" class="secondary" data-premium>SAVE SESSION</button>
         </div>
