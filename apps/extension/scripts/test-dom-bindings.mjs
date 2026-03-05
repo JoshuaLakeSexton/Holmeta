@@ -40,6 +40,8 @@ async function main() {
     "snapshotModeSelect",
     "searchInput",
     "workboardList",
+    "triageList",
+    "triageOpenTop3",
     "contextFilter",
     "licenseKeyInput",
     "activateLicense",
@@ -52,7 +54,9 @@ async function main() {
     "openBoard",
     "openNextBoard",
     "resetBoardProgress",
-    "boardPreviewList"
+    "boardPreviewList",
+    "editPrioritySelect",
+    "editTriageToday"
   ]);
 
   assertCriticalIds("options", optionsHtmlIds, [

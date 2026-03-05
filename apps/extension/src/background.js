@@ -775,6 +775,7 @@ function normalizeSavedItem(rawItem, nowTs = Date.now()) {
     visualNotes: String(source.visualNotes || "").slice(0, 2000),
     tags: normalizeTags(source.tags || []),
     pinned: Boolean(source.pinned),
+    priority: Math.max(0, Math.min(3, Math.round(Number(source.priority || 0)))),
     debugTrail: Boolean(source.debugTrail),
     favicon: String(source.favicon || "").trim(),
     previewDataUrl: String(source.previewDataUrl || "").slice(0, 220000),
@@ -782,7 +783,9 @@ function normalizeSavedItem(rawItem, nowTs = Date.now()) {
     groupName: String(source.groupName || "").trim().slice(0, 120),
     contextType: String(source.contextType || "general").trim().slice(0, 40) || "general",
     contextKey: String(source.contextKey || domain || "").trim().slice(0, 180),
-    lastOpenedAt: Number(source.lastOpenedAt || 0)
+    lastOpenedAt: Number(source.lastOpenedAt || 0),
+    triageDate: String(source.triageDate || "").trim().slice(0, 20),
+    triageDoneAt: Number(source.triageDoneAt || 0)
   };
 }
 
@@ -1211,6 +1214,31 @@ function boardKey(mode, value) {
   return `${safeMode}:${safeValue}`;
 }
 
+function todayLocalKey() {
+  const now = new Date();
+  const y = now.getFullYear();
+  const m = String(now.getMonth() + 1).padStart(2, "0");
+  const d = String(now.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
+
+function sortByPriorityAndFreshness(items) {
+  return [...(Array.isArray(items) ? items : [])].sort((a, b) => {
+    if (Boolean(a.pinned) !== Boolean(b.pinned)) {
+      return a.pinned ? -1 : 1;
+    }
+    const priorityDelta = Number(b.priority || 0) - Number(a.priority || 0);
+    if (priorityDelta !== 0) {
+      return priorityDelta;
+    }
+    const doneDelta = Number(a.triageDoneAt || 0) - Number(b.triageDoneAt || 0);
+    if (doneDelta !== 0) {
+      return doneDelta;
+    }
+    return Number(b.createdAt || 0) - Number(a.createdAt || 0);
+  });
+}
+
 function markItemOpened(core, itemId, ts = Date.now()) {
   const item = (core.items || []).find((entry) => entry.id === String(itemId || ""));
   if (item) {
@@ -1266,11 +1294,20 @@ async function coreUpdateItem(payload = {}) {
   if (Object.prototype.hasOwnProperty.call(payload, "pinned")) {
     item.pinned = Boolean(payload.pinned);
   }
+  if (Object.prototype.hasOwnProperty.call(payload, "priority") && snapshot.premiumActive) {
+    item.priority = Math.max(0, Math.min(3, Math.round(Number(payload.priority || 0))));
+  }
   if (Object.prototype.hasOwnProperty.call(payload, "debugTrail") && snapshot.premiumActive) {
     item.debugTrail = Boolean(payload.debugTrail);
   }
   if (Object.prototype.hasOwnProperty.call(payload, "groupName") && snapshot.premiumActive) {
     item.groupName = String(payload.groupName || "").trim().slice(0, 120);
+  }
+  if (Object.prototype.hasOwnProperty.call(payload, "triageDate") && snapshot.premiumActive) {
+    item.triageDate = String(payload.triageDate || "").trim().slice(0, 20);
+  }
+  if (Object.prototype.hasOwnProperty.call(payload, "triageDoneAt") && snapshot.premiumActive) {
+    item.triageDoneAt = Math.max(0, Number(payload.triageDoneAt || 0));
   }
   if (Object.prototype.hasOwnProperty.call(payload, "tags") && snapshot.premiumActive) {
     item.tags = normalizeTags(payload.tags || []);
@@ -1726,6 +1763,85 @@ async function coreBoardAction(payload = {}) {
       url: item.url
     }))
   };
+}
+
+async function coreTriageAction(payload = {}) {
+  const [settings, entitlement, core] = await Promise.all([getSettings(), getEntitlement(), getCoreState()]);
+  const snapshot = premiumSnapshot(settings, entitlement);
+  if (!snapshot.premiumActive) {
+    return { ok: false, error: "PREMIUM_REQUIRED", premium: snapshot };
+  }
+
+  const action = String(payload.action || "").trim();
+  const todayKey = todayLocalKey();
+
+  if (action === "open_top3") {
+    const triageItems = sortByPriorityAndFreshness(
+      (core.items || []).filter((item) => item.triageDate === todayKey && Number(item.triageDoneAt || 0) <= 0)
+    ).slice(0, 3);
+    if (!triageItems.length) {
+      return { ok: false, error: "TRIAGE_EMPTY", premium: snapshot };
+    }
+    const nowTs = Date.now();
+    triageItems.forEach((item) => {
+      if (item?.url) {
+        chrome.tabs.create({ url: item.url });
+        markItemOpened(core, item.id, nowTs);
+      }
+    });
+    const saved = await writeCoreState(core);
+    return { ok: true, opened: triageItems.length, core: saved, premium: snapshot };
+  }
+
+  if (action === "clear_done") {
+    (core.items || []).forEach((item) => {
+      if (item.triageDate === todayKey && Number(item.triageDoneAt || 0) > 0) {
+        item.triageDate = "";
+        item.triageDoneAt = 0;
+      }
+    });
+    const saved = await writeCoreState(core);
+    return { ok: true, core: saved, premium: snapshot };
+  }
+
+  const itemId = String(payload.itemId || "").trim();
+  const item = (core.items || []).find((entry) => entry.id === itemId);
+  if (!item) {
+    return { ok: false, error: "ITEM_NOT_FOUND", premium: snapshot };
+  }
+
+  if (action === "mark_done") {
+    item.triageDate = todayKey;
+    item.triageDoneAt = Date.now();
+    const saved = await writeCoreState(core);
+    return { ok: true, core: saved, premium: snapshot };
+  }
+
+  if (action === "mark_todo") {
+    item.triageDate = todayKey;
+    item.triageDoneAt = 0;
+    const saved = await writeCoreState(core);
+    return { ok: true, core: saved, premium: snapshot };
+  }
+
+  if (action === "add") {
+    item.triageDate = todayKey;
+    item.triageDoneAt = 0;
+    if (Number(item.priority || 0) <= 0) {
+      item.priority = 2;
+    }
+    const saved = await writeCoreState(core);
+    return { ok: true, core: saved, premium: snapshot };
+  }
+
+  if (action === "remove") {
+    item.triageDate = "";
+    item.triageDoneAt = 0;
+    const saved = await writeCoreState(core);
+    return { ok: true, core: saved, premium: snapshot };
+  }
+
+  return { ok: false, error: "UNKNOWN_TRIAGE_ACTION", premium: snapshot };
 }
 
 async function coreResumeAction(payload = {}) {
@@ -2406,6 +2522,11 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
 
     if (message.type === "holmeta-core-board-action") {
       sendResponse(await coreBoardAction(message.payload || {}));
+      return;
+    }
+
+    if (message.type === "holmeta-core-triage-action") {
+      sendResponse(await coreTriageAction(message.payload || {}));
       return;
     }
 

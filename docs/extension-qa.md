@@ -24,10 +24,11 @@
 - Use tag filter, group filter, context filter, and `HAS REMINDER`.
 - Toggle `DEBUG TRAIL ONLY` and verify only debug-marked items remain.
 - Open item action menu (`⋯`) and verify:
-  - `EDIT NOTE` (note + decision + visual refs + debug trail toggle)
+  - `EDIT NOTE` (note + decision + visual refs + priority + pin + debug + today triage toggle)
   - `SAVE SNIPPET` (premium)
   - `CAPTURE PREVIEW` (premium; requires active page for that item)
   - `OPEN CONTEXT` (premium)
+  - `ADD TODAY / REMOVE TODAY` (premium)
   - `REMIND` (premium)
   - `ADD/REMOVE RESUME` (premium)
   - `REMOVE`
@@ -70,6 +71,13 @@
 - `SAVE AS SESSION` creates a session entry.
 - `COPY BOARD PACK` copies markdown links for that board.
 - Board preview list renders top boards with one-click open/next/copy.
+
+## 6d) Today Triage Lane
+- Add at least 3 items to `TODAY TRIAGE`.
+- Set priorities (HIGH/MED/LOW) and confirm lane sort order.
+- Click `OPEN TOP 3` and confirm first three open.
+- Mark item `DONE`, then `UNDO`.
+- Use `CLEAR DONE` and confirm done items leave the lane.
 
 ## 7) Light Controls (Premium)
 - Open `LIGHT` drawer.

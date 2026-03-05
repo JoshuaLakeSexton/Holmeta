@@ -94,6 +94,14 @@
           </div>
         </div>
         <ul id="resumeList" class="mini-list"></ul>
+        <div class="resume-head">
+          <p class="meta-label">TODAY TRIAGE</p>
+          <div class="resume-actions">
+            <button id="triageOpenTop3" class="secondary" data-premium>OPEN TOP 3</button>
+            <button id="triageClearDone" class="secondary" data-premium>CLEAR DONE</button>
+          </div>
+        </div>
+        <ul id="triageList" class="mini-list"></ul>
         <ul id="workboardList" class="inbox-list"></ul>
         <div class="hm-hr"></div>
         <div class="inbox-header">
@@ -251,6 +259,25 @@
         <input id="editDecisionInput" class="input" type="text" placeholder="Decision log (we chose X because Y)" />
         <textarea id="editVisualInput" class="input" rows="2" placeholder="Visual refs (font / color / component)"></textarea>
         <input id="editTagsInput" class="input" type="text" placeholder="tag1, tag2" data-premium />
+        <label for="editPrioritySelect" class="meta-label">PRIORITY (PREMIUM)</label>
+        <select id="editPrioritySelect" class="select" data-premium>
+          <option value="0">NONE</option>
+          <option value="1">LOW</option>
+          <option value="2">MEDIUM</option>
+          <option value="3">HIGH</option>
+        </select>
+        <label class="inline-check">
+          <input id="editPinned" type="checkbox" />
+          PIN ITEM
+        </label>
+        <label class="inline-check">
+          <input id="editTriageToday" type="checkbox" data-premium />
+          ADD TO TODAY TRIAGE
+        </label>
+        <label class="inline-check">
+          <input id="editTriageDone" type="checkbox" data-premium />
+          MARK TRIAGE DONE
+        </label>
         <label class="inline-check">
           <input id="editDebugTrail" type="checkbox" data-premium />
           MARK AS DEBUG TRAIL

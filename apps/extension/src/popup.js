@@ -260,6 +260,14 @@
     }
   }
 
+  function todayLocalKey() {
+    const now = new Date();
+    const y = now.getFullYear();
+    const m = String(now.getMonth() + 1).padStart(2, "0");
+    const d = String(now.getDate()).padStart(2, "0");
+    return `${y}-${m}-${d}`;
+  }
+
   function setSaveFeedback(text, isError = false) {
     const target = $("saveFeedback");
     if (!target) {
@@ -355,10 +363,35 @@
       if (Boolean(a.pinned) !== Boolean(b.pinned)) {
         return a.pinned ? -1 : 1;
       }
+      const priorityDelta = Number(b.priority || 0) - Number(a.priority || 0);
+      if (priorityDelta !== 0) {
+        return priorityDelta;
+      }
       return Number(b.createdAt || 0) - Number(a.createdAt || 0);
     });
 
     return filtered;
+  }
+
+  function triageItems() {
+    const today = todayLocalKey();
+    const items = (state.core.items || [])
+      .filter((item) => String(item.triageDate || "") === today);
+    items.sort((a, b) => {
+      if (Boolean(a.pinned) !== Boolean(b.pinned)) {
+        return a.pinned ? -1 : 1;
+      }
+      const priorityDelta = Number(b.priority || 0) - Number(a.priority || 0);
+      if (priorityDelta !== 0) {
+        return priorityDelta;
+      }
+      const doneDelta = Number(a.triageDoneAt || 0) - Number(b.triageDoneAt || 0);
+      if (doneDelta !== 0) {
+        return doneDelta;
+      }
+      return Number(b.createdAt || 0) - Number(a.createdAt || 0);
+    });
+    return items;
   }
 
   function itemById(itemId) {
@@ -660,6 +693,38 @@
     `).join("");
   }
 
+  function renderTriageList() {
+    const list = $("triageList");
+    if (!(list instanceof HTMLUListElement)) {
+      return;
+    }
+
+    const items = triageItems();
+    if (!items.length) {
+      list.innerHTML = '<li class="small-note">NO ITEMS IN TODAY TRIAGE.</li>';
+      return;
+    }
+
+    list.innerHTML = items.map((item) => {
+      const done = Number(item.triageDoneAt || 0) > 0;
+      const priority = Math.max(0, Math.min(3, Number(item.priority || 0)));
+      const priorityLabel = ["NONE", "LOW", "MED", "HIGH"][priority] || "NONE";
+      return `
+        <li class="item-card">
+          <div class="item-main">
+            <span class="item-title">${escapeHtml(item.title || "Untitled")}</span>
+            <span class="item-meta">${escapeHtml(item.domain || "")} · P${priority} ${priorityLabel}${done ? " · DONE" : ""}</span>
+          </div>
+          <div class="item-inline-actions">
+            <button type="button" class="secondary" data-triage-action="open" data-item-id="${item.id}">OPEN</button>
+            <button type="button" class="secondary" data-triage-action="${done ? "todo" : "done"}" data-item-id="${item.id}">${done ? "UNDO" : "DONE"}</button>
+            <button type="button" class="secondary" data-triage-action="remove" data-item-id="${item.id}">REMOVE</button>
+          </div>
+        </li>
+      `;
+    }).join("");
+  }
+
   function renderSessionList() {
     const list = $("sessionList");
     if (!(list instanceof HTMLUListElement)) {
@@ -787,6 +852,9 @@
       const previewPill = item.previewDataUrl
         ? `<span class="pill">PREVIEW · ${(item.previewMode || "full").toUpperCase()}</span>`
         : "";
+      const triagePill = String(item.triageDate || "") === todayLocalKey()
+        ? `<span class="pill ${Number(item.triageDoneAt || 0) > 0 ? "" : "warn"}">TODAY${Number(item.triageDoneAt || 0) > 0 ? " · DONE" : ""}</span>`
+        : "";
 
       return `
         <li class="item-card" data-item-id="${item.id}">
@@ -803,6 +871,7 @@
                 <button type="button" class="secondary" data-item-action="snippet" data-item-id="${item.id}" data-premium>SAVE SNIPPET</button>
                 <button type="button" class="secondary" data-item-action="preview" data-item-id="${item.id}" data-premium>CAPTURE PREVIEW</button>
                 <button type="button" class="secondary" data-item-action="context" data-item-id="${item.id}" data-premium>OPEN CONTEXT</button>
+                <button type="button" class="secondary" data-item-action="triage" data-item-id="${item.id}" data-premium>${String(item.triageDate || "") === todayLocalKey() ? "REMOVE TODAY" : "ADD TODAY"}</button>
                 <button type="button" class="secondary" data-item-action="remind" data-item-id="${item.id}" data-premium>REMIND</button>
                 <button type="button" class="secondary" data-item-action="resume" data-item-id="${item.id}" data-premium>${resumeLabel}</button>
                 <button type="button" class="secondary" data-item-action="remove" data-item-id="${item.id}">REMOVE</button>
@@ -818,6 +887,7 @@
             ${decisionPill}
             ${visualPill}
             ${previewPill}
+            ${triagePill}
             ${reminderPill}
             ${tags.map((tag) => `<span class="tag">${escapeHtml(tag)}</span>`).join("")}
           </div>
@@ -883,9 +953,23 @@
       setControlValueIfIdle("editDecisionInput", selectedItem.decisionNote || "");
       setControlValueIfIdle("editVisualInput", selectedItem.visualNotes || "");
       setControlValueIfIdle("editTagsInput", (selectedItem.tags || []).join(", "));
+      setControlValueIfIdle("editPrioritySelect", Math.max(0, Math.min(3, Number(selectedItem.priority || 0))));
       const debugToggle = $("editDebugTrail");
       if (debugToggle instanceof HTMLInputElement) {
         debugToggle.checked = Boolean(selectedItem.debugTrail);
+      }
+      const pinnedToggle = $("editPinned");
+      if (pinnedToggle instanceof HTMLInputElement) {
+        pinnedToggle.checked = Boolean(selectedItem.pinned);
+      }
+      const triageToggle = $("editTriageToday");
+      if (triageToggle instanceof HTMLInputElement) {
+        triageToggle.checked = String(selectedItem.triageDate || "") === todayLocalKey();
+      }
+      const triageDoneToggle = $("editTriageDone");
+      if (triageDoneToggle instanceof HTMLInputElement) {
+        triageDoneToggle.checked = Number(selectedItem.triageDoneAt || 0) > 0;
+        triageDoneToggle.disabled = String(selectedItem.triageDate || "") !== todayLocalKey();
       }
       const title = $("itemEditorTitle");
       if (title) {
@@ -980,6 +1064,7 @@
     renderFocusBlockerControls();
     renderDrawers();
     renderResumeList();
+    renderTriageList();
     renderWorkboardList();
     renderWorkflowList();
     renderSessionList();
@@ -1456,6 +1541,18 @@
 
     window.addEventListener("beforeunload", () => {
       flushDraftPersist();
+    });
+
+    $("editTriageToday")?.addEventListener("change", (event) => {
+      const target = event.target;
+      const doneToggle = $("editTriageDone");
+      if (!(doneToggle instanceof HTMLInputElement) || !(target instanceof HTMLInputElement)) {
+        return;
+      }
+      if (!target.checked) {
+        doneToggle.checked = false;
+      }
+      doneToggle.disabled = !target.checked;
     });
 
     document.addEventListener("click", (event) => {
@@ -2176,6 +2273,26 @@
       await refreshState();
     });
 
+    $("triageOpenTop3")?.addEventListener("click", async () => {
+      const response = await send({ type: "holmeta-core-triage-action", payload: { action: "open_top3" } });
+      if (!response?.ok) {
+        setSaveFeedback("STATUS: TODAY TRIAGE EMPTY", true);
+        return;
+      }
+      setSaveFeedback(`STATUS: OPENED TOP ${Number(response.opened || 0)}`);
+      await refreshState();
+    });
+
+    $("triageClearDone")?.addEventListener("click", async () => {
+      const response = await send({ type: "holmeta-core-triage-action", payload: { action: "clear_done" } });
+      if (!response?.ok) {
+        setSaveFeedback("STATUS: CLEAR DONE FAILED", true);
+        return;
+      }
+      setSaveFeedback("STATUS: CLEARED DONE TRIAGE ITEMS");
+      await refreshState();
+    });
+
     $("copyLinkPack")?.addEventListener("click", async () => {
       await copyLinkPack();
     });
@@ -2361,6 +2478,28 @@
         return;
       }
 
+      if (action === "triage") {
+        const item = itemById(itemId);
+        if (!item) {
+          return;
+        }
+        const inToday = String(item.triageDate || "") === todayLocalKey();
+        const response = await send({
+          type: "holmeta-core-triage-action",
+          payload: {
+            action: inToday ? "remove" : "add",
+            itemId
+          }
+        });
+        if (!response?.ok) {
+          setSaveFeedback("STATUS: TRIAGE UPDATE FAILED", true);
+          return;
+        }
+        setSaveFeedback(inToday ? "STATUS: REMOVED FROM TODAY TRIAGE" : "STATUS: ADDED TO TODAY TRIAGE");
+        await refreshState();
+        return;
+      }
+
       if (action === "remove") {
         const confirmed = window.confirm("Remove this saved item?");
         if (!confirmed) {
@@ -2407,6 +2546,39 @@
 
       if (action === "remove") {
         await send({ type: "holmeta-core-resume-action", payload: { action: "remove", itemId } });
+        await refreshState();
+      }
+    });
+
+    $("triageList")?.addEventListener("click", async (event) => {
+      const target = event.target;
+      const button = target instanceof HTMLElement ? target.closest("button[data-triage-action]") : null;
+      if (!button) {
+        return;
+      }
+      const action = button.getAttribute("data-triage-action") || "";
+      const itemId = button.getAttribute("data-item-id") || "";
+      if (!itemId) {
+        return;
+      }
+
+      if (action === "open") {
+        await send({ type: "holmeta-core-open-item", itemId });
+        await refreshState();
+        return;
+      }
+      if (action === "done") {
+        await send({ type: "holmeta-core-triage-action", payload: { action: "mark_done", itemId } });
+        await refreshState();
+        return;
+      }
+      if (action === "todo") {
+        await send({ type: "holmeta-core-triage-action", payload: { action: "mark_todo", itemId } });
+        await refreshState();
+        return;
+      }
+      if (action === "remove") {
+        await send({ type: "holmeta-core-triage-action", payload: { action: "remove", itemId } });
         await refreshState();
       }
     });
@@ -2569,12 +2741,24 @@
       const decisionInput = $("editDecisionInput");
       const visualInput = $("editVisualInput");
       const tagsInput = $("editTagsInput");
+      const priorityInput = $("editPrioritySelect");
+      const pinnedInput = $("editPinned");
+      const triageTodayInput = $("editTriageToday");
+      const triageDoneInput = $("editTriageDone");
       const debugInput = $("editDebugTrail");
       const note = noteInput instanceof HTMLInputElement ? noteInput.value : "";
       const decisionNote = decisionInput instanceof HTMLInputElement ? decisionInput.value : "";
       const visualNotes = visualInput instanceof HTMLTextAreaElement ? visualInput.value : "";
       const tags = tagsInput instanceof HTMLInputElement ? parseTagCsv(tagsInput.value) : [];
+      const priority = priorityInput instanceof HTMLSelectElement
+        ? Math.max(0, Math.min(3, Number(priorityInput.value || 0)))
+        : 0;
+      const pinned = pinnedInput instanceof HTMLInputElement ? Boolean(pinnedInput.checked) : false;
+      const triageToday = triageTodayInput instanceof HTMLInputElement ? Boolean(triageTodayInput.checked) : false;
+      const triageDone = triageDoneInput instanceof HTMLInputElement ? Boolean(triageDoneInput.checked) : false;
       const debugTrail = debugInput instanceof HTMLInputElement ? Boolean(debugInput.checked) : false;
+      const triageDate = triageToday ? todayLocalKey() : "";
+      const triageDoneAt = triageToday && triageDone ? Date.now() : 0;
 
       const response = await send({
         type: "holmeta-core-update-item",
@@ -2584,6 +2768,10 @@
           decisionNote,
           visualNotes,
           tags,
+          priority,
+          pinned,
+          triageDate,
+          triageDoneAt,
           debugTrail
         }
       });
