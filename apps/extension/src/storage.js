@@ -27,9 +27,10 @@
       tagFilter: String(source.tagFilter || ""),
       hasReminderOnly: Boolean(source.hasReminderOnly),
       saveTags: String(source.saveTags || ""),
-      licenseKeyDraft: String(source.licenseKeyDraft || "").trim().toUpperCase(),
+      // Keep raw draft text untouched while typing; normalize only on activation.
+      licenseKeyDraft: String(source.licenseKeyDraft || ""),
       checkoutSessionDraft: String(source.checkoutSessionDraft || "").trim(),
-      domainsDraft: String(source.domainsDraft || "").trim(),
+      domainsDraft: String(source.domainsDraft || ""),
       customReminderAt: String(source.customReminderAt || ""),
       exportSource: String(source.exportSource || "inbox") || "inbox",
       lightIntensity: Math.max(0, Math.min(100, Math.round(Number(source.lightIntensity || 78)))),

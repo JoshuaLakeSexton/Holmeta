@@ -3,508 +3,115 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>holmeta Ops Console</title>
+    <title>holmeta options</title>
     <link rel="stylesheet" href="options.css" />
   </head>
   <body>
-    <main class="app-shell">
-      <header class="topbar panel">
+    <main class="options-shell">
+      <header class="panel header">
         <div>
-          <p class="kicker">REPORT ID: HM-OPS-CADENCE-V2</p>
-          <h1>holmeta operations console</h1>
-          <p id="statusLine" class="meta-line">STATUS: ACTIVE</p>
+          <p class="kicker">HOLMETA</p>
+          <h1 class="page-title">OPTIONS CONSOLE</h1>
         </div>
-        <div class="topbar-actions">
-          <button id="optionsBack" class="secondary">BACK</button>
-          <button id="optionsHome" class="secondary">HOME</button>
-          <button id="saveSettings" class="primary">SAVE CONFIG</button>
+        <div class="chip-stack">
+          <p id="statusLine" class="status-chip status-idle">STATUS: READY</p>
+          <p id="premiumStatus" class="status-chip status-locked">PREMIUM: LOCKED</p>
         </div>
       </header>
 
-      <section class="panel quick-actions">
-        <p class="kicker">QUICK CONTROLS</p>
-        <p class="meta-line quick-actions-copy">
-          Run immediate actions without editing your saved cadence settings.
-        </p>
-        <div class="button-grid">
-          <button id="focus25" class="primary">FOCUS 25M</button>
-          <button id="focus50">FOCUS 50M</button>
-          <button id="focusStop" class="danger">STOP FOCUS</button>
-          <button id="snoozeAllButton">SNOOZE ALL 15M</button>
-          <button id="panicOffButton" class="danger">PANIC OFF 30M</button>
-          <button id="meetingModeQuick">MEETING MODE</button>
-        </div>
-      </section>
-
       <section class="panel">
-        <h2>Sound Engine</h2>
-        <p class="meta-line">Enable subtle ops cues for UI actions and reminders. Keep hover cues optional.</p>
-
-        <div class="control-grid">
-          <label for="soundEnabled">MASTER SOUND</label>
-          <input id="soundEnabled" type="checkbox" />
-
-          <label for="masterVolume">MASTER VOLUME</label>
-          <div class="row-inline">
-            <input id="masterVolume" type="range" min="0" max="100" step="1" />
-            <span id="masterVolumeValue" class="mono">35%</span>
-          </div>
-
-          <label for="hoverEnabled">ENABLE HOVER SOUNDS</label>
-          <input id="hoverEnabled" type="checkbox" />
-
-          <label for="reminderSoundsEnabled">ENABLE REMINDER SOUNDS</label>
-          <input id="reminderSoundsEnabled" type="checkbox" />
+        <p class="kicker">PREMIUM ACTIVATION</p>
+        <label for="licenseKeyInput" class="meta-label">LICENSE KEY</label>
+        <input id="licenseKeyInput" class="input" type="text" placeholder="HOLMETA-XXXX-XXXX-XXXX-XXXX" autocomplete="off" />
+        <p id="accountStatus" class="small-note">READY.</p>
+        <div class="button-grid three">
+          <button id="activateLicense" class="primary">ACTIVATE</button>
+          <button id="refreshEntitlement" class="secondary">REFRESH</button>
+          <button id="clearLicense" class="secondary">CLEAR</button>
         </div>
-
-        <div id="soundMappings" class="sound-mappings"></div>
-
-        <div class="row-inline">
-          <button id="soundTestPing">TEST PING</button>
-          <p id="soundStatus" class="meta-line">STATUS: SOUND READY</p>
-        </div>
-      </section>
-
-      <section class="panel">
-        <h2>First-Run Onboarding</h2>
-        <p class="meta-line">Pick a profile, work window, delivery style, and design-mode defaults in one pass.</p>
-
-        <div class="control-grid">
-          <label for="onboardingProfile">PROFILE</label>
-          <select id="onboardingProfile">
-            <option value="balanced">Balanced</option>
-            <option value="deepWork">Deep Work</option>
-            <option value="highStrain">High Strain</option>
-            <option value="gentle">Gentle</option>
-            <option value="night">Night</option>
-          </select>
-
-          <label for="onboardingWorkStart">WORK START</label>
-          <input id="onboardingWorkStart" type="time" value="09:00" />
-
-          <label for="onboardingWorkEnd">WORK END</label>
-          <input id="onboardingWorkEnd" type="time" value="17:30" />
-
-          <label for="onboardingDelivery">DEFAULT DELIVERY</label>
-          <select id="onboardingDelivery">
-            <option value="balanced">Overlay + notification</option>
-            <option value="gentle">Gentle overlay only</option>
-            <option value="popup">Popup-only (silent)</option>
-          </select>
-
-          <label for="onboardingDesignMode">DESIGN MODE</label>
-          <input id="onboardingDesignMode" type="checkbox" />
-        </div>
-
-        <div class="row-inline">
-          <button id="completeOnboarding" class="primary">APPLY ONBOARDING</button>
-          <p id="onboardingStatus" class="status-chip status-idle">STATUS: NOT APPLIED</p>
-        </div>
-
-        <h3>Permissions + Privacy</h3>
-        <ul class="mono-list compact-list">
-          <li>All reminder and health logs stay in local extension storage by default.</li>
-          <li>No keylogging or page content harvesting for analytics.</li>
-          <li>Camera is optional and requested only for webcam posture mode.</li>
-          <li>Browser-only filters cannot perform true Iris system-wide gamma ramps.</li>
-          <li>Wellness/comfort guidance only. This tool is not medical advice.</li>
-        </ul>
-      </section>
-
-      <section class="panel grid-2">
-        <div>
-          <h2>Filter Engine v2</h2>
-          <div class="control-grid">
-            <label for="filterPreset">FILTER PRESET</label>
-            <select id="filterPreset">
-              <optgroup label="Mild">
-                <option value="blueShieldMild">Blue Shield (Mild)</option>
-                <option value="nightWarmMild">Night Warm (Mild)</option>
-                <option value="contrastGuard">Contrast Guard</option>
-              </optgroup>
-              <optgroup label="Strong">
-                <option value="blueShieldStrong">Blue Shield (Strong)</option>
-                <option value="nightWarmStrong">Night Warm (Strong)</option>
-                <option value="redNightStrong">Red Night (Strong)</option>
-                <option value="redBlocker">Red Blocker</option>
-                <option value="grayscale">Grayscale</option>
-              </optgroup>
-              <optgroup label="Max">
-                <option value="blueShieldMax">Blue Shield (Max)</option>
-                <option value="nightWarmMax">Night Warm (Max)</option>
-                <option value="redNightMax">Red Night (Max)</option>
-                <option value="migraineSafe">Migraine Safe</option>
-              </optgroup>
-            </select>
-
-            <label for="filterIntensity">INTENSITY</label>
-            <div class="row-inline">
-              <input id="filterIntensity" type="range" min="0" max="100" step="1" />
-              <span id="filterIntensityValue" class="mono">78%</span>
-            </div>
-
-            <label for="overlayStrength">OVERLAY STRENGTH</label>
-            <div class="row-inline">
-              <input id="overlayStrength" type="range" min="0" max="100" step="1" />
-              <span id="overlayStrengthValue" class="mono">35%</span>
-            </div>
-
-            <label for="filterDimming">DIMMING</label>
-            <div class="row-inline">
-              <input id="filterDimming" type="range" min="0" max="100" step="1" />
-              <span id="filterDimmingValue" class="mono">20%</span>
-            </div>
-
-            <label for="filterContrast">CONTRAST</label>
-            <div class="row-inline">
-              <input id="filterContrast" type="range" min="40" max="200" step="1" />
-              <span id="filterContrastValue" class="mono">100%</span>
-            </div>
-
-            <label for="filterSaturation">SATURATION</label>
-            <div class="row-inline">
-              <input id="filterSaturation" type="range" min="0" max="200" step="1" />
-              <span id="filterSaturationValue" class="mono">95%</span>
-            </div>
-
-            <label for="filterGamma">GAMMA (APPROX)</label>
-            <div class="row-inline">
-              <input id="filterGamma" type="range" min="50" max="180" step="1" />
-              <span id="filterGammaValue" class="mono">100%</span>
-            </div>
-
-            <label for="overlayColorPreset">OVERLAY COLOR</label>
-            <select id="overlayColorPreset">
-              <option value="amber">Amber</option>
-              <option value="deepRed">Deep Red</option>
-              <option value="warmGray">Warm Gray</option>
-              <option value="custom">Custom RGB</option>
-            </select>
-
-            <label for="overlayBlendMode">BLEND MODE</label>
-            <select id="overlayBlendMode">
-              <option value="normal">normal</option>
-              <option value="multiply">multiply</option>
-              <option value="screen">screen</option>
-              <option value="overlay">overlay</option>
-              <option value="color">color</option>
-            </select>
-
-            <label id="overlayCustomLabel" for="overlayCustomR">CUSTOM RGB</label>
-            <div id="overlayCustomGrid" class="rgb-grid">
-              <input id="overlayCustomR" type="number" min="0" max="255" placeholder="R" />
-              <input id="overlayCustomG" type="number" min="0" max="255" placeholder="G" />
-              <input id="overlayCustomB" type="number" min="0" max="255" placeholder="B" />
-            </div>
-          </div>
-
-          <div class="toggle-grid">
-            <label><input id="filterEnabled" type="checkbox" /> FILTER ENABLED</label>
-            <label><input id="colorAccurate" type="checkbox" /> COLOR ACCURATE</label>
-            <label><input id="showHud" type="checkbox" /> SHOW HUD</label>
-            <label><input id="applyToMedia" type="checkbox" /> APPLY TO IMAGES/VIDEO</label>
-            <label><input id="excludeMedia" type="checkbox" /> EXCLUDE MEDIA</label>
-            <label><input id="designMode" type="checkbox" /> DESIGN MODE</label>
-            <label><input id="preserveLuminance" type="checkbox" /> PRESERVE LUMINANCE</label>
-          </div>
-
-          <div class="row-inline">
-            <button id="reapplyFilterNow">REAPPLY FILTER NOW</button>
-            <button id="colorAccurateButton">TOGGLE COLOR ACCURATE</button>
-          </div>
-        </div>
-
-        <div>
-          <h2>Calibration + Debug</h2>
-          <p class="meta-line">Verify red-only intensity, grayscale ramps, and readability in-browser.</p>
-
-          <div class="calibration-grid">
-            <div class="calibration-card">
-              <p class="calibration-title">RGB BARS</p>
-              <div class="rgb-bars">
-                <div class="bar bar-r"></div>
-                <div class="bar bar-g"></div>
-                <div class="bar bar-b"></div>
-              </div>
-            </div>
-            <div class="calibration-card">
-              <p class="calibration-title">GRAYSCALE STEPS</p>
-              <div class="gray-steps">
-                <span class="gray-step-0"></span>
-                <span class="gray-step-1"></span>
-                <span class="gray-step-2"></span>
-                <span class="gray-step-3"></span>
-                <span class="gray-step-4"></span>
-                <span class="gray-step-5"></span>
-              </div>
-            </div>
-          </div>
-
-          <label for="matrixReadout">CURRENT MATRIX VALUES</label>
-          <textarea id="matrixReadout" rows="3" readonly></textarea>
-
-          <div class="toggle-grid">
-            <label><input id="debugPanel" type="checkbox" /> ENABLE DEBUG PANEL</label>
-          </div>
-
-          <div id="debugBlock" class="debug-block">
-            <p id="debugMode">MODE: --</p>
-            <p id="debugIntensity">INTENSITY: --</p>
-            <p id="debugOverlay">OVERLAY: --</p>
-            <p id="debugBlend">BLEND: --</p>
-            <p id="debugMedia">MEDIA EXCLUDED: --</p>
-          </div>
-        </div>
-      </section>
-
-      <section class="panel">
-        <h2>Cadence Engine v2</h2>
-        <p class="meta-line">Set cadence mode per reminder type: Interval / Work Blocks / Time Windows.</p>
-
-        <div class="control-grid">
-          <label for="cadenceProfile">CADENCE PRESET</label>
-          <div class="row-inline">
-            <select id="cadenceProfile">
-              <option value="balanced">Balanced</option>
-              <option value="deepWork">Deep Work</option>
-              <option value="highStrain">High Strain</option>
-              <option value="gentle">Gentle</option>
-              <option value="night">Night</option>
-            </select>
-            <button id="applyCadenceProfile" class="primary">APPLY</button>
-          </div>
-
-          <label for="quietHoursStart">QUIET HOURS START</label>
-          <input id="quietHoursStart" type="time" />
-
-          <label for="quietHoursEnd">QUIET HOURS END</label>
-          <input id="quietHoursEnd" type="time" />
-
-          <label for="suppressDuringFocus">SUPPRESS DURING FOCUS</label>
-          <input id="suppressDuringFocus" type="checkbox" />
-
-          <label for="suppressWhenIdle">SUPPRESS WHEN IDLE/LOCKED</label>
-          <input id="suppressWhenIdle" type="checkbox" />
-
-          <label for="meetingModeManual">MEETING MODE (MANUAL)</label>
-          <input id="meetingModeManual" type="checkbox" />
-
-          <label for="meetingModeAuto" data-premium>MEETING MODE (AUTO DOMAIN)</label>
-          <input id="meetingModeAuto" type="checkbox" data-premium />
-
-          <label for="meetingDomains" data-premium>MEETING DOMAINS (CSV)</label>
-          <textarea id="meetingDomains" rows="2" data-premium placeholder="meet.google.com, zoom.us"></textarea>
-        </div>
-
-        <div id="cadenceCards" class="cadence-cards"></div>
-      </section>
-
-      <section class="panel">
-        <h2>Timeline Preview</h2>
-        <div class="control-grid compact-grid">
-          <label for="timelineStart">START</label>
-          <input id="timelineStart" type="time" value="09:00" />
-
-          <label for="timelineEnd">END</label>
-          <input id="timelineEnd" type="time" value="18:00" />
-
-          <label for="timelinePreview">PREVIEW</label>
-          <div class="row-inline">
-            <button id="refreshTimeline">REFRESH TIMELINE</button>
-            <span class="meta-line">Typical workday fire map</span>
-          </div>
-        </div>
-
-        <div id="timelinePreview" class="timeline-preview"></div>
-      </section>
-
-      <section class="panel grid-2">
-        <div>
-          <h2>Posture + Movement Bio-Tracker</h2>
-          <p class="meta-line">Webcam mode is optional and local-only. Default posture cues use stillness/activity.</p>
-          <div class="control-grid">
-            <label for="webcamPostureOptIn" data-premium>ENABLE WEBCAM MODE (PREMIUM)</label>
-            <input id="webcamPostureOptIn" type="checkbox" data-premium />
-          </div>
-
-          <div class="row-inline posture-controls">
-            <button id="startPostureMonitor" data-premium>START MONITOR</button>
-            <button id="stopPostureMonitor" class="secondary">STOP</button>
-            <span id="postureStatus" class="status-chip status-idle">STATUS: IDLE</span>
-          </div>
-
-          <video id="postureVideo" muted playsinline></video>
-
-          <div class="stretch-grid">
-            <article>
-              <svg viewBox="0 0 64 64" aria-hidden="true">
-                <circle cx="32" cy="12" r="6" />
-                <path d="M32 18 L32 40 M18 28 L46 28 M22 52 L32 40 L42 52" />
-              </svg>
-              <p>SHOULDER ROLLS</p>
-            </article>
-            <article>
-              <svg viewBox="0 0 64 64" aria-hidden="true">
-                <circle cx="32" cy="12" r="6" />
-                <path d="M32 18 L32 38 M10 26 L54 26 M26 38 L18 54 M38 38 L46 54" />
-              </svg>
-              <p>CHEST OPENER</p>
-            </article>
-            <article>
-              <svg viewBox="0 0 64 64" aria-hidden="true">
-                <circle cx="24" cy="12" r="6" />
-                <path d="M24 18 L26 38 L18 52 M26 38 L40 26 L50 34" />
-              </svg>
-              <p>WALK RESET</p>
-            </article>
-          </div>
-        </div>
-
-        <div>
-          <h2>Hydration + Wellness Notes</h2>
-          <div class="paper-card">
-            <p><strong>General wellness tips (not medical advice):</strong></p>
-            <ul>
-              <li>Caffeine timing: avoid late-day use if sleep quality drops.</li>
-              <li>Optional pairing: caffeine + L-theanine can smooth jitters for some users.</li>
-              <li>Hydration/electrolytes can support comfort and focus during long screen days.</li>
-            </ul>
-          </div>
-
-          <h3>Daily Health Log</h3>
-          <div class="quick-grid" id="dailyQuickLog">
-            <div class="metric-card">
-              <p>ENERGY</p>
-              <div class="rating-row" data-metric="energy"></div>
-            </div>
-            <div class="metric-card">
-              <p>MOOD</p>
-              <div class="rating-row" data-metric="mood"></div>
-            </div>
-            <div class="metric-card">
-              <p>SLEEP QUALITY</p>
-              <div class="rating-row" data-metric="sleepQuality"></div>
-            </div>
-          </div>
-          <button id="saveDailyLog">SAVE DAILY LOG</button>
-          <p id="dailyLogStatus" class="meta-line">NO ENTRY SAVED YET.</p>
-
-          <div class="readout-inline">
-            <p id="hydrationStats">HYDRATION: 0 / 8</p>
-            <p id="calmStats">CALM MINUTES: 0</p>
-          </div>
-        </div>
-      </section>
-
-      <section class="panel paper-theme">
-        <h2>Ergonomic Audit + Trends</h2>
-        <p class="meta-line">Weekly self-assessment stored locally. Optional photo never leaves this browser.</p>
-
-        <form id="auditForm" class="control-grid">
-          <label for="monitorHeight">MONITOR HEIGHT</label>
-          <select id="monitorHeight">
-            <option value="aligned">Top aligned with eye level</option>
-            <option value="high">Too high</option>
-            <option value="low">Too low</option>
-          </select>
-
-          <label for="monitorDistance">MONITOR DISTANCE</label>
-          <select id="monitorDistance">
-            <option value="arm">About arm's length</option>
-            <option value="near">Too near</option>
-            <option value="far">Too far</option>
-          </select>
-
-          <label for="chairSupport">CHAIR LUMBAR SUPPORT</label>
-          <select id="chairSupport">
-            <option value="good">Adequate</option>
-            <option value="needs-adjustment">Needs adjustment</option>
-            <option value="poor">Poor</option>
-          </select>
-
-          <label for="wristNeutral">WRIST POSITION</label>
-          <select id="wristNeutral">
-            <option value="neutral">Neutral</option>
-            <option value="extended">Extended</option>
-            <option value="compressed">Compressed</option>
-          </select>
-
-          <label for="lighting">LIGHTING / GLARE</label>
-          <select id="lighting">
-            <option value="balanced">Balanced</option>
-            <option value="glare">Glare present</option>
-            <option value="dim">Too dim</option>
-          </select>
-
-          <label for="auditPhoto">OPTIONAL DESK PHOTO</label>
-          <input id="auditPhoto" type="file" accept="image/*" />
-        </form>
-
-        <img id="auditPreview" alt="Audit preview" />
-        <div class="row-inline">
-          <button id="saveAudit" class="primary">SAVE AUDIT</button>
-          <p id="auditStatus" class="status-chip status-idle">STATUS: NOT SAVED</p>
-        </div>
-
-        <canvas id="trendsCanvas" width="960" height="260"></canvas>
-      </section>
-
-      <section class="panel">
-        <h2>Account + Premium Entitlement</h2>
-        <div class="control-grid">
-          <label for="apiBaseUrl">API BASE URL</label>
-          <input id="apiBaseUrl" type="text" placeholder="https://holmeta.com/.netlify/functions" />
-
-          <label for="validateLicenseUrl">VALIDATE LICENSE URL</label>
-          <input id="validateLicenseUrl" type="text" placeholder="https://.../.netlify/functions/validate-license" />
-
-          <label for="checkoutUrl">CHECKOUT URL</label>
-          <input id="checkoutUrl" type="text" placeholder="https://.../.netlify/functions/create-checkout-session" />
-
-          <label for="dashboardUrl">DASHBOARD URL</label>
-          <div class="field-stack">
-            <input id="dashboardUrl" type="text" placeholder="https://holmeta.com/dashboard" />
-            <p id="dashboardHint" class="field-help">Default: derived from API BASE URL + /dashboard when override is empty.</p>
-          </div>
-
-          <label for="licenseKeyInput">LICENSE KEY</label>
-          <div class="field-stack">
-            <input id="licenseKeyInput" type="text" placeholder="HOLMETA-XXXX-XXXX-XXXX-XXXX" />
-            <p class="field-help">Paste the key from Billing Success after Stripe checkout.</p>
-          </div>
-
-          <label for="checkoutSessionId">CHECKOUT SESSION ID</label>
-          <div class="field-stack">
-            <input id="checkoutSessionId" type="text" placeholder="cs_live_... from billing success URL" />
-            <p class="field-help">Use this for one-click license retrieval and billing cancellation portal access.</p>
-          </div>
-
-          <label for="devBypassPremium">DEV BYPASS PREMIUM</label>
-          <input id="devBypassPremium" type="checkbox" />
-        </div>
-
-        <div class="row-inline">
-          <p id="premiumStatus" class="status-chip status-locked">STATUS: LOCKED</p>
-          <p id="trialStatus" class="status-chip status-idle">STATUS: FREE MODE</p>
-        </div>
-
-        <div id="premiumBanner" class="premium-banner" hidden>TRIAL ENDED - SUBSCRIBE TO CONTINUE PREMIUM CONTROLS.</div>
-
-        <div class="account-actions">
-          <button id="activateLicense" class="primary">ACTIVATE LICENSE</button>
-          <button id="clearLicense" class="secondary">CLEAR LICENSE</button>
-          <button id="refreshEntitlement" class="secondary">REFRESH ENTITLEMENT</button>
-          <button id="testLicenseValidation" class="secondary">TEST LICENSE VALIDATION</button>
+        <div class="button-grid three">
           <button id="openDashboard" class="secondary">OPEN DASHBOARD</button>
-          <button id="openBillingSuccess" class="secondary">OPEN LICENSE PAGE</button>
-          <button id="openBillingPortal" class="secondary">MANAGE BILLING / CANCEL</button>
-          <button id="openRefundHelp" class="secondary">REFUND HELP</button>
           <button id="testDashboardUrl" class="secondary">TEST DASHBOARD URL</button>
-          <button id="subscribeNow" class="primary">SUBSCRIBE</button>
+          <button id="testLicenseValidation" class="secondary">TEST LICENSE VALIDATION</button>
         </div>
+      </section>
 
-        <p id="licenseStatus" class="meta-line">STATUS: NO LICENSE</p>
-        <p id="accountStatus" class="meta-line">STATUS: READY</p>
+      <section class="panel">
+        <p class="kicker">ENDPOINTS</p>
+        <div class="row-grid">
+          <label for="apiBaseUrl" class="meta-label">API BASE URL</label>
+          <input id="apiBaseUrl" class="input" type="text" />
+          <label for="validateLicenseUrl" class="meta-label">VALIDATE LICENSE URL</label>
+          <input id="validateLicenseUrl" class="input" type="text" />
+          <label for="checkoutUrl" class="meta-label">CHECKOUT URL</label>
+          <input id="checkoutUrl" class="input" type="text" />
+          <label for="dashboardUrl" class="meta-label">DASHBOARD URL</label>
+          <input id="dashboardUrl" class="input" type="text" />
+        </div>
+        <div class="button-grid two">
+          <button id="saveEndpoints" class="primary">SAVE ENDPOINTS</button>
+          <button id="openCheckout" class="secondary">OPEN CHECKOUT</button>
+        </div>
+      </section>
+
+      <section class="panel">
+        <p class="kicker">LIGHT DEFAULTS</p>
+        <label class="inline-check">
+          <input id="filterEnabled" type="checkbox" data-premium />
+          FILTERS ENABLED
+        </label>
+        <label for="filterPreset" class="meta-label">DEFAULT MODE</label>
+        <select id="filterPreset" class="select" data-premium></select>
+        <label for="filterIntensity" class="meta-label">DEFAULT INTENSITY</label>
+        <div class="slider-row">
+          <input id="filterIntensity" class="range" type="range" min="0" max="100" step="1" data-premium />
+          <span id="filterIntensityValue" class="small-note">0%</span>
+        </div>
+        <div class="button-grid two">
+          <button id="applyFilterDefaults" class="primary" data-premium>APPLY FILTER DEFAULTS</button>
+          <button id="reapplyFilterNow" class="secondary" data-premium>REAPPLY NOW</button>
+        </div>
+      </section>
+
+      <section class="panel">
+        <p class="kicker">WELLNESS NUDGES</p>
+        <label class="inline-check">
+          <input id="breaksEnabled" type="checkbox" data-premium />
+          MICRO-BREAK REMINDERS
+        </label>
+        <label for="breakIntervalMin" class="meta-label">BREAK INTERVAL</label>
+        <select id="breakIntervalMin" class="select" data-premium>
+          <option value="35">35 MIN</option>
+          <option value="50">50 MIN</option>
+          <option value="65">65 MIN</option>
+          <option value="90">90 MIN</option>
+        </select>
+        <label class="inline-check">
+          <input id="eyeEnabled" type="checkbox" data-premium />
+          20-20-20 EYE PROMPTS
+        </label>
+        <label for="eyeIntervalMin" class="meta-label">EYE INTERVAL</label>
+        <select id="eyeIntervalMin" class="select" data-premium>
+          <option value="20">20 MIN</option>
+          <option value="30">30 MIN</option>
+          <option value="45">45 MIN</option>
+          <option value="60">60 MIN</option>
+        </select>
+        <div class="button-grid two">
+          <button id="saveWellness" class="primary" data-premium>SAVE WELLNESS</button>
+          <button id="snoozeWellness15" class="secondary" data-premium>SNOOZE 15M</button>
+        </div>
+      </section>
+
+      <section class="panel">
+        <p class="kicker">DATA TOOLS</p>
+        <div class="button-grid three">
+          <button id="exportState" class="secondary">EXPORT</button>
+          <button id="importState" class="secondary">IMPORT</button>
+          <button id="resetState" class="secondary">RESET</button>
+        </div>
+        <label for="stateBlob" class="meta-label">STATE JSON</label>
+        <textarea id="stateBlob" class="input textarea" rows="7" placeholder="Paste exported state JSON here."></textarea>
       </section>
     </main>
 

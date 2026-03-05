@@ -94,7 +94,8 @@
       hasReminderOnly: Boolean(source.hasReminderOnly),
       saveNote: String(source.saveNote || ""),
       saveTags: String(source.saveTags || ""),
-      licenseKey: String(source.licenseKey || "").trim().toUpperCase(),
+      // Preserve in-progress typing/paste exactly as entered.
+      licenseKey: String(source.licenseKey || ""),
       customReminderAt: String(source.customReminderAt || ""),
       exportSource: String(source.exportSource || "inbox") || "inbox",
       lightIntensity: Math.max(0, Math.min(100, Math.round(Number(source.lightIntensity || 78))))
@@ -547,7 +548,6 @@
     setControlValueIfIdle("searchInput", state.drafts.search || "");
     setControlValueIfIdle("saveNoteInput", state.drafts.saveNote || "");
     setControlValueIfIdle("saveTagsInput", state.drafts.saveTags || "");
-    setControlValueIfIdle("licenseKeyInput", state.drafts.licenseKey || "");
     setControlValueIfIdle("customReminderAt", state.drafts.customReminderAt || "");
     setControlValueIfIdle("lightIntensity", state.drafts.lightIntensity || 78);
 
@@ -1423,6 +1423,8 @@
     hydrationComplete = true;
     await loadActiveTabContext();
     bindEvents();
+    // Set once on startup; avoid render-loop writes into the license field.
+    setControlValueIfIdle("licenseKeyInput", state.drafts.licenseKey || "");
     await refreshState();
   }
 
