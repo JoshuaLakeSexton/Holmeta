@@ -925,6 +925,15 @@
       <style>
         :host {
           all: initial;
+          --hm-bg: #14110f;
+          --hm-panel: #34312d;
+          --hm-text: #f3f3f4;
+          --hm-muted: #d9c5b2;
+          --hm-red: #c42021;
+          --hm-amber: #ffb300;
+          --hm-border: rgba(243, 243, 244, 0.2);
+          --hm-radius: 2px;
+          --hm-font: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, Arial, sans-serif;
         }
 
         .hm-wrap {
@@ -933,14 +942,15 @@
           gap: 8px;
           width: min(392px, calc(100vw - 24px));
           max-height: min(60vh, 520px);
+          font-family: var(--hm-font);
         }
 
         .hm-panel {
           box-sizing: border-box;
-          border: 1px solid rgba(243, 243, 244, 0.18);
-          border-radius: 2px;
-          background: linear-gradient(180deg, rgba(27, 25, 23, 0.96) 0%, rgba(34, 32, 29, 0.96) 100%);
-          color: #f3f3f4;
+          border: 1px solid var(--hm-border);
+          border-radius: var(--hm-radius);
+          background: linear-gradient(180deg, rgba(20, 17, 15, 0.97) 0%, rgba(52, 49, 45, 0.95) 100%);
+          color: var(--hm-text);
           padding: 12px;
           display: grid;
           gap: 10px;
@@ -954,10 +964,10 @@
         }
 
         .hm-pill {
-          border: 1px solid rgba(243, 243, 244, 0.2);
-          border-radius: 2px;
+          border: 1px solid rgba(255, 179, 0, 0.9);
+          border-radius: var(--hm-radius);
           background: rgba(20, 17, 15, 0.96);
-          color: #f3f3f4;
+          color: var(--hm-text);
           min-height: 34px;
           padding: 0 12px;
           font-size: 11px;
@@ -967,6 +977,7 @@
           display: none;
           align-items: center;
           justify-content: center;
+          box-shadow: 0 0 12px rgba(255, 179, 0, 0.24);
         }
 
         .hm-pill.show {
@@ -992,7 +1003,8 @@
           min-width: 0;
           font-size: 12px;
           font-weight: 600;
-          letter-spacing: 0.02em;
+          letter-spacing: 0.08em;
+          text-transform: uppercase;
         }
 
         .hm-host strong {
@@ -1003,18 +1015,46 @@
 
         .hm-controls button,
         .hm-controls select {
-          border: 1px solid rgba(243, 243, 244, 0.22);
-          border-radius: 2px;
-          background: rgba(20, 17, 15, 0.86);
-          color: #f3f3f4;
+          border: 1px solid var(--hm-border);
+          border-radius: var(--hm-radius);
+          background: rgba(20, 17, 15, 0.9);
+          color: var(--hm-text);
           min-height: 30px;
           font-size: 11px;
           padding: 0 8px;
+          font-family: var(--hm-font);
         }
 
         .hm-controls button {
           min-width: 30px;
           cursor: pointer;
+        }
+
+        .hm-controls select {
+          letter-spacing: 0.05em;
+        }
+
+        .hm-btn-red {
+          border-color: rgba(196, 32, 33, 0.95) !important;
+          background: rgba(196, 32, 33, 0.2) !important;
+          box-shadow: 0 0 10px rgba(196, 32, 33, 0.22);
+        }
+
+        .hm-btn-amber {
+          border-color: rgba(255, 179, 0, 0.92) !important;
+          background: rgba(255, 179, 0, 0.14) !important;
+          box-shadow: 0 0 10px rgba(255, 179, 0, 0.2);
+        }
+
+        .hm-controls button:hover,
+        .hm-controls button:focus-visible,
+        .hm-foot button:hover,
+        .hm-foot button:focus-visible,
+        .hm-pill:hover,
+        .hm-pill:focus-visible {
+          outline: none;
+          filter: brightness(1.08);
+          box-shadow: 0 0 12px rgba(255, 179, 0, 0.3);
         }
 
         .hm-controls {
@@ -1031,21 +1071,22 @@
           flex-wrap: wrap;
           gap: 6px;
           font-size: 11px;
-          color: #d9c5b2;
+          color: var(--hm-muted);
         }
 
         .hm-chip {
-          border: 1px solid rgba(243, 243, 244, 0.22);
-          border-radius: 2px;
+          border: 1px solid var(--hm-border);
+          border-radius: var(--hm-radius);
           padding: 2px 7px;
           text-transform: uppercase;
           letter-spacing: 0.08em;
           font-size: 10px;
+          background: rgba(20, 17, 15, 0.72);
         }
 
         .hm-summary {
           margin: 0;
-          color: #f3f3f4;
+          color: var(--hm-text);
           font-size: 12px;
           line-height: 1.45;
         }
@@ -1059,13 +1100,13 @@
         }
 
         .hm-list li {
-          border: 1px solid rgba(243, 243, 244, 0.14);
-          border-radius: 2px;
+          border: 1px solid rgba(243, 243, 244, 0.18);
+          border-radius: var(--hm-radius);
           background: rgba(20, 17, 15, 0.58);
           padding: 8px;
           font-size: 11px;
           line-height: 1.4;
-          color: #d9c5b2;
+          color: var(--hm-muted);
         }
 
         .hm-foot {
@@ -1076,18 +1117,19 @@
         }
 
         .hm-foot button {
-          border: 1px solid rgba(243, 243, 244, 0.22);
-          border-radius: 2px;
-          background: rgba(20, 17, 15, 0.86);
-          color: #f3f3f4;
+          border: 1px solid rgba(255, 179, 0, 0.92);
+          border-radius: var(--hm-radius);
+          background: rgba(255, 179, 0, 0.12);
+          color: var(--hm-text);
           min-height: 30px;
           font-size: 11px;
           padding: 0 10px;
           cursor: pointer;
+          box-shadow: 0 0 10px rgba(255, 179, 0, 0.2);
         }
 
         .hm-foot small {
-          color: #d9c5b2;
+          color: var(--hm-muted);
           font-size: 10px;
           letter-spacing: 0.06em;
           text-transform: uppercase;
@@ -1123,9 +1165,9 @@
                 <option value="design">Design</option>
                 <option value="uxr">UXR</option>
               </select>
-              <button id="hmInsightPin" title="Pin open" aria-label="Pin open">PIN</button>
-              <button id="hmInsightSettings" title="Open settings" aria-label="Open settings">SET</button>
-              <button id="hmInsightClose" title="Close" aria-label="Close">X</button>
+              <button id="hmInsightPin" class="hm-btn-amber" title="Pin open" aria-label="Pin open">PIN</button>
+              <button id="hmInsightSettings" class="hm-btn-amber" title="Open settings" aria-label="Open settings">SET</button>
+              <button id="hmInsightClose" class="hm-btn-red" title="Close" aria-label="Close">X</button>
             </div>
           </div>
           <div class="hm-meta">
