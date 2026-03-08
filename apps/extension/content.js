@@ -17,6 +17,7 @@
 
   const SITE_INSIGHT_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
   const SITE_INSIGHT_LOCAL_THROTTLE_MS = 10000;
+  const SITE_INSIGHT_MODEL_VERSION = 2;
 
   const state = {
     settings: null,
@@ -412,27 +413,269 @@
     return "generic";
   }
 
+  function titleCaseWord(input) {
+    const value = String(input || "").trim();
+    if (!value) return "";
+    return value.charAt(0).toUpperCase() + value.slice(1).toLowerCase();
+  }
+
+  function collectSchemaTypes() {
+    const types = [];
+    const scripts = sampleNodes("script[type='application/ld+json']", 8);
+    const addType = (value) => {
+      if (!value) return;
+      const arr = Array.isArray(value) ? value : [value];
+      arr.forEach((item) => {
+        const text = safeText(item, 48);
+        if (text) types.push(text);
+      });
+    };
+
+    const scan = (node) => {
+      if (!node || typeof node !== "object") return;
+      if (Array.isArray(node)) {
+        node.slice(0, 10).forEach(scan);
+        return;
+      }
+      if (node["@type"]) addType(node["@type"]);
+      if (node.mainEntity) scan(node.mainEntity);
+      if (node["@graph"]) scan(node["@graph"]);
+    };
+
+    scripts.forEach((scriptNode) => {
+      try {
+        const parsed = JSON.parse(scriptNode.textContent || "{}");
+        scan(parsed);
+      } catch {
+        // ignore invalid schema blocks
+      }
+    });
+
+    return [...new Set(types)];
+  }
+
+  function getKnownSiteIntent(host, pathName, searchPart) {
+    const path = String(pathName || "").toLowerCase();
+    const search = String(searchPart || "").toLowerCase();
+
+    const rules = [
+      {
+        test: /(^|\.)youtube\.com$/,
+        identity: "YouTube",
+        type: "video",
+        purpose: "Video platform for discovery and playback.",
+        routes: [
+          { test: () => /\/feed\/subscriptions/.test(path), purpose: "Subscriptions feed focused on channels you follow." },
+          { test: () => /\/feed\/trending/.test(path), purpose: "Trending feed ranked by popularity." },
+          { test: () => /\/results/.test(path) || /[?&]search_query=/.test(search), purpose: "Search results ranked by relevance and engagement." },
+          { test: () => /\/watch/.test(path), purpose: "Watch page with recommendation modules and next-up queue." },
+          { test: () => /\/shorts/.test(path), purpose: "Short-form recommendation stream." }
+        ]
+      },
+      {
+        test: /(^|\.)github\.com$/,
+        identity: "GitHub",
+        type: "developer",
+        purpose: "Code hosting and collaboration for repositories.",
+        routes: [
+          { test: () => /\/issues/.test(path), purpose: "Issue tracking and project triage." },
+          { test: () => /\/pulls|\/pull\//.test(path), purpose: "Pull request review and merge workflow." },
+          { test: () => /\/actions/.test(path), purpose: "CI/CD workflow and build monitoring." },
+          { test: () => /\/search/.test(path) || /[?&]q=/.test(search), purpose: "Repository and code search results." }
+        ]
+      },
+      {
+        test: /(^|\.)figma\.com$/,
+        identity: "Figma",
+        type: "design",
+        purpose: "Collaborative UI/UX design and prototyping workspace.",
+        routes: [
+          { test: () => /\/file|\/design|\/proto/.test(path), purpose: "Design canvas and component editing." }
+        ]
+      },
+      {
+        test: /(^|\.)notion\.so$|(^|\.)docs\.google\.com$/,
+        identity: "Docs Workspace",
+        type: "docs",
+        purpose: "Documentation and team knowledge editing workspace."
+      },
+      {
+        test: /(^|\.)reddit\.com$/,
+        identity: "Reddit",
+        type: "community",
+        purpose: "Community discussion and ranked thread discovery."
+      },
+      {
+        test: /(^|\.)x\.com$|(^|\.)twitter\.com$/,
+        identity: "X",
+        type: "social",
+        purpose: "Social timeline and short-form post consumption."
+      },
+      {
+        test: /(^|\.)amazon\./,
+        identity: "Amazon",
+        type: "commerce",
+        purpose: "Ecommerce marketplace for product discovery and checkout."
+      },
+      {
+        test: /(^|\.)google\.[a-z.]+$|(^|\.)bing\.com$|(^|\.)duckduckgo\.com$/,
+        identity: "Search Engine",
+        type: "search",
+        purpose: "Search engine for ranked information retrieval."
+      },
+      {
+        test: /(^|\.)linkedin\.com$/,
+        identity: "LinkedIn",
+        type: "social",
+        purpose: "Professional network feed and career platform."
+      },
+      {
+        test: /(^|\.)wikipedia\.org$/,
+        identity: "Wikipedia",
+        type: "education",
+        purpose: "Reference encyclopedia for educational lookup."
+      },
+      {
+        test: /(^|\.)nytimes\.com$|(^|\.)bbc\.com$|(^|\.)cnn\.com$|(^|\.)theguardian\.com$/,
+        identity: "News Publisher",
+        type: "news",
+        purpose: "Editorial news publishing and article browsing."
+      }
+    ];
+
+    const matched = rules.find((rule) => rule.test.test(host));
+    if (!matched) return null;
+
+    const route = Array.isArray(matched.routes) ? matched.routes.find((item) => item.test()) : null;
+    return {
+      identity: matched.identity,
+      type: matched.type,
+      purpose: route?.purpose || matched.purpose
+    };
+  }
+
+  function detectSiteIdentity(host, knownIntent = null) {
+    if (knownIntent?.identity) return knownIntent.identity;
+    const siteName =
+      safeText(
+        document.querySelector("meta[property='og:site_name']")?.getAttribute("content") ||
+          document.querySelector("meta[name='application-name']")?.getAttribute("content") ||
+          "",
+        64
+      );
+    if (siteName) return siteName;
+
+    const title = safeText(document.title, 90);
+    if (title) {
+      const token = title.split("|")[0].split(" - ")[0].trim();
+      if (token && token.length >= 2 && token.length <= 40) return token;
+    }
+
+    const hostToken = host.split(".")[0].replace(/[-_]/g, " ");
+    return hostToken
+      .split(" ")
+      .map((word) => titleCaseWord(word))
+      .join(" ");
+  }
+
   function detectSiteType(host) {
     const path = location.pathname.toLowerCase();
     const search = location.search.toLowerCase();
     const text = buildPageTextSample();
+    const schemaTypes = collectSchemaTypes().map((entry) => entry.toLowerCase());
 
-    if (/github\.com|gitlab\.com|bitbucket\.org|stackoverflow\.com/.test(host)) return "developer";
-    if (/figma\.com|dribbble\.com|behance\.net|canva\.com/.test(host)) return "design";
-    if (/youtube\.com|vimeo\.com|twitch\.tv|netflix\.com/.test(host)) return "video";
-    if (/x\.com|twitter\.com|facebook\.com|instagram\.com|reddit\.com|tiktok\.com/.test(host)) return "social";
-    if (/docs\.google\.com|notion\.so|readthedocs|developer\.mozilla|confluence|atlassian/.test(host)) return "docs";
-    if (/google\.[a-z.]+|bing\.com|duckduckgo\.com|perplexity\.ai/.test(host)) return "search";
-    if (/amazon\.|shopify|etsy|checkout|cart/.test(host + path + search)) return "commerce";
-    if (/news|article|opinion|breaking/.test(path) || document.querySelector("article time, [itemprop='datePublished']")) return "news";
-    if (/search|results/.test(path) || /[?&](q|query)=/.test(search)) return "search";
-    if (document.querySelector("form input[type='password']") && document.querySelector("nav, [role='navigation']")) return "webapp";
-    if (document.querySelector("[data-testid*='feed'], [aria-label*='Feed'], .feed, [class*='infinite']")) return "social";
-    if (/course|lesson|learn|curriculum/.test(path + " " + text)) return "education";
-    if (/forum|community|discuss/.test(path + " " + text)) return "community";
-    if (document.querySelector("[class*='pricing'], [href*='pricing'], [class*='hero']")) return "marketing";
-    if (document.querySelector("[role='main']") && document.querySelector("button, input, select")) return "webapp";
-    return "community";
+    const knownIntent = getKnownSiteIntent(host, path, search);
+    if (knownIntent) {
+      return {
+        type: knownIntent.type,
+        confidence: "high",
+        identity: knownIntent.identity,
+        purpose: knownIntent.purpose,
+        reasons: [`domain mapping: ${knownIntent.identity}`]
+      };
+    }
+
+    const categories = [
+      "developer",
+      "design",
+      "docs",
+      "social",
+      "video",
+      "search",
+      "commerce",
+      "news",
+      "education",
+      "webapp",
+      "finance",
+      "travel",
+      "marketing",
+      "community"
+    ];
+
+    const scores = Object.fromEntries(categories.map((key) => [key, 0]));
+    const reasons = [];
+    const bump = (key, amount, reason) => {
+      if (!scores[key] && scores[key] !== 0) return;
+      scores[key] += amount;
+      if (reason) reasons.push(reason);
+    };
+
+    if (/github|gitlab|bitbucket|stackoverflow|vercel|netlify/.test(host + " " + text)) bump("developer", 4, "developer domain/text markers");
+    if (/figma|dribbble|behance|prototype|wireframe|component library/.test(host + " " + text)) bump("design", 4, "design markers");
+    if (/docs|documentation|knowledge base|read the docs|reference/.test(host + " " + text)) bump("docs", 3, "docs markers");
+    if (/youtube|vimeo|twitch|watch now|play video|playlist/.test(host + " " + text)) bump("video", 4, "video markers");
+    if (/reddit|forum|community|discuss|threads|subreddit/.test(host + " " + text)) bump("community", 3, "community markers");
+    if (/for you|following|timeline|feed|reels|stories|shorts/.test(text)) bump("social", 3, "feed/social markers");
+    if (/cart|checkout|shop now|add to cart|buy now|price|sku|product/.test(text + " " + path)) bump("commerce", 4, "commerce markers");
+    if (/article|opinion|breaking|newsroom|published|journalist/.test(text + " " + path)) bump("news", 3, "news/article markers");
+    if (/course|lesson|syllabus|classroom|learn|training/.test(text + " " + path)) bump("education", 3, "education markers");
+    if (/flight|hotel|booking|itinerary|trip/.test(text + " " + host + " " + path)) bump("travel", 3, "travel markers");
+    if (/bank|invest|portfolio|stocks|trade|crypto|fintech/.test(text + " " + host)) bump("finance", 3, "finance markers");
+    if (/pricing|plans|request demo|get started|features/.test(text + " " + path)) bump("marketing", 2, "marketing page markers");
+
+    if (/[?&](q|query)=/.test(search) || /\/search/.test(path)) bump("search", 5, "search route/query");
+    if (document.querySelector("input[type='password'], [data-testid*='login' i], form[action*='login']")) bump("webapp", 3, "login/auth form");
+    if (document.querySelector("article time, [itemprop='datePublished']")) bump("news", 2, "article timestamp");
+    if (document.querySelector("[class*='feed'], [data-testid*='feed'], [aria-label*='feed' i]")) bump("social", 2, "feed container");
+    if (document.querySelector("[class*='pricing'], [href*='pricing'], [data-testid*='pricing' i]")) bump("marketing", 1, "pricing module");
+    if (document.querySelector("input[type='search'], [role='search']")) bump("search", 1, "search input");
+
+    if (schemaTypes.some((type) => /newsarticle|article|blogposting/.test(type))) bump("news", 3, "schema article type");
+    if (schemaTypes.some((type) => /product|offer/.test(type))) bump("commerce", 3, "schema product type");
+    if (schemaTypes.some((type) => /softwareapplication|webapplication/.test(type))) bump("webapp", 2, "schema app type");
+    if (schemaTypes.some((type) => /course|educational/.test(type))) bump("education", 2, "schema education type");
+
+    const ranked = Object.entries(scores).sort((a, b) => b[1] - a[1]);
+    let [topType, topScore] = ranked[0];
+    const secondScore = ranked[1]?.[1] || 0;
+
+    if (topScore < 2) {
+      if (document.querySelector("form input[type='password'], [role='main'] button")) {
+        topType = "webapp";
+      } else if (document.querySelector("article")) {
+        topType = "news";
+      } else if (document.querySelector("main, nav, footer")) {
+        topType = "marketing";
+      } else {
+        topType = "community";
+      }
+      topScore = 2;
+      reasons.push("fallback classification");
+    }
+
+    const confidence = topScore >= 7 || topScore - secondScore >= 4
+      ? "high"
+      : topScore >= 4
+        ? "medium"
+        : "low";
+
+    return {
+      type: topType,
+      confidence,
+      identity: detectSiteIdentity(host, knownIntent),
+      purpose: "",
+      reasons: reasons.slice(0, 4)
+    };
   }
 
   function detectAlgorithmContext(host) {
@@ -553,17 +796,45 @@
     return { label: "Personalized home", confidence: "low", explanation: "No strong feed markers detected.", bucket };
   }
 
-  function detectPurposeSummary(host, siteType) {
-    const known = [
-      [/youtube\.com/, "This site is primarily for video discovery and playback. Main action: watch content and follow recommendation chains."],
-      [/github\.com/, "This site is primarily for code collaboration. Main action: review issues, PRs, and docs tied to repositories."],
-      [/figma\.com/, "This site is primarily for design collaboration. Main action: edit files, inspect components, and comment on UI work."],
-      [/notion\.so|docs\.google\.com/, "This site is primarily for documentation and team notes. Main action: read, edit, and organize structured information."],
-      [/amazon\./, "This site is primarily for ecommerce. Main action: compare products, evaluate trust signals, and complete checkout."],
-      [/reddit\.com/, "This site is primarily for community discussion. Main action: browse ranked threads and engage in conversations."]
-    ];
-    const knownSummary = known.find(([pattern]) => pattern.test(host));
-    if (knownSummary) return knownSummary[1];
+  function detectCurrentSiteContext(host) {
+    const path = location.pathname.toLowerCase();
+    const title = safeText(document.title, 110);
+
+    if (/github\.com/.test(host)) {
+      const match = location.pathname.match(/^\/([^/]+)\/([^/]+)/);
+      if (match?.[1] && match?.[2]) {
+        const scope = `${match[1]}/${match[2]}`;
+        if (/\/issues/.test(path)) return `Context: issues triage in ${scope}.`;
+        if (/\/pulls|\/pull\//.test(path)) return `Context: pull request workflow in ${scope}.`;
+        if (/\/actions/.test(path)) return `Context: CI/CD runs in ${scope}.`;
+        return `Context: repository workspace ${scope}.`;
+      }
+    }
+    if (/youtube\.com/.test(host)) {
+      if (/\/watch/.test(path)) return `Context: video detail page (${title || "watch"}).`;
+      if (/\/feed\/subscriptions/.test(path)) return "Context: subscriptions feed.";
+      if (/\/shorts/.test(path)) return "Context: shorts stream.";
+    }
+    if (/reddit\.com/.test(host)) {
+      const subreddit = location.pathname.match(/\/r\/([^/]+)/)?.[1];
+      if (subreddit) return `Context: subreddit r/${subreddit}.`;
+    }
+    if (/figma\.com/.test(host) && /\/file|\/design|\/proto/.test(path)) {
+      return `Context: design file workspace (${title || "active file"}).`;
+    }
+    if (/docs\.google\.com|notion\.so/.test(host)) {
+      return "Context: live documentation/editor view.";
+    }
+    return "";
+  }
+
+  function detectPurposeSummary(host, siteClassification) {
+    if (siteClassification?.purpose) {
+      const context = detectCurrentSiteContext(host);
+      return context ? `${siteClassification.purpose} ${context}` : siteClassification.purpose;
+    }
+
+    const siteType = siteClassification?.type || "site";
 
     const desc =
       document.querySelector("meta[name='description']")?.getAttribute("content") ||
@@ -588,10 +859,11 @@
     })();
 
     const snippet = safeText(desc || heading, 150);
+    const context = detectCurrentSiteContext(host);
     if (snippet) {
-      return `This site is primarily for ${siteType}. Main action: ${mainAction}. ${siteName}: ${snippet}`;
+      return `This site is primarily for ${siteType}. Main action: ${mainAction}. ${siteName}: ${snippet}${context ? ` ${context}` : ""}`;
     }
-    return `This site is primarily for ${siteType}. Main action: ${mainAction}.`;
+    return `This site is primarily for ${siteType}. Main action: ${mainAction}.${context ? ` ${context}` : ""}`;
   }
 
   function detectTrustSignals() {
@@ -778,6 +1050,7 @@
 
   function buildProfileBullets(summary) {
     const regular = [];
+    regular.push(`Identity: ${summary.siteIdentity || summary.host} · Type: ${summary.siteType} (${summary.siteTypeConfidence})`);
     regular.push(summary.purposeSummary);
     regular.push(`Main value: ${summary.metaSnippet || "Clear user action and navigation flow."}`);
     regular.push(
@@ -793,8 +1066,12 @@
     if (summary.aggressivePopup) {
       regular.push("Warning: large modal/overlay detected early in session.");
     }
+    if (summary.classificationReasons?.length) {
+      regular.push(`Classification cues: ${summary.classificationReasons.join("; ")}`);
+    }
 
     const dev = [];
+    dev.push(`Identity: ${summary.siteIdentity || summary.host} · ${summary.siteType} (${summary.siteTypeConfidence})`);
     dev.push(`Stack hints: ${summary.stack.length ? summary.stack.join(", ") : "No strong framework signature detected"}`);
     if (summary.performance) {
       dev.push(
@@ -837,9 +1114,10 @@
   }
 
   function computeSiteInsightSummary(host) {
-    const siteType = detectSiteType(host);
+    const siteClassification = detectSiteType(host);
+    const siteType = siteClassification.type;
     const algorithm = detectAlgorithmContext(host);
-    const purposeSummary = detectPurposeSummary(host, siteType);
+    const purposeSummary = detectPurposeSummary(host, siteClassification);
     const trustSignals = detectTrustSignals();
     const navHints = detectNavHints();
     const aggressivePopup = detectAggressivePopup();
@@ -866,11 +1144,15 @@
     );
 
     const summary = {
+      modelVersion: SITE_INSIGHT_MODEL_VERSION,
       computedAt: Date.now(),
       host,
       url: location.href,
       bucket: feedBucket(host, location.pathname, location.search),
       siteType,
+      siteTypeConfidence: siteClassification.confidence || "low",
+      siteIdentity: siteClassification.identity || host,
+      classificationReasons: siteClassification.reasons || [],
       algorithm,
       purposeSummary,
       metaSnippet,
@@ -895,6 +1177,7 @@
 
   function shouldUseCachedSummary(host, cachedSummary) {
     if (!cachedSummary || typeof cachedSummary !== "object") return false;
+    if (Number(cachedSummary.modelVersion || 0) !== SITE_INSIGHT_MODEL_VERSION) return false;
     if (normalizeHost(cachedSummary.host || "") !== host) return false;
     if (!isDynamicFeedHost(host)) return true;
     const currentBucket = feedBucket(host, location.pathname, location.search);
@@ -1322,7 +1605,7 @@
       opt.disabled = !Boolean(settings?.enabledProfiles?.[key]);
     });
 
-    shadow.getElementById("hmInsightType").textContent = String(summaryData.siteType || "site");
+    shadow.getElementById("hmInsightType").textContent = `${String(summaryData.siteType || "site")} (${String(summaryData.siteTypeConfidence || "low")})`;
     shadow.getElementById("hmInsightAlgo").textContent = settings?.showAlgorithmLabel
       ? safeText(algo.label, 32)
       : "algorithm hidden";
@@ -1330,7 +1613,7 @@
     shadow.getElementById("hmInsightSummary").textContent = settings?.showPurposeSummary
       ? safeText(summaryData.purposeSummary || "", 220)
       : `Profile: ${profileLabel(selected)}`;
-    shadow.getElementById("hmInsightStatus").textContent = `Profile: ${profileLabel(selected)}`;
+    shadow.getElementById("hmInsightStatus").textContent = `${summaryData.siteIdentity || host} · ${profileLabel(selected)}`;
 
     const list = shadow.getElementById("hmInsightBullets");
     list.innerHTML = bullets.map((line) => `<li>${safeText(line, 220)}</li>`).join("");
