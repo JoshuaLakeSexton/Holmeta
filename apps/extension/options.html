@@ -26,6 +26,10 @@
           <label>Mode
             <select id="optLightMode">
               <option value="warm">Warm Shift</option>
+              <option value="amber">Amber Balance</option>
+              <option value="candle">Candle Warm</option>
+              <option value="paper">Paper Sepia</option>
+              <option value="cool_focus">Cool Focus</option>
               <option value="red_overlay">Red Overlay</option>
               <option value="red_mono">Red Monochrome</option>
               <option value="red_lock">Red Spectrum Lock</option>
@@ -34,17 +38,44 @@
               <option value="spotlight">Focus Spotlight</option>
             </select>
           </label>
+          <label>Spectrum Preset
+            <select id="optLightSpectrumPreset">
+              <option value="balanced">Balanced</option>
+              <option value="amber_590">Amber 590nm</option>
+              <option value="red_630">Red 630nm</option>
+              <option value="deep_red_660">Deep Red 660nm</option>
+              <option value="candle_1800k">Candle 1800K</option>
+              <option value="neutral_3500k">Neutral 3500K</option>
+              <option value="daylight_5000k">Daylight 5000K</option>
+              <option value="melatonin_guard">Melatonin Guard</option>
+            </select>
+          </label>
           <label>Intensity
             <input id="optLightIntensity" type="range" min="0" max="100" step="1" />
           </label>
           <label>Dim Overlay
             <input id="optLightDim" type="range" min="0" max="60" step="1" />
           </label>
+          <label>Blue Cut
+            <input id="optLightBlueCut" type="range" min="0" max="100" step="1" />
+          </label>
+          <label>Saturation
+            <input id="optLightSaturation" type="range" min="50" max="140" step="1" />
+          </label>
           <label>Brightness
             <input id="optLightBrightness" type="range" min="70" max="120" step="1" />
           </label>
           <label>Contrast Soften
             <input id="optLightContrastSoft" type="range" min="0" max="30" step="1" />
+          </label>
+          <label>Tint Red
+            <input id="optLightTintRed" type="range" min="0" max="100" step="1" />
+          </label>
+          <label>Tint Green
+            <input id="optLightTintGreen" type="range" min="0" max="100" step="1" />
+          </label>
+          <label>Tint Blue
+            <input id="optLightTintBlue" type="range" min="0" max="100" step="1" />
           </label>
           <label class="switch-row"><input id="optReduceWhites" type="checkbox" />Reduce Whites</label>
           <label class="switch-row"><input id="optVideoSafe" type="checkbox" />Video-safe</label>

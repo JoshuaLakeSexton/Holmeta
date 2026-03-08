@@ -13,6 +13,10 @@
 
   const MODES = new Set([
     "warm",
+    "amber",
+    "candle",
+    "paper",
+    "cool_focus",
     "red_overlay",
     "red_mono",
     "red_lock",
@@ -20,6 +24,17 @@
     "dim",
     "spotlight"
   ]);
+
+  const SPECTRUM_PRESETS = {
+    balanced: { r: 255, g: 172, b: 92 },
+    amber_590: { r: 255, g: 168, b: 56 },
+    red_630: { r: 255, g: 74, b: 58 },
+    deep_red_660: { r: 224, g: 24, b: 24 },
+    candle_1800k: { r: 255, g: 147, b: 41 },
+    neutral_3500k: { r: 255, g: 214, b: 170 },
+    daylight_5000k: { r: 232, g: 241, b: 255 },
+    melatonin_guard: { r: 255, g: 109, b: 66 }
+  };
 
   const state = {
     diagnostics: {
@@ -90,10 +105,16 @@
     return {
       enabled: false,
       mode: "warm",
+      spectrumPreset: "balanced",
       intensity: 45,
       dim: 18,
       contrastSoft: 8,
       brightness: 96,
+      saturation: 100,
+      blueCut: 65,
+      tintRed: 100,
+      tintGreen: 62,
+      tintBlue: 30,
       reduceWhites: true,
       videoSafe: false,
       spotlightEnabled: false,
@@ -121,16 +142,25 @@
     };
 
     const mode = MODES.has(raw.mode) ? raw.mode : base.mode;
+    const spectrumPreset = Object.prototype.hasOwnProperty.call(SPECTRUM_PRESETS, raw.spectrumPreset)
+      ? raw.spectrumPreset
+      : base.spectrumPreset;
 
     return {
       ...base,
       ...raw,
       mode,
+      spectrumPreset,
       enabled: Boolean(raw.enabled ?? base.enabled),
       intensity: Math.round(clamp(raw.intensity ?? base.intensity, 0, 100)),
       dim: Math.round(clamp(raw.dim ?? base.dim, 0, 60)),
       contrastSoft: Math.round(clamp(raw.contrastSoft ?? base.contrastSoft, 0, 30)),
       brightness: Math.round(clamp(raw.brightness ?? base.brightness, 70, 120)),
+      saturation: Math.round(clamp(raw.saturation ?? base.saturation, 50, 140)),
+      blueCut: Math.round(clamp(raw.blueCut ?? base.blueCut, 0, 100)),
+      tintRed: Math.round(clamp(raw.tintRed ?? base.tintRed, 0, 100)),
+      tintGreen: Math.round(clamp(raw.tintGreen ?? base.tintGreen, 0, 100)),
+      tintBlue: Math.round(clamp(raw.tintBlue ?? base.tintBlue, 0, 100)),
       reduceWhites: Boolean(raw.reduceWhites ?? base.reduceWhites),
       videoSafe: Boolean(raw.videoSafe ?? base.videoSafe),
       spotlightEnabled: Boolean(raw.spotlightEnabled ?? base.spotlightEnabled),
@@ -169,7 +199,7 @@
     if (profile.mode === "red_lock") return media.mediaCount > 0 ? "overlay" : "hybrid";
     if (profile.mode === "red_mono") return media.canvasCount > 0 ? "overlay" : "hybrid";
     if (maybeColorCritical) return "overlay";
-    if (media.mediaCount > 2 && profile.mode === "warm") return "overlay";
+    if (media.mediaCount > 2 && ["warm", "amber", "candle", "paper", "cool_focus"].includes(profile.mode)) return "overlay";
     return "hybrid";
   }
 
@@ -309,17 +339,54 @@
     // Built-in smart defaults by site category.
     if (/docs\.google\.com|notion\.so|notion\.site/.test(host)) {
       state.diagnostics.profileSource = "smart-docs";
-      return normalizeProfile({ mode: "warm", intensity: 58, dim: 14, contrastSoft: 10, brightness: 95 }, globalProfile);
+      return normalizeProfile(
+        {
+          mode: "paper",
+          spectrumPreset: "neutral_3500k",
+          intensity: 58,
+          dim: 14,
+          contrastSoft: 10,
+          brightness: 95,
+          blueCut: 62,
+          saturation: 88
+        },
+        globalProfile
+      );
     }
 
     if (/github\.com|gitlab\.com|bitbucket\.org/.test(host)) {
       state.diagnostics.profileSource = "smart-code";
-      return normalizeProfile({ mode: "warm", intensity: 36, dim: 10, contrastSoft: 6, brightness: 98 }, globalProfile);
+      return normalizeProfile(
+        {
+          mode: "cool_focus",
+          spectrumPreset: "neutral_3500k",
+          intensity: 36,
+          dim: 10,
+          contrastSoft: 6,
+          brightness: 98,
+          blueCut: 42,
+          saturation: 102
+        },
+        globalProfile
+      );
     }
 
     if (/youtube\.com|vimeo\.com|twitch\.tv/.test(host)) {
       state.diagnostics.profileSource = "smart-video";
-      return normalizeProfile({ mode: "warm", intensity: 22, dim: 8, contrastSoft: 4, brightness: 99, videoSafe: true }, globalProfile);
+      return normalizeProfile(
+        {
+          mode: "amber",
+          spectrumPreset: "amber_590",
+          intensity: 22,
+          dim: 8,
+          contrastSoft: 4,
+          brightness: 99,
+          blueCut: 38,
+          saturation: 94,
+          videoSafe: true
+        },
+        globalProfile
+      );
     }
 
     state.diagnostics.profileSource = "global";
@@ -331,49 +398,92 @@
     const d = clamp(profile.dim, 0, 60) / 100;
     const c = clamp(profile.contrastSoft, 0, 30) / 100;
     const b = clamp(profile.brightness, 70, 120) / 100;
+    const sat = clamp(profile.saturation, 50, 140) / 100;
+    const blueCut = clamp(profile.blueCut, 0, 100) / 100;
 
-    let overlayBg = "rgba(255, 172, 92, 1)";
-    let overlayOpacity = 0.05 + (i * 0.34) + (d * 0.28);
-    let filter = `brightness(${(b - (i * 0.06)).toFixed(3)}) contrast(${(1 - (c * 0.22)).toFixed(3)})`;
+    const preset = SPECTRUM_PRESETS[profile.spectrumPreset] || SPECTRUM_PRESETS.balanced;
+    const redScale = 0.3 + (clamp(profile.tintRed, 0, 100) / 100) * 0.9;
+    const greenScale = 0.3 + (clamp(profile.tintGreen, 0, 100) / 100) * 0.9;
+    const blueScale = 0.3 + (clamp(profile.tintBlue, 0, 100) / 100) * 0.9;
+    let tintR = Math.round(clamp(preset.r * redScale, 0, 255));
+    let tintG = Math.round(clamp(preset.g * greenScale, 0, 255));
+    let tintB = Math.round(clamp(preset.b * blueScale, 0, 255));
+
+    let overlayBg = `rgba(${tintR}, ${tintG}, ${tintB}, 1)`;
+    let overlayOpacity = 0.05 + (i * 0.34) + (d * 0.28) + (blueCut * 0.1);
+    let filter = `brightness(${(b - (i * 0.06)).toFixed(3)}) contrast(${(1 - (c * 0.22)).toFixed(3)}) saturate(${sat.toFixed(3)})`;
 
     switch (profile.mode) {
+      case "amber":
+        tintR = Math.round(clamp(tintR + 14, 0, 255));
+        tintG = Math.round(clamp(tintG + 8, 0, 255));
+        tintB = Math.round(clamp(tintB - 22, 0, 255));
+        overlayBg = `rgba(${tintR}, ${tintG}, ${tintB}, 1)`;
+        overlayOpacity = 0.07 + (i * 0.40) + (d * 0.22) + (blueCut * 0.12);
+        filter = `brightness(${(b - (i * 0.08)).toFixed(3)}) contrast(${(1 - (c * 0.18)).toFixed(3)}) saturate(${(sat * 0.95).toFixed(3)}) sepia(${(0.18 + (blueCut * 0.22)).toFixed(3)})`;
+        break;
+      case "candle":
+        tintR = Math.round(clamp(tintR + 24, 0, 255));
+        tintG = Math.round(clamp(tintG - 6, 0, 255));
+        tintB = Math.round(clamp(tintB - 32, 0, 255));
+        overlayBg = `rgba(${tintR}, ${tintG}, ${tintB}, 1)`;
+        overlayOpacity = 0.10 + (i * 0.46) + (d * 0.22) + (blueCut * 0.14);
+        filter = `brightness(${(b - (i * 0.12)).toFixed(3)}) contrast(${(1 - (c * 0.16)).toFixed(3)}) saturate(${(sat * 0.88).toFixed(3)}) sepia(${(0.3 + (blueCut * 0.3)).toFixed(3)})`;
+        break;
+      case "paper":
+        tintR = Math.round(clamp(tintR + 5, 0, 255));
+        tintG = Math.round(clamp(tintG + 3, 0, 255));
+        tintB = Math.round(clamp(tintB - 12, 0, 255));
+        overlayBg = `rgba(${tintR}, ${tintG}, ${tintB}, 1)`;
+        overlayOpacity = 0.04 + (i * 0.20) + (d * 0.22) + (blueCut * 0.05);
+        filter = `brightness(${(b - (i * 0.03)).toFixed(3)}) contrast(${(1 - (c * 0.10)).toFixed(3)}) saturate(${(sat * 0.82).toFixed(3)}) sepia(${(0.22 + (blueCut * 0.18)).toFixed(3)})`;
+        break;
+      case "cool_focus":
+        tintR = Math.round(clamp(tintR - 35, 0, 255));
+        tintG = Math.round(clamp(tintG + 10, 0, 255));
+        tintB = Math.round(clamp(tintB + 18, 0, 255));
+        overlayBg = `rgba(${tintR}, ${tintG}, ${tintB}, 1)`;
+        overlayOpacity = 0.03 + (i * 0.16) + (d * 0.2);
+        filter = `brightness(${(b - (i * 0.03)).toFixed(3)}) contrast(${(1 - (c * 0.14)).toFixed(3)}) saturate(${(sat * 1.03).toFixed(3)})`;
+        break;
       case "red_overlay":
-        overlayBg = "rgba(255, 52, 44, 1)";
-        overlayOpacity = 0.10 + (i * 0.56) + (d * 0.16);
-        filter = `brightness(${(b - (i * 0.12)).toFixed(3)}) contrast(${(1 - (c * 0.20)).toFixed(3)}) saturate(${(1 - (i * 0.24)).toFixed(3)})`;
+        overlayBg = `rgba(${Math.max(210, tintR)}, ${Math.round(clamp(tintG * 0.45, 0, 110))}, ${Math.round(clamp(tintB * 0.35, 0, 90))}, 1)`;
+        overlayOpacity = 0.10 + (i * 0.56) + (d * 0.16) + (blueCut * 0.14);
+        filter = `brightness(${(b - (i * 0.12)).toFixed(3)}) contrast(${(1 - (c * 0.20)).toFixed(3)}) saturate(${(Math.max(0.25, sat - (i * 0.24))).toFixed(3)})`;
         break;
       case "red_mono":
-        overlayBg = "rgba(230, 24, 24, 1)";
-        overlayOpacity = 0.14 + (i * 0.54) + (d * 0.12);
-        filter = `grayscale(1) sepia(1) hue-rotate(-48deg) saturate(${(1.8 + i).toFixed(3)}) brightness(${(b - (i * 0.18)).toFixed(3)}) contrast(${(1 - (c * 0.22)).toFixed(3)})`;
+        overlayBg = `rgba(${Math.max(220, tintR)}, ${Math.round(clamp(tintG * 0.2, 0, 62))}, ${Math.round(clamp(tintB * 0.14, 0, 48))}, 1)`;
+        overlayOpacity = 0.14 + (i * 0.54) + (d * 0.12) + (blueCut * 0.12);
+        filter = `grayscale(1) sepia(1) hue-rotate(-48deg) saturate(${(1.8 + i + (blueCut * 0.3)).toFixed(3)}) brightness(${(b - (i * 0.18)).toFixed(3)}) contrast(${(1 - (c * 0.22)).toFixed(3)})`;
         break;
       case "red_lock":
-        overlayBg = "rgba(210, 8, 8, 1)";
-        overlayOpacity = 0.18 + (i * 0.62) + (d * 0.10);
-        filter = `grayscale(1) contrast(${(1.08 - (c * 0.26)).toFixed(3)}) brightness(${(b - (i * 0.22)).toFixed(3)}) sepia(1) hue-rotate(-56deg) saturate(${(2.4 + i).toFixed(3)})`;
+        overlayBg = `rgba(${Math.max(205, tintR)}, ${Math.round(clamp(tintG * 0.12, 0, 44))}, ${Math.round(clamp(tintB * 0.08, 0, 28))}, 1)`;
+        overlayOpacity = 0.18 + (i * 0.62) + (d * 0.10) + (blueCut * 0.18);
+        filter = `grayscale(1) contrast(${(1.08 - (c * 0.26)).toFixed(3)}) brightness(${(b - (i * 0.22)).toFixed(3)}) sepia(1) hue-rotate(-56deg) saturate(${(2.4 + i + (blueCut * 0.2)).toFixed(3)})`;
         break;
       case "gray_warm":
-        overlayBg = "rgba(255, 166, 100, 1)";
-        overlayOpacity = 0.06 + (i * 0.30) + (d * 0.26);
-        filter = `grayscale(0.92) sepia(0.55) brightness(${(b - (i * 0.10)).toFixed(3)}) contrast(${(1 - (c * 0.20)).toFixed(3)})`;
+        overlayBg = `rgba(${Math.round(clamp(tintR, 0, 255))}, ${Math.round(clamp(tintG, 0, 210))}, ${Math.round(clamp(tintB, 0, 140))}, 1)`;
+        overlayOpacity = 0.06 + (i * 0.30) + (d * 0.26) + (blueCut * 0.08);
+        filter = `grayscale(0.92) sepia(0.55) brightness(${(b - (i * 0.10)).toFixed(3)}) contrast(${(1 - (c * 0.20)).toFixed(3)}) saturate(${(sat * 0.82).toFixed(3)})`;
         break;
       case "dim":
         overlayBg = "rgba(0, 0, 0, 1)";
         overlayOpacity = 0.06 + (i * 0.66) + (d * 0.30);
-        filter = `brightness(${(b - (i * 0.28)).toFixed(3)}) contrast(${(1 - (c * 0.12)).toFixed(3)})`;
+        filter = `brightness(${(b - (i * 0.28)).toFixed(3)}) contrast(${(1 - (c * 0.12)).toFixed(3)}) saturate(${(sat * 0.9).toFixed(3)})`;
         break;
       case "spotlight":
         overlayBg = "rgba(0, 0, 0, 1)";
         overlayOpacity = 0.10 + (i * 0.44) + (d * 0.22);
-        filter = `brightness(${(b - (i * 0.06)).toFixed(3)}) contrast(${(1 - (c * 0.16)).toFixed(3)})`;
+        filter = `brightness(${(b - (i * 0.06)).toFixed(3)}) contrast(${(1 - (c * 0.16)).toFixed(3)}) saturate(${sat.toFixed(3)})`;
         break;
       default:
         // warm
+        filter = `brightness(${(b - (i * 0.06)).toFixed(3)}) contrast(${(1 - (c * 0.22)).toFixed(3)}) saturate(${sat.toFixed(3)})`;
         break;
     }
 
     if (profile.reduceWhites) {
-      filter += " sepia(0.07)";
+      filter += ` sepia(${(0.07 + (blueCut * 0.22)).toFixed(3)})`;
     }
 
     const factor = clamp(rampFactor, 0, 1);

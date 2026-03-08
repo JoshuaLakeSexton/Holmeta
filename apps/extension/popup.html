@@ -33,6 +33,10 @@
           <label for="lightMode">Mode</label>
           <select id="lightMode" aria-label="Light filter mode">
             <option value="warm">Warm Shift</option>
+            <option value="amber">Amber Balance</option>
+            <option value="candle">Candle Warm</option>
+            <option value="paper">Paper Sepia</option>
+            <option value="cool_focus">Cool Focus</option>
             <option value="red_overlay">Red Overlay</option>
             <option value="red_mono">Red Monochrome</option>
             <option value="red_lock">Red Spectrum Lock</option>
@@ -73,6 +77,46 @@
           <div class="field-row compact">
             <label class="switch"><input id="reduceWhites" type="checkbox" /><span>Reduce Whites</span></label>
             <label class="switch"><input id="videoSafe" type="checkbox" /><span>Video-safe</span></label>
+          </div>
+
+          <div class="field-row">
+            <label for="lightSpectrumPreset">Spectrum Preset</label>
+            <select id="lightSpectrumPreset">
+              <option value="balanced">Balanced</option>
+              <option value="amber_590">Amber 590nm</option>
+              <option value="red_630">Red 630nm</option>
+              <option value="deep_red_660">Deep Red 660nm</option>
+              <option value="candle_1800k">Candle 1800K</option>
+              <option value="neutral_3500k">Neutral 3500K</option>
+              <option value="daylight_5000k">Daylight 5000K</option>
+              <option value="melatonin_guard">Melatonin Guard</option>
+            </select>
+          </div>
+
+          <div class="field-row">
+            <label for="lightBlueCut">Blue Cut</label>
+            <div class="range-wrap">
+              <input id="lightBlueCut" type="range" min="0" max="100" step="1" />
+              <span id="lightBlueCutValue" class="value">65%</span>
+            </div>
+          </div>
+
+          <div class="field-row">
+            <label for="lightSaturation">Saturation</label>
+            <div class="range-wrap">
+              <input id="lightSaturation" type="range" min="50" max="140" step="1" />
+              <span id="lightSaturationValue" class="value">100%</span>
+            </div>
+          </div>
+
+          <div class="field-row">
+            <label for="lightTintRed">Tint R/G/B</label>
+            <div class="range-triple">
+              <input id="lightTintRed" type="range" min="0" max="100" step="1" />
+              <input id="lightTintGreen" type="range" min="0" max="100" step="1" />
+              <input id="lightTintBlue" type="range" min="0" max="100" step="1" />
+              <span id="lightTintValue" class="value">100 / 62 / 30</span>
+            </div>
           </div>
 
           <div class="field-row">

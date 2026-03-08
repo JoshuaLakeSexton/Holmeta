@@ -25,10 +25,16 @@
 
     optLightEnabled: $("optLightEnabled"),
     optLightMode: $("optLightMode"),
+    optLightSpectrumPreset: $("optLightSpectrumPreset"),
     optLightIntensity: $("optLightIntensity"),
     optLightDim: $("optLightDim"),
     optLightBrightness: $("optLightBrightness"),
     optLightContrastSoft: $("optLightContrastSoft"),
+    optLightSaturation: $("optLightSaturation"),
+    optLightBlueCut: $("optLightBlueCut"),
+    optLightTintRed: $("optLightTintRed"),
+    optLightTintGreen: $("optLightTintGreen"),
+    optLightTintBlue: $("optLightTintBlue"),
     optReduceWhites: $("optReduceWhites"),
     optVideoSafe: $("optVideoSafe"),
     optSpotlightEnabled: $("optSpotlightEnabled"),
@@ -353,10 +359,16 @@
 
     setChecked("optLightEnabled", s.light.enabled);
     setValue("optLightMode", s.light.mode);
+    setValue("optLightSpectrumPreset", s.light.spectrumPreset);
     setValue("optLightIntensity", s.light.intensity);
     setValue("optLightDim", s.light.dim);
     setValue("optLightBrightness", s.light.brightness);
     setValue("optLightContrastSoft", s.light.contrastSoft);
+    setValue("optLightSaturation", s.light.saturation);
+    setValue("optLightBlueCut", s.light.blueCut);
+    setValue("optLightTintRed", s.light.tintRed);
+    setValue("optLightTintGreen", s.light.tintGreen);
+    setValue("optLightTintBlue", s.light.tintBlue);
     setChecked("optReduceWhites", s.light.reduceWhites);
     setChecked("optVideoSafe", s.light.videoSafe);
     setChecked("optSpotlightEnabled", s.light.spotlightEnabled);
@@ -466,10 +478,16 @@
 
     bindCheck("optLightEnabled", (el) => queuePatch({ light: { enabled: el.checked } }));
     bindSelect("optLightMode", (el) => queuePatch({ light: { mode: el.value } }));
+    bindSelect("optLightSpectrumPreset", (el) => queuePatch({ light: { spectrumPreset: el.value } }));
     bindInput("optLightIntensity", (el) => queuePatch({ light: { intensity: Number(el.value || 45) } }));
     bindInput("optLightDim", (el) => queuePatch({ light: { dim: Number(el.value || 18) } }));
     bindInput("optLightBrightness", (el) => queuePatch({ light: { brightness: Number(el.value || 96) } }));
     bindInput("optLightContrastSoft", (el) => queuePatch({ light: { contrastSoft: Number(el.value || 8) } }));
+    bindInput("optLightSaturation", (el) => queuePatch({ light: { saturation: Number(el.value || 100) } }));
+    bindInput("optLightBlueCut", (el) => queuePatch({ light: { blueCut: Number(el.value || 65) } }));
+    bindInput("optLightTintRed", (el) => queuePatch({ light: { tintRed: Number(el.value || 100) } }));
+    bindInput("optLightTintGreen", (el) => queuePatch({ light: { tintGreen: Number(el.value || 62) } }));
+    bindInput("optLightTintBlue", (el) => queuePatch({ light: { tintBlue: Number(el.value || 30) } }));
     bindCheck("optReduceWhites", (el) => queuePatch({ light: { reduceWhites: el.checked } }));
     bindCheck("optVideoSafe", (el) => queuePatch({ light: { videoSafe: el.checked } }));
     bindCheck("optSpotlightEnabled", (el) => queuePatch({ light: { spotlightEnabled: el.checked } }));

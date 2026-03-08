@@ -104,11 +104,17 @@ function createDefaultState() {
     settings: {
       light: {
         enabled: false,
-        mode: "warm", // warm | red_overlay | red_mono | red_lock | gray_warm | dim | spotlight
+        mode: "warm", // warm | amber | candle | paper | cool_focus | red_overlay | red_mono | red_lock | gray_warm | dim | spotlight
+        spectrumPreset: "balanced", // balanced | amber_590 | red_630 | deep_red_660 | candle_1800k | neutral_3500k | daylight_5000k | melatonin_guard
         intensity: 45,
         dim: 18,
         contrastSoft: 8,
         brightness: 96,
+        saturation: 100,
+        blueCut: 65,
+        tintRed: 100,
+        tintGreen: 62,
+        tintBlue: 30,
         reduceWhites: true,
         videoSafe: false,
         spotlightEnabled: false,
@@ -284,13 +290,30 @@ function normalizeState(input) {
   if (merged.settings.light.mode === "red") {
     merged.settings.light.mode = "red_overlay";
   }
-  merged.settings.light.mode = ["warm", "red_overlay", "red_mono", "red_lock", "gray_warm", "dim", "spotlight"].includes(merged.settings.light.mode)
+  merged.settings.light.mode = ["warm", "amber", "candle", "paper", "cool_focus", "red_overlay", "red_mono", "red_lock", "gray_warm", "dim", "spotlight"].includes(merged.settings.light.mode)
     ? merged.settings.light.mode
     : "warm";
+  merged.settings.light.spectrumPreset = [
+    "balanced",
+    "amber_590",
+    "red_630",
+    "deep_red_660",
+    "candle_1800k",
+    "neutral_3500k",
+    "daylight_5000k",
+    "melatonin_guard"
+  ].includes(merged.settings.light.spectrumPreset)
+    ? merged.settings.light.spectrumPreset
+    : "balanced";
   merged.settings.light.intensity = Math.round(clamp(merged.settings.light.intensity, 0, 100));
   merged.settings.light.dim = Math.round(clamp(merged.settings.light.dim, 0, 60));
   merged.settings.light.contrastSoft = Math.round(clamp(merged.settings.light.contrastSoft, 0, 30));
   merged.settings.light.brightness = Math.round(clamp(merged.settings.light.brightness, 70, 120));
+  merged.settings.light.saturation = Math.round(clamp(merged.settings.light.saturation, 50, 140));
+  merged.settings.light.blueCut = Math.round(clamp(merged.settings.light.blueCut, 0, 100));
+  merged.settings.light.tintRed = Math.round(clamp(merged.settings.light.tintRed, 0, 100));
+  merged.settings.light.tintGreen = Math.round(clamp(merged.settings.light.tintGreen, 0, 100));
+  merged.settings.light.tintBlue = Math.round(clamp(merged.settings.light.tintBlue, 0, 100));
   merged.settings.light.reduceWhites = Boolean(merged.settings.light.reduceWhites);
   merged.settings.light.videoSafe = Boolean(merged.settings.light.videoSafe);
   merged.settings.light.spotlightEnabled = Boolean(merged.settings.light.spotlightEnabled);
@@ -1353,10 +1376,16 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       state.settings.light.siteProfiles[host] = {
         enabled: true,
         mode: state.settings.light.mode,
+        spectrumPreset: state.settings.light.spectrumPreset,
         intensity: state.settings.light.intensity,
         dim: state.settings.light.dim,
         contrastSoft: state.settings.light.contrastSoft,
         brightness: state.settings.light.brightness,
+        saturation: state.settings.light.saturation,
+        blueCut: state.settings.light.blueCut,
+        tintRed: state.settings.light.tintRed,
+        tintGreen: state.settings.light.tintGreen,
+        tintBlue: state.settings.light.tintBlue,
         reduceWhites: state.settings.light.reduceWhites,
         videoSafe: state.settings.light.videoSafe,
         spotlightEnabled: state.settings.light.spotlightEnabled,

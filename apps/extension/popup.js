@@ -51,6 +51,15 @@
 
     reduceWhites: document.getElementById("reduceWhites"),
     videoSafe: document.getElementById("videoSafe"),
+    lightSpectrumPreset: document.getElementById("lightSpectrumPreset"),
+    lightBlueCut: document.getElementById("lightBlueCut"),
+    lightBlueCutValue: document.getElementById("lightBlueCutValue"),
+    lightSaturation: document.getElementById("lightSaturation"),
+    lightSaturationValue: document.getElementById("lightSaturationValue"),
+    lightTintRed: document.getElementById("lightTintRed"),
+    lightTintGreen: document.getElementById("lightTintGreen"),
+    lightTintBlue: document.getElementById("lightTintBlue"),
+    lightTintValue: document.getElementById("lightTintValue"),
     lightBrightness: document.getElementById("lightBrightness"),
     lightBrightnessValue: document.getElementById("lightBrightnessValue"),
     lightDim: document.getElementById("lightDim"),
@@ -236,10 +245,16 @@
 
     const effective = {
       mode: siteProfile?.mode ?? light.mode,
+      spectrumPreset: siteProfile?.spectrumPreset ?? light.spectrumPreset,
       intensity: siteProfile?.intensity ?? light.intensity,
       dim: siteProfile?.dim ?? light.dim,
       contrastSoft: siteProfile?.contrastSoft ?? light.contrastSoft,
       brightness: siteProfile?.brightness ?? light.brightness,
+      saturation: siteProfile?.saturation ?? light.saturation,
+      blueCut: siteProfile?.blueCut ?? light.blueCut,
+      tintRed: siteProfile?.tintRed ?? light.tintRed,
+      tintGreen: siteProfile?.tintGreen ?? light.tintGreen,
+      tintBlue: siteProfile?.tintBlue ?? light.tintBlue,
       reduceWhites: siteProfile?.reduceWhites ?? light.reduceWhites,
       videoSafe: siteProfile?.videoSafe ?? light.videoSafe,
       spotlightEnabled: siteProfile?.spotlightEnabled ?? light.spotlightEnabled,
@@ -258,6 +273,15 @@
 
     setChecked(refs.reduceWhites, effective.reduceWhites);
     setChecked(refs.videoSafe, effective.videoSafe);
+    setInputValue(refs.lightSpectrumPreset, effective.spectrumPreset);
+    setInputValue(refs.lightBlueCut, effective.blueCut);
+    refs.lightBlueCutValue.textContent = `${effective.blueCut}%`;
+    setInputValue(refs.lightSaturation, effective.saturation);
+    refs.lightSaturationValue.textContent = `${effective.saturation}%`;
+    setInputValue(refs.lightTintRed, effective.tintRed);
+    setInputValue(refs.lightTintGreen, effective.tintGreen);
+    setInputValue(refs.lightTintBlue, effective.tintBlue);
+    refs.lightTintValue.textContent = `${effective.tintRed} / ${effective.tintGreen} / ${effective.tintBlue}`;
     setInputValue(refs.lightBrightness, effective.brightness);
     refs.lightBrightnessValue.textContent = `${effective.brightness}%`;
     setInputValue(refs.lightDim, effective.dim);
@@ -479,10 +503,16 @@
 
   function currentLightPatchFromUI() {
     const mode = String(refs.lightMode.value || "warm");
+    const spectrumPreset = String(refs.lightSpectrumPreset.value || "balanced");
     const intensity = Math.max(0, Math.min(100, Number(refs.lightIntensity.value || 0)));
     const dim = Math.max(0, Math.min(60, Number(refs.lightDim.value || 0)));
     const contrastSoft = Math.max(0, Math.min(30, Number(refs.lightContrastSoft.value || 0)));
     const brightness = Math.max(70, Math.min(120, Number(refs.lightBrightness.value || 96)));
+    const saturation = Math.max(50, Math.min(140, Number(refs.lightSaturation.value || 100)));
+    const blueCut = Math.max(0, Math.min(100, Number(refs.lightBlueCut.value || 65)));
+    const tintRed = Math.max(0, Math.min(100, Number(refs.lightTintRed.value || 100)));
+    const tintGreen = Math.max(0, Math.min(100, Number(refs.lightTintGreen.value || 62)));
+    const tintBlue = Math.max(0, Math.min(100, Number(refs.lightTintBlue.value || 30)));
     const reduceWhites = Boolean(refs.reduceWhites.checked);
     const videoSafe = Boolean(refs.videoSafe.checked);
     const spotlightEnabled = Boolean(refs.spotlightEnabled.checked);
@@ -492,10 +522,16 @@
 
     return {
       mode,
+      spectrumPreset,
       intensity,
       dim,
       contrastSoft,
       brightness,
+      saturation,
+      blueCut,
+      tintRed,
+      tintGreen,
+      tintBlue,
       reduceWhites,
       videoSafe,
       spotlightEnabled,
@@ -589,10 +625,16 @@
       map[state.currentHost] = {
         enabled: true,
         mode: light.mode,
+        spectrumPreset: light.spectrumPreset,
         intensity: light.intensity,
         dim: light.dim,
         contrastSoft: light.contrastSoft,
         brightness: light.brightness,
+        saturation: light.saturation,
+        blueCut: light.blueCut,
+        tintRed: light.tintRed,
+        tintGreen: light.tintGreen,
+        tintBlue: light.tintBlue,
         reduceWhites: light.reduceWhites,
         videoSafe: light.videoSafe,
         spotlightEnabled: light.spotlightEnabled,
@@ -606,6 +648,27 @@
 
     refs.reduceWhites.addEventListener("change", (e) => queueLightPatch({ reduceWhites: e.target.checked }));
     refs.videoSafe.addEventListener("change", (e) => queueLightPatch({ videoSafe: e.target.checked }));
+    refs.lightSpectrumPreset.addEventListener("change", (e) => queueLightPatch({ spectrumPreset: e.target.value }));
+    refs.lightBlueCut.addEventListener("input", (e) => {
+      const value = Math.max(0, Math.min(100, Number(e.target.value || 65)));
+      refs.lightBlueCutValue.textContent = `${value}%`;
+      queueLightPatch({ blueCut: value });
+    });
+    refs.lightSaturation.addEventListener("input", (e) => {
+      const value = Math.max(50, Math.min(140, Number(e.target.value || 100)));
+      refs.lightSaturationValue.textContent = `${value}%`;
+      queueLightPatch({ saturation: value });
+    });
+    const applyTintPatch = () => {
+      const tintRed = Math.max(0, Math.min(100, Number(refs.lightTintRed.value || 100)));
+      const tintGreen = Math.max(0, Math.min(100, Number(refs.lightTintGreen.value || 62)));
+      const tintBlue = Math.max(0, Math.min(100, Number(refs.lightTintBlue.value || 30)));
+      refs.lightTintValue.textContent = `${tintRed} / ${tintGreen} / ${tintBlue}`;
+      queueLightPatch({ tintRed, tintGreen, tintBlue });
+    };
+    refs.lightTintRed.addEventListener("input", applyTintPatch);
+    refs.lightTintGreen.addEventListener("input", applyTintPatch);
+    refs.lightTintBlue.addEventListener("input", applyTintPatch);
     refs.lightBrightness.addEventListener("input", (e) => {
       const value = Math.max(70, Math.min(120, Number(e.target.value || 96)));
       refs.lightBrightnessValue.textContent = `${value}%`;

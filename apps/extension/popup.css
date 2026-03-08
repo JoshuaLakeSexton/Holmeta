@@ -267,6 +267,13 @@ select:disabled {
   align-items: center;
 }
 
+.range-triple {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 6px;
+  align-items: center;
+}
+
 .fold summary {
   cursor: pointer;
   user-select: none;
