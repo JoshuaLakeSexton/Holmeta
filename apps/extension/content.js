@@ -343,71 +343,228 @@
     return text.replace(/["\\#.:;,[\]()=+*>~'`]/g, "\\$&");
   }
 
+  function buildPageTextSample() {
+    const chunks = [];
+    const push = (value) => {
+      const text = safeText(value, 220);
+      if (!text) return;
+      if (chunks.join(" ").length > 5000) return;
+      chunks.push(text);
+    };
+
+    push(document.title);
+    push(document.querySelector("meta[name='description']")?.getAttribute("content"));
+    push(document.querySelector("meta[property='og:description']")?.getAttribute("content"));
+    sampleNodes("h1,h2,h3,[role='heading'],p,a,button,[aria-label]", 90).forEach((node) => {
+      push(node.textContent || node.getAttribute("aria-label") || "");
+    });
+    return chunks.join(" ").toLowerCase();
+  }
+
+  function isDynamicFeedHost(host) {
+    return /(youtube\.com|x\.com|twitter\.com|reddit\.com|google\.[a-z.]+|bing\.com|duckduckgo\.com)/.test(host);
+  }
+
+  function feedBucket(host, pathName, searchPart) {
+    const path = String(pathName || "").toLowerCase();
+    const search = String(searchPart || "").toLowerCase();
+
+    if (/youtube\.com/.test(host)) {
+      if (/\/feed\/subscriptions/.test(path)) return "yt_subscriptions";
+      if (/\/feed\/trending/.test(path)) return "yt_trending";
+      if (/\/results/.test(path) || /[?&]search_query=/.test(search)) return "yt_search";
+      if (/\/shorts/.test(path)) return "yt_shorts";
+      if (/\/watch/.test(path)) return "yt_watch";
+      return "yt_home";
+    }
+
+    if (/x\.com|twitter\.com/.test(host)) {
+      if (/for_you/.test(path + search)) return "x_for_you";
+      if (/following/.test(path + search) || /[?&]f=live/.test(search)) return "x_following";
+      if (/\/explore/.test(path)) return "x_explore";
+      return "x_home";
+    }
+
+    if (/reddit\.com/.test(host)) {
+      if (/\/new/.test(path)) return "reddit_new";
+      if (/\/top|\/hot|\/best/.test(path)) return "reddit_ranked";
+      if (/\/search/.test(path) || /[?&]q=/.test(search)) return "reddit_search";
+      return "reddit_home";
+    }
+
+    if (/google\.[a-z.]+|bing\.com|duckduckgo\.com/.test(host)) {
+      if (/[?&]q=/.test(search) || /\/search/.test(path)) return "search_results";
+      return "search_home";
+    }
+
+    if (/github\.com/.test(host)) {
+      if (/\/notifications/.test(path)) return "gh_notifications";
+      if (/\/pulls|\/issues/.test(path)) return "gh_work_queue";
+      if (/\/search/.test(path) || /[?&]q=/.test(search)) return "gh_search";
+      return "gh_home";
+    }
+
+    if (/figma\.com/.test(host)) {
+      if (/\/file|\/design|\/proto/.test(path)) return "figma_canvas";
+      return "figma_home";
+    }
+
+    return "generic";
+  }
+
   function detectSiteType(host) {
     const path = location.pathname.toLowerCase();
     const search = location.search.toLowerCase();
-    const bodyText = safeText(document.body?.innerText || "", 3000).toLowerCase();
+    const text = buildPageTextSample();
 
     if (/github\.com|gitlab\.com|bitbucket\.org|stackoverflow\.com/.test(host)) return "developer";
-    if (/figma\.com|dribbble\.com|behance\.net|canva\.com/.test(host)) return "portfolio";
+    if (/figma\.com|dribbble\.com|behance\.net|canva\.com/.test(host)) return "design";
     if (/youtube\.com|vimeo\.com|twitch\.tv|netflix\.com/.test(host)) return "video";
     if (/x\.com|twitter\.com|facebook\.com|instagram\.com|reddit\.com|tiktok\.com/.test(host)) return "social";
-    if (/docs\.google\.com|notion\.so|readthedocs|developer\.mozilla|docs\./.test(host)) return "docs";
+    if (/docs\.google\.com|notion\.so|readthedocs|developer\.mozilla|confluence|atlassian/.test(host)) return "docs";
+    if (/google\.[a-z.]+|bing\.com|duckduckgo\.com|perplexity\.ai/.test(host)) return "search";
     if (/amazon\.|shopify|etsy|checkout|cart/.test(host + path + search)) return "commerce";
     if (/news|article|opinion|breaking/.test(path) || document.querySelector("article time, [itemprop='datePublished']")) return "news";
     if (/search|results/.test(path) || /[?&](q|query)=/.test(search)) return "search";
     if (document.querySelector("form input[type='password']") && document.querySelector("nav, [role='navigation']")) return "webapp";
     if (document.querySelector("[data-testid*='feed'], [aria-label*='Feed'], .feed, [class*='infinite']")) return "social";
-    if (/course|lesson|learn/.test(path + " " + bodyText)) return "education";
+    if (/course|lesson|learn|curriculum/.test(path + " " + text)) return "education";
+    if (/forum|community|discuss/.test(path + " " + text)) return "community";
     if (document.querySelector("[class*='pricing'], [href*='pricing'], [class*='hero']")) return "marketing";
     if (document.querySelector("[role='main']") && document.querySelector("button, input, select")) return "webapp";
     return "community";
   }
 
   function detectAlgorithmContext(host) {
-    const url = location.href.toLowerCase();
-    const text = safeText(document.body?.innerText || "", 7000).toLowerCase();
-    const cues = [];
+    const path = location.pathname.toLowerCase();
+    const search = location.search.toLowerCase();
+    const text = buildPageTextSample();
+    const bucket = feedBucket(host, path, search);
 
-    if (/[?&](q|query)=/.test(location.search.toLowerCase()) || /\/search/.test(location.pathname.toLowerCase())) {
-      cues.push("search");
+    const knownBuckets = {
+      yt_subscriptions: {
+        label: "Subscription/following feed",
+        confidence: "high",
+        explanation: "Detected YouTube subscriptions feed."
+      },
+      yt_trending: {
+        label: "Trending/popularity",
+        confidence: "high",
+        explanation: "Detected YouTube trending feed."
+      },
+      yt_search: {
+        label: "Search results ranking",
+        confidence: "high",
+        explanation: "Detected YouTube search results."
+      },
+      yt_shorts: {
+        label: "Recommendation feed",
+        confidence: "high",
+        explanation: "Detected YouTube Shorts recommendation stream."
+      },
+      yt_watch: {
+        label: "Recommendation feed",
+        confidence: "high",
+        explanation: "Detected watch page with recommendation modules."
+      },
+      yt_home: {
+        label: "Recommendation feed",
+        confidence: "high",
+        explanation: "Detected YouTube home recommendations."
+      },
+      x_for_you: {
+        label: "Recommendation feed",
+        confidence: "high",
+        explanation: "Detected For You timeline route."
+      },
+      x_following: {
+        label: "Chronological feed",
+        confidence: "medium",
+        explanation: "Detected Following/live timeline route."
+      },
+      x_explore: {
+        label: "Trending/popularity",
+        confidence: "medium",
+        explanation: "Detected explore/trending discovery route."
+      },
+      reddit_new: {
+        label: "Chronological feed",
+        confidence: "medium",
+        explanation: "Detected Reddit new sorting route."
+      },
+      reddit_ranked: {
+        label: "Trending/popularity",
+        confidence: "high",
+        explanation: "Detected Reddit ranked sorting route."
+      },
+      reddit_search: {
+        label: "Search results ranking",
+        confidence: "high",
+        explanation: "Detected Reddit search results."
+      },
+      search_results: {
+        label: "Search results ranking",
+        confidence: "high",
+        explanation: "Detected search query and ranked results."
+      },
+      gh_notifications: {
+        label: "Subscription/following feed",
+        confidence: "medium",
+        explanation: "Detected GitHub notifications stream."
+      },
+      gh_search: {
+        label: "Search results ranking",
+        confidence: "high",
+        explanation: "Detected GitHub search results."
+      }
+    };
+    if (knownBuckets[bucket]) {
+      return { ...knownBuckets[bucket], bucket };
     }
-    if (/for you|recommended|because you watched|discover/.test(text)) cues.push("recommended");
-    if (/following|subscriptions|subscribed/.test(text)) cues.push("following");
-    if (/trending|top|hot/.test(text)) cues.push("trending");
-    if (/sponsored|promoted|ad choices|ads/.test(text)) cues.push("ads");
 
-    if (/youtube\.com/.test(host) && /\/feed\/subscriptions/.test(url)) {
-      return { label: "Subscription/following feed", confidence: "high", explanation: "Detected YouTube subscriptions route." };
-    }
-    if (/youtube\.com/.test(host) && (/\/watch/.test(url) || /youtube\.com\/$/.test(url))) {
-      return { label: "Recommendation feed", confidence: "high", explanation: "Detected YouTube recommendation/home modules." };
-    }
-    if (/x\.com|twitter\.com/.test(host) && /for_you/.test(url)) {
-      return { label: "Recommendation feed", confidence: "high", explanation: "Detected For You timeline route." };
-    }
-    if (/reddit\.com/.test(host) && /(\/r\/|\/best|\/hot|\/top)/.test(url)) {
-      return { label: "Trending/popularity", confidence: "medium", explanation: "Detected Hot/Top ranking cues." };
-    }
-    if (cues.includes("search")) {
-      return { label: "Search results ranking", confidence: "high", explanation: "Detected search query and results route." };
-    }
-    if (cues.includes("recommended")) {
-      return { label: "Recommendation feed", confidence: "medium", explanation: "Detected recommendation keywords on page." };
-    }
-    if (cues.includes("following")) {
-      return { label: "Subscription/following feed", confidence: "medium", explanation: "Detected following/subscription cues." };
-    }
-    if (cues.includes("trending")) {
-      return { label: "Trending/popularity", confidence: "medium", explanation: "Detected trending/top markers." };
-    }
-    if (cues.includes("ads")) {
-      return { label: "Ads/auction-driven", confidence: "low", explanation: "Detected sponsored/ads markers." };
-    }
-    return { label: "Personalized home", confidence: "low", explanation: "No strong feed markers detected." };
+    let scoreRecommended = 0;
+    let scoreFollowing = 0;
+    let scoreTrending = 0;
+    let scoreSearch = 0;
+    let scoreAds = 0;
+
+    if (/[?&](q|query)=/.test(search) || /\/search/.test(path)) scoreSearch += 3;
+    if (/for you|recommended|because you watched|discover/.test(text)) scoreRecommended += 2;
+    if (/following|subscriptions|subscribed/.test(text)) scoreFollowing += 2;
+    if (/trending|top|hot/.test(text)) scoreTrending += 2;
+    if (/sponsored|promoted|ad choices|ads/.test(text)) scoreAds += 2;
+
+    if (document.querySelector("[aria-label*='For you' i], [data-testid*='for-you' i]")) scoreRecommended += 3;
+    if (document.querySelector("[aria-label*='Following' i], [href*='subscriptions' i]")) scoreFollowing += 3;
+    if (document.querySelector("[aria-label*='Trending' i], [href*='trending' i]")) scoreTrending += 3;
+    if (document.querySelector("[aria-label*='Sponsored' i], [data-testid*='sponsored' i], [id*='ad' i], [class*='ad-' i]")) scoreAds += 2;
+    if (document.querySelector("input[type='search'], [role='search']")) scoreSearch += 1;
+
+    const ranked = [
+      { key: "search", score: scoreSearch, label: "Search results ranking", explanation: "Detected search route and query cues." },
+      { key: "recommended", score: scoreRecommended, label: "Recommendation feed", explanation: "Detected recommendation/feed modules." },
+      { key: "following", score: scoreFollowing, label: "Subscription/following feed", explanation: "Detected following/subscription cues." },
+      { key: "trending", score: scoreTrending, label: "Trending/popularity", explanation: "Detected trending/top ranking cues." },
+      { key: "ads", score: scoreAds, label: "Ads/auction-driven", explanation: "Detected sponsored/ad placement markers." }
+    ].sort((a, b) => b.score - a.score);
+
+    if (ranked[0].score >= 4) return { label: ranked[0].label, confidence: "high", explanation: ranked[0].explanation, bucket };
+    if (ranked[0].score >= 2) return { label: ranked[0].label, confidence: "medium", explanation: ranked[0].explanation, bucket };
+    return { label: "Personalized home", confidence: "low", explanation: "No strong feed markers detected.", bucket };
   }
 
   function detectPurposeSummary(host, siteType) {
+    const known = [
+      [/youtube\.com/, "This site is primarily for video discovery and playback. Main action: watch content and follow recommendation chains."],
+      [/github\.com/, "This site is primarily for code collaboration. Main action: review issues, PRs, and docs tied to repositories."],
+      [/figma\.com/, "This site is primarily for design collaboration. Main action: edit files, inspect components, and comment on UI work."],
+      [/notion\.so|docs\.google\.com/, "This site is primarily for documentation and team notes. Main action: read, edit, and organize structured information."],
+      [/amazon\./, "This site is primarily for ecommerce. Main action: compare products, evaluate trust signals, and complete checkout."],
+      [/reddit\.com/, "This site is primarily for community discussion. Main action: browse ranked threads and engage in conversations."]
+    ];
+    const knownSummary = known.find(([pattern]) => pattern.test(host));
+    if (knownSummary) return knownSummary[1];
+
     const desc =
       document.querySelector("meta[name='description']")?.getAttribute("content") ||
       document.querySelector("meta[property='og:description']")?.getAttribute("content") ||
@@ -712,6 +869,7 @@
       computedAt: Date.now(),
       host,
       url: location.href,
+      bucket: feedBucket(host, location.pathname, location.search),
       siteType,
       algorithm,
       purposeSummary,
@@ -733,6 +891,15 @@
 
     summary.profiles = buildProfileBullets(summary);
     return summary;
+  }
+
+  function shouldUseCachedSummary(host, cachedSummary) {
+    if (!cachedSummary || typeof cachedSummary !== "object") return false;
+    if (normalizeHost(cachedSummary.host || "") !== host) return false;
+    if (!isDynamicFeedHost(host)) return true;
+    const currentBucket = feedBucket(host, location.pathname, location.search);
+    const cachedBucket = String(cachedSummary.algorithm?.bucket || cachedSummary.bucket || "");
+    return Boolean(currentBucket && cachedBucket && currentBucket === cachedBucket);
   }
 
   function ensureInsightUi() {
@@ -1161,7 +1328,12 @@
 
     let summaryData = null;
     const cachedAt = Math.max(0, Number(payload.cachedAt || 0));
-    if (payload.cachedSummary && cachedAt > 0 && nowTs - cachedAt < SITE_INSIGHT_CACHE_TTL_MS) {
+    if (
+      payload.cachedSummary &&
+      cachedAt > 0 &&
+      nowTs - cachedAt < SITE_INSIGHT_CACHE_TTL_MS &&
+      shouldUseCachedSummary(host, payload.cachedSummary)
+    ) {
       summaryData = payload.cachedSummary;
     }
 
