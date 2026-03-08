@@ -1,0 +1,262 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>HOLMETA Command Center</title>
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+    <main class="shell" aria-live="polite">
+      <header class="panel header">
+        <div>
+          <p class="kicker">MISSION BRIEFING</p>
+          <h1>HOLMETA Command Center</h1>
+          <p class="tagline">Reduce screen strain. Increase focus.</p>
+        </div>
+        <div class="meta-stack">
+          <span id="modeBadge" class="badge">FREE</span>
+          <button id="openOptions" class="ghost" aria-label="Open options dashboard">Options</button>
+        </div>
+      </header>
+
+      <section class="panel core" id="lightPanel">
+        <div class="section-head">
+          <h2>1) Light Filter Tool</h2>
+          <label class="switch" aria-label="Toggle light filter">
+            <input id="lightEnabled" type="checkbox" />
+            <span>On</span>
+          </label>
+        </div>
+
+        <div class="field-row">
+          <label for="lightMode">Mode</label>
+          <select id="lightMode" aria-label="Light filter mode">
+            <option value="warm">Warm Shift</option>
+            <option value="red_overlay">Red Overlay</option>
+            <option value="red_mono">Red Monochrome</option>
+            <option value="red_lock">Red Spectrum Lock</option>
+            <option value="gray_warm">Grayscale + Warm</option>
+            <option value="dim">Dim / Night</option>
+            <option value="spotlight">Focus Spotlight</option>
+          </select>
+        </div>
+
+        <div class="field-row">
+          <label for="lightIntensity">Intensity</label>
+          <div class="range-wrap">
+            <input id="lightIntensity" type="range" min="0" max="100" step="1" aria-label="Light intensity" />
+            <span id="lightIntensityValue" class="value">45%</span>
+          </div>
+        </div>
+
+        <div class="row actions-row">
+          <label class="switch" title="Enable site override using current global profile">
+            <input id="lightThisSiteEnabled" type="checkbox" />
+            <span>This site override</span>
+          </label>
+          <label class="switch" title="Exclude current host from filters">
+            <input id="lightExcludeSite" type="checkbox" />
+            <span>Exclude site</span>
+          </label>
+        </div>
+
+        <div class="row actions-row">
+          <button id="saveSiteProfile" class="secondary">Save This Site Profile</button>
+          <button id="copyGlobalToSite" class="secondary">Copy Global → Site</button>
+        </div>
+
+        <p id="siteInfo" class="micro">Site: unavailable</p>
+
+        <details class="inline-advanced">
+          <summary>Advanced</summary>
+          <div class="field-row compact">
+            <label class="switch"><input id="reduceWhites" type="checkbox" /><span>Reduce Whites</span></label>
+            <label class="switch"><input id="videoSafe" type="checkbox" /><span>Video-safe</span></label>
+          </div>
+
+          <div class="field-row">
+            <label for="lightBrightness">Brightness</label>
+            <div class="range-wrap">
+              <input id="lightBrightness" type="range" min="70" max="120" step="1" />
+              <span id="lightBrightnessValue" class="value">96%</span>
+            </div>
+          </div>
+
+          <div class="field-row">
+            <label for="lightDim">Dim</label>
+            <div class="range-wrap">
+              <input id="lightDim" type="range" min="0" max="60" step="1" />
+              <span id="lightDimValue" class="value">18%</span>
+            </div>
+          </div>
+
+          <div class="field-row">
+            <label for="lightContrastSoft">Contrast Soft</label>
+            <div class="range-wrap">
+              <input id="lightContrastSoft" type="range" min="0" max="30" step="1" />
+              <span id="lightContrastSoftValue" class="value">8%</span>
+            </div>
+          </div>
+
+          <div class="field-row compact">
+            <label class="switch"><input id="spotlightEnabled" type="checkbox" /><span>Spotlight</span></label>
+            <button id="setSpotlightCenter" class="ghost">Center Spotlight</button>
+          </div>
+
+          <div class="field-row compact">
+            <label class="switch"><input id="therapyMode" type="checkbox" /><span>Red Pulse Therapy</span></label>
+            <input id="therapyMinutes" type="number" min="1" max="10" step="1" value="3" aria-label="Therapy duration minutes" />
+          </div>
+
+          <div class="field-row">
+            <label for="therapyCadence">Pulse Cadence</label>
+            <select id="therapyCadence">
+              <option value="gentle">Gentle</option>
+              <option value="medium">Medium</option>
+              <option value="slow">Slow</option>
+            </select>
+          </div>
+        </details>
+      </section>
+
+      <section class="panel core" id="blockerPanel">
+        <div class="section-head">
+          <h2>2) Site Blocker Tool</h2>
+          <label class="switch" aria-label="Toggle site blocker">
+            <input id="blockerEnabled" type="checkbox" />
+            <span>On</span>
+          </label>
+        </div>
+
+        <p id="blockerStatus" class="micro">Active: 0 sites blocked</p>
+
+        <div class="row actions-row">
+          <button id="addCurrentSite" class="secondary">Block Current Site</button>
+          <button id="editBlocker" class="secondary">Edit Lists</button>
+        </div>
+
+        <div class="field-row compact">
+          <label class="switch danger">
+            <input id="nuclearMode" type="checkbox" />
+            <span>Nuclear Mode</span>
+          </label>
+          <button id="pauseBlocker" class="ghost">Pause 10m</button>
+        </div>
+      </section>
+
+      <section class="panel core" id="alertsPanel">
+        <div class="section-head">
+          <h2>3) Health Alert Popups</h2>
+          <label class="switch" aria-label="Toggle health alerts">
+            <input id="alertsEnabled" type="checkbox" />
+            <span>On</span>
+          </label>
+        </div>
+
+        <div class="field-row">
+          <label for="alertFrequency">Frequency</label>
+          <select id="alertFrequency" aria-label="Alert frequency">
+            <option value="20">20 min</option>
+            <option value="45">45 min</option>
+            <option value="60">60 min</option>
+          </select>
+        </div>
+
+        <div class="row actions-row">
+          <label class="switch">
+            <input id="alertSound" type="checkbox" />
+            <span>Sound Alarm</span>
+          </label>
+          <button id="testAlert" class="secondary">Test Alert</button>
+        </div>
+      </section>
+
+      <details class="panel fold" id="deepWorkFold">
+        <summary>Deep Work Protocol</summary>
+        <div class="field-row">
+          <label for="pomodoroPreset">Pomodoro</label>
+          <select id="pomodoroPreset" aria-label="Pomodoro preset">
+            <option value="25:5">25 / 5</option>
+            <option value="50:10">50 / 10</option>
+            <option value="90:20">90 / 20</option>
+          </select>
+        </div>
+        <div class="row actions-row">
+          <button id="startDeepWork" class="primary">Activate Deep Work</button>
+          <button id="stopDeepWork" class="secondary">Stop</button>
+        </div>
+        <p id="deepWorkStatus" class="micro">Idle</p>
+      </details>
+
+      <details class="panel fold" id="advancedFold">
+        <summary>Advanced Lab (Premium)</summary>
+
+        <div class="premium-banner" id="premiumBanner">
+          <span>Premium feature set</span>
+          <button id="upgradePremium" class="primary">Upgrade to Premium</button>
+        </div>
+
+        <div class="field-row">
+          <label class="switch" title="Premium feature – upgrade at holmeta.com">
+            <input id="biofeedbackEnabled" type="checkbox" data-premium="true" />
+            <span>AI Bio-Feedback (Beta)</span>
+          </label>
+        </div>
+
+        <div class="field-row">
+          <label class="switch" title="Premium feature – upgrade at holmeta.com">
+            <input id="morphingEnabled" type="checkbox" data-premium="true" />
+            <span>Adaptive Content Morphing</span>
+          </label>
+        </div>
+
+        <div class="row actions-row">
+          <button id="taskWeaver" class="secondary" data-premium="true" title="Premium feature – upgrade at holmeta.com">
+            Weave Now
+          </button>
+          <button id="collabSync" class="secondary" data-premium="true" title="Premium feature – upgrade at holmeta.com">
+            Focus Sync
+          </button>
+        </div>
+
+        <ul id="weaverResults" class="result-list"></ul>
+      </details>
+
+      <section class="panel compact">
+        <div class="section-head">
+          <h2>Hotkeys</h2>
+        </div>
+        <div class="hotkeys">
+          <button class="hotkey" data-command="toggle_light_filters">Toggle Filters</button>
+          <button class="hotkey" data-command="toggle_redlight">Toggle Redlight</button>
+          <button class="hotkey" data-command="increase_intensity">Intensity +</button>
+          <button class="hotkey" data-command="decrease_intensity">Intensity -</button>
+          <button class="hotkey" data-command="toggle_spotlight">Toggle Spotlight</button>
+        </div>
+        <p class="micro">Use browser shortcut settings to map keys for these commands.</p>
+      </section>
+
+      <footer class="statusbar">
+        <span id="saveState">Ready</span>
+      </footer>
+    </main>
+
+    <div id="toastHost" class="toast-host" aria-live="polite" aria-atomic="true"></div>
+
+    <div id="onboarding" class="onboarding" hidden role="dialog" aria-modal="true" aria-labelledby="onboardingTitle">
+      <div class="onboarding-card">
+        <p class="kicker">MISSION: Reduce screen strain. Increase focus.</p>
+        <h2 id="onboardingTitle">Welcome to HOLMETA</h2>
+        <p id="onboardingBody">Command Center quick setup.</p>
+        <div class="row actions-row">
+          <button id="onboardBack" class="secondary">Back</button>
+          <button id="onboardNext" class="primary">Next</button>
+        </div>
+        <button id="onboardSkip" class="ghost">Skip tour</button>
+      </div>
+    </div>
+
+    <script src="popup.js"></script>
+  </body>
+</html>

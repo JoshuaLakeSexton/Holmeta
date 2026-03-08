@@ -1,108 +1,101 @@
 {
   "manifest_version": 3,
-  "name": "holmeta",
-  "version": "0.2.0",
-  "description": "Privacy-first screen health, focus mode, and deep work instrumentation for desk workers.",
+  "name": "Holmeta Productivity & Health Toolkit",
+  "short_name": "HOLMETA",
+  "version": "3.0.0",
+  "description": "Privacy-first browser toolkit for reducing screen strain and improving focus. Local-first, browser-only.",
   "action": {
-    "default_popup": "src/popup.html",
-    "default_title": "holmeta",
+    "default_title": "HOLMETA",
+    "default_popup": "popup.html",
     "default_icon": {
-      "16": "src/assets/icons/icon16.png",
-      "32": "src/assets/icons/icon32.png"
+      "16": "assets/icons/icon16.png",
+      "32": "assets/icons/icon32.png"
     }
   },
   "icons": {
-    "16": "src/assets/icons/icon16.png",
-    "32": "src/assets/icons/icon32.png",
-    "48": "src/assets/icons/icon48.png",
-    "128": "src/assets/icons/icon128.png"
+    "16": "assets/icons/icon16.png",
+    "32": "assets/icons/icon32.png",
+    "48": "assets/icons/icon48.png",
+    "128": "assets/icons/icon128.png"
   },
-  "options_page": "src/options.html",
+  "options_page": "options.html",
   "background": {
-    "service_worker": "src/background.js"
+    "service_worker": "background.js"
   },
   "permissions": [
     "storage",
-    "alarms",
-    "notifications",
     "tabs",
-    "webNavigation",
-    "sidePanel",
-    "declarativeNetRequest",
-    "idle"
+    "activeTab",
+    "scripting",
+    "notifications",
+    "alarms",
+    "declarativeContent",
+    "declarativeNetRequest"
   ],
   "optional_permissions": [
-    "videoCapture"
+    "geolocation",
+    "videoCapture",
+    "bluetooth"
   ],
   "host_permissions": [
     "<all_urls>"
   ],
   "commands": {
-    "save_current_tab": {
-      "description": "Quick save current tab to holmeta",
-      "suggested_key": {
-        "default": "Alt+Shift+S",
-        "mac": "Command+Shift+S"
-      }
-    },
-    "toggle-filters": {
-      "description": "Toggle filters on or off",
+    "toggle_light_filters": {
+      "description": "Toggle Light Filters",
       "suggested_key": {
         "default": "Alt+Shift+F",
         "mac": "Command+Shift+F"
       }
     },
-    "toggle-red-mode": {
-      "description": "Toggle red night mode",
+    "toggle_redlight": {
+      "description": "Toggle Redlight Mode",
       "suggested_key": {
         "default": "Alt+Shift+R",
         "mac": "Command+Shift+R"
       }
     },
-    "increase-intensity": {
-      "description": "Increase filter intensity",
+    "increase_intensity": {
+      "description": "Increase Filter Intensity",
       "suggested_key": {
         "default": "Alt+Shift+Up",
         "mac": "Command+Shift+Up"
       }
     },
-    "decrease-intensity": {
-      "description": "Decrease filter intensity"
+    "decrease_intensity": {
+      "description": "Decrease Filter Intensity"
+    },
+    "toggle_spotlight": {
+      "description": "Toggle Focus Spotlight"
     }
   },
   "content_scripts": [
     {
       "matches": [
-        "http://*/*",
-        "https://*/*"
+        "<all_urls>"
       ],
       "js": [
-        "src/common.js",
-        "src/audio.js",
-        "src/content.js"
+        "light/engine.js",
+        "content.js"
       ],
-      "css": [
-        "src/styles/holmeta-tokens.css",
-        "src/styles/holmeta-ui.css"
-      ],
+      "all_frames": true,
       "run_at": "document_idle"
     }
   ],
-  "browser_specific_settings": {
-    "gecko": {
-      "id": "holmeta@holmeta.app"
-    }
-  },
   "web_accessible_resources": [
     {
       "resources": [
-        "src/assets/sfx/*.ogg",
-        "src/styles/holmeta-tokens.css",
-        "src/styles/holmeta-ui.css"
+        "blocked.html",
+        "blocked.css",
+        "blocked.js"
       ],
       "matches": [
         "<all_urls>"
       ]
     }
-  ]
+  ],
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'self';"
+  },
+  "minimum_chrome_version": "114"
 }

@@ -1,0 +1,90 @@
+:root {
+  color-scheme: dark;
+  --bg: #0f0f11;
+  --panel: #17181c;
+  --line: #2a2d33;
+  --text: #f2f2f3;
+  --muted: #b6b6ba;
+  --accent: #c42021;
+  --focus: #ffb300;
+}
+
+* { box-sizing: border-box; }
+
+html,
+body {
+  margin: 0;
+  min-height: 100%;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif;
+}
+
+.wrap {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+}
+
+.card {
+  width: min(560px, 94vw);
+  border: 1px solid var(--line);
+  background: var(--panel);
+  padding: 16px;
+  display: grid;
+  gap: 10px;
+}
+
+.kicker {
+  margin: 0;
+  color: var(--muted);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+}
+
+h1 {
+  margin: 0;
+  font-size: 24px;
+}
+
+.copy,
+.status {
+  margin: 0;
+  color: var(--muted);
+}
+
+.actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+button {
+  min-height: 40px;
+  border: 1px solid var(--line);
+  background: #101217;
+  color: var(--text);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+button.primary {
+  border-color: var(--accent);
+  background: rgba(196, 32, 33, 0.2);
+}
+
+button:hover,
+button:focus-visible {
+  outline: none;
+  border-color: var(--focus);
+}
+
+@media (max-width: 540px) {
+  .actions {
+    grid-template-columns: 1fr;
+  }
+}

@@ -1,0 +1,217 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>HOLMETA Options</title>
+    <link rel="stylesheet" href="options.css" />
+  </head>
+  <body>
+    <main class="layout">
+      <header class="panel hero">
+        <div>
+          <p class="kicker">MISSION BRIEFING</p>
+          <h1>HOLMETA Protocol Dashboard</h1>
+          <p class="muted">Local-first. Sensitive settings stay on-device. No telemetry export.</p>
+        </div>
+        <div class="badge-wrap">
+          <span id="premiumBadge" class="badge">FREE</span>
+        </div>
+      </header>
+
+      <section class="panel">
+        <h2>Light Filters v2.0</h2>
+        <div class="grid cols-4">
+          <label class="switch-row"><input id="optLightEnabled" type="checkbox" />Enabled</label>
+          <label>Mode
+            <select id="optLightMode">
+              <option value="warm">Warm Shift</option>
+              <option value="red_overlay">Red Overlay</option>
+              <option value="red_mono">Red Monochrome</option>
+              <option value="red_lock">Red Spectrum Lock</option>
+              <option value="gray_warm">Grayscale + Warm</option>
+              <option value="dim">Dim / Night</option>
+              <option value="spotlight">Focus Spotlight</option>
+            </select>
+          </label>
+          <label>Intensity
+            <input id="optLightIntensity" type="range" min="0" max="100" step="1" />
+          </label>
+          <label>Dim Overlay
+            <input id="optLightDim" type="range" min="0" max="60" step="1" />
+          </label>
+          <label>Brightness
+            <input id="optLightBrightness" type="range" min="70" max="120" step="1" />
+          </label>
+          <label>Contrast Soften
+            <input id="optLightContrastSoft" type="range" min="0" max="30" step="1" />
+          </label>
+          <label class="switch-row"><input id="optReduceWhites" type="checkbox" />Reduce Whites</label>
+          <label class="switch-row"><input id="optVideoSafe" type="checkbox" />Video-safe</label>
+          <label class="switch-row"><input id="optSpotlightEnabled" type="checkbox" />Spotlight</label>
+          <label class="switch-row"><input id="optTherapyMode" type="checkbox" />Red Pulse Therapy</label>
+          <label>Therapy Minutes
+            <input id="optTherapyMinutes" type="number" min="1" max="10" step="1" />
+          </label>
+          <label>Therapy Cadence
+            <select id="optTherapyCadence">
+              <option value="gentle">Gentle</option>
+              <option value="medium">Medium</option>
+              <option value="slow">Slow</option>
+            </select>
+          </label>
+        </div>
+
+        <h3>Schedule</h3>
+        <div class="grid cols-4">
+          <label class="switch-row"><input id="optLightScheduleEnabled" type="checkbox" />Enabled</label>
+          <label class="switch-row"><input id="optUseSunset" type="checkbox" />Use Sunset</label>
+          <label>Start <input id="optLightStart" type="time" /></label>
+          <label>End <input id="optLightEnd" type="time" /></label>
+          <label>Sunset Ramp (min)
+            <input id="optRampMinutes" type="number" min="0" max="120" step="5" />
+          </label>
+          <label>Quick Schedule
+            <select id="optQuickSchedule">
+              <option value="custom">Custom</option>
+              <option value="evening">Evening (20:00–07:00)</option>
+              <option value="workday">Workday (09:00–17:00)</option>
+              <option value="late_night">Late Night (22:00–06:00)</option>
+            </select>
+          </label>
+          <button id="applyQuickSchedule" class="secondary" type="button">Apply Preset</button>
+          <button id="calcSunset" class="secondary" type="button">Set by Geolocation</button>
+        </div>
+
+        <label>Excluded hosts (one per line)
+          <textarea id="optLightExclusions" rows="4" placeholder="youtube.com"></textarea>
+        </label>
+
+        <h3>Per-site Profiles</h3>
+        <div class="grid cols-2">
+          <label>Search by host
+            <input id="optProfileSearch" type="text" placeholder="github.com" />
+          </label>
+          <button id="resetProfileHost" class="danger" type="button">Reset Host Profile</button>
+        </div>
+        <div id="siteProfileList" class="profile-list"></div>
+
+        <label>Per-site profiles JSON (advanced)
+          <textarea id="optSiteProfiles" rows="7" placeholder='{"github.com":{"mode":"warm","intensity":35}}'></textarea>
+        </label>
+
+        <h3>Diagnostics</h3>
+        <div id="diagPanel" class="diag-panel">
+          <p id="diagSummary" class="muted">No diagnostics yet.</p>
+          <div class="row actions-row">
+            <button id="diagRefresh" class="secondary" type="button">Refresh Diagnostics</button>
+            <button id="diagResetSite" class="secondary" type="button">Reset Current Site</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2>Site Blocker Tool</h2>
+        <div class="grid cols-3">
+          <label class="switch-row"><input id="optBlockerEnabled" type="checkbox" />Enabled</label>
+          <label class="switch-row"><input id="optNuclearMode" type="checkbox" />Nuclear Mode</label>
+          <label>Activation Mode
+            <select id="optBlockerMode">
+              <option value="always">Always</option>
+              <option value="deep_work">Deep Work Only</option>
+              <option value="schedule">Schedule</option>
+            </select>
+          </label>
+          <label class="switch-row"><input id="optBlockScheduleEnabled" type="checkbox" />Schedule Enabled</label>
+          <label>Start <input id="optBlockStart" type="time" /></label>
+          <label>End <input id="optBlockEnd" type="time" /></label>
+        </div>
+
+        <label>Blocked hosts (one per line)
+          <textarea id="optBlockedDomains" rows="6" placeholder="x.com"></textarea>
+        </label>
+
+        <label>Allowlist hosts for Nuclear Mode (one per line)
+          <textarea id="optAllowDomains" rows="4" placeholder="docs.google.com"></textarea>
+        </label>
+      </section>
+
+      <section class="panel">
+        <h2>Health Alert Popups</h2>
+        <div class="grid cols-3">
+          <label class="switch-row"><input id="optAlertsEnabled" type="checkbox" />Enabled</label>
+          <label>Frequency
+            <select id="optAlertFrequency">
+              <option value="20">20 min</option>
+              <option value="45">45 min</option>
+              <option value="60">60 min</option>
+            </select>
+          </label>
+          <label class="switch-row"><input id="optAlertSound" type="checkbox" />Sound Alarm</label>
+          <label class="switch-row"><input id="optAlertEye" type="checkbox" />20-20-20</label>
+          <label class="switch-row"><input id="optAlertPosture" type="checkbox" />Posture Cue</label>
+          <label class="switch-row"><input id="optAlertBurnout" type="checkbox" />Burnout Warning</label>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2>Deep Work Mode</h2>
+        <div class="grid cols-3">
+          <label>Focus Minutes <input id="optFocusMinutes" type="number" min="10" max="180" step="1" /></label>
+          <label>Break Minutes <input id="optBreakMinutes" type="number" min="3" max="45" step="1" /></label>
+          <label class="switch-row"><input id="optAutoBlocker" type="checkbox" />Auto-enable Blocker</label>
+          <label class="switch-row"><input id="optAutoLight" type="checkbox" />Auto-enable Light</label>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2>Premium + Advanced</h2>
+        <p class="muted">Advanced modules are premium-gated in v3.0 local build.</p>
+        <div class="grid cols-3">
+          <label>License Key
+            <input id="optLicenseKey" type="text" placeholder="HM-XXXX-XXXX" />
+          </label>
+          <button id="activateLicense" class="primary" type="button">Activate License</button>
+          <button id="clearLicense" class="secondary" type="button">Clear License</button>
+          <label class="switch-row"><input id="optBiofeedback" type="checkbox" data-premium="true" />AI Bio-Feedback (Premium)</label>
+          <label class="switch-row"><input id="optMorphing" type="checkbox" data-premium="true" />Adaptive Morphing (Premium)</label>
+          <label class="switch-row"><input id="optTaskWeaver" type="checkbox" data-premium="true" />Task Weaver (Premium)</label>
+          <label class="switch-row"><input id="optDashboardPredictions" type="checkbox" data-premium="true" />Dashboard Predictions (Premium)</label>
+          <label class="switch-row"><input id="optCollaborative" type="checkbox" data-premium="true" />Collaborative Sync (Premium)</label>
+        </div>
+        <div class="row actions-row">
+          <button id="openPricing" class="primary" type="button">Upgrade at Holmeta.com</button>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2>Local Dashboard</h2>
+        <div class="stats-grid">
+          <div class="stat"><span>Focus minutes today</span><strong id="statFocus">0</strong></div>
+          <div class="stat"><span>Alerts fired today</span><strong id="statAlerts">0</strong></div>
+          <div class="stat"><span>Block events today</span><strong id="statBlocks">0</strong></div>
+          <div class="stat"><span>Filter usage today (min)</span><strong id="statLight">0</strong></div>
+        </div>
+        <div id="weeklyBars" class="bars"></div>
+      </section>
+
+      <section class="panel">
+        <h2>Data + Debug</h2>
+        <div class="grid cols-3">
+          <label class="switch-row"><input id="optDebug" type="checkbox" />Debug Mode</label>
+          <button id="exportSettings" class="secondary" type="button">Export JSON</button>
+          <label class="file-label">Import JSON<input id="importSettings" type="file" accept="application/json" /></label>
+          <button id="exportLogs" class="secondary" type="button">Export Logs</button>
+          <button id="resetAll" class="danger" type="button">Reset All Data</button>
+        </div>
+      </section>
+
+      <footer class="statusbar">
+        <span id="saveState">Ready</span>
+      </footer>
+    </main>
+
+    <div id="toastHost" class="toast-host" aria-live="polite"></div>
+    <script src="options.js"></script>
+  </body>
+</html>
