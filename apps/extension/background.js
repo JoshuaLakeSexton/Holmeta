@@ -11,6 +11,9 @@ const VERSION = "3.0.0";
 const SCHEMA_VERSION = 3;
 const LOG_LIMIT = 500;
 const DOMAIN_LIMIT = 600;
+const SITE_INSIGHT_CACHE_LIMIT = 320;
+const SITE_INSIGHT_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
+const SITE_INSIGHT_THROTTLE_MS = 10 * 1000;
 
 const ALARMS = {
   HEALTH: "holmeta-v3-health-alert",
@@ -149,6 +152,23 @@ function createDefaultState() {
           burnout: true
         }
       },
+      siteInsight: {
+        enabled: true,
+        showOnEverySite: true,
+        durationMs: 8000,
+        autoMinimize: true,
+        minimizedPill: true,
+        selectedProfile: "regular", // regular | dev | design | uxr
+        enabledProfiles: {
+          regular: true,
+          dev: true,
+          design: true,
+          uxr: true
+        },
+        perSiteDisabled: {},
+        showAlgorithmLabel: true,
+        showPurposeSummary: true
+      },
       deepWork: {
         active: false,
         phase: "focus",
@@ -179,6 +199,9 @@ function createDefaultState() {
       dynamicRuleIds: [],
       lastAlertCursor: 0,
       lastHeartbeatAt: 0
+    },
+    cache: {
+      siteInsight: {}
     },
     logs: []
   };
@@ -235,7 +258,8 @@ function normalizeState(input) {
     license: { ...base.license, ...(raw.license || {}) },
     settings: { ...base.settings, ...(raw.settings || {}) },
     stats: { ...base.stats, ...(raw.stats || {}) },
-    runtime: { ...base.runtime, ...(raw.runtime || {}) }
+    runtime: { ...base.runtime, ...(raw.runtime || {}) },
+    cache: { ...base.cache, ...(raw.cache || {}) }
   };
 
   merged.schemaVersion = SCHEMA_VERSION;
@@ -331,6 +355,42 @@ function normalizeState(input) {
   merged.settings.alerts.types.posture = Boolean(merged.settings.alerts.types.posture);
   merged.settings.alerts.types.burnout = Boolean(merged.settings.alerts.types.burnout);
 
+  merged.settings.siteInsight = {
+    ...base.settings.siteInsight,
+    ...(merged.settings.siteInsight || {}),
+    enabledProfiles: {
+      ...base.settings.siteInsight.enabledProfiles,
+      ...(merged.settings.siteInsight?.enabledProfiles || {})
+    }
+  };
+  merged.settings.siteInsight.enabled = Boolean(merged.settings.siteInsight.enabled);
+  merged.settings.siteInsight.showOnEverySite = Boolean(merged.settings.siteInsight.showOnEverySite);
+  merged.settings.siteInsight.durationMs = Math.round(clamp(merged.settings.siteInsight.durationMs, 6000, 10000));
+  merged.settings.siteInsight.autoMinimize = Boolean(merged.settings.siteInsight.autoMinimize);
+  merged.settings.siteInsight.minimizedPill = Boolean(merged.settings.siteInsight.minimizedPill);
+  merged.settings.siteInsight.selectedProfile = ["regular", "dev", "design", "uxr"].includes(merged.settings.siteInsight.selectedProfile)
+    ? merged.settings.siteInsight.selectedProfile
+    : "regular";
+  merged.settings.siteInsight.showAlgorithmLabel = Boolean(merged.settings.siteInsight.showAlgorithmLabel);
+  merged.settings.siteInsight.showPurposeSummary = Boolean(merged.settings.siteInsight.showPurposeSummary);
+  merged.settings.siteInsight.enabledProfiles = {
+    regular: Boolean(merged.settings.siteInsight.enabledProfiles.regular),
+    dev: Boolean(merged.settings.siteInsight.enabledProfiles.dev),
+    design: Boolean(merged.settings.siteInsight.enabledProfiles.design),
+    uxr: Boolean(merged.settings.siteInsight.enabledProfiles.uxr)
+  };
+  merged.settings.siteInsight.perSiteDisabled = merged.settings.siteInsight.perSiteDisabled && typeof merged.settings.siteInsight.perSiteDisabled === "object"
+    ? Object.fromEntries(
+        Object.entries(merged.settings.siteInsight.perSiteDisabled)
+          .map(([host, value]) => [normalizeHost(host), Boolean(value)])
+          .filter(([host, value]) => Boolean(host) && value)
+      )
+    : {};
+  if (!merged.settings.siteInsight.enabledProfiles[merged.settings.siteInsight.selectedProfile]) {
+    const fallback = ["regular", "dev", "design", "uxr"].find((key) => merged.settings.siteInsight.enabledProfiles[key]) || "regular";
+    merged.settings.siteInsight.selectedProfile = fallback;
+  }
+
   merged.settings.deepWork = {
     ...base.settings.deepWork,
     ...(merged.settings.deepWork || {})
@@ -376,6 +436,20 @@ function normalizeState(input) {
     : [];
   merged.runtime.lastAlertCursor = Math.max(0, Number(merged.runtime.lastAlertCursor || 0));
   merged.runtime.lastHeartbeatAt = Math.max(0, Number(merged.runtime.lastHeartbeatAt || 0));
+
+  const rawInsightCache = merged.cache?.siteInsight && typeof merged.cache.siteInsight === "object" ? merged.cache.siteInsight : {};
+  const cacheRows = Object.entries(rawInsightCache)
+    .map(([host, value]) => [normalizeHost(host), value])
+    .filter(([host]) => Boolean(host))
+    .map(([host, value]) => ({
+      host,
+      computedAt: Math.max(0, Number(value?.computedAt || 0)),
+      summaryData: value?.summaryData && typeof value.summaryData === "object" ? value.summaryData : null
+    }))
+    .filter((entry) => entry.summaryData && entry.computedAt > 0 && now() - entry.computedAt < SITE_INSIGHT_CACHE_TTL_MS)
+    .sort((a, b) => b.computedAt - a.computedAt)
+    .slice(0, SITE_INSIGHT_CACHE_LIMIT);
+  merged.cache.siteInsight = Object.fromEntries(cacheRows.map((entry) => [entry.host, { computedAt: entry.computedAt, summaryData: entry.summaryData }]));
 
   if (!Array.isArray(merged.logs)) merged.logs = [];
   merged.logs = merged.logs.slice(-LOG_LIMIT);
@@ -465,6 +539,36 @@ function shouldShowRatePrompt(state) {
   const enoughSessions = Number(state.meta.sessionCount || 0) >= 10;
   const dismissed = Number(state.meta.ratePromptDismissedUntil || 0) > now();
   return !dismissed && (isOldEnough || enoughSessions);
+}
+
+function getSiteInsightCacheEntry(state, host) {
+  const normalizedHost = normalizeHost(host);
+  if (!normalizedHost) return null;
+  const entry = state.cache?.siteInsight?.[normalizedHost];
+  if (!entry) return null;
+  const computedAt = Math.max(0, Number(entry.computedAt || 0));
+  if (!computedAt || now() - computedAt > SITE_INSIGHT_CACHE_TTL_MS) {
+    delete state.cache.siteInsight[normalizedHost];
+    return null;
+  }
+  return {
+    computedAt,
+    summaryData: entry.summaryData || null
+  };
+}
+
+function upsertSiteInsightCache(state, host, summaryData) {
+  const normalizedHost = normalizeHost(host);
+  if (!normalizedHost || !summaryData || typeof summaryData !== "object") return;
+  state.cache.siteInsight[normalizedHost] = {
+    computedAt: now(),
+    summaryData
+  };
+  const rows = Object.entries(state.cache.siteInsight || {})
+    .map(([cacheHost, value]) => ({ host: cacheHost, computedAt: Math.max(0, Number(value?.computedAt || 0)), summaryData: value?.summaryData }))
+    .sort((a, b) => b.computedAt - a.computedAt)
+    .slice(0, SITE_INSIGHT_CACHE_LIMIT);
+  state.cache.siteInsight = Object.fromEntries(rows.map((row) => [row.host, { computedAt: row.computedAt, summaryData: row.summaryData }]));
 }
 
 function isLightActiveNow(state) {
@@ -953,6 +1057,27 @@ async function heartbeatTick() {
   await broadcastState(state);
 }
 
+async function maybeShowSiteInsight(tabId, urlLike, state) {
+  const host = normalizeHost(urlLike);
+  if (!host) return;
+  const config = state.settings.siteInsight || createDefaultState().settings.siteInsight;
+  if (!config.enabled || !config.showOnEverySite) return;
+  if (config.perSiteDisabled?.[host]) return;
+
+  const cached = getSiteInsightCacheEntry(state, host);
+  await sendTab(tabId, {
+    type: "holmeta:show-site-insight",
+    payload: {
+      host,
+      url: String(urlLike || ""),
+      settings: config,
+      throttleMs: SITE_INSIGHT_THROTTLE_MS,
+      cachedSummary: cached?.summaryData || null,
+      cachedAt: Number(cached?.computedAt || 0)
+    }
+  });
+}
+
 function generateTaskWeaverSuggestions(tabs) {
   const list = Array.isArray(tabs) ? tabs : [];
   const useful = list.filter((t) => /^https?:/i.test(String(t.url || "")));
@@ -1078,6 +1203,7 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
   if (!/^https?:/i.test(String(tab?.url || ""))) return;
   const state = await loadState();
   await sendTab(tabId, { type: "holmeta:apply-state", payload: effectivePayload(state) });
+  await maybeShowSiteInsight(tabId, tab?.url, state);
 });
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
@@ -1087,6 +1213,18 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
     if (type === "holmeta:get-state") {
       sendResponse({ ok: true, state: publicState(state) });
+      return;
+    }
+
+    if (type === "holmeta:get-site-insight-config") {
+      const host = normalizeHost(message.host || sender?.tab?.url || "");
+      sendResponse({
+        ok: true,
+        settings: state.settings.siteInsight,
+        host,
+        disabledOnHost: Boolean(host && state.settings.siteInsight?.perSiteDisabled?.[host]),
+        cached: host ? getSiteInsightCacheEntry(state, host) : null
+      });
       return;
     }
 
@@ -1137,6 +1275,57 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       await applyDnrRules(state);
       await broadcastState(state);
       sendResponse({ ok: true, state: publicState(state) });
+      return;
+    }
+
+    if (type === "holmeta:disable-site-insight-host") {
+      const host = normalizeHost(message.host || sender?.tab?.url || "");
+      if (!host) {
+        sendResponse({ ok: false, error: "invalid_host" });
+        return;
+      }
+      state.settings.siteInsight.perSiteDisabled[host] = true;
+      await saveState(state);
+      await broadcastState(state);
+      sendResponse({ ok: true, state: publicState(state) });
+      return;
+    }
+
+    if (type === "holmeta:enable-site-insight-host") {
+      const host = normalizeHost(message.host || sender?.tab?.url || "");
+      if (!host) {
+        sendResponse({ ok: false, error: "invalid_host" });
+        return;
+      }
+      delete state.settings.siteInsight.perSiteDisabled[host];
+      await saveState(state);
+      await broadcastState(state);
+      sendResponse({ ok: true, state: publicState(state) });
+      return;
+    }
+
+    if (type === "holmeta:site-insight-cache-set") {
+      const host = normalizeHost(message.host || "");
+      if (!host) {
+        sendResponse({ ok: false, error: "invalid_host" });
+        return;
+      }
+      upsertSiteInsightCache(state, host, message.summaryData || null);
+      await saveState(state);
+      sendResponse({ ok: true });
+      return;
+    }
+
+    if (type === "holmeta:clear-site-insight-cache") {
+      state.cache.siteInsight = {};
+      await saveState(state);
+      sendResponse({ ok: true });
+      return;
+    }
+
+    if (type === "holmeta:open-options") {
+      chrome.runtime.openOptionsPage();
+      sendResponse({ ok: true });
       return;
     }
 

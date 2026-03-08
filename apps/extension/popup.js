@@ -76,6 +76,15 @@
     alertSound: document.getElementById("alertSound"),
     testAlert: document.getElementById("testAlert"),
 
+    siteInsightEnabled: document.getElementById("siteInsightEnabled"),
+    siteInsightProfile: document.getElementById("siteInsightProfile"),
+    siteInsightDuration: document.getElementById("siteInsightDuration"),
+    siteInsightAutoMinimize: document.getElementById("siteInsightAutoMinimize"),
+    siteInsightPill: document.getElementById("siteInsightPill"),
+    siteInsightDisableSite: document.getElementById("siteInsightDisableSite"),
+    siteInsightOpenSettings: document.getElementById("siteInsightOpenSettings"),
+    siteInsightStatus: document.getElementById("siteInsightStatus"),
+
     pomodoroPreset: document.getElementById("pomodoroPreset"),
     startDeepWork: document.getElementById("startDeepWork"),
     stopDeepWork: document.getElementById("stopDeepWork"),
@@ -282,6 +291,31 @@
     setChecked(refs.alertSound, alerts.soundEnabled);
   }
 
+  function renderSiteInsight() {
+    const insight = state.app.settings.siteInsight || {};
+    const host = state.currentHost || "";
+    const disabledOnHost = Boolean(host && insight.perSiteDisabled?.[host]);
+
+    setChecked(refs.siteInsightEnabled, insight.enabled);
+    setInputValue(refs.siteInsightProfile, insight.selectedProfile || "regular");
+    setInputValue(refs.siteInsightDuration, insight.durationMs || 8000);
+    setChecked(refs.siteInsightAutoMinimize, insight.autoMinimize);
+    setChecked(refs.siteInsightPill, insight.minimizedPill);
+
+    refs.siteInsightDisableSite.disabled = !host;
+    refs.siteInsightDisableSite.textContent = disabledOnHost ? "Enable on This Site" : "Disable on This Site";
+
+    if (!host) {
+      refs.siteInsightStatus.textContent = "Host: unavailable";
+      return;
+    }
+
+    const stateLabel = insight.enabled
+      ? (disabledOnHost ? "disabled on this host" : "enabled")
+      : "globally disabled";
+    refs.siteInsightStatus.textContent = `Host: ${host} · ${stateLabel}`;
+  }
+
   function renderDeepWork() {
     const deep = state.app.settings.deepWork;
     setInputValue(refs.pomodoroPreset, `${deep.focusMin}:${deep.breakMin}`);
@@ -315,6 +349,7 @@
     renderLight();
     renderBlocker();
     renderAlerts();
+    renderSiteInsight();
     renderDeepWork();
     renderAdvanced();
   }
@@ -651,6 +686,48 @@
       }
       toast("Test alert dispatched.");
     });
+
+    refs.siteInsightEnabled.addEventListener("change", (e) => {
+      queuePatch({ siteInsight: { enabled: e.target.checked } });
+    });
+
+    refs.siteInsightProfile.addEventListener("change", (e) => {
+      queuePatch({ siteInsight: { selectedProfile: String(e.target.value || "regular") } });
+    });
+
+    refs.siteInsightDuration.addEventListener("change", (e) => {
+      const durationMs = Math.max(6000, Math.min(10000, Number(e.target.value || 8000)));
+      queuePatch({ siteInsight: { durationMs } });
+    });
+
+    refs.siteInsightAutoMinimize.addEventListener("change", (e) => {
+      queuePatch({ siteInsight: { autoMinimize: e.target.checked } });
+    });
+
+    refs.siteInsightPill.addEventListener("change", (e) => {
+      queuePatch({ siteInsight: { minimizedPill: e.target.checked } });
+    });
+
+    refs.siteInsightDisableSite.addEventListener("click", async () => {
+      if (!state.currentHost) {
+        toast("No active website detected.");
+        return;
+      }
+      const disabled = Boolean(state.app.settings.siteInsight?.perSiteDisabled?.[state.currentHost]);
+      const response = await sendMessage({
+        type: disabled ? "holmeta:enable-site-insight-host" : "holmeta:disable-site-insight-host",
+        host: state.currentHost
+      });
+      if (!response.ok) {
+        toast(`Site Insight update failed: ${response.error || "unknown"}`);
+        return;
+      }
+      state.app = response.state;
+      render();
+      toast(disabled ? "Site Insight enabled on this site." : "Site Insight disabled on this site.");
+    });
+
+    refs.siteInsightOpenSettings.addEventListener("click", () => chrome.runtime.openOptionsPage());
 
     refs.startDeepWork.addEventListener("click", async () => {
       const [focusMin, breakMin] = String(refs.pomodoroPreset.value || "25:5").split(":").map((n) => Number(n));

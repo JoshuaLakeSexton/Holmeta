@@ -69,6 +69,21 @@
     optAlertPosture: $("optAlertPosture"),
     optAlertBurnout: $("optAlertBurnout"),
 
+    optSiteInsightEnabled: $("optSiteInsightEnabled"),
+    optSiteInsightShowOnEverySite: $("optSiteInsightShowOnEverySite"),
+    optSiteInsightAutoMinimize: $("optSiteInsightAutoMinimize"),
+    optSiteInsightPill: $("optSiteInsightPill"),
+    optSiteInsightProfile: $("optSiteInsightProfile"),
+    optSiteInsightDuration: $("optSiteInsightDuration"),
+    optSiteInsightShowAlgorithm: $("optSiteInsightShowAlgorithm"),
+    optSiteInsightShowPurpose: $("optSiteInsightShowPurpose"),
+    optSiteInsightRegular: $("optSiteInsightRegular"),
+    optSiteInsightDev: $("optSiteInsightDev"),
+    optSiteInsightDesign: $("optSiteInsightDesign"),
+    optSiteInsightUxr: $("optSiteInsightUxr"),
+    optSiteInsightDisabledHosts: $("optSiteInsightDisabledHosts"),
+    optSiteInsightClearCache: $("optSiteInsightClearCache"),
+
     optFocusMinutes: $("optFocusMinutes"),
     optBreakMinutes: $("optBreakMinutes"),
     optAutoBlocker: $("optAutoBlocker"),
@@ -155,6 +170,20 @@
 
   function domainsToLines(list) {
     return Array.isArray(list) ? list.join("\n") : "";
+  }
+
+  function hostMapToLines(map) {
+    if (!map || typeof map !== "object") return "";
+    return Object.entries(map)
+      .filter(([, value]) => Boolean(value))
+      .map(([host]) => normalizeHost(host))
+      .filter(Boolean)
+      .sort((a, b) => a.localeCompare(b))
+      .join("\n");
+  }
+
+  function linesToHostMap(text) {
+    return Object.fromEntries(linesToDomains(text).map((host) => [host, true]));
   }
 
   function setValue(id, value) {
@@ -359,6 +388,20 @@
     setChecked("optAlertPosture", s.alerts.types.posture);
     setChecked("optAlertBurnout", s.alerts.types.burnout);
 
+    setChecked("optSiteInsightEnabled", s.siteInsight.enabled);
+    setChecked("optSiteInsightShowOnEverySite", s.siteInsight.showOnEverySite);
+    setChecked("optSiteInsightAutoMinimize", s.siteInsight.autoMinimize);
+    setChecked("optSiteInsightPill", s.siteInsight.minimizedPill);
+    setValue("optSiteInsightProfile", s.siteInsight.selectedProfile);
+    setValue("optSiteInsightDuration", s.siteInsight.durationMs);
+    setChecked("optSiteInsightShowAlgorithm", s.siteInsight.showAlgorithmLabel);
+    setChecked("optSiteInsightShowPurpose", s.siteInsight.showPurposeSummary);
+    setChecked("optSiteInsightRegular", s.siteInsight.enabledProfiles.regular);
+    setChecked("optSiteInsightDev", s.siteInsight.enabledProfiles.dev);
+    setChecked("optSiteInsightDesign", s.siteInsight.enabledProfiles.design);
+    setChecked("optSiteInsightUxr", s.siteInsight.enabledProfiles.uxr);
+    setValue("optSiteInsightDisabledHosts", hostMapToLines(s.siteInsight.perSiteDisabled));
+
     setValue("optFocusMinutes", s.deepWork.focusMin);
     setValue("optBreakMinutes", s.deepWork.breakMin);
     setChecked("optAutoBlocker", s.deepWork.autoBlocker);
@@ -471,6 +514,23 @@
     bindCheck("optAlertEye", (el) => queuePatch({ alerts: { types: { eye: el.checked } } }));
     bindCheck("optAlertPosture", (el) => queuePatch({ alerts: { types: { posture: el.checked } } }));
     bindCheck("optAlertBurnout", (el) => queuePatch({ alerts: { types: { burnout: el.checked } } }));
+
+    bindCheck("optSiteInsightEnabled", (el) => queuePatch({ siteInsight: { enabled: el.checked } }));
+    bindCheck("optSiteInsightShowOnEverySite", (el) => queuePatch({ siteInsight: { showOnEverySite: el.checked } }));
+    bindCheck("optSiteInsightAutoMinimize", (el) => queuePatch({ siteInsight: { autoMinimize: el.checked } }));
+    bindCheck("optSiteInsightPill", (el) => queuePatch({ siteInsight: { minimizedPill: el.checked } }));
+    bindSelect("optSiteInsightProfile", (el) => queuePatch({ siteInsight: { selectedProfile: String(el.value || "regular") } }));
+    bindSelect("optSiteInsightDuration", (el) => {
+      const durationMs = Math.max(6000, Math.min(10000, Number(el.value || 8000)));
+      queuePatch({ siteInsight: { durationMs } });
+    });
+    bindCheck("optSiteInsightShowAlgorithm", (el) => queuePatch({ siteInsight: { showAlgorithmLabel: el.checked } }));
+    bindCheck("optSiteInsightShowPurpose", (el) => queuePatch({ siteInsight: { showPurposeSummary: el.checked } }));
+    bindCheck("optSiteInsightRegular", (el) => queuePatch({ siteInsight: { enabledProfiles: { regular: el.checked } } }));
+    bindCheck("optSiteInsightDev", (el) => queuePatch({ siteInsight: { enabledProfiles: { dev: el.checked } } }));
+    bindCheck("optSiteInsightDesign", (el) => queuePatch({ siteInsight: { enabledProfiles: { design: el.checked } } }));
+    bindCheck("optSiteInsightUxr", (el) => queuePatch({ siteInsight: { enabledProfiles: { uxr: el.checked } } }));
+    bindInput("optSiteInsightDisabledHosts", (el) => queuePatch({ siteInsight: { perSiteDisabled: linesToHostMap(el.value) } }));
 
     bindInput("optFocusMinutes", (el) => queuePatch({ deepWork: { focusMin: Number(el.value || 25) } }));
     bindInput("optBreakMinutes", (el) => queuePatch({ deepWork: { breakMin: Number(el.value || 5) } }));
@@ -683,6 +743,15 @@
     });
 
     refs.diagRefresh.addEventListener("click", refreshDiagnostics);
+
+    refs.optSiteInsightClearCache.addEventListener("click", async () => {
+      const response = await sendMessage({ type: "holmeta:clear-site-insight-cache" });
+      if (!response.ok) {
+        toast(`Clear cache failed: ${response.error || "unknown"}`);
+        return;
+      }
+      toast("Site Insight cache cleared.");
+    });
 
     refs.diagResetSite.addEventListener("click", async () => {
       const host = await getActiveHost();

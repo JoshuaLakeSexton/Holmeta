@@ -172,6 +172,53 @@
         </div>
       </section>
 
+      <section class="panel core" id="siteInsightPanel">
+        <div class="section-head">
+          <h2>4) Site Insight Popup</h2>
+          <label class="switch" aria-label="Toggle site insight popup">
+            <input id="siteInsightEnabled" type="checkbox" />
+            <span>On</span>
+          </label>
+        </div>
+
+        <div class="field-row">
+          <label for="siteInsightProfile">Profile</label>
+          <select id="siteInsightProfile" aria-label="Site insight profile">
+            <option value="regular">Regular / Visitor</option>
+            <option value="dev">Developers</option>
+            <option value="design">Designers</option>
+            <option value="uxr">UX Research / CRO</option>
+          </select>
+        </div>
+
+        <div class="field-row">
+          <label for="siteInsightDuration">Duration</label>
+          <select id="siteInsightDuration" aria-label="Site insight popup duration">
+            <option value="6000">6 sec</option>
+            <option value="8000">8 sec</option>
+            <option value="10000">10 sec</option>
+          </select>
+        </div>
+
+        <div class="row actions-row">
+          <label class="switch">
+            <input id="siteInsightAutoMinimize" type="checkbox" />
+            <span>Auto-minimize</span>
+          </label>
+          <label class="switch">
+            <input id="siteInsightPill" type="checkbox" />
+            <span>Minimized pill</span>
+          </label>
+        </div>
+
+        <div class="row actions-row">
+          <button id="siteInsightDisableSite" class="secondary">Disable on This Site</button>
+          <button id="siteInsightOpenSettings" class="ghost">Settings</button>
+        </div>
+
+        <p id="siteInsightStatus" class="micro">Host: unavailable</p>
+      </section>
+
       <details class="panel fold" id="deepWorkFold">
         <summary>Deep Work Protocol</summary>
         <div class="field-row">
