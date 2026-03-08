@@ -50,5 +50,6 @@ export function Button(props: Props) {
   }
 
   const { className: _unusedClassName, variant: _unusedVariant, ...buttonProps } = props;
-  return <button {...buttonProps} className={className} />;
+  const explicitType = (buttonProps as ButtonHTMLAttributes<HTMLButtonElement>).type;
+  return <button {...buttonProps} type={explicitType || "button"} className={className} />;
 }

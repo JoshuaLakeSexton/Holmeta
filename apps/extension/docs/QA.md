@@ -5,6 +5,9 @@
 - Confirm popup opens without errors.
 - Confirm options page opens without errors.
 - Confirm onboarding appears on first open and can be completed/skipped.
+- Confirm `Finish` marks onboarding complete, closes modal, and does not reappear after popup reopen.
+- Confirm `Skip / Close` also completes onboarding and persists completion.
+- Confirm Escape key closes onboarding and completion still persists.
 
 ## 2) Input Stability (critical)
 - Type in all text fields (license key, blocked domains, allowlist, exclusions, site profiles JSON).

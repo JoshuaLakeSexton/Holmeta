@@ -32,7 +32,7 @@ a {
 .shell {
   width: min(1080px, 100%);
   margin: 0 auto;
-  padding: var(--s-5);
+  padding: var(--s-6);
   display: grid;
   gap: var(--s-4);
 }
@@ -223,7 +223,7 @@ button.primary:hover {
 .hm-cta-row {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--s-2);
+  gap: var(--s-3);
   align-items: center;
   margin-top: var(--s-3);
 }
@@ -346,6 +346,7 @@ button.primary:hover {
 
 .hm-plan-card {
   appearance: none;
+  border-radius: var(--r-1);
   border: 1px solid var(--c-border);
   background: rgba(20, 17, 15, 0.72);
   color: var(--c-text);
@@ -617,7 +618,7 @@ html {
 
 @media (max-width: 860px) {
   .shell {
-    padding: var(--s-3);
+    padding: var(--s-4);
   }
 
   .hm-panel {

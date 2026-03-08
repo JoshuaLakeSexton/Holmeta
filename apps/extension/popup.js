@@ -3,6 +3,7 @@
 
 (() => {
   const SAVE_DEBOUNCE_MS = 380;
+  const ONBOARDING_COMPLETED_KEY = "onboardingCompleted";
   const UPGRADE_URL = "https://www.holmeta.com/pricing";
   const RATE_URL = "https://chromewebstore.google.com";
 
@@ -143,6 +144,25 @@
   function setStatus(text, error = false) {
     refs.saveState.textContent = text;
     refs.saveState.style.color = error ? "#ffb300" : "#d9c5b2";
+  }
+
+  async function readOnboardingCompletion() {
+    let chromeValue = false;
+    try {
+      const data = await chrome.storage.local.get([ONBOARDING_COMPLETED_KEY]);
+      chromeValue = Boolean(data?.[ONBOARDING_COMPLETED_KEY]);
+    } catch (error) {
+      log("error", "read_onboarding_chrome_failed", error);
+    }
+
+    let localValue = false;
+    try {
+      localValue = localStorage.getItem("holmeta_onboarding_completed") === "true";
+    } catch (error) {
+      log("error", "read_onboarding_local_failed", error);
+    }
+
+    return chromeValue || localValue;
   }
 
   function toast(text) {
@@ -359,8 +379,21 @@
     state.hydrated = true;
     render();
 
-    if (!state.app.meta.onboarded) {
+    const localOnboarded = await readOnboardingCompletion();
+    const onboarded = Boolean(state.app.meta?.onboarded) || localOnboarded;
+
+    if (!onboarded) {
       startOnboarding();
+      return;
+    }
+
+    refs.onboarding.hidden = true;
+    if (!state.app.meta?.onboarded) {
+      const response = await sendMessage({ type: "holmeta:set-onboarded" });
+      if (response.ok) {
+        state.app = response.state;
+        render();
+      }
     }
   }
 
@@ -684,7 +717,7 @@
 
     document.addEventListener("keydown", (event) => {
       if (event.key === "Escape" && !refs.onboarding.hidden) {
-        finishOnboarding();
+        completeOnboarding();
       }
     });
   }
@@ -703,13 +736,58 @@
     refs.onboardNext.textContent = state.onboardingStep === onboardingSteps.length - 1 ? "Finish" : "Next";
   }
 
-  async function finishOnboarding() {
-    refs.onboarding.hidden = true;
-    const response = await sendMessage({ type: "holmeta:set-onboarded" });
-    if (response.ok) {
-      state.app = response.state;
-      render();
+  async function completeOnboarding() {
+    const result = {
+      ok: true,
+      persisted: false,
+      navigated: false
+    };
+
+    state.app = state.app || {};
+    state.app.meta = { ...(state.app.meta || {}), onboarded: true };
+
+    try {
+      await chrome.storage.local.set({ [ONBOARDING_COMPLETED_KEY]: true });
+      result.persisted = true;
+    } catch (error) {
+      log("error", "write_onboarding_chrome_failed", error);
+      result.ok = false;
     }
+
+    try {
+      localStorage.setItem("holmeta_onboarding_completed", "true");
+      result.persisted = true;
+    } catch (error) {
+      log("error", "write_onboarding_local_failed", error);
+      result.ok = false;
+    }
+
+    try {
+      const response = await sendMessage({ type: "holmeta:set-onboarded" });
+      if (response.ok) {
+        state.app = response.state;
+      } else {
+        result.ok = false;
+      }
+    } catch (error) {
+      log("error", "write_onboarding_runtime_failed", error);
+      result.ok = false;
+    }
+
+    refs.onboarding.hidden = true;
+
+    try {
+      window.location.hash = "command-center";
+      refs.lightEnabled?.focus({ preventScroll: true });
+      result.navigated = true;
+    } catch (error) {
+      log("error", "onboarding_navigation_failed", error);
+      result.ok = false;
+    }
+
+    render();
+    setStatus(result.ok ? "Onboarding complete" : "Onboarding saved (fallback)");
+    return result;
   }
 
   function bindOnboardingEvents() {
@@ -720,14 +798,18 @@
 
     refs.onboardNext.addEventListener("click", async () => {
       if (state.onboardingStep >= onboardingSteps.length - 1) {
-        await finishOnboarding();
+        refs.onboardNext.disabled = true;
+        refs.onboardNext.textContent = "Finishing...";
+        await completeOnboarding();
+        refs.onboardNext.disabled = false;
+        refs.onboardNext.textContent = "Finish";
         return;
       }
       state.onboardingStep += 1;
       renderOnboarding();
     });
 
-    refs.onboardSkip.addEventListener("click", finishOnboarding);
+    refs.onboardSkip.addEventListener("click", completeOnboarding);
   }
 
   async function boot() {

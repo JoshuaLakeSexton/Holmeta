@@ -108,3 +108,4 @@
 - Service worker console: no repeated message-port errors.
 - Content script console on normal sites: no overlay/input interference.
 - Rapidly open/close popup 10+ times: no state corruption.
+- Onboarding regression: click `Finish`, reload popup, and confirm onboarding stays completed.

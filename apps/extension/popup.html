@@ -7,7 +7,7 @@
     <link rel="stylesheet" href="popup.css" />
   </head>
   <body>
-    <main class="shell" aria-live="polite">
+    <main id="command-center" class="shell" aria-live="polite">
       <header class="panel header">
         <div>
           <p class="kicker">MISSION BRIEFING</p>
@@ -250,10 +250,10 @@
         <h2 id="onboardingTitle">Welcome to HOLMETA</h2>
         <p id="onboardingBody">Command Center quick setup.</p>
         <div class="row actions-row">
-          <button id="onboardBack" class="secondary">Back</button>
-          <button id="onboardNext" class="primary">Next</button>
+          <button id="onboardBack" class="secondary" type="button">Back</button>
+          <button id="onboardNext" class="primary" type="button">Next</button>
         </div>
-        <button id="onboardSkip" class="ghost">Skip tour</button>
+        <button id="onboardSkip" class="ghost" type="button">Skip / Close</button>
       </div>
     </div>
 
