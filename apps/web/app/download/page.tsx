@@ -72,7 +72,7 @@ export default function DownloadPage() {
   const [selectedChoice, setSelectedChoice] = useState<BrowserChoice | null>(null);
   const [sessionId, setSessionId] = useState<string>(() => sessionIdFromQuery());
   const [licenseKey, setLicenseKey] = useState("");
-  const [statusLine, setStatusLine] = useState("STATUS: SUBSCRIPTION REQUIRED BEFORE DOWNLOAD");
+  const [statusLine, setStatusLine] = useState("STATUS: ENTER SESSION ID OR LICENSE TO DOWNLOAD");
   const [downloading, setDownloading] = useState(false);
 
   useEffect(() => {
@@ -124,7 +124,7 @@ export default function DownloadPage() {
     }
 
     setDownloading(true);
-    setStatusLine("STATUS: VERIFYING SUBSCRIPTION");
+    setStatusLine("STATUS: VERIFYING TRIAL OR SUBSCRIPTION");
 
     try {
       const response = await fetch(`${apiUrl("download-extension")}?${params.toString()}`, {
@@ -141,7 +141,7 @@ export default function DownloadPage() {
           // no-op
         }
         if (response.status === 401 || response.status === 403) {
-          setStatusLine("STATUS: SUBSCRIPTION REQUIRED OR NOT ACTIVE");
+          setStatusLine("STATUS: NO ACTIVE TRIAL OR SUBSCRIPTION FOUND");
         } else {
           setStatusLine(`STATUS: DOWNLOAD FAILED (${detail})`);
         }
@@ -174,26 +174,28 @@ export default function DownloadPage() {
   return (
     <main className="shell">
       <Panel as="header">
-        <p className="hm-kicker">DOWNLOAD EXTENSION</p>
-        <h1 className="hm-title">holmeta install console</h1>
-        <p className="hm-meta">DETECTED: {detectedLabel}</p>
-        <p className="hm-meta">RECOMMENDED: {recommendedLabel}</p>
+        <p className="hm-kicker">DOWNLOAD AFTER TRIAL</p>
+        <h1 className="hm-title">download holmeta extension</h1>
+        <p className="hm-meta">Detected browser: {detectedLabel}</p>
+        <p className="hm-meta">Recommended store: {recommendedLabel}</p>
       </Panel>
 
       <Panel>
-        <p className="hm-kicker">SUBSCRIBE FIRST</p>
+        <p className="hm-kicker">FLOW</p>
+        <h2 className="hm-subtitle">Start trial → checkout success → download</h2>
         <p className="hm-meta">
-          Download is paywalled. Complete Stripe checkout, then use your checkout session id or license key to download.
+          If you have not started checkout yet, begin your 3-day trial first. If you already paid, use your session id
+          or license key below.
         </p>
         <div className="hm-cta-row">
-          <Button href="/dashboard/subscribe" variant="primary">START SUBSCRIPTION</Button>
-          <Button href="/billing/success">I ALREADY CHECKED OUT</Button>
-          <Button href="/billing/help">BILLING HELP</Button>
+          <Button href="/dashboard/subscribe" variant="primary">Start 3-Day Trial</Button>
+          <Button href="/billing/success">I Already Checked Out</Button>
+          <Button href="/">See How It Works</Button>
         </div>
       </Panel>
 
       <Panel>
-        <p className="hm-kicker">CHOOSE YOUR BROWSER</p>
+        <p className="hm-kicker">BROWSER STORES</p>
         <div className="hm-cta-row">
           <Button variant={selectedChoice === "chromium" ? "primary" : "secondary"} onClick={() => setSelectedChoice("chromium")}>
             Chrome / Edge
@@ -212,14 +214,14 @@ export default function DownloadPage() {
             target={storeUrl ? "_blank" : undefined}
             rel={storeUrl ? "noreferrer" : undefined}
           >
-            {storeUrl ? "INSTALL FROM STORE" : "STORE LINK NOT CONFIGURED"}
+            {storeUrl ? "Install from Store" : "Store Link Not Configured"}
           </Button>
         </div>
       </Panel>
 
       <Panel>
         <p className="hm-kicker">PROTECTED ZIP DOWNLOAD</p>
-        <div className="hm-field-row">
+        <div className="hm-field-row hm-download-row">
           <label htmlFor="sessionId" className="hm-label">CHECKOUT SESSION ID</label>
           <input
             id="sessionId"
@@ -229,7 +231,7 @@ export default function DownloadPage() {
             placeholder="cs_live_..."
           />
         </div>
-        <div className="hm-field-row">
+        <div className="hm-field-row hm-download-row">
           <label htmlFor="licenseKey" className="hm-label">LICENSE KEY (ALTERNATE)</label>
           <input
             id="licenseKey"
@@ -242,9 +244,10 @@ export default function DownloadPage() {
         <p className="hm-meta">{statusLine}</p>
         <div className="hm-cta-row">
           <Button onClick={downloadProtectedZip} variant="primary" disabled={downloading}>
-            {downloading ? "VERIFYING…" : "DOWNLOAD EXTENSION"}
+            {downloading ? "Verifying…" : "Download Extension"}
           </Button>
-          <Button href="/billing/success">OPEN SUCCESS PAGE</Button>
+          <Button href="/billing/success">Open Success Page</Button>
+          <Button href="/billing/help">Billing Help</Button>
         </div>
       </Panel>
 
@@ -258,4 +261,3 @@ export default function DownloadPage() {
     </main>
   );
 }
-

@@ -159,14 +159,14 @@ export default function BillingSuccessPage() {
   return (
     <main className="shell">
       <Panel>
-        <p className="hm-kicker">BILLING SUCCESS</p>
+        <p className="hm-kicker">CHECKOUT SUCCESS</p>
         <h1 className="hm-title">your holmeta license key</h1>
         <p className="hm-meta">
-          License is revealed once per checkout session. Save it before closing this page.
+          Save this key now. You need it to activate Premium inside the extension.
         </p>
         <p className="hm-meta">{statusLine}</p>
 
-        <div className="hm-field-row">
+        <div className="hm-field-row hm-download-row">
           <label htmlFor="sessionId" className="hm-label">CHECKOUT SESSION ID</label>
           <input
             id="sessionId"
@@ -179,33 +179,32 @@ export default function BillingSuccessPage() {
 
         <div className="hm-cta-row">
           <Button variant="primary" onClick={fetchLicense} disabled={!canReveal}>
-            REVEAL LICENSE
+            Reveal License
           </Button>
           <Button onClick={openPortal} disabled={!sessionId || loading}>
-            MANAGE BILLING
+            Manage Billing
           </Button>
-          <Button href="/billing/help">REFUND HELP</Button>
+          <Button href="/billing/help">Refund / Cancel Help</Button>
         </div>
 
         <div className="hm-pairing-box">
           <p className="hm-kicker">LICENSE KEY</p>
           <p className="hm-pairing-code">{licenseKey || "NOT REVEALED YET"}</p>
           <div className="hm-cta-row">
-            <Button onClick={copyLicense} disabled={!licenseKey}>COPY LICENSE</Button>
-            <Button onClick={downloadExtensionNow} variant="primary" disabled={!sessionId || loading}>DOWNLOAD EXTENSION</Button>
-            <Button href={`/download?session_id=${encodeURIComponent(sessionId)}`}>OPEN DOWNLOAD PAGE</Button>
-            <Button onClick={openPortal} disabled={!sessionId || loading}>CANCEL / PLAN CHANGES</Button>
+            <Button onClick={copyLicense} disabled={!licenseKey}>Copy License</Button>
+            <Button onClick={downloadExtensionNow} variant="primary" disabled={!sessionId || loading}>Download Extension</Button>
+            <Button href={`/download?session_id=${encodeURIComponent(sessionId)}`}>Open Download Page</Button>
           </div>
         </div>
       </Panel>
 
       <Panel>
-        <h2 className="hm-subtitle">Install + Unlock Steps</h2>
+        <h2 className="hm-subtitle">Activate in Under a Minute</h2>
         <ol className="hm-protocol-grid">
           <li><strong>1)</strong> Download and load the extension in your browser.</li>
-          <li><strong>2)</strong> Open extension Options or Popup and go to Premium unlock.</li>
+          <li><strong>2)</strong> Open extension popup and go to Premium unlock.</li>
           <li><strong>3)</strong> Paste license key and click Activate.</li>
-          <li><strong>4)</strong> Refresh entitlement to confirm trialing/active status.</li>
+          <li><strong>4)</strong> Keep this page bookmarked for billing and cancellation access.</li>
         </ol>
       </Panel>
     </main>

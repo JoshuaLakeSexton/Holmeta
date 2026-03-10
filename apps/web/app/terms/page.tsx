@@ -40,7 +40,7 @@ export default function TermsPage() {
         </ul>
         <div className="hm-cta-row">
           <Button href="/privacy">Open Privacy</Button>
-          <Button href="/dashboard/subscribe" variant="primary">Open Billing</Button>
+          <Button href="/dashboard/subscribe" variant="primary">Start 3-Day Trial</Button>
         </div>
       </Panel>
     </main>

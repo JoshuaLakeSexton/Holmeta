@@ -39,7 +39,7 @@ export default function PrivacyPage() {
         </ul>
         <div className="hm-cta-row">
           <Button href="/terms">Open Terms</Button>
-          <Button href="/dashboard/subscribe" variant="primary">Open Billing</Button>
+          <Button href="/dashboard/subscribe" variant="primary">Start 3-Day Trial</Button>
         </div>
       </Panel>
     </main>

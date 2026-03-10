@@ -11,12 +11,12 @@ const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "/.netlify/functions";
 
 const PLAN_COPY: Record<PlanKey, { title: string; detail: string }> = {
   monthly_a: {
-    title: "CORE MONTHLY",
+    title: "HOLMETA PREMIUM",
     detail: "$2/mo · 3-day trial"
   },
   yearly: {
-    title: "PRO YEARLY",
-    detail: "Yearly plan"
+    title: "HOLMETA YEARLY",
+    detail: "Yearly billing"
   }
 };
 
@@ -28,11 +28,11 @@ function apiUrl(path: string): string {
 export default function DashboardPage() {
   const [planKey, setPlanKey] = useState<PlanKey>("monthly_a");
   const [loading, setLoading] = useState(false);
-  const [statusLine, setStatusLine] = useState("STATUS: READY");
+  const [statusLine, setStatusLine] = useState("STATUS: READY TO START 3-DAY TRIAL");
 
   const ctaLabel = useMemo(() => {
     const selected = PLAN_COPY[planKey];
-    return `START CHECKOUT · ${selected.title}`;
+    return `START 3-DAY TRIAL · ${selected.title}`;
   }, [planKey]);
 
   async function startCheckout(selectedPlan: PlanKey) {
@@ -66,17 +66,17 @@ export default function DashboardPage() {
   return (
     <main className="shell">
       <Panel as="header">
-        <p className="hm-kicker">BILLING CONSOLE</p>
-        <h1 className="hm-title">holmeta launch checkout</h1>
+        <p className="hm-kicker">TRIAL CHECKOUT</p>
+        <h1 className="hm-title">start your 3-day trial</h1>
         <p className="hm-meta">
-          No account required for launch. Complete Stripe Checkout, then copy your license key on success.
+          Keep your flow simple: checkout first, reveal your license on success, then download and activate the extension.
         </p>
         <p className="hm-meta">{statusLine}</p>
       </Panel>
 
       <Panel>
         <h2 className="hm-subtitle">Select Plan</h2>
-        <div className="hm-plan-grid">
+        <div className="hm-plan-grid hm-plan-grid--two">
           {(Object.keys(PLAN_COPY) as PlanKey[]).map((key) => {
             const plan = PLAN_COPY[key];
             return (
@@ -98,22 +98,22 @@ export default function DashboardPage() {
           <Button variant="primary" onClick={() => startCheckout(planKey)} disabled={loading}>
             {ctaLabel}
           </Button>
-          <Button href="/billing/success">I ALREADY PAID</Button>
-          <Button href="/download">DOWNLOAD EXTENSION</Button>
+          <Button href="/billing/success">I ALREADY CHECKED OUT</Button>
+          <Button href="/">See How It Works</Button>
         </div>
       </Panel>
 
       <Panel>
-        <h2 className="hm-subtitle">After Payment</h2>
+        <h2 className="hm-subtitle">After Checkout</h2>
         <ol className="hm-protocol-grid">
           <li>
-            <strong>1)</strong> You land on <code>/billing/success</code> with a checkout session id.
+            <strong>1)</strong> Open <code>/billing/success</code> with your checkout session id.
           </li>
           <li>
-            <strong>2)</strong> Copy your one-time revealed license key.
+            <strong>2)</strong> Reveal and copy your one-time license key.
           </li>
           <li>
-            <strong>3)</strong> In the extension: Options → Account/Premium → Enter License Key → Activate.
+            <strong>3)</strong> Download extension and activate premium with your key.
           </li>
         </ol>
       </Panel>
