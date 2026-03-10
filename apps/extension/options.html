@@ -20,7 +20,7 @@
       </header>
 
       <section class="panel">
-        <h2>Light Filters v2.0</h2>
+        <h2>1) Light Filters v2.0</h2>
         <div class="grid cols-4">
           <label class="switch-row"><input id="optLightEnabled" type="checkbox" />Enabled</label>
           <label>Mode
@@ -142,7 +142,7 @@
       </section>
 
       <section class="panel">
-        <h2>Site Blocker Tool</h2>
+        <h2>2) Site Blocker Tool</h2>
         <div class="grid cols-3">
           <label class="switch-row"><input id="optBlockerEnabled" type="checkbox" />Enabled</label>
           <label class="switch-row"><input id="optNuclearMode" type="checkbox" />Nuclear Mode</label>
@@ -158,6 +158,29 @@
           <label>End <input id="optBlockEnd" type="time" /></label>
         </div>
 
+        <h3>Filter Categories</h3>
+        <div class="grid cols-3">
+          <label class="switch-row"><input id="optBlockCatAds" type="checkbox" />Ads & Banners</label>
+          <label class="switch-row"><input id="optBlockCatTrackers" type="checkbox" />Trackers & Analytics</label>
+          <label class="switch-row"><input id="optBlockCatMalware" type="checkbox" />Malware / Phishing</label>
+          <label class="switch-row"><input id="optBlockCatAnnoyances" type="checkbox" />Annoyances</label>
+          <label class="switch-row"><input id="optBlockCatVideoAds" type="checkbox" />Video Platform Ads</label>
+          <label class="switch-row"><input id="optBlockCosmeticEnabled" type="checkbox" />Cosmetic Filtering</label>
+          <label class="switch-row"><input id="optBlockAntiDetect" type="checkbox" />Anti-detection Evasion</label>
+          <label class="switch-row"><input id="optBlockAutoUpdate" type="checkbox" />Auto-update Lists</label>
+          <label>Update Interval (hours)
+            <select id="optBlockUpdateInterval">
+              <option value="24">24</option>
+              <option value="36">36</option>
+              <option value="48">48</option>
+            </select>
+          </label>
+        </div>
+
+        <div class="row actions-row">
+          <button id="optRefreshBlockLists" class="secondary" type="button">Refresh Filter Lists Now</button>
+        </div>
+
         <label>Blocked hosts (one per line)
           <textarea id="optBlockedDomains" rows="6" placeholder="x.com"></textarea>
         </label>
@@ -165,28 +188,168 @@
         <label>Allowlist hosts for Nuclear Mode (one per line)
           <textarea id="optAllowDomains" rows="4" placeholder="docs.google.com"></textarea>
         </label>
+
+        <label>Disable Cosmetic Filtering on Hosts (one per line)
+          <textarea id="optBlockCosmeticDisabledHosts" rows="4" placeholder="example.com"></textarea>
+        </label>
+
+        <label>Custom Cosmetic Selectors JSON (host -> selectors[])
+          <textarea id="optBlockCustomCosmeticJson" rows="6" placeholder='{"example.com":[".ad-slot",".sponsored"]}'></textarea>
+        </label>
       </section>
 
       <section class="panel">
-        <h2>Health Alert Popups</h2>
-        <div class="grid cols-3">
+        <h2>3) Secure Tunnel</h2>
+        <p class="muted">Browser-only proxy tunnel for privacy and geo-routing. No full-device VPN behavior.</p>
+        <div class="grid cols-4">
+          <label class="switch-row"><input id="optTunnelEnabled" type="checkbox" />Enabled</label>
+          <label>Mode
+            <select id="optTunnelMode">
+              <option value="preset">Preset Relay</option>
+              <option value="custom">Custom Proxy</option>
+            </select>
+          </label>
+          <label>Preset server
+            <select id="optTunnelPreset"></select>
+          </label>
+          <label class="switch-row"><input id="optTunnelAutoReapply" type="checkbox" />Auto-reapply</label>
+          <label>Reapply interval (minutes)
+            <select id="optTunnelReapplyMinutes">
+              <option value="5">5</option>
+              <option value="10">10</option>
+              <option value="15">15</option>
+              <option value="20">20</option>
+              <option value="30">30</option>
+              <option value="45">45</option>
+              <option value="60">60</option>
+            </select>
+          </label>
+          <label>Custom scheme
+            <select id="optTunnelCustomScheme">
+              <option value="http">HTTP</option>
+              <option value="https">HTTPS</option>
+              <option value="socks5">SOCKS5</option>
+              <option value="socks4">SOCKS4</option>
+            </select>
+          </label>
+          <label>Custom host
+            <input id="optTunnelCustomHost" type="text" placeholder="proxy.example.com" />
+          </label>
+          <label>Custom port
+            <input id="optTunnelCustomPort" type="number" min="1" max="65535" step="1" placeholder="8080" />
+          </label>
+          <label>Proxy username (optional)
+            <input id="optTunnelCustomUser" type="text" placeholder="optional" />
+          </label>
+          <label>Proxy password (optional)
+            <input id="optTunnelCustomPass" type="password" placeholder="optional" />
+          </label>
+        </div>
+
+        <label>Bypass list (one per line, e.g. &lt;local&gt;)
+          <textarea id="optTunnelBypassList" rows="4" placeholder="<local>&#10;localhost&#10;127.0.0.1"></textarea>
+        </label>
+
+        <div class="row actions-row">
+          <button id="optTunnelConnect" class="primary" type="button">Save &amp; Connect</button>
+          <button id="optTunnelDisconnect" class="secondary" type="button">Disconnect</button>
+        </div>
+        <p id="optTunnelStatus" class="muted">Disconnected.</p>
+        <p class="muted">This protects only browser traffic. For full-device VPN protection, use a desktop VPN app.</p>
+      </section>
+
+      <section class="panel">
+        <h2>4) Health Alert Popups</h2>
+        <div class="grid cols-4">
           <label class="switch-row"><input id="optAlertsEnabled" type="checkbox" />Enabled</label>
           <label>Frequency
             <select id="optAlertFrequency">
+              <option value="10">10 min</option>
               <option value="20">20 min</option>
+              <option value="30">30 min</option>
+              <option value="45">45 min</option>
+              <option value="60">60 min</option>
+              <option value="90">90 min</option>
+              <option value="120">120 min</option>
+              <option value="180">180 min</option>
+            </select>
+          </label>
+          <label>Cadence
+            <select id="optAlertCadence">
+              <option value="focus_weighted">Focus Weighted</option>
+              <option value="cycle">Cycle</option>
+              <option value="random">Random</option>
+            </select>
+          </label>
+          <label class="switch-row"><input id="optAlertSound" type="checkbox" />Sound Alarm</label>
+          <label>Sound Volume
+            <input id="optAlertVolume" type="range" min="5" max="100" step="1" />
+          </label>
+          <label>Sound Pattern
+            <select id="optAlertPattern">
+              <option value="single">Single</option>
+              <option value="double">Double</option>
+              <option value="triple">Triple</option>
+            </select>
+          </label>
+          <label class="switch-row"><input id="optAlertToastEnabled" type="checkbox" />On-page Toast</label>
+          <label class="switch-row"><input id="optAlertNotificationEnabled" type="checkbox" />System Notification</label>
+          <label>Snooze Length
+            <select id="optAlertSnoozeMinutes">
+              <option value="5">5 min</option>
+              <option value="10">10 min</option>
+              <option value="15">15 min</option>
+              <option value="30">30 min</option>
               <option value="45">45 min</option>
               <option value="60">60 min</option>
             </select>
           </label>
-          <label class="switch-row"><input id="optAlertSound" type="checkbox" />Sound Alarm</label>
+          <label>Cooldown
+            <select id="optAlertCooldown">
+              <option value="0">No cooldown</option>
+              <option value="10">10 min</option>
+              <option value="20">20 min</option>
+              <option value="30">30 min</option>
+              <option value="45">45 min</option>
+              <option value="60">60 min</option>
+            </select>
+          </label>
+          <label>Burnout threshold
+            <select id="optAlertBurnoutThreshold">
+              <option value="60">60 min focus</option>
+              <option value="90">90 min focus</option>
+              <option value="120">120 min focus</option>
+              <option value="150">150 min focus</option>
+              <option value="180">180 min focus</option>
+            </select>
+          </label>
+          <label class="switch-row"><input id="optAlertQuietHoursEnabled" type="checkbox" />Quiet Hours</label>
+          <label>Quiet Start <input id="optAlertQuietStart" type="time" /></label>
+          <label>Quiet End <input id="optAlertQuietEnd" type="time" /></label>
           <label class="switch-row"><input id="optAlertEye" type="checkbox" />20-20-20</label>
           <label class="switch-row"><input id="optAlertPosture" type="checkbox" />Posture Cue</label>
           <label class="switch-row"><input id="optAlertBurnout" type="checkbox" />Burnout Warning</label>
+          <label class="switch-row"><input id="optAlertHydration" type="checkbox" />Hydration</label>
+          <label class="switch-row"><input id="optAlertBlink" type="checkbox" />Blink Reset</label>
+          <label class="switch-row"><input id="optAlertMovement" type="checkbox" />Movement Break</label>
+        </div>
+        <div class="row actions-row">
+          <label>Test type
+            <select id="optAlertTestType">
+              <option value="eye">Eye Relief</option>
+              <option value="posture">Posture</option>
+              <option value="burnout">Burnout Reset</option>
+              <option value="hydration">Hydration</option>
+              <option value="blink">Blink Reset</option>
+              <option value="movement">Movement</option>
+            </select>
+          </label>
+          <button id="optAlertTest" class="secondary" type="button">Send Test Alert</button>
         </div>
       </section>
 
       <section class="panel">
-        <h2>Site Insight Popup</h2>
+        <h2>5) Site Insight Popup</h2>
         <p class="muted">On-page insight card shown on navigation complete. Local heuristics only.</p>
         <div class="grid cols-4">
           <label class="switch-row"><input id="optSiteInsightEnabled" type="checkbox" />Enabled</label>
@@ -230,7 +393,7 @@
       </section>
 
       <section class="panel">
-        <h2>Deep Work Mode</h2>
+        <h2>6) Deep Work Mode</h2>
         <div class="grid cols-3">
           <label>Focus Minutes <input id="optFocusMinutes" type="number" min="10" max="180" step="1" /></label>
           <label>Break Minutes <input id="optBreakMinutes" type="number" min="3" max="45" step="1" /></label>
@@ -240,7 +403,7 @@
       </section>
 
       <section class="panel">
-        <h2>Premium + Advanced</h2>
+        <h2>7) Premium + Advanced</h2>
         <p class="muted">Advanced modules are premium-gated in v3.0 local build.</p>
         <div class="grid cols-3">
           <label>License Key
@@ -260,7 +423,7 @@
       </section>
 
       <section class="panel">
-        <h2>Local Dashboard</h2>
+        <h2>8) Local Dashboard</h2>
         <div class="stats-grid">
           <div class="stat"><span>Focus minutes today</span><strong id="statFocus">0</strong></div>
           <div class="stat"><span>Alerts fired today</span><strong id="statAlerts">0</strong></div>
@@ -271,7 +434,7 @@
       </section>
 
       <section class="panel">
-        <h2>Data + Debug</h2>
+        <h2>9) Data + Debug</h2>
         <div class="grid cols-3">
           <label class="switch-row"><input id="optDebug" type="checkbox" />Debug Mode</label>
           <button id="exportSettings" class="secondary" type="button">Export JSON</button>

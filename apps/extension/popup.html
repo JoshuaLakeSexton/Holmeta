@@ -16,13 +16,41 @@
         </div>
         <div class="meta-stack">
           <span id="modeBadge" class="badge">FREE</span>
-          <button id="openOptions" class="ghost" aria-label="Open options dashboard">Options</button>
         </div>
       </header>
 
+      <section class="panel compact quick-links" aria-label="Holmeta links">
+        <div class="section-head">
+          <h2>0) Command Links</h2>
+        </div>
+        <div class="row actions-row">
+          <button id="openWebsite" class="ghost">Website</button>
+          <button id="openDashboard" class="ghost">Dashboard</button>
+        </div>
+        <button id="openOptions" class="ghost">Extension Settings</button>
+      </section>
+
+      <section class="panel core" id="favoritesPanel">
+        <div class="section-head">
+          <h2>1) Favorite Sites</h2>
+          <button id="favoriteAddCurrent" class="secondary">Add Current</button>
+        </div>
+
+        <div class="field-row">
+          <label for="favoriteUrlInput">Add URL</label>
+          <div class="row favorite-add-row">
+            <input id="favoriteUrlInput" type="url" placeholder="https://example.com" aria-label="Favorite URL input" />
+            <button id="favoriteAddUrl" class="ghost">Add</button>
+          </div>
+        </div>
+
+        <div id="favoritesGrid" class="favorites-grid" role="list" aria-label="Favorite website shortcuts"></div>
+        <p id="favoritesStatus" class="micro">Saved: 0 / 20</p>
+      </section>
+
       <section class="panel core" id="lightPanel">
         <div class="section-head">
-          <h2>1) Light Filter Tool</h2>
+          <h2>2) Light Filter Tool</h2>
           <label class="switch" aria-label="Toggle light filter">
             <input id="lightEnabled" type="checkbox" />
             <span>On</span>
@@ -54,7 +82,41 @@
           </div>
         </div>
 
-        <div class="row actions-row">
+        <div class="field-row">
+          <label>Dark / Light Reading</label>
+          <div class="reading-theme-wrap">
+            <div class="row reading-mode-toggle">
+              <button id="readingModeOn" class="secondary" type="button">Reading On</button>
+              <button id="readingModeOff" class="ghost" type="button">Reading Off</button>
+            </div>
+            <div class="row reading-theme-buttons">
+              <button id="readingModeDark" class="secondary" type="button">Dark</button>
+              <button id="readingModeLight" class="ghost" type="button">Light</button>
+            </div>
+            <p id="readingModeStatus" class="micro">Reading mode: On · Dark</p>
+            <div class="row reading-theme-selects">
+              <label for="readingDarkVariant" class="micro">Dark Type</label>
+              <select id="readingDarkVariant" aria-label="Dark mode type">
+                <option value="black">Black</option>
+                <option value="brown">Brown</option>
+                <option value="gray">Gray</option>
+              </select>
+            </div>
+            <div class="row reading-theme-selects">
+              <label for="readingLightVariant" class="micro">Light Type</label>
+              <select id="readingLightVariant" aria-label="Light mode type">
+                <option value="white">White</option>
+                <option value="warm">Warm</option>
+                <option value="gray">Soft Gray</option>
+              </select>
+            </div>
+          </div>
+        </div>
+        <p class="micro">
+          Dark Mode: switch to dark or white reading for night &amp; day browsing. More than dark theme style, it helps maintain eye comfort.
+        </p>
+
+        <div class="row actions-row alert-types">
           <label class="switch" title="Enable site override using current global profile">
             <input id="lightThisSiteEnabled" type="checkbox" />
             <span>This site override</span>
@@ -63,6 +125,10 @@
             <input id="lightExcludeSite" type="checkbox" />
             <span>Exclude site</span>
           </label>
+        </div>
+
+        <div class="row actions-row single-action-row">
+          <button id="lightApplyAll" class="primary" type="button">Apply All Tabs</button>
         </div>
 
         <div class="row actions-row">
@@ -164,9 +230,81 @@
         </details>
       </section>
 
+      <section class="panel core" id="screenEmulatorPanel">
+        <div class="section-head">
+          <h2>3) Screen Resolution Emulator</h2>
+          <label class="switch" aria-label="Screen emulator state">
+            <input id="screenEmulatorActive" type="checkbox" disabled />
+            <span>Active</span>
+          </label>
+        </div>
+
+        <div class="field-row">
+          <label for="screenPreset">Preset</label>
+          <select id="screenPreset" aria-label="Screen size preset">
+            <option value="desktop_hd">Desktop HD (1366×768)</option>
+            <option value="desktop_fhd">Desktop FHD (1920×1080)</option>
+            <option value="desktop_qhd">Desktop QHD (2560×1440)</option>
+            <option value="laptop">Laptop (1440×900)</option>
+            <option value="tablet_portrait">Tablet Portrait (768×1024)</option>
+            <option value="tablet_landscape">Tablet Landscape (1024×768)</option>
+            <option value="mobile_small">Mobile Small (375×667)</option>
+            <option value="mobile_large">Mobile Large (430×932)</option>
+          </select>
+        </div>
+
+        <div class="field-row">
+          <label>Custom Size</label>
+          <div class="row screen-size-row">
+            <input id="screenWidth" type="number" min="320" max="5120" step="1" aria-label="Window width" />
+            <span class="micro">×</span>
+            <input id="screenHeight" type="number" min="320" max="2880" step="1" aria-label="Window height" />
+          </div>
+        </div>
+
+        <div class="row actions-row">
+          <button id="screenApply" class="primary">Apply Size</button>
+          <button id="screenReset" class="ghost">Reset Window</button>
+        </div>
+
+        <p id="screenStatus" class="micro">
+          Resize the browser window to emulate common screen resolutions for responsive checks.
+        </p>
+      </section>
+
+      <section class="panel core" id="eyeDropperPanel">
+        <div class="section-head">
+          <h2>4) Color Eye Dropper</h2>
+          <button id="eyePickFromPage" class="secondary">Pick from Page</button>
+        </div>
+
+        <div class="field-row">
+          <label for="eyeHexInput">Hex Color</label>
+          <input id="eyeHexInput" type="text" maxlength="7" placeholder="#FFB300" aria-label="Hex color value" />
+        </div>
+
+        <div class="eye-live-row" aria-live="polite">
+          <span id="eyeLiveSwatch" class="eye-live-swatch" aria-hidden="true"></span>
+          <span id="eyeLiveHex" class="eye-live-hex">#FFB300</span>
+        </div>
+
+        <div class="row actions-row">
+          <button id="eyeCopyHex" class="ghost">Copy</button>
+          <button id="eyeAddSwatch" class="secondary">Save Swatch</button>
+        </div>
+
+        <div class="row actions-row">
+          <button id="eyePasteHex" class="ghost">Paste</button>
+          <button id="eyeClearSwatches" class="ghost">Clear All</button>
+        </div>
+
+        <div id="eyeSwatchesGrid" class="swatches-grid" role="list" aria-label="Saved color swatches"></div>
+        <p id="eyeDropperStatus" class="micro">Saved swatches: 0 / 12</p>
+      </section>
+
       <section class="panel core" id="blockerPanel">
         <div class="section-head">
-          <h2>2) Site Blocker Tool</h2>
+          <h2>5) Site Blocker Tool</h2>
           <label class="switch" aria-label="Toggle site blocker">
             <input id="blockerEnabled" type="checkbox" />
             <span>On</span>
@@ -174,10 +312,28 @@
         </div>
 
         <p id="blockerStatus" class="micro">Active: 0 sites blocked</p>
+        <p id="blockerStats" class="micro">Blocked today: 0 · Since install: 0</p>
+        <p id="blockerHostStatus" class="micro">Current site: unavailable</p>
+        <p class="micro">Quick category block:</p>
+
+        <div class="row actions-row category-block-buttons">
+          <button id="quickBlockSocial" class="ghost" type="button">Social Media</button>
+          <button id="quickBlockShopping" class="ghost" type="button">Shopping</button>
+          <button id="quickBlockEntertainment" class="ghost" type="button">Entertainment</button>
+          <button id="quickBlockAdult" class="ghost" type="button">18+</button>
+        </div>
+
+        <div class="row actions-row alert-types">
+          <label class="switch"><input id="blockCatAds" type="checkbox" /><span>Ads</span></label>
+          <label class="switch"><input id="blockCatTrackers" type="checkbox" /><span>Trackers</span></label>
+          <label class="switch"><input id="blockCatMalware" type="checkbox" /><span>Malware</span></label>
+          <label class="switch"><input id="blockCatAnnoyances" type="checkbox" /><span>Annoyances</span></label>
+          <label class="switch"><input id="blockCatVideoAds" type="checkbox" /><span>Video Ads</span></label>
+        </div>
 
         <div class="row actions-row">
-          <button id="addCurrentSite" class="secondary">Block Current Site</button>
-          <button id="editBlocker" class="secondary">Edit Lists</button>
+          <button id="addCurrentSite" class="secondary">Block This Site</button>
+          <button id="removeCurrentSite" class="ghost">Unblock This Site</button>
         </div>
 
         <div class="field-row compact">
@@ -185,13 +341,103 @@
             <input id="nuclearMode" type="checkbox" />
             <span>Nuclear Mode</span>
           </label>
+          <button id="toggleWhitelistSite" class="ghost">Allowlist Site</button>
+        </div>
+
+        <div class="row actions-row single-action-row">
           <button id="pauseBlocker" class="ghost">Pause 10m</button>
         </div>
+
+        <div class="field-row compact">
+          <label class="switch"><input id="blockCosmeticEnabled" type="checkbox" /><span>Cosmetic Cleanup</span></label>
+          <label class="switch"><input id="blockAntiDetect" type="checkbox" /><span>Anti-detect</span></label>
+        </div>
+
+        <div class="row actions-row">
+          <button id="blockElementPicker" class="secondary">Block Element</button>
+          <button id="toggleCosmeticSite" class="ghost">Disable Cosmetic Here</button>
+        </div>
+
+        <div class="row actions-row">
+          <button id="refreshBlockLists" class="ghost">Refresh Lists</button>
+          <button id="editBlocker" class="secondary">Edit Lists</button>
+        </div>
+
+        <details class="inline-advanced">
+          <summary>Blocker control guide</summary>
+          <ul class="tool-explain-list">
+            <li><strong>Block Element</strong>: manually hide one stubborn ad or popup element that slips past list rules.</li>
+            <li><strong>Disable Cosmetic Here</strong>: keep network blocking active, but stop visual cleanup on this host if layout breaks.</li>
+            <li><strong>Refresh Lists</strong>: pull the latest local filter domains so new ads, trackers, and scam hosts are blocked.</li>
+            <li><strong>Edit Lists</strong>: open full blocker settings to manage block domains, allowlist, custom selectors, and schedules.</li>
+          </ul>
+        </details>
+      </section>
+
+      <section class="panel core" id="secureTunnelPanel">
+        <div class="section-head">
+          <h2>6) Secure Tunnel</h2>
+          <label class="switch" aria-label="Toggle secure tunnel">
+            <input id="secureTunnelEnabled" type="checkbox" />
+            <span>On</span>
+          </label>
+        </div>
+
+        <div class="field-row">
+          <label for="secureTunnelMode">Mode</label>
+          <select id="secureTunnelMode" aria-label="Secure tunnel mode">
+            <option value="preset">Preset Relay</option>
+            <option value="custom">Custom Proxy</option>
+          </select>
+        </div>
+
+        <div class="field-row">
+          <label for="secureTunnelPreset">Server</label>
+          <select id="secureTunnelPreset" aria-label="Secure tunnel server"></select>
+        </div>
+
+        <p id="secureTunnelStatus" class="micro">Disconnected</p>
+        <p id="secureTunnelTimer" class="micro">Session: 00:00:00</p>
+
+        <details class="inline-advanced" id="secureTunnelCustomWrap">
+          <summary>Custom Proxy</summary>
+          <div class="field-row">
+            <label for="secureTunnelCustomScheme">Scheme</label>
+            <select id="secureTunnelCustomScheme" aria-label="Custom proxy scheme">
+              <option value="http">HTTP</option>
+              <option value="https">HTTPS</option>
+              <option value="socks5">SOCKS5</option>
+              <option value="socks4">SOCKS4</option>
+            </select>
+          </div>
+          <div class="field-row">
+            <label for="secureTunnelCustomHost">Host</label>
+            <input id="secureTunnelCustomHost" type="text" placeholder="proxy.example.com" aria-label="Custom proxy host" />
+          </div>
+          <div class="field-row">
+            <label for="secureTunnelCustomPort">Port</label>
+            <input id="secureTunnelCustomPort" type="number" min="1" max="65535" step="1" placeholder="8080" aria-label="Custom proxy port" />
+          </div>
+          <div class="field-row">
+            <label for="secureTunnelCustomUser">Username</label>
+            <input id="secureTunnelCustomUser" type="text" placeholder="optional" aria-label="Custom proxy username" />
+          </div>
+          <div class="field-row">
+            <label for="secureTunnelCustomPass">Password</label>
+            <input id="secureTunnelCustomPass" type="password" placeholder="optional" aria-label="Custom proxy password" />
+          </div>
+          <div class="row actions-row">
+            <button id="secureTunnelSaveConnect" class="secondary" type="button">Save &amp; Connect</button>
+            <button id="secureTunnelDisconnect" class="ghost" type="button">Disconnect</button>
+          </div>
+        </details>
+
+        <p class="micro">This protects only browser traffic, not your full device. For full-device VPN use a desktop app.</p>
       </section>
 
       <section class="panel core" id="alertsPanel">
         <div class="section-head">
-          <h2>3) Health Alert Popups</h2>
+          <h2>7) Health Alert Popups</h2>
           <label class="switch" aria-label="Toggle health alerts">
             <input id="alertsEnabled" type="checkbox" />
             <span>On</span>
@@ -201,10 +447,62 @@
         <div class="field-row">
           <label for="alertFrequency">Frequency</label>
           <select id="alertFrequency" aria-label="Alert frequency">
+            <option value="10">10 min</option>
             <option value="20">20 min</option>
+            <option value="30">30 min</option>
             <option value="45">45 min</option>
             <option value="60">60 min</option>
+            <option value="90">90 min</option>
+            <option value="120">120 min</option>
           </select>
+        </div>
+
+        <div class="field-row">
+          <label for="alertCadence">Cadence</label>
+          <select id="alertCadence" aria-label="Alert cadence mode">
+            <option value="focus_weighted">Focus Weighted</option>
+            <option value="cycle">Cycle</option>
+            <option value="random">Random</option>
+          </select>
+        </div>
+
+        <div class="field-row">
+          <label for="alertTestType">Alert Type</label>
+          <select id="alertTestType" aria-label="Health alert type">
+            <option value="eye">Eye Relief</option>
+            <option value="posture">Posture</option>
+            <option value="burnout">Burnout Reset</option>
+            <option value="hydration">Hydration</option>
+            <option value="blink">Blink Reset</option>
+            <option value="movement">Movement</option>
+          </select>
+        </div>
+
+        <div class="row actions-row">
+          <label class="switch">
+            <input id="alertTypeEye" type="checkbox" />
+            <span>Eye</span>
+          </label>
+          <label class="switch">
+            <input id="alertTypePosture" type="checkbox" />
+            <span>Posture</span>
+          </label>
+          <label class="switch">
+            <input id="alertTypeBurnout" type="checkbox" />
+            <span>Burnout</span>
+          </label>
+          <label class="switch">
+            <input id="alertTypeHydration" type="checkbox" />
+            <span>Hydration</span>
+          </label>
+          <label class="switch">
+            <input id="alertTypeBlink" type="checkbox" />
+            <span>Blink</span>
+          </label>
+          <label class="switch">
+            <input id="alertTypeMovement" type="checkbox" />
+            <span>Movement</span>
+          </label>
         </div>
 
         <div class="row actions-row">
@@ -212,13 +510,89 @@
             <input id="alertSound" type="checkbox" />
             <span>Sound Alarm</span>
           </label>
-          <button id="testAlert" class="secondary">Test Alert</button>
+          <label class="switch">
+            <input id="alertQuietHoursEnabled" type="checkbox" />
+            <span>Quiet Hours</span>
+          </label>
         </div>
+
+        <details class="inline-advanced">
+          <summary>Alert Controls</summary>
+          <div class="field-row">
+            <label for="alertSoundVolume">Sound Volume</label>
+            <div class="range-wrap">
+              <input id="alertSoundVolume" type="range" min="5" max="100" step="1" />
+              <span id="alertSoundVolumeValue" class="value">35%</span>
+            </div>
+          </div>
+
+          <div class="field-row">
+            <label for="alertSoundPattern">Sound Pattern</label>
+            <select id="alertSoundPattern">
+              <option value="single">Single</option>
+              <option value="double">Double</option>
+              <option value="triple">Triple</option>
+            </select>
+          </div>
+
+          <div class="field-row compact">
+            <label class="switch"><input id="alertToastEnabled" type="checkbox" /><span>On-page toast</span></label>
+            <label class="switch"><input id="alertNotificationEnabled" type="checkbox" /><span>System notification</span></label>
+          </div>
+
+          <div class="field-row">
+            <label for="alertQuietStart">Quiet Start</label>
+            <input id="alertQuietStart" type="time" />
+          </div>
+
+          <div class="field-row">
+            <label for="alertQuietEnd">Quiet End</label>
+            <input id="alertQuietEnd" type="time" />
+          </div>
+
+          <div class="field-row">
+            <label for="alertSnoozeMinutes">Snooze Length</label>
+            <select id="alertSnoozeMinutes">
+              <option value="5">5 min</option>
+              <option value="10">10 min</option>
+              <option value="15">15 min</option>
+              <option value="30">30 min</option>
+              <option value="45">45 min</option>
+            </select>
+          </div>
+
+          <div class="field-row">
+            <label for="alertCooldown">Cooldown</label>
+            <select id="alertCooldown">
+              <option value="0">No cooldown</option>
+              <option value="10">10 min</option>
+              <option value="20">20 min</option>
+              <option value="30">30 min</option>
+              <option value="45">45 min</option>
+            </select>
+          </div>
+
+          <div class="field-row">
+            <label for="alertBurnoutThreshold">Burnout Threshold</label>
+            <select id="alertBurnoutThreshold">
+              <option value="60">60 min focus</option>
+              <option value="90">90 min focus</option>
+              <option value="120">120 min focus</option>
+              <option value="150">150 min focus</option>
+            </select>
+          </div>
+        </details>
+
+        <div class="row actions-row">
+          <button id="testAlert" class="secondary">Test Alert</button>
+          <button id="snoozeAlertsNow" class="ghost">Snooze Now</button>
+        </div>
+        <p id="alertStatus" class="micro">Alerts ready.</p>
       </section>
 
       <section class="panel core" id="siteInsightPanel">
         <div class="section-head">
-          <h2>4) Site Insight Popup</h2>
+          <h2>8) Site Insight Popup</h2>
           <label class="switch" aria-label="Toggle site insight popup">
             <input id="siteInsightEnabled" type="checkbox" />
             <span>On</span>
@@ -264,7 +638,7 @@
       </section>
 
       <details class="panel fold" id="deepWorkFold">
-        <summary>Deep Work Protocol</summary>
+        <summary>9) Deep Work Protocol</summary>
         <div class="field-row">
           <label for="pomodoroPreset">Pomodoro</label>
           <select id="pomodoroPreset" aria-label="Pomodoro preset">
@@ -281,7 +655,7 @@
       </details>
 
       <details class="panel fold" id="advancedFold">
-        <summary>Advanced Lab (Premium)</summary>
+        <summary>10) Advanced Lab (Premium)</summary>
 
         <div class="premium-banner" id="premiumBanner">
           <span>Premium feature set</span>
@@ -316,7 +690,7 @@
 
       <section class="panel compact">
         <div class="section-head">
-          <h2>Hotkeys</h2>
+          <h2>11) Hotkeys</h2>
         </div>
         <div class="hotkeys">
           <button class="hotkey" data-command="toggle_light_filters">Toggle Filters</button>

@@ -5,7 +5,20 @@
   const SAVE_DEBOUNCE_MS = 380;
   const ONBOARDING_COMPLETED_KEY = "onboardingCompleted";
   const UPGRADE_URL = "https://www.holmeta.com/pricing";
+  const WEBSITE_URL = "https://holmeta.com";
+  const DASHBOARD_URL = "https://holmeta.com/dashboard";
   const RATE_URL = "https://chromewebstore.google.com";
+  const FAVORITE_LIMIT = 20;
+  const SCREEN_PRESETS = {
+    desktop_hd: { width: 1366, height: 768, label: "Desktop HD" },
+    desktop_fhd: { width: 1920, height: 1080, label: "Desktop FHD" },
+    desktop_qhd: { width: 2560, height: 1440, label: "Desktop QHD" },
+    laptop: { width: 1440, height: 900, label: "Laptop" },
+    tablet_portrait: { width: 768, height: 1024, label: "Tablet Portrait" },
+    tablet_landscape: { width: 1024, height: 768, label: "Tablet Landscape" },
+    mobile_small: { width: 375, height: 667, label: "Mobile Small" },
+    mobile_large: { width: 430, height: 932, label: "Mobile Large" }
+  };
 
   const state = {
     hydrated: false,
@@ -16,7 +29,11 @@
     saveTimer: null,
     saveInFlight: false,
     onboardingStep: 0,
-    diagnostics: null
+    diagnostics: null,
+    alertTestType: "eye",
+    eyeDraftHex: "#FFB300",
+    favoriteDraftUrl: "",
+    tunnelTimerHandle: null
   };
 
   const onboardingSteps = [
@@ -43,8 +60,16 @@
     lightMode: document.getElementById("lightMode"),
     lightIntensity: document.getElementById("lightIntensity"),
     lightIntensityValue: document.getElementById("lightIntensityValue"),
+    readingModeOn: document.getElementById("readingModeOn"),
+    readingModeOff: document.getElementById("readingModeOff"),
+    readingModeDark: document.getElementById("readingModeDark"),
+    readingModeLight: document.getElementById("readingModeLight"),
+    readingModeStatus: document.getElementById("readingModeStatus"),
+    readingDarkVariant: document.getElementById("readingDarkVariant"),
+    readingLightVariant: document.getElementById("readingLightVariant"),
     lightThisSiteEnabled: document.getElementById("lightThisSiteEnabled"),
     lightExcludeSite: document.getElementById("lightExcludeSite"),
+    lightApplyAll: document.getElementById("lightApplyAll"),
     saveSiteProfile: document.getElementById("saveSiteProfile"),
     copyGlobalToSite: document.getElementById("copyGlobalToSite"),
     siteInfo: document.getElementById("siteInfo"),
@@ -73,17 +98,95 @@
     therapyMinutes: document.getElementById("therapyMinutes"),
     therapyCadence: document.getElementById("therapyCadence"),
 
+    screenEmulatorActive: document.getElementById("screenEmulatorActive"),
+    screenPreset: document.getElementById("screenPreset"),
+    screenWidth: document.getElementById("screenWidth"),
+    screenHeight: document.getElementById("screenHeight"),
+    screenApply: document.getElementById("screenApply"),
+    screenReset: document.getElementById("screenReset"),
+    screenStatus: document.getElementById("screenStatus"),
+
+    eyePickFromPage: document.getElementById("eyePickFromPage"),
+    eyeHexInput: document.getElementById("eyeHexInput"),
+    eyeLiveSwatch: document.getElementById("eyeLiveSwatch"),
+    eyeLiveHex: document.getElementById("eyeLiveHex"),
+    eyeCopyHex: document.getElementById("eyeCopyHex"),
+    eyePasteHex: document.getElementById("eyePasteHex"),
+    eyeAddSwatch: document.getElementById("eyeAddSwatch"),
+    eyeClearSwatches: document.getElementById("eyeClearSwatches"),
+    eyeSwatchesGrid: document.getElementById("eyeSwatchesGrid"),
+    eyeDropperStatus: document.getElementById("eyeDropperStatus"),
+
+    favoriteAddCurrent: document.getElementById("favoriteAddCurrent"),
+    favoriteUrlInput: document.getElementById("favoriteUrlInput"),
+    favoriteAddUrl: document.getElementById("favoriteAddUrl"),
+    favoritesGrid: document.getElementById("favoritesGrid"),
+    favoritesStatus: document.getElementById("favoritesStatus"),
+
     blockerEnabled: document.getElementById("blockerEnabled"),
     nuclearMode: document.getElementById("nuclearMode"),
     blockerStatus: document.getElementById("blockerStatus"),
+    blockerStats: document.getElementById("blockerStats"),
+    blockerHostStatus: document.getElementById("blockerHostStatus"),
+    quickBlockSocial: document.getElementById("quickBlockSocial"),
+    quickBlockShopping: document.getElementById("quickBlockShopping"),
+    quickBlockEntertainment: document.getElementById("quickBlockEntertainment"),
+    quickBlockAdult: document.getElementById("quickBlockAdult"),
     addCurrentSite: document.getElementById("addCurrentSite"),
+    removeCurrentSite: document.getElementById("removeCurrentSite"),
+    toggleWhitelistSite: document.getElementById("toggleWhitelistSite"),
+    blockCatAds: document.getElementById("blockCatAds"),
+    blockCatTrackers: document.getElementById("blockCatTrackers"),
+    blockCatMalware: document.getElementById("blockCatMalware"),
+    blockCatAnnoyances: document.getElementById("blockCatAnnoyances"),
+    blockCatVideoAds: document.getElementById("blockCatVideoAds"),
+    blockCosmeticEnabled: document.getElementById("blockCosmeticEnabled"),
+    blockAntiDetect: document.getElementById("blockAntiDetect"),
+    blockElementPicker: document.getElementById("blockElementPicker"),
+    toggleCosmeticSite: document.getElementById("toggleCosmeticSite"),
+    refreshBlockLists: document.getElementById("refreshBlockLists"),
     editBlocker: document.getElementById("editBlocker"),
     pauseBlocker: document.getElementById("pauseBlocker"),
 
+    secureTunnelEnabled: document.getElementById("secureTunnelEnabled"),
+    secureTunnelMode: document.getElementById("secureTunnelMode"),
+    secureTunnelPreset: document.getElementById("secureTunnelPreset"),
+    secureTunnelStatus: document.getElementById("secureTunnelStatus"),
+    secureTunnelTimer: document.getElementById("secureTunnelTimer"),
+    secureTunnelCustomWrap: document.getElementById("secureTunnelCustomWrap"),
+    secureTunnelCustomScheme: document.getElementById("secureTunnelCustomScheme"),
+    secureTunnelCustomHost: document.getElementById("secureTunnelCustomHost"),
+    secureTunnelCustomPort: document.getElementById("secureTunnelCustomPort"),
+    secureTunnelCustomUser: document.getElementById("secureTunnelCustomUser"),
+    secureTunnelCustomPass: document.getElementById("secureTunnelCustomPass"),
+    secureTunnelSaveConnect: document.getElementById("secureTunnelSaveConnect"),
+    secureTunnelDisconnect: document.getElementById("secureTunnelDisconnect"),
+
     alertsEnabled: document.getElementById("alertsEnabled"),
     alertFrequency: document.getElementById("alertFrequency"),
+    alertCadence: document.getElementById("alertCadence"),
+    alertTestType: document.getElementById("alertTestType"),
+    alertTypeEye: document.getElementById("alertTypeEye"),
+    alertTypePosture: document.getElementById("alertTypePosture"),
+    alertTypeBurnout: document.getElementById("alertTypeBurnout"),
+    alertTypeHydration: document.getElementById("alertTypeHydration"),
+    alertTypeBlink: document.getElementById("alertTypeBlink"),
+    alertTypeMovement: document.getElementById("alertTypeMovement"),
     alertSound: document.getElementById("alertSound"),
+    alertSoundVolume: document.getElementById("alertSoundVolume"),
+    alertSoundVolumeValue: document.getElementById("alertSoundVolumeValue"),
+    alertSoundPattern: document.getElementById("alertSoundPattern"),
+    alertToastEnabled: document.getElementById("alertToastEnabled"),
+    alertNotificationEnabled: document.getElementById("alertNotificationEnabled"),
+    alertQuietHoursEnabled: document.getElementById("alertQuietHoursEnabled"),
+    alertQuietStart: document.getElementById("alertQuietStart"),
+    alertQuietEnd: document.getElementById("alertQuietEnd"),
+    alertSnoozeMinutes: document.getElementById("alertSnoozeMinutes"),
+    alertCooldown: document.getElementById("alertCooldown"),
+    alertBurnoutThreshold: document.getElementById("alertBurnoutThreshold"),
     testAlert: document.getElementById("testAlert"),
+    snoozeAlertsNow: document.getElementById("snoozeAlertsNow"),
+    alertStatus: document.getElementById("alertStatus"),
 
     siteInsightEnabled: document.getElementById("siteInsightEnabled"),
     siteInsightProfile: document.getElementById("siteInsightProfile"),
@@ -107,6 +210,8 @@
     premiumBanner: document.getElementById("premiumBanner"),
     upgradePremium: document.getElementById("upgradePremium"),
 
+    openWebsite: document.getElementById("openWebsite"),
+    openDashboard: document.getElementById("openDashboard"),
     openOptions: document.getElementById("openOptions"),
 
     onboarding: document.getElementById("onboarding"),
@@ -156,6 +261,67 @@
       return url.hostname.replace(/^www\./, "").toLowerCase();
     } catch {
       return "";
+    }
+  }
+
+  function normalizeFavoriteUrl(value) {
+    try {
+      const url = new URL(String(value || "").trim());
+      if (!/^https?:$/.test(url.protocol)) return "";
+      return `${url.protocol}//${url.host}${url.pathname || "/"}${url.search || ""}${url.hash || ""}`;
+    } catch {
+      return "";
+    }
+  }
+
+  function favoriteLabelFromHost(host) {
+    const token = String(host || "")
+      .replace(/^www\./, "")
+      .split(".")[0]
+      .replace(/[-_]/g, " ")
+      .trim();
+    if (!token) return "Site";
+    return token
+      .split(" ")
+      .filter(Boolean)
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(" ")
+      .slice(0, 16);
+  }
+
+  function normalizeHexColor(value, fallback = "") {
+    const raw = String(value || "").trim().toUpperCase();
+    const short = raw.match(/^#([0-9A-F]{3})$/);
+    if (short) {
+      const [r, g, b] = short[1].split("");
+      return `#${r}${r}${g}${g}${b}${b}`;
+    }
+    if (/^#[0-9A-F]{6}$/.test(raw)) return raw;
+    return fallback;
+  }
+
+  async function copyToClipboard(text) {
+    const value = String(text || "");
+    if (!value) return false;
+
+    try {
+      await navigator.clipboard.writeText(value);
+      return true;
+    } catch {
+      try {
+        const input = document.createElement("textarea");
+        input.value = value;
+        input.setAttribute("readonly", "true");
+        input.style.position = "fixed";
+        input.style.opacity = "0";
+        document.body.appendChild(input);
+        input.select();
+        const ok = document.execCommand("copy");
+        input.remove();
+        return Boolean(ok);
+      } catch {
+        return false;
+      }
     }
   }
 
@@ -245,6 +411,10 @@
 
     const effective = {
       mode: siteProfile?.mode ?? light.mode,
+      readingModeEnabled: siteProfile?.readingModeEnabled ?? light.readingModeEnabled ?? false,
+      readingMode: siteProfile?.readingMode ?? light.readingMode ?? "dark",
+      darkThemeVariant: siteProfile?.darkThemeVariant ?? light.darkThemeVariant ?? "black",
+      lightThemeVariant: siteProfile?.lightThemeVariant ?? light.lightThemeVariant ?? "white",
       spectrumPreset: siteProfile?.spectrumPreset ?? light.spectrumPreset,
       intensity: siteProfile?.intensity ?? light.intensity,
       dim: siteProfile?.dim ?? light.dim,
@@ -267,6 +437,19 @@
     setInputValue(refs.lightMode, effective.mode);
     setInputValue(refs.lightIntensity, effective.intensity);
     refs.lightIntensityValue.textContent = `${effective.intensity}%`;
+    refs.readingModeOn.classList.toggle("is-active", effective.readingModeEnabled);
+    refs.readingModeOff.classList.toggle("is-active", !effective.readingModeEnabled);
+    refs.readingModeDark.classList.toggle("is-active", effective.readingMode === "dark");
+    refs.readingModeLight.classList.toggle("is-active", effective.readingMode === "light");
+    refs.readingModeDark.disabled = !effective.readingModeEnabled;
+    refs.readingModeLight.disabled = !effective.readingModeEnabled;
+    refs.readingDarkVariant.disabled = !effective.readingModeEnabled;
+    refs.readingLightVariant.disabled = !effective.readingModeEnabled;
+    refs.readingModeStatus.textContent = effective.readingModeEnabled
+      ? `Reading mode: On · ${effective.readingMode === "dark" ? "Dark" : "Light"}`
+      : "Reading mode: Off";
+    setInputValue(refs.readingDarkVariant, effective.darkThemeVariant);
+    setInputValue(refs.readingLightVariant, effective.lightThemeVariant);
 
     setChecked(refs.lightThisSiteEnabled, Boolean(siteProfile));
     setChecked(refs.lightExcludeSite, isSiteExcluded());
@@ -301,18 +484,309 @@
     refs.siteInfo.textContent = info;
   }
 
+  function renderEyeDropper() {
+    const tool = state.app.settings.eyeDropper || { recentHex: "#FFB300", swatches: [] };
+    const swatches = Array.isArray(tool.swatches) ? tool.swatches : [];
+
+    if (!state.editing.has(refs.eyeHexInput.id) && document.activeElement !== refs.eyeHexInput) {
+      state.eyeDraftHex = normalizeHexColor(state.eyeDraftHex, tool.recentHex || "#FFB300");
+      setInputValue(refs.eyeHexInput, state.eyeDraftHex || tool.recentHex || "#FFB300");
+    }
+
+    const liveHex = normalizeHexColor(state.eyeDraftHex || tool.recentHex, "#FFB300");
+    if (refs.eyeLiveSwatch) refs.eyeLiveSwatch.style.background = liveHex;
+    if (refs.eyeLiveHex) refs.eyeLiveHex.textContent = liveHex;
+
+    refs.eyeSwatchesGrid.innerHTML = "";
+    swatches.forEach((hex, index) => {
+      const item = document.createElement("div");
+      item.className = "swatch-item";
+      item.setAttribute("role", "listitem");
+      item.innerHTML = `
+        <button class="swatch-color" type="button" data-hex="${hex}" data-index="${index}" aria-label="Copy ${hex}">
+          <span class="swatch-chip" style="background:${hex}"></span>
+          <span class="swatch-label">${hex}</span>
+        </button>
+        <button class="swatch-remove" type="button" data-remove="${index}" aria-label="Remove ${hex}">×</button>
+      `;
+      refs.eyeSwatchesGrid.appendChild(item);
+    });
+
+    if (!swatches.length) {
+      const empty = document.createElement("div");
+      empty.className = "swatch-empty";
+      empty.textContent = "No swatches saved yet.";
+      refs.eyeSwatchesGrid.appendChild(empty);
+    }
+
+    refs.eyeDropperStatus.textContent = `Saved swatches: ${swatches.length} / 12`;
+  }
+
+  function getFavoritesState() {
+    return state.app?.settings?.favorites || { links: [] };
+  }
+
+  function queueFavoritesPatch(partial) {
+    const current = getFavoritesState();
+    queuePatch({ favorites: deepMerge(current, partial) });
+  }
+
+  function renderFavorites() {
+    const favorites = getFavoritesState();
+    const links = Array.isArray(favorites.links) ? favorites.links : [];
+
+    if (!state.editing.has(refs.favoriteUrlInput.id) && document.activeElement !== refs.favoriteUrlInput) {
+      setInputValue(refs.favoriteUrlInput, state.favoriteDraftUrl || "");
+    }
+
+    refs.favoritesGrid.innerHTML = "";
+    links.forEach((entry, index) => {
+      const url = String(entry.url || "");
+      const host = normalizeHost(url);
+      if (!host) return;
+      const title = String(entry.title || favoriteLabelFromHost(host)).slice(0, 32);
+      const faviconUrl = `https://www.google.com/s2/favicons?domain_url=${encodeURIComponent(url)}&sz=64`;
+      const fallback = favoriteLabelFromHost(host).charAt(0).toUpperCase() || "H";
+
+      const item = document.createElement("div");
+      item.className = "favorite-item";
+      item.setAttribute("role", "listitem");
+      item.innerHTML = `
+        <button class="favorite-btn" type="button" data-favorite-open="${index}" title="${host}">
+          <img class="fav-icon" src="${faviconUrl}" alt="" loading="lazy" />
+          <span class="fav-fallback" hidden>${fallback}</span>
+          <span class="fav-label">${title}</span>
+        </button>
+        <button class="favorite-remove" type="button" data-favorite-remove="${index}" aria-label="Remove ${host}" title="Remove">×</button>
+      `;
+      const icon = item.querySelector(".fav-icon");
+      const fallbackNode = item.querySelector(".fav-fallback");
+      icon?.addEventListener("error", () => {
+        if (icon) icon.hidden = true;
+        if (fallbackNode) fallbackNode.hidden = false;
+      });
+      refs.favoritesGrid.appendChild(item);
+    });
+
+    if (!links.length) {
+      const empty = document.createElement("div");
+      empty.className = "favorite-empty";
+      empty.textContent = "No favorites saved yet.";
+      refs.favoritesGrid.appendChild(empty);
+    }
+
+    refs.favoritesStatus.textContent = `Saved: ${links.length} / ${FAVORITE_LIMIT}`;
+    const atLimit = links.length >= FAVORITE_LIMIT;
+    refs.favoriteAddCurrent.disabled = atLimit;
+    refs.favoriteAddUrl.disabled = atLimit;
+  }
+
+  function getScreenSettings() {
+    const defaults = SCREEN_PRESETS.desktop_hd;
+    const cfg = state.app?.settings?.screenEmulator || {};
+    const preset = Object.prototype.hasOwnProperty.call(SCREEN_PRESETS, cfg.preset)
+      ? cfg.preset
+      : "desktop_hd";
+    return {
+      preset,
+      width: Math.max(320, Math.min(5120, Number(cfg.width || defaults.width))),
+      height: Math.max(320, Math.min(2880, Number(cfg.height || defaults.height))),
+      active: Boolean(cfg.active),
+      lastAppliedAt: Number(cfg.lastAppliedAt || 0)
+    };
+  }
+
+  function renderScreenEmulator() {
+    const screen = getScreenSettings();
+    setInputValue(refs.screenPreset, screen.preset);
+    setInputValue(refs.screenWidth, String(screen.width));
+    setInputValue(refs.screenHeight, String(screen.height));
+    setChecked(refs.screenEmulatorActive, screen.active);
+
+    const activeRuntime = Boolean(state.app?.runtime?.windowResizeActive);
+    const activeState = activeRuntime || screen.active;
+    const presetName = SCREEN_PRESETS[screen.preset]?.label || "Custom";
+    refs.screenStatus.textContent = activeState
+      ? `Active: ${screen.width}×${screen.height} (${presetName})`
+      : `Ready: ${screen.width}×${screen.height} (${presetName})`;
+    refs.screenReset.disabled = !activeRuntime;
+  }
+
   function renderBlocker() {
     const blocker = state.app.settings.blocker;
+    const categories = blocker.categories || {};
+    const quickCategories = blocker.quickCategories || {};
+    const today = new Date().toISOString().slice(0, 10);
+    const dayStats = state.app.stats?.daily?.[today] || {};
+    const blockedToday = Math.max(0, Number(dayStats.adBlockEvents || dayStats.blocks || 0));
+    const blockedTotal = Math.max(0, Number(state.app.stats?.adBlockEventsTotal || state.app.stats?.blockEvents || 0));
+    const hostBlocked = Boolean(state.currentHost && (blocker.blockedDomains || []).includes(state.currentHost));
+    const hostWhitelisted = Boolean(state.currentHost && (blocker.allowDomains || []).includes(state.currentHost));
+    const cosmeticDisabledHost = Boolean(state.currentHost && blocker.disableCosmeticOnSite?.[state.currentHost]);
+
     setChecked(refs.blockerEnabled, blocker.enabled);
     setChecked(refs.nuclearMode, blocker.nuclear);
-    refs.blockerStatus.textContent = `Active: ${(blocker.blockedDomains || []).length} sites blocked`;
+    setChecked(refs.blockCatAds, categories.ads);
+    setChecked(refs.blockCatTrackers, categories.trackers);
+    setChecked(refs.blockCatMalware, categories.malware);
+    setChecked(refs.blockCatAnnoyances, categories.annoyances);
+    setChecked(refs.blockCatVideoAds, categories.videoAds);
+    setChecked(refs.blockCosmeticEnabled, blocker.cosmeticFiltering);
+    setChecked(refs.blockAntiDetect, blocker.antiDetection);
+    const quickEnabledCount = Object.values(quickCategories).filter(Boolean).length;
+    refs.blockerStatus.textContent = `Active: ${(blocker.blockedDomains || []).length} sites blocked${quickEnabledCount ? ` · ${quickEnabledCount} quick category blocks` : ""}`;
+    refs.blockerStats.textContent = `Blocked today: ${blockedToday} · Since install: ${blockedTotal}${state.app.runtime?.blockerRuleLimitHit ? " · Rule cap reached" : ""}`;
+    if (!state.currentHost) {
+      refs.blockerHostStatus.textContent = "Current site: unavailable on this page.";
+    } else if (hostWhitelisted) {
+      refs.blockerHostStatus.textContent = `Current site: ${state.currentHost} is allowlisted (block rules bypassed).`;
+    } else if (hostBlocked) {
+      refs.blockerHostStatus.textContent = `Current site: ${state.currentHost} is blocked by your list.`;
+    } else {
+      refs.blockerHostStatus.textContent = `Current site: ${state.currentHost} is not blocked.`;
+    }
+    refs.addCurrentSite.disabled = !state.currentHost || hostBlocked;
+    refs.removeCurrentSite.disabled = !state.currentHost || !hostBlocked;
+    refs.toggleWhitelistSite.textContent = hostWhitelisted ? "Remove from Allowlist" : "Allowlist Site";
+    refs.toggleWhitelistSite.disabled = !state.currentHost;
+    refs.toggleCosmeticSite.textContent = cosmeticDisabledHost ? "Enable Cosmetic Here" : "Disable Cosmetic Here";
+    refs.toggleCosmeticSite.disabled = !state.currentHost;
+    refs.quickBlockSocial.classList.toggle("is-active", Boolean(quickCategories.social));
+    refs.quickBlockShopping.classList.toggle("is-active", Boolean(quickCategories.shopping));
+    refs.quickBlockEntertainment.classList.toggle("is-active", Boolean(quickCategories.entertainment));
+    refs.quickBlockAdult.classList.toggle("is-active", Boolean(quickCategories.adult));
+  }
+
+  function formatDuration(ms) {
+    const total = Math.max(0, Math.floor(Number(ms || 0) / 1000));
+    const h = Math.floor(total / 3600);
+    const m = Math.floor((total % 3600) / 60);
+    const s = total % 60;
+    return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+  }
+
+  function renderSecureTunnelTimer() {
+    const runtime = state.app?.runtime?.secureTunnel || {};
+    if (!runtime.connected || !runtime.connectedAt) {
+      refs.secureTunnelTimer.textContent = "Session: 00:00:00";
+      return;
+    }
+    refs.secureTunnelTimer.textContent = `Session: ${formatDuration(Date.now() - Number(runtime.connectedAt || 0))}`;
+  }
+
+  function syncSecureTunnelTicker() {
+    const connected = Boolean(state.app?.runtime?.secureTunnel?.connected);
+    if (connected && !state.tunnelTimerHandle) {
+      state.tunnelTimerHandle = setInterval(renderSecureTunnelTimer, 1000);
+    }
+    if (!connected && state.tunnelTimerHandle) {
+      clearInterval(state.tunnelTimerHandle);
+      state.tunnelTimerHandle = null;
+    }
+  }
+
+  function getSecureTunnelPresets() {
+    const list = state.app?.runtime?.secureTunnel?.presets;
+    if (!Array.isArray(list) || !list.length) return [];
+    return list;
+  }
+
+  function renderSecureTunnel() {
+    const tunnel = state.app.settings.secureTunnel || {};
+    const runtime = state.app.runtime?.secureTunnel || {};
+    const presets = getSecureTunnelPresets();
+    const selectedPresetId = String(tunnel.selectedPresetId || "fastest");
+
+    if (refs.secureTunnelPreset && !refs.secureTunnelPreset.dataset.initialized) {
+      refs.secureTunnelPreset.innerHTML = presets
+        .map((preset) => `<option value="${preset.id}">${preset.label}</option>`)
+        .join("");
+      refs.secureTunnelPreset.dataset.initialized = "true";
+    } else if (refs.secureTunnelPreset && presets.length) {
+      const existing = new Set([...refs.secureTunnelPreset.options].map((option) => option.value));
+      const mismatch = presets.some((preset) => !existing.has(preset.id)) || existing.size !== presets.length;
+      if (mismatch) {
+        refs.secureTunnelPreset.innerHTML = presets
+          .map((preset) => `<option value="${preset.id}">${preset.label}</option>`)
+          .join("");
+      }
+    }
+
+    setChecked(refs.secureTunnelEnabled, tunnel.enabled);
+    setInputValue(refs.secureTunnelMode, tunnel.mode || "preset");
+    setInputValue(refs.secureTunnelPreset, selectedPresetId);
+    setInputValue(refs.secureTunnelCustomScheme, tunnel.custom?.scheme || "http");
+    setInputValue(refs.secureTunnelCustomHost, tunnel.custom?.host || "");
+    setInputValue(refs.secureTunnelCustomPort, tunnel.custom?.port || 8080);
+    setInputValue(refs.secureTunnelCustomUser, tunnel.custom?.username || "");
+    setInputValue(refs.secureTunnelCustomPass, tunnel.custom?.password || "");
+
+    const customMode = String(tunnel.mode || "preset") === "custom";
+    refs.secureTunnelPreset.disabled = customMode;
+    if (refs.secureTunnelCustomWrap) {
+      refs.secureTunnelCustomWrap.open = customMode;
+    }
+
+    if (runtime.connected) {
+      const label = runtime.activeLabel || runtime.activePresetId || "Proxy";
+      refs.secureTunnelStatus.textContent = `Connected via ${label} \u00b7 IP hidden`;
+    } else if (runtime.lastError) {
+      refs.secureTunnelStatus.textContent = `Connection failed: ${runtime.lastError}`;
+    } else {
+      refs.secureTunnelStatus.textContent = "Disconnected";
+    }
+
+    renderSecureTunnelTimer();
+    syncSecureTunnelTicker();
   }
 
   function renderAlerts() {
     const alerts = state.app.settings.alerts;
+    const enabledTypes = Object.entries(alerts.types || {})
+      .filter(([, value]) => Boolean(value))
+      .map(([key]) => key);
+    if (!enabledTypes.includes(state.alertTestType)) {
+      state.alertTestType = enabledTypes[0] || "eye";
+    }
+
     setChecked(refs.alertsEnabled, alerts.enabled);
     setInputValue(refs.alertFrequency, alerts.frequencyMin);
+    setInputValue(refs.alertCadence, alerts.cadenceMode || "focus_weighted");
+    setInputValue(refs.alertTestType, state.alertTestType || "eye");
+    setChecked(refs.alertTypeEye, alerts.types.eye);
+    setChecked(refs.alertTypePosture, alerts.types.posture);
+    setChecked(refs.alertTypeBurnout, alerts.types.burnout);
+    setChecked(refs.alertTypeHydration, alerts.types.hydration);
+    setChecked(refs.alertTypeBlink, alerts.types.blink);
+    setChecked(refs.alertTypeMovement, alerts.types.movement);
     setChecked(refs.alertSound, alerts.soundEnabled);
+    setInputValue(refs.alertSoundVolume, alerts.soundVolume);
+    refs.alertSoundVolumeValue.textContent = `${alerts.soundVolume}%`;
+    setInputValue(refs.alertSoundPattern, alerts.soundPattern || "double");
+    setChecked(refs.alertToastEnabled, alerts.toastEnabled);
+    setChecked(refs.alertNotificationEnabled, alerts.notificationEnabled);
+    setChecked(refs.alertQuietHoursEnabled, alerts.quietHours?.enabled);
+    setInputValue(refs.alertQuietStart, alerts.quietHours?.start || "22:30");
+    setInputValue(refs.alertQuietEnd, alerts.quietHours?.end || "06:30");
+    setInputValue(refs.alertSnoozeMinutes, alerts.snoozeMinutes || 10);
+    setInputValue(refs.alertCooldown, alerts.cooldownMin || 0);
+    setInputValue(refs.alertBurnoutThreshold, alerts.burnoutFocusThresholdMin || 90);
+
+    const enabledTypeCount = enabledTypes.length;
+    const snoozeUntil = Number(alerts.snoozeUntil || 0);
+    const quietEnabled = Boolean(alerts.quietHours?.enabled);
+    const nowTs = Date.now();
+    if (snoozeUntil > nowTs) {
+      const mins = Math.max(1, Math.ceil((snoozeUntil - nowTs) / 60000));
+      refs.alertStatus.textContent = `Snoozed for ${mins}m · ${enabledTypeCount} alert types armed`;
+      return;
+    }
+    const cadenceLabel = alerts.cadenceMode === "focus_weighted"
+      ? "focus weighted"
+      : alerts.cadenceMode === "random"
+        ? "random"
+        : "cycle";
+    refs.alertStatus.textContent = `${enabledTypeCount} types · ${alerts.frequencyMin}m cadence (${cadenceLabel})${quietEnabled ? " · quiet hours active" : ""}`;
   }
 
   function renderSiteInsight() {
@@ -370,8 +844,12 @@
   function render() {
     if (!state.app) return;
     renderPremium();
+    renderFavorites();
     renderLight();
+    renderScreenEmulator();
+    renderEyeDropper();
     renderBlocker();
+    renderSecureTunnel();
     renderAlerts();
     renderSiteInsight();
     renderDeepWork();
@@ -405,6 +883,52 @@
     setStatus("Saved");
   }
 
+  async function flushPatchNow() {
+    if (state.saveTimer) {
+      clearTimeout(state.saveTimer);
+      state.saveTimer = null;
+    }
+
+    if (state.pendingPatch && !state.saveInFlight) {
+      await flushPatch();
+    }
+
+    if (!state.saveInFlight) return;
+    let guard = 0;
+    while (state.saveInFlight && guard < 80) {
+      // Wait for in-flight save to settle before applying to all tabs.
+      // 80 * 25ms = 2s max wait.
+      // eslint-disable-next-line no-await-in-loop
+      await new Promise((resolve) => setTimeout(resolve, 25));
+      guard += 1;
+    }
+  }
+
+  async function applyAllTabs({ ensureLightEnabled = false, quiet = false } = {}) {
+    await flushPatchNow();
+    const response = await sendMessage({
+      type: "holmeta:apply-all-tabs",
+      ensureLightEnabled: Boolean(ensureLightEnabled)
+    });
+
+    if (!response?.ok) {
+      if (!quiet) toast(`Apply all failed: ${response?.error || "unknown"}`);
+      return { ok: false, error: response?.error || "apply_all_failed" };
+    }
+
+    if (response.state) {
+      state.app = response.state;
+      await refreshDiagnostics();
+      render();
+    }
+
+    if (!quiet) {
+      const applied = Math.max(0, Number(response.appliedTabs || 0));
+      toast(`Applied to ${applied} tab${applied === 1 ? "" : "s"}.`);
+    }
+    return { ok: true };
+  }
+
   async function refreshDiagnostics() {
     const tab = await queryCurrentTab();
     const tabId = Number(tab?.id || 0);
@@ -433,6 +957,8 @@
 
     state.currentHost = normalizeHost(tab?.url || "");
     state.app = res.state;
+    state.eyeDraftHex = normalizeHexColor(state.app?.settings?.eyeDropper?.recentHex, "#FFB300");
+    state.favoriteDraftUrl = "";
     await refreshDiagnostics();
 
     state.hydrated = true;
@@ -458,6 +984,10 @@
 
   function openUpgrade() {
     chrome.tabs.create({ url: UPGRADE_URL });
+  }
+
+  function openExternal(url) {
+    chrome.tabs.create({ url });
   }
 
   async function handleHotkeyButton(command) {
@@ -503,6 +1033,10 @@
 
   function currentLightPatchFromUI() {
     const mode = String(refs.lightMode.value || "warm");
+    const readingModeEnabled = refs.readingModeOn.classList.contains("is-active");
+    const readingMode = refs.readingModeDark.classList.contains("is-active") ? "dark" : "light";
+    const darkThemeVariant = String(refs.readingDarkVariant.value || "black");
+    const lightThemeVariant = String(refs.readingLightVariant.value || "white");
     const spectrumPreset = String(refs.lightSpectrumPreset.value || "balanced");
     const intensity = Math.max(0, Math.min(100, Number(refs.lightIntensity.value || 0)));
     const dim = Math.max(0, Math.min(60, Number(refs.lightDim.value || 0)));
@@ -522,6 +1056,10 @@
 
     return {
       mode,
+      readingModeEnabled,
+      readingMode,
+      darkThemeVariant,
+      lightThemeVariant,
       spectrumPreset,
       intensity,
       dim,
@@ -588,6 +1126,140 @@
     queuePatch({ light: partial });
   }
 
+  function setReadingModeFeatureEnabled(enabled) {
+    const nextEnabled = Boolean(enabled);
+    const globalPatch = {
+      readingModeEnabled: nextEnabled,
+      schedule: {
+        enabled: false
+      }
+    };
+
+    const siteProfile = getLightSiteProfile();
+    if (state.currentHost && siteProfile) {
+      const map = { ...(state.app.settings.light.siteProfiles || {}) };
+      map[state.currentHost] = deepMerge(map[state.currentHost] || {}, {
+        readingModeEnabled: nextEnabled
+      });
+      queuePatch({
+        light: {
+          ...globalPatch,
+          siteProfiles: map
+        }
+      });
+      return;
+    }
+
+    queuePatch({ light: globalPatch });
+  }
+
+  function setReadingModeWithEnable(mode) {
+    const safeMode = mode === "light" ? "light" : "dark";
+    const globalPatch = {
+      readingModeEnabled: true,
+      readingMode: safeMode,
+      schedule: {
+        enabled: false
+      }
+    };
+
+    const siteProfile = getLightSiteProfile();
+    if (state.currentHost && siteProfile) {
+      const map = { ...(state.app.settings.light.siteProfiles || {}) };
+      map[state.currentHost] = deepMerge(map[state.currentHost] || {}, {
+        readingModeEnabled: true,
+        readingMode: safeMode
+      });
+      queuePatch({
+        light: {
+          ...globalPatch,
+          siteProfiles: map
+        }
+      });
+      return;
+    }
+
+    queuePatch({ light: globalPatch });
+  }
+
+  function getEyeToolState() {
+    return state.app?.settings?.eyeDropper || { recentHex: "#FFB300", swatches: [] };
+  }
+
+  function queueEyeDropperPatch(partial) {
+    const current = getEyeToolState();
+    queuePatch({ eyeDropper: deepMerge(current, partial) });
+  }
+
+  function secureTunnelPayloadFromUI() {
+    const mode = String(refs.secureTunnelMode.value || "preset");
+    const presetId = String(refs.secureTunnelPreset.value || "fastest");
+    const custom = {
+      scheme: String(refs.secureTunnelCustomScheme.value || "http"),
+      host: String(refs.secureTunnelCustomHost.value || "").trim(),
+      port: Number(refs.secureTunnelCustomPort.value || 8080),
+      username: String(refs.secureTunnelCustomUser.value || "").trim(),
+      password: String(refs.secureTunnelCustomPass.value || "")
+    };
+    return { mode, presetId, custom };
+  }
+
+  function saveCurrentEyeHexToSwatches() {
+    const hex = normalizeHexColor(state.eyeDraftHex || refs.eyeHexInput.value, "");
+    if (!hex) {
+      toast("Enter a valid HEX color, like #FFB300.");
+      return;
+    }
+
+    state.eyeDraftHex = hex;
+    const current = getEyeToolState();
+    const list = Array.isArray(current.swatches) ? [...current.swatches] : [];
+    const deduped = [hex, ...list.filter((value) => value !== hex)].slice(0, 12);
+    queueEyeDropperPatch({
+      recentHex: hex,
+      swatches: deduped
+    });
+    toast(`Saved ${hex}`);
+  }
+
+  function upsertFavorite(rawUrl, title = "") {
+    const normalizedUrl = normalizeFavoriteUrl(rawUrl);
+    if (!normalizedUrl) {
+      toast("Enter a valid website URL (https://...).");
+      return false;
+    }
+
+    const host = normalizeHost(normalizedUrl);
+    if (!host) {
+      toast("Only http/https websites are supported.");
+      return false;
+    }
+
+    const favorites = getFavoritesState();
+    const links = Array.isArray(favorites.links) ? [...favorites.links] : [];
+    const existingIndex = links.findIndex((item) => normalizeHost(item.url) === host);
+    const entry = {
+      id: host,
+      url: normalizedUrl,
+      host,
+      title: String(title || favoriteLabelFromHost(host)).slice(0, 80)
+    };
+
+    if (existingIndex >= 0) {
+      links.splice(existingIndex, 1);
+    } else if (links.length >= FAVORITE_LIMIT) {
+      toast(`Maximum ${FAVORITE_LIMIT} favorites reached.`);
+      return false;
+    }
+
+    links.unshift(entry);
+    queueFavoritesPatch({ links: links.slice(0, FAVORITE_LIMIT) });
+    state.favoriteDraftUrl = "";
+    setInputValue(refs.favoriteUrlInput, "");
+    toast(`Saved favorite: ${host}`);
+    return true;
+  }
+
   function bindEditingTracking() {
     document.addEventListener("focusin", (event) => {
       if (event.target?.id) state.editing.add(event.target.id);
@@ -604,6 +1276,41 @@
 
     refs.lightEnabled.addEventListener("change", (e) => queuePatch({ light: { enabled: e.target.checked } }));
     refs.lightMode.addEventListener("change", (e) => queueLightPatch({ mode: e.target.value }));
+    refs.readingModeOn.addEventListener("click", async () => {
+      refs.readingModeOn.classList.add("is-active");
+      refs.readingModeOff.classList.remove("is-active");
+      setReadingModeFeatureEnabled(true);
+      await applyAllTabs({ ensureLightEnabled: false, quiet: true });
+    });
+
+    refs.readingModeOff.addEventListener("click", async () => {
+      refs.readingModeOff.classList.add("is-active");
+      refs.readingModeOn.classList.remove("is-active");
+      setReadingModeFeatureEnabled(false);
+      await applyAllTabs({ ensureLightEnabled: false, quiet: true });
+    });
+
+    refs.readingModeDark.addEventListener("click", async () => {
+      refs.readingModeDark.classList.add("is-active");
+      refs.readingModeLight.classList.remove("is-active");
+      setReadingModeWithEnable("dark");
+      await applyAllTabs({ ensureLightEnabled: false, quiet: true });
+    });
+
+    refs.readingModeLight.addEventListener("click", async () => {
+      refs.readingModeLight.classList.add("is-active");
+      refs.readingModeDark.classList.remove("is-active");
+      setReadingModeWithEnable("light");
+      await applyAllTabs({ ensureLightEnabled: false, quiet: true });
+    });
+
+    refs.readingDarkVariant.addEventListener("change", (e) => {
+      queueLightPatch({ darkThemeVariant: String(e.target.value || "black") });
+    });
+
+    refs.readingLightVariant.addEventListener("change", (e) => {
+      queueLightPatch({ lightThemeVariant: String(e.target.value || "white") });
+    });
     refs.lightIntensity.addEventListener("input", (e) => {
       const value = Math.max(0, Math.min(100, Number(e.target.value || 0)));
       refs.lightIntensityValue.textContent = `${value}%`;
@@ -612,6 +1319,9 @@
 
     refs.lightThisSiteEnabled.addEventListener("change", (e) => setSiteOverride(e.target.checked));
     refs.lightExcludeSite.addEventListener("change", (e) => setExcludeSite(e.target.checked));
+    refs.lightApplyAll.addEventListener("click", async () => {
+      await applyAllTabs({ ensureLightEnabled: false, quiet: false });
+    });
 
     refs.saveSiteProfile.addEventListener("click", () => setSiteOverride(true));
 
@@ -624,7 +1334,11 @@
       const map = { ...(light.siteProfiles || {}) };
       map[state.currentHost] = {
         enabled: true,
+        readingModeEnabled: light.readingModeEnabled ?? false,
         mode: light.mode,
+        readingMode: light.readingMode,
+        darkThemeVariant: light.darkThemeVariant,
+        lightThemeVariant: light.lightThemeVariant,
         spectrumPreset: light.spectrumPreset,
         intensity: light.intensity,
         dim: light.dim,
@@ -698,6 +1412,233 @@
     });
     refs.therapyCadence.addEventListener("change", (e) => queueLightPatch({ therapyCadence: e.target.value }));
 
+    refs.screenPreset.addEventListener("change", (e) => {
+      const presetKey = String(e.target.value || "desktop_hd");
+      const preset = SCREEN_PRESETS[presetKey] || SCREEN_PRESETS.desktop_hd;
+      setInputValue(refs.screenWidth, String(preset.width));
+      setInputValue(refs.screenHeight, String(preset.height));
+      queuePatch({
+        screenEmulator: {
+          preset: presetKey,
+          width: preset.width,
+          height: preset.height
+        }
+      });
+    });
+
+    refs.screenWidth.addEventListener("change", (e) => {
+      const width = Math.max(320, Math.min(5120, Number(e.target.value || 1366)));
+      setInputValue(refs.screenWidth, String(width));
+      queuePatch({ screenEmulator: { width } });
+    });
+
+    refs.screenHeight.addEventListener("change", (e) => {
+      const height = Math.max(320, Math.min(2880, Number(e.target.value || 768)));
+      setInputValue(refs.screenHeight, String(height));
+      queuePatch({ screenEmulator: { height } });
+    });
+
+    refs.screenApply.addEventListener("click", async () => {
+      const preset = String(refs.screenPreset.value || "desktop_hd");
+      const width = Math.max(320, Math.min(5120, Number(refs.screenWidth.value || 1366)));
+      const height = Math.max(320, Math.min(2880, Number(refs.screenHeight.value || 768)));
+      refs.screenApply.disabled = true;
+      refs.screenApply.textContent = "Applying...";
+      const response = await sendMessage({ type: "holmeta:resize-window", preset, width, height });
+      refs.screenApply.disabled = false;
+      refs.screenApply.textContent = "Apply Size";
+      if (!response?.ok) {
+        toast(`Resize failed: ${response?.error || "unknown"}`);
+        return;
+      }
+      state.app = response.state;
+      render();
+      toast(`Window set to ${width}×${height}`);
+    });
+
+    refs.screenReset.addEventListener("click", async () => {
+      const response = await sendMessage({ type: "holmeta:reset-window-size" });
+      if (!response?.ok) {
+        toast(`Reset failed: ${response?.error || "unknown"}`);
+        return;
+      }
+      state.app = response.state;
+      render();
+      toast("Window size restored.");
+    });
+
+    refs.eyeHexInput.addEventListener("input", (e) => {
+      state.eyeDraftHex = String(e.target.value || "").toUpperCase();
+    });
+    refs.eyeHexInput.addEventListener("blur", () => {
+      const normalized = normalizeHexColor(state.eyeDraftHex || refs.eyeHexInput.value, "");
+      if (!normalized) return;
+      state.eyeDraftHex = normalized;
+      queueEyeDropperPatch({ recentHex: normalized });
+    });
+
+    refs.eyePickFromPage.addEventListener("click", async () => {
+      refs.eyePickFromPage.disabled = true;
+      refs.eyePickFromPage.textContent = "Starting...";
+      const response = await sendMessage({ type: "holmeta:start-color-pick" });
+      refs.eyePickFromPage.disabled = false;
+      refs.eyePickFromPage.textContent = "Pick from Page";
+
+      if (!response.ok) {
+        const error = String(response.error || "unknown");
+        if (error === "no_active_tab") {
+          toast("Open a standard website tab (http/https) to sample colors.");
+          return;
+        }
+        if (
+          error === "inject_failed" ||
+          error === "cannot_access_tab" ||
+          error.includes("cannot access contents of url") ||
+          error.includes("cannot access a chrome://") ||
+          error.includes("cannot access")
+        ) {
+          toast("This page is restricted. Open a normal website tab, refresh once, then try Pick from Page.");
+          return;
+        }
+        if (error.includes("receiving end does not exist") || error.includes("could not establish connection")) {
+          toast("Page connection was stale. Refresh the page and try the picker again.");
+          return;
+        }
+        toast(`Pick failed: ${error}`);
+        return;
+      }
+      if (response.state) {
+        state.app = response.state;
+      }
+      toast("Picker active. Move cursor on page for live swatch, then click to save.");
+      setStatus("Eye Dropper active on page");
+    });
+
+    refs.eyePasteHex.addEventListener("click", async () => {
+      try {
+        const text = await navigator.clipboard.readText();
+        const hex = normalizeHexColor(text, "");
+        if (!hex) {
+          toast("Clipboard does not contain a valid HEX color.");
+          return;
+        }
+        state.eyeDraftHex = hex;
+        setInputValue(refs.eyeHexInput, hex);
+        queueEyeDropperPatch({ recentHex: hex });
+        toast(`Pasted ${hex}`);
+      } catch {
+        toast("Clipboard read blocked by browser.");
+      }
+    });
+
+    refs.eyeCopyHex.addEventListener("click", async () => {
+      const hex = normalizeHexColor(state.eyeDraftHex || refs.eyeHexInput.value, "");
+      if (!hex) {
+        toast("Enter a valid HEX color first.");
+        return;
+      }
+      const ok = await copyToClipboard(hex);
+      if (!ok) {
+        toast("Copy failed.");
+        return;
+      }
+      state.eyeDraftHex = hex;
+      queueEyeDropperPatch({ recentHex: hex });
+      toast(`Copied ${hex}`);
+    });
+
+    refs.eyeAddSwatch.addEventListener("click", saveCurrentEyeHexToSwatches);
+
+    refs.favoriteUrlInput.addEventListener("input", (event) => {
+      state.favoriteDraftUrl = String(event.target.value || "");
+    });
+
+    refs.favoriteUrlInput.addEventListener("keydown", (event) => {
+      if (event.key !== "Enter") return;
+      event.preventDefault();
+      upsertFavorite(state.favoriteDraftUrl || refs.favoriteUrlInput.value);
+    });
+
+    refs.favoriteAddUrl.addEventListener("click", () => {
+      upsertFavorite(state.favoriteDraftUrl || refs.favoriteUrlInput.value);
+    });
+
+    refs.favoriteAddCurrent.addEventListener("click", async () => {
+      const tab = await queryCurrentTab();
+      const tabUrl = String(tab?.url || "");
+      const tabTitle = String(tab?.title || "");
+      if (!tabUrl || !/^https?:/i.test(tabUrl)) {
+        toast("Current tab is not a standard website.");
+        return;
+      }
+      upsertFavorite(tabUrl, tabTitle);
+    });
+
+    refs.favoritesGrid.addEventListener("click", (event) => {
+      const removeBtn = event.target.closest("[data-favorite-remove]");
+      if (removeBtn) {
+        const index = Number(removeBtn.getAttribute("data-favorite-remove"));
+        const favorites = getFavoritesState();
+        const links = Array.isArray(favorites.links) ? [...favorites.links] : [];
+        if (!Number.isInteger(index) || index < 0 || index >= links.length) return;
+        const removed = links.splice(index, 1)[0];
+        queueFavoritesPatch({ links });
+        toast(`Removed ${normalizeHost(removed?.url || "") || "favorite"}`);
+        return;
+      }
+
+      const openBtn = event.target.closest("[data-favorite-open]");
+      if (!openBtn) return;
+      const index = Number(openBtn.getAttribute("data-favorite-open"));
+      const favorites = getFavoritesState();
+      const links = Array.isArray(favorites.links) ? favorites.links : [];
+      if (!Number.isInteger(index) || index < 0 || index >= links.length) return;
+      const entry = links[index];
+      const url = normalizeFavoriteUrl(entry?.url || "");
+      if (!url) {
+        toast("Saved URL is invalid.");
+        return;
+      }
+      chrome.tabs.create({ url });
+    });
+
+    refs.eyeClearSwatches.addEventListener("click", () => {
+      const confirmed = window.confirm("Clear all saved color swatches?");
+      if (!confirmed) return;
+      queueEyeDropperPatch({
+        swatches: []
+      });
+      toast("Swatches cleared.");
+    });
+
+    refs.eyeSwatchesGrid.addEventListener("click", async (event) => {
+      const removeBtn = event.target.closest("[data-remove]");
+      if (removeBtn) {
+        const index = Number(removeBtn.getAttribute("data-remove"));
+        const current = getEyeToolState();
+        const swatches = Array.isArray(current.swatches) ? [...current.swatches] : [];
+        if (!Number.isInteger(index) || index < 0 || index >= swatches.length) return;
+        swatches.splice(index, 1);
+        queueEyeDropperPatch({ swatches });
+        toast("Swatch removed.");
+        return;
+      }
+
+      const colorBtn = event.target.closest("[data-hex]");
+      if (!colorBtn) return;
+      const hex = normalizeHexColor(colorBtn.getAttribute("data-hex"), "");
+      if (!hex) return;
+      state.eyeDraftHex = hex;
+      setInputValue(refs.eyeHexInput, hex);
+      const ok = await copyToClipboard(hex);
+      if (!ok) {
+        toast("Copy failed.");
+        return;
+      }
+      queueEyeDropperPatch({ recentHex: hex });
+      toast(`Copied ${hex}`);
+    });
+
     refs.blockerEnabled.addEventListener("change", (e) => queuePatch({ blocker: { enabled: e.target.checked } }));
     refs.nuclearMode.addEventListener("change", (e) => {
       const checked = e.target.checked;
@@ -710,6 +1651,32 @@
       }
       queuePatch({ blocker: { nuclear: checked } });
     });
+    refs.blockCatAds.addEventListener("change", (e) => queuePatch({ blocker: { categories: { ads: e.target.checked } } }));
+    refs.blockCatTrackers.addEventListener("change", (e) => queuePatch({ blocker: { categories: { trackers: e.target.checked } } }));
+    refs.blockCatMalware.addEventListener("change", (e) => queuePatch({ blocker: { categories: { malware: e.target.checked } } }));
+    refs.blockCatAnnoyances.addEventListener("change", (e) => queuePatch({ blocker: { categories: { annoyances: e.target.checked } } }));
+    refs.blockCatVideoAds.addEventListener("change", (e) => queuePatch({ blocker: { categories: { videoAds: e.target.checked } } }));
+    refs.blockCosmeticEnabled.addEventListener("change", (e) => queuePatch({ blocker: { cosmeticFiltering: e.target.checked } }));
+    refs.blockAntiDetect.addEventListener("change", (e) => queuePatch({ blocker: { antiDetection: e.target.checked } }));
+
+    const toggleQuickCategory = async (category) => {
+      const response = await sendMessage({ type: "holmeta:toggle-blocker-quick-category", category });
+      if (!response?.ok) {
+        toast(`Quick block failed: ${response?.error || "unknown"}`);
+        return;
+      }
+      state.app = response.state;
+      render();
+      const label = category === "adult"
+        ? "18+"
+        : category.charAt(0).toUpperCase() + category.slice(1);
+      toast(response.enabled ? `${label} category blocked.` : `${label} category unblocked.`);
+    };
+
+    refs.quickBlockSocial.addEventListener("click", () => toggleQuickCategory("social"));
+    refs.quickBlockShopping.addEventListener("click", () => toggleQuickCategory("shopping"));
+    refs.quickBlockEntertainment.addEventListener("click", () => toggleQuickCategory("entertainment"));
+    refs.quickBlockAdult.addEventListener("click", () => toggleQuickCategory("adult"));
 
     refs.addCurrentSite.addEventListener("click", async () => {
       if (!state.currentHost) {
@@ -726,6 +1693,79 @@
       toast(`Blocked ${state.currentHost}`);
     });
 
+    refs.removeCurrentSite.addEventListener("click", async () => {
+      if (!state.currentHost) {
+        toast("No active website detected.");
+        return;
+      }
+      const response = await sendMessage({ type: "holmeta:remove-blocked-domain", host: state.currentHost });
+      if (!response.ok) {
+        toast(`Failed: ${response.error || "unknown"}`);
+        return;
+      }
+      state.app = response.state;
+      render();
+      toast(response.removed ? `Unblocked ${state.currentHost}` : `${state.currentHost} was not in blocked list`);
+    });
+
+    refs.toggleWhitelistSite.addEventListener("click", async () => {
+      if (!state.currentHost) {
+        toast("No active website detected.");
+        return;
+      }
+      const response = await sendMessage({ type: "holmeta:toggle-blocker-whitelist-site", host: state.currentHost });
+      if (!response.ok) {
+        toast(`Whitelist update failed: ${response.error || "unknown"}`);
+        return;
+      }
+      state.app = response.state;
+      render();
+      toast(response.whitelisted ? `Whitelisted ${state.currentHost}` : `Removed ${state.currentHost} from whitelist`);
+    });
+
+    refs.toggleCosmeticSite.addEventListener("click", async () => {
+      if (!state.currentHost) {
+        toast("No active website detected.");
+        return;
+      }
+      const response = await sendMessage({ type: "holmeta:toggle-cosmetic-site-disable", host: state.currentHost });
+      if (!response.ok) {
+        toast(`Cosmetic site toggle failed: ${response.error || "unknown"}`);
+        return;
+      }
+      state.app = response.state;
+      render();
+      toast(response.disabled ? "Cosmetic filtering disabled for this site." : "Cosmetic filtering enabled for this site.");
+    });
+
+    refs.blockElementPicker.addEventListener("click", async () => {
+      const response = await sendMessage({ type: "holmeta:block-element-picker" });
+      if (!response.ok) {
+        if (response.error !== "cancelled") toast(`Block element failed: ${response.error || "unknown"}`);
+        return;
+      }
+      if (response.selector) {
+        toast(`Blocked selector: ${response.selector}`);
+      } else {
+        toast("Element picker active.");
+      }
+    });
+
+    refs.refreshBlockLists.addEventListener("click", async () => {
+      refs.refreshBlockLists.disabled = true;
+      refs.refreshBlockLists.textContent = "Refreshing...";
+      const response = await sendMessage({ type: "holmeta:refresh-blocker-lists" });
+      refs.refreshBlockLists.disabled = false;
+      refs.refreshBlockLists.textContent = "Refresh Lists";
+      if (!response.ok) {
+        toast(`Refresh failed: ${response.error || "unknown"}`);
+        return;
+      }
+      state.app = response.state;
+      render();
+      toast("Filter lists refreshed.");
+    });
+
     refs.pauseBlocker.addEventListener("click", async () => {
       const response = await sendMessage({ type: "holmeta:pause-blocker", minutes: 10 });
       if (!response.ok) {
@@ -737,17 +1777,133 @@
 
     refs.editBlocker.addEventListener("click", () => chrome.runtime.openOptionsPage());
 
+    refs.secureTunnelEnabled.addEventListener("change", async (event) => {
+      const response = await sendMessage({
+        type: "holmeta:secure-tunnel-toggle",
+        enabled: event.target.checked
+      });
+      if (!response.ok) {
+        toast(`Secure Tunnel failed: ${response.error || "unknown"}`);
+        event.target.checked = !event.target.checked;
+        return;
+      }
+      state.app = response.state;
+      render();
+      toast(event.target.checked ? "Secure Tunnel connected." : "Secure Tunnel disconnected.");
+    });
+
+    refs.secureTunnelMode.addEventListener("change", (event) => {
+      queuePatch({
+        secureTunnel: {
+          mode: String(event.target.value || "preset")
+        }
+      });
+    });
+
+    refs.secureTunnelPreset.addEventListener("change", (event) => {
+      queuePatch({
+        secureTunnel: {
+          selectedPresetId: String(event.target.value || "fastest")
+        }
+      });
+    });
+
+    refs.secureTunnelCustomScheme.addEventListener("change", (event) => {
+      queuePatch({ secureTunnel: { custom: { scheme: String(event.target.value || "http") } } });
+    });
+    refs.secureTunnelCustomHost.addEventListener("change", (event) => {
+      queuePatch({ secureTunnel: { custom: { host: String(event.target.value || "") } } });
+    });
+    refs.secureTunnelCustomPort.addEventListener("change", (event) => {
+      queuePatch({ secureTunnel: { custom: { port: Number(event.target.value || 8080) } } });
+    });
+    refs.secureTunnelCustomUser.addEventListener("change", (event) => {
+      queuePatch({ secureTunnel: { custom: { username: String(event.target.value || "") } } });
+    });
+    refs.secureTunnelCustomPass.addEventListener("change", (event) => {
+      queuePatch({ secureTunnel: { custom: { password: String(event.target.value || "") } } });
+    });
+
+    refs.secureTunnelSaveConnect.addEventListener("click", async () => {
+      const payload = secureTunnelPayloadFromUI();
+      refs.secureTunnelSaveConnect.disabled = true;
+      refs.secureTunnelSaveConnect.textContent = "Connecting...";
+      const response = await sendMessage({
+        type: "holmeta:secure-tunnel-connect",
+        mode: payload.mode,
+        presetId: payload.presetId,
+        custom: payload.custom
+      });
+      refs.secureTunnelSaveConnect.disabled = false;
+      refs.secureTunnelSaveConnect.textContent = "Save & Connect";
+      if (!response.ok) {
+        toast(`Connect failed: ${response.error || "unknown"}`);
+        return;
+      }
+      state.app = response.state;
+      render();
+      toast("Secure Tunnel connected.");
+    });
+
+    refs.secureTunnelDisconnect.addEventListener("click", async () => {
+      const response = await sendMessage({ type: "holmeta:secure-tunnel-disconnect" });
+      if (!response.ok) {
+        toast(`Disconnect failed: ${response.error || "unknown"}`);
+        return;
+      }
+      state.app = response.state;
+      render();
+      toast("Secure Tunnel disconnected.");
+    });
+
     refs.alertsEnabled.addEventListener("change", (e) => queuePatch({ alerts: { enabled: e.target.checked } }));
     refs.alertFrequency.addEventListener("change", (e) => queuePatch({ alerts: { frequencyMin: Number(e.target.value || 45) } }));
+    refs.alertCadence.addEventListener("change", (e) => queuePatch({ alerts: { cadenceMode: String(e.target.value || "focus_weighted") } }));
+    refs.alertTypeEye.addEventListener("change", (e) => queuePatch({ alerts: { types: { eye: e.target.checked } } }));
+    refs.alertTypePosture.addEventListener("change", (e) => queuePatch({ alerts: { types: { posture: e.target.checked } } }));
+    refs.alertTypeBurnout.addEventListener("change", (e) => queuePatch({ alerts: { types: { burnout: e.target.checked } } }));
+    refs.alertTypeHydration.addEventListener("change", (e) => queuePatch({ alerts: { types: { hydration: e.target.checked } } }));
+    refs.alertTypeBlink.addEventListener("change", (e) => queuePatch({ alerts: { types: { blink: e.target.checked } } }));
+    refs.alertTypeMovement.addEventListener("change", (e) => queuePatch({ alerts: { types: { movement: e.target.checked } } }));
     refs.alertSound.addEventListener("change", (e) => queuePatch({ alerts: { soundEnabled: e.target.checked } }));
+    refs.alertSoundVolume.addEventListener("input", (e) => {
+      const value = Math.max(5, Math.min(100, Number(e.target.value || 35)));
+      refs.alertSoundVolumeValue.textContent = `${value}%`;
+      queuePatch({ alerts: { soundVolume: value } });
+    });
+    refs.alertSoundPattern.addEventListener("change", (e) => queuePatch({ alerts: { soundPattern: String(e.target.value || "double") } }));
+    refs.alertToastEnabled.addEventListener("change", (e) => queuePatch({ alerts: { toastEnabled: e.target.checked } }));
+    refs.alertNotificationEnabled.addEventListener("change", (e) => queuePatch({ alerts: { notificationEnabled: e.target.checked } }));
+    refs.alertQuietHoursEnabled.addEventListener("change", (e) => queuePatch({ alerts: { quietHours: { enabled: e.target.checked } } }));
+    refs.alertQuietStart.addEventListener("change", (e) => queuePatch({ alerts: { quietHours: { start: e.target.value || "22:30" } } }));
+    refs.alertQuietEnd.addEventListener("change", (e) => queuePatch({ alerts: { quietHours: { end: e.target.value || "06:30" } } }));
+    refs.alertSnoozeMinutes.addEventListener("change", (e) => queuePatch({ alerts: { snoozeMinutes: Number(e.target.value || 10) } }));
+    refs.alertCooldown.addEventListener("change", (e) => queuePatch({ alerts: { cooldownMin: Number(e.target.value || 0) } }));
+    refs.alertBurnoutThreshold.addEventListener("change", (e) => queuePatch({ alerts: { burnoutFocusThresholdMin: Number(e.target.value || 90) } }));
+    refs.alertTestType.addEventListener("change", (e) => {
+      state.alertTestType = String(e.target.value || "eye");
+    });
 
     refs.testAlert.addEventListener("click", async () => {
-      const response = await sendMessage({ type: "holmeta:test-alert" });
+      const kind = String(state.alertTestType || refs.alertTestType.value || "eye");
+      const response = await sendMessage({ type: "holmeta:test-alert", kind });
       if (!response.ok) {
         toast(`Test failed: ${response.error || "unknown"}`);
         return;
       }
-      toast("Test alert dispatched.");
+      toast(`Test alert dispatched (${kind}).`);
+    });
+
+    refs.snoozeAlertsNow.addEventListener("click", async () => {
+      const minutes = Number(state.app?.settings?.alerts?.snoozeMinutes || refs.alertSnoozeMinutes.value || 10);
+      const response = await sendMessage({ type: "holmeta:snooze-alerts", minutes });
+      if (!response.ok) {
+        toast(`Snooze failed: ${response.error || "unknown"}`);
+        return;
+      }
+      state.app.settings.alerts.snoozeUntil = Number(response.snoozeUntil || 0);
+      renderAlerts();
+      toast(`Alerts snoozed for ${minutes} minutes.`);
     });
 
     refs.siteInsightEnabled.addEventListener("change", (e) => {
@@ -849,6 +2005,8 @@
     });
 
     refs.upgradePremium.addEventListener("click", openUpgrade);
+    refs.openWebsite.addEventListener("click", () => openExternal(WEBSITE_URL));
+    refs.openDashboard.addEventListener("click", () => openExternal(DASHBOARD_URL));
     refs.openOptions.addEventListener("click", () => chrome.runtime.openOptionsPage());
 
     document.querySelectorAll(".hotkey").forEach((btn) => {
@@ -962,6 +2120,13 @@
       renderDeepWork();
     }, 20000);
   }
+
+  window.addEventListener("unload", () => {
+    if (state.tunnelTimerHandle) {
+      clearInterval(state.tunnelTimerHandle);
+      state.tunnelTimerHandle = null;
+    }
+  });
 
   boot().catch((error) => {
     log("error", "boot_failed", error);

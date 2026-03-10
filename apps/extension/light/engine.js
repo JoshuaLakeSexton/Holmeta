@@ -105,6 +105,10 @@
     return {
       enabled: false,
       mode: "warm",
+      readingModeEnabled: false,
+      readingMode: "dark",
+      darkThemeVariant: "black",
+      lightThemeVariant: "white",
       spectrumPreset: "balanced",
       intensity: 45,
       dim: 18,
@@ -152,6 +156,16 @@
       mode,
       spectrumPreset,
       enabled: Boolean(raw.enabled ?? base.enabled),
+      readingModeEnabled: Boolean(raw.readingModeEnabled ?? raw.readingThemeEnabled ?? base.readingModeEnabled ?? false),
+      readingMode: ["dark", "light"].includes(String(raw.readingMode || ""))
+        ? String(raw.readingMode)
+        : (Boolean(raw.darkReadingMode ?? false) ? "dark" : String(base.readingMode || "dark")),
+      darkThemeVariant: ["black", "brown", "gray"].includes(String(raw.darkThemeVariant || ""))
+        ? String(raw.darkThemeVariant)
+        : String(base.darkThemeVariant || "black"),
+      lightThemeVariant: ["white", "warm", "gray"].includes(String(raw.lightThemeVariant || ""))
+        ? String(raw.lightThemeVariant)
+        : String(base.lightThemeVariant || "white"),
       intensity: Math.round(clamp(raw.intensity ?? base.intensity, 0, 100)),
       dim: Math.round(clamp(raw.dim ?? base.dim, 0, 60)),
       contrastSoft: Math.round(clamp(raw.contrastSoft ?? base.contrastSoft, 0, 30)),
@@ -210,10 +224,20 @@
     style.textContent = `
       :root.holmeta-light-active {
         --holmeta-light-filter: none;
+        --holmeta-reading-filter: none;
       }
 
       html.holmeta-light-active {
-        filter: var(--holmeta-light-filter) !important;
+        filter: var(--holmeta-reading-filter) var(--holmeta-light-filter) !important;
+      }
+
+      html.holmeta-reading-dark img,
+      html.holmeta-reading-dark video,
+      html.holmeta-reading-dark picture,
+      html.holmeta-reading-dark canvas,
+      html.holmeta-reading-dark svg,
+      html.holmeta-reading-dark iframe {
+        filter: invert(1) hue-rotate(180deg) contrast(1.04) brightness(1.02) !important;
       }
 
       #${IDS.OVERLAY} {
@@ -300,7 +324,10 @@
 
   function clear() {
     document.documentElement.classList.remove("holmeta-light-active");
+    document.documentElement.classList.remove("holmeta-reading-dark");
+    document.documentElement.classList.remove("holmeta-reading-light");
     document.documentElement.style.removeProperty("--holmeta-light-filter");
+    document.documentElement.style.removeProperty("--holmeta-reading-filter");
 
     const overlay = document.getElementById(IDS.OVERLAY);
     if (overlay) overlay.remove();
@@ -516,6 +543,70 @@
     return { x: 50, y: 42 };
   }
 
+  function readingThemeForProfile(profile = {}) {
+    const mode = profile.readingMode === "light" ? "light" : "dark";
+    const darkVariant = ["black", "brown", "gray"].includes(profile.darkThemeVariant)
+      ? profile.darkThemeVariant
+      : "black";
+    const lightVariant = ["white", "warm", "gray"].includes(profile.lightThemeVariant)
+      ? profile.lightThemeVariant
+      : "white";
+
+    if (mode === "dark") {
+      if (darkVariant === "brown") {
+        return {
+          mode,
+          variant: darkVariant,
+          filter: "invert(0.95) hue-rotate(166deg) sepia(0.32) saturate(0.88) brightness(0.82) contrast(0.93)",
+          overlayBg: "rgba(72, 56, 42, 1)",
+          overlayBoost: 0.08
+        };
+      }
+      if (darkVariant === "gray") {
+        return {
+          mode,
+          variant: darkVariant,
+          filter: "invert(0.95) hue-rotate(180deg) grayscale(0.28) brightness(0.82) contrast(0.92)",
+          overlayBg: "rgba(48, 48, 48, 1)",
+          overlayBoost: 0.08
+        };
+      }
+      return {
+        mode,
+        variant: darkVariant,
+        filter: "invert(0.95) hue-rotate(180deg) brightness(0.80) contrast(0.94) saturate(0.84)",
+        overlayBg: "rgba(14, 14, 14, 1)",
+        overlayBoost: 0.1
+      };
+    }
+
+    if (lightVariant === "warm") {
+      return {
+        mode,
+        variant: lightVariant,
+        filter: "brightness(1.03) contrast(0.97) sepia(0.15) saturate(0.92)",
+        overlayBg: "rgba(255, 244, 220, 1)",
+        overlayBoost: 0.04
+      };
+    }
+    if (lightVariant === "gray") {
+      return {
+        mode,
+        variant: lightVariant,
+        filter: "brightness(1.02) contrast(0.98) grayscale(0.18)",
+        overlayBg: "rgba(235, 235, 235, 1)",
+        overlayBoost: 0.03
+      };
+    }
+    return {
+      mode,
+      variant: lightVariant,
+      filter: "brightness(1.02) contrast(0.99) saturate(0.98)",
+      overlayBg: "rgba(255, 255, 255, 1)",
+      overlayBoost: 0.03
+    };
+  }
+
   function apply(payload = {}) {
     const settings = payload.settings || {};
     const lightSettings = settings.light || {};
@@ -535,8 +626,13 @@
     const baseEnabled = Boolean(lightSettings.enabled);
     const scheduleActive = !lightSettings.schedule?.enabled || inRange(lightSettings.schedule.start || "20:00", lightSettings.schedule.end || "06:00");
     const runtimeEnabled = typeof effective.lightActive === "boolean" ? effective.lightActive : scheduleActive;
+    const profile = pickProfile(lightSettings, host);
+    if (profile.mode === "spotlight") profile.spotlightEnabled = true;
 
-    if (!baseEnabled || !runtimeEnabled || excluded) {
+    const filterEnabled = Boolean(baseEnabled && runtimeEnabled);
+    const readingThemeEnabled = profile.readingModeEnabled !== false;
+
+    if ((!filterEnabled && !readingThemeEnabled) || excluded) {
       clear();
       return { ...state.diagnostics };
     }
@@ -545,23 +641,32 @@
     const overlay = ensureLayer(IDS.OVERLAY);
     const focus = ensureLayer(IDS.FOCUS);
 
-    const profile = pickProfile(lightSettings, host);
-    if (profile.mode === "spotlight") profile.spotlightEnabled = true;
-
     const rampFactor = computeRampFactor(profile);
     const strategy = chooseStrategy(profile, media);
     const style = profileToStyle(profile, strategy, rampFactor);
+    const readingTheme = readingThemeEnabled
+      ? readingThemeForProfile(profile)
+      : { mode: "off", variant: "off", filter: "none", overlayBoost: 0 };
+    const readingFilter = readingThemeEnabled ? readingTheme.filter : "none";
 
     document.documentElement.classList.add("holmeta-light-active");
-    document.documentElement.style.setProperty("--holmeta-light-filter", style.filter);
+    document.documentElement.classList.toggle("holmeta-reading-dark", readingThemeEnabled && readingTheme.mode === "dark");
+    document.documentElement.classList.toggle("holmeta-reading-light", readingThemeEnabled && readingTheme.mode === "light");
+    document.documentElement.style.setProperty("--holmeta-light-filter", filterEnabled ? style.filter : "none");
+    document.documentElement.style.setProperty("--holmeta-reading-filter", readingFilter);
 
-    overlay.style.setProperty("--holmeta-overlay-bg", style.overlayBg);
-    overlay.style.setProperty("--holmeta-overlay-opacity", String(style.overlayOpacity));
-    overlay.classList.add("active");
+    const themedOverlayOpacity = clamp((filterEnabled ? style.overlayOpacity : 0) + (readingThemeEnabled ? (readingTheme.overlayBoost || 0) : 0), 0, 0.92);
+    overlay.style.setProperty("--holmeta-overlay-bg", readingThemeEnabled ? (readingTheme.overlayBg || style.overlayBg) : style.overlayBg);
+    overlay.style.setProperty("--holmeta-overlay-opacity", String(themedOverlayOpacity));
+    if (themedOverlayOpacity > 0) {
+      overlay.classList.add("active");
+    } else {
+      overlay.classList.remove("active");
+    }
 
     overlay.classList.remove("cadence-slow", "cadence-medium", "cadence-gentle");
 
-    const therapyActive = Boolean(profile.therapyMode);
+    const therapyActive = filterEnabled && Boolean(profile.therapyMode);
     if (therapyActive) {
       const cadenceClass = profile.therapyCadence === "slow"
         ? "cadence-slow"
@@ -571,7 +676,7 @@
       overlay.classList.add(cadenceClass);
     }
 
-    const useSpotlight = Boolean(profile.spotlightEnabled) || Boolean(effective.deepWorkActive);
+    const useSpotlight = (filterEnabled && Boolean(profile.spotlightEnabled)) || Boolean(effective.deepWorkActive);
     if (useSpotlight) {
       const point = getSpotlightPoint();
       focus.style.setProperty("--holmeta-focus-x", `${point.x}%`);
@@ -583,9 +688,11 @@
     }
 
     state.enabled = true;
-    state.diagnostics.active = true;
-    state.diagnostics.mode = profile.mode;
+    state.diagnostics.active = filterEnabled || readingThemeEnabled;
+    state.diagnostics.mode = filterEnabled ? profile.mode : "reading_only";
     state.diagnostics.strategy = strategy;
+    state.diagnostics.readingMode = readingTheme.mode;
+    state.diagnostics.readingVariant = readingTheme.variant;
 
     return { ...state.diagnostics };
   }

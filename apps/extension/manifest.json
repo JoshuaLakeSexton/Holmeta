@@ -24,9 +24,13 @@
   },
   "permissions": [
     "storage",
+    "proxy",
     "tabs",
     "activeTab",
+    "windows",
     "scripting",
+    "webRequest",
+    "webRequestAuthProvider",
     "notifications",
     "alarms",
     "declarativeContent",

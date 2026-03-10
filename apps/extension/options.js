@@ -65,15 +65,58 @@
     optBlockScheduleEnabled: $("optBlockScheduleEnabled"),
     optBlockStart: $("optBlockStart"),
     optBlockEnd: $("optBlockEnd"),
+    optBlockCatAds: $("optBlockCatAds"),
+    optBlockCatTrackers: $("optBlockCatTrackers"),
+    optBlockCatMalware: $("optBlockCatMalware"),
+    optBlockCatAnnoyances: $("optBlockCatAnnoyances"),
+    optBlockCatVideoAds: $("optBlockCatVideoAds"),
+    optBlockCosmeticEnabled: $("optBlockCosmeticEnabled"),
+    optBlockAntiDetect: $("optBlockAntiDetect"),
+    optBlockAutoUpdate: $("optBlockAutoUpdate"),
+    optBlockUpdateInterval: $("optBlockUpdateInterval"),
+    optRefreshBlockLists: $("optRefreshBlockLists"),
+    optBlockCosmeticDisabledHosts: $("optBlockCosmeticDisabledHosts"),
+    optBlockCustomCosmeticJson: $("optBlockCustomCosmeticJson"),
     optBlockedDomains: $("optBlockedDomains"),
     optAllowDomains: $("optAllowDomains"),
 
+    optTunnelEnabled: $("optTunnelEnabled"),
+    optTunnelMode: $("optTunnelMode"),
+    optTunnelPreset: $("optTunnelPreset"),
+    optTunnelAutoReapply: $("optTunnelAutoReapply"),
+    optTunnelReapplyMinutes: $("optTunnelReapplyMinutes"),
+    optTunnelCustomScheme: $("optTunnelCustomScheme"),
+    optTunnelCustomHost: $("optTunnelCustomHost"),
+    optTunnelCustomPort: $("optTunnelCustomPort"),
+    optTunnelCustomUser: $("optTunnelCustomUser"),
+    optTunnelCustomPass: $("optTunnelCustomPass"),
+    optTunnelBypassList: $("optTunnelBypassList"),
+    optTunnelConnect: $("optTunnelConnect"),
+    optTunnelDisconnect: $("optTunnelDisconnect"),
+    optTunnelStatus: $("optTunnelStatus"),
+
     optAlertsEnabled: $("optAlertsEnabled"),
     optAlertFrequency: $("optAlertFrequency"),
+    optAlertCadence: $("optAlertCadence"),
     optAlertSound: $("optAlertSound"),
+    optAlertVolume: $("optAlertVolume"),
+    optAlertPattern: $("optAlertPattern"),
+    optAlertToastEnabled: $("optAlertToastEnabled"),
+    optAlertNotificationEnabled: $("optAlertNotificationEnabled"),
+    optAlertSnoozeMinutes: $("optAlertSnoozeMinutes"),
+    optAlertCooldown: $("optAlertCooldown"),
+    optAlertBurnoutThreshold: $("optAlertBurnoutThreshold"),
+    optAlertQuietHoursEnabled: $("optAlertQuietHoursEnabled"),
+    optAlertQuietStart: $("optAlertQuietStart"),
+    optAlertQuietEnd: $("optAlertQuietEnd"),
     optAlertEye: $("optAlertEye"),
     optAlertPosture: $("optAlertPosture"),
     optAlertBurnout: $("optAlertBurnout"),
+    optAlertHydration: $("optAlertHydration"),
+    optAlertBlink: $("optAlertBlink"),
+    optAlertMovement: $("optAlertMovement"),
+    optAlertTestType: $("optAlertTestType"),
+    optAlertTest: $("optAlertTest"),
 
     optSiteInsightEnabled: $("optSiteInsightEnabled"),
     optSiteInsightShowOnEverySite: $("optSiteInsightShowOnEverySite"),
@@ -176,6 +219,28 @@
 
   function domainsToLines(list) {
     return Array.isArray(list) ? list.join("\n") : "";
+  }
+
+  function linesToBypassList(text) {
+    const seen = new Set();
+    const out = [];
+    String(text || "")
+      .split(/\n|,/g)
+      .map((line) => String(line || "").trim())
+      .filter(Boolean)
+      .forEach((value) => {
+        const normalized = value === "<local>"
+          ? "<local>"
+          : value
+              .toLowerCase()
+              .replace(/^https?:\/\//, "")
+              .replace(/^www\./, "")
+              .replace(/\/.*$/, "");
+        if (!normalized || seen.has(normalized)) return;
+        seen.add(normalized);
+        out.push(normalized);
+      });
+    return out;
   }
 
   function hostMapToLines(map) {
@@ -351,6 +416,64 @@
     ].join(" · ");
   }
 
+  function formatDuration(ms) {
+    const total = Math.max(0, Math.floor(Number(ms || 0) / 1000));
+    const h = Math.floor(total / 3600);
+    const m = Math.floor((total % 3600) / 60);
+    const s = total % 60;
+    return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+  }
+
+  function renderSecureTunnel() {
+    const tunnel = state.app.settings.secureTunnel || {};
+    const runtime = state.app.runtime?.secureTunnel || {};
+    const presets = Array.isArray(runtime.presets) ? runtime.presets : [];
+
+    if (refs.optTunnelPreset && !refs.optTunnelPreset.dataset.initialized) {
+      refs.optTunnelPreset.innerHTML = presets
+        .map((preset) => `<option value="${preset.id}">${preset.label}</option>`)
+        .join("");
+      refs.optTunnelPreset.dataset.initialized = "true";
+    } else if (refs.optTunnelPreset && presets.length) {
+      const existing = new Set([...refs.optTunnelPreset.options].map((option) => option.value));
+      const mismatch = presets.some((preset) => !existing.has(preset.id)) || existing.size !== presets.length;
+      if (mismatch) {
+        refs.optTunnelPreset.innerHTML = presets
+          .map((preset) => `<option value="${preset.id}">${preset.label}</option>`)
+          .join("");
+      }
+    }
+
+    setChecked("optTunnelEnabled", tunnel.enabled);
+    setValue("optTunnelMode", tunnel.mode || "preset");
+    setValue("optTunnelPreset", tunnel.selectedPresetId || "fastest");
+    setChecked("optTunnelAutoReapply", tunnel.autoReapply);
+    setValue("optTunnelReapplyMinutes", tunnel.reapplyMinutes || 20);
+    setValue("optTunnelCustomScheme", tunnel.custom?.scheme || "http");
+    setValue("optTunnelCustomHost", tunnel.custom?.host || "");
+    setValue("optTunnelCustomPort", tunnel.custom?.port || 8080);
+    setValue("optTunnelCustomUser", tunnel.custom?.username || "");
+    setValue("optTunnelCustomPass", tunnel.custom?.password || "");
+    setValue("optTunnelBypassList", Array.isArray(tunnel.bypassList) ? tunnel.bypassList.join("\n") : "<local>\nlocalhost\n127.0.0.1");
+
+    refs.optTunnelPreset.disabled = String(tunnel.mode || "preset") === "custom";
+    refs.optTunnelCustomPass.disabled = String(tunnel.mode || "preset") !== "custom";
+    refs.optTunnelCustomUser.disabled = String(tunnel.mode || "preset") !== "custom";
+    refs.optTunnelCustomHost.disabled = String(tunnel.mode || "preset") !== "custom";
+    refs.optTunnelCustomPort.disabled = String(tunnel.mode || "preset") !== "custom";
+    refs.optTunnelCustomScheme.disabled = String(tunnel.mode || "preset") !== "custom";
+
+    if (runtime.connected) {
+      const label = runtime.activeLabel || runtime.activePresetId || "proxy";
+      const session = runtime.connectedAt ? formatDuration(Date.now() - Number(runtime.connectedAt || 0)) : "00:00:00";
+      refs.optTunnelStatus.textContent = `Connected via ${label} · Session ${session}`;
+    } else if (runtime.lastError) {
+      refs.optTunnelStatus.textContent = `Connection failed: ${runtime.lastError}`;
+    } else {
+      refs.optTunnelStatus.textContent = "Disconnected.";
+    }
+  }
+
   function render() {
     if (!state.app) return;
     const s = state.app.settings;
@@ -390,15 +513,41 @@
     setChecked("optBlockScheduleEnabled", s.blocker.schedule.enabled);
     setValue("optBlockStart", s.blocker.schedule.start);
     setValue("optBlockEnd", s.blocker.schedule.end);
+    setChecked("optBlockCatAds", s.blocker.categories?.ads);
+    setChecked("optBlockCatTrackers", s.blocker.categories?.trackers);
+    setChecked("optBlockCatMalware", s.blocker.categories?.malware);
+    setChecked("optBlockCatAnnoyances", s.blocker.categories?.annoyances);
+    setChecked("optBlockCatVideoAds", s.blocker.categories?.videoAds);
+    setChecked("optBlockCosmeticEnabled", s.blocker.cosmeticFiltering);
+    setChecked("optBlockAntiDetect", s.blocker.antiDetection);
+    setChecked("optBlockAutoUpdate", s.blocker.autoUpdateLists);
+    setValue("optBlockUpdateInterval", s.blocker.updateIntervalHours || 48);
     setValue("optBlockedDomains", domainsToLines(s.blocker.blockedDomains));
     setValue("optAllowDomains", domainsToLines(s.blocker.allowDomains));
+    setValue("optBlockCosmeticDisabledHosts", hostMapToLines(s.blocker.disableCosmeticOnSite));
+    setValue("optBlockCustomCosmeticJson", JSON.stringify(s.blocker.customCosmeticSelectors || {}, null, 2));
+    renderSecureTunnel();
 
     setChecked("optAlertsEnabled", s.alerts.enabled);
     setValue("optAlertFrequency", s.alerts.frequencyMin);
+    setValue("optAlertCadence", s.alerts.cadenceMode || "focus_weighted");
     setChecked("optAlertSound", s.alerts.soundEnabled);
+    setValue("optAlertVolume", s.alerts.soundVolume || 35);
+    setValue("optAlertPattern", s.alerts.soundPattern || "double");
+    setChecked("optAlertToastEnabled", s.alerts.toastEnabled);
+    setChecked("optAlertNotificationEnabled", s.alerts.notificationEnabled);
+    setValue("optAlertSnoozeMinutes", s.alerts.snoozeMinutes || 10);
+    setValue("optAlertCooldown", s.alerts.cooldownMin || 0);
+    setValue("optAlertBurnoutThreshold", s.alerts.burnoutFocusThresholdMin || 90);
+    setChecked("optAlertQuietHoursEnabled", s.alerts.quietHours?.enabled);
+    setValue("optAlertQuietStart", s.alerts.quietHours?.start || "22:30");
+    setValue("optAlertQuietEnd", s.alerts.quietHours?.end || "06:30");
     setChecked("optAlertEye", s.alerts.types.eye);
     setChecked("optAlertPosture", s.alerts.types.posture);
     setChecked("optAlertBurnout", s.alerts.types.burnout);
+    setChecked("optAlertHydration", s.alerts.types.hydration);
+    setChecked("optAlertBlink", s.alerts.types.blink);
+    setChecked("optAlertMovement", s.alerts.types.movement);
 
     setChecked("optSiteInsightEnabled", s.siteInsight.enabled);
     setChecked("optSiteInsightShowOnEverySite", s.siteInsight.showOnEverySite);
@@ -523,15 +672,60 @@
     bindCheck("optBlockScheduleEnabled", (el) => queuePatch({ blocker: { schedule: { enabled: el.checked } } }));
     bindInput("optBlockStart", (el) => queuePatch({ blocker: { schedule: { start: el.value || "09:00" } } }));
     bindInput("optBlockEnd", (el) => queuePatch({ blocker: { schedule: { end: el.value || "17:30" } } }));
+    bindCheck("optBlockCatAds", (el) => queuePatch({ blocker: { categories: { ads: el.checked } } }));
+    bindCheck("optBlockCatTrackers", (el) => queuePatch({ blocker: { categories: { trackers: el.checked } } }));
+    bindCheck("optBlockCatMalware", (el) => queuePatch({ blocker: { categories: { malware: el.checked } } }));
+    bindCheck("optBlockCatAnnoyances", (el) => queuePatch({ blocker: { categories: { annoyances: el.checked } } }));
+    bindCheck("optBlockCatVideoAds", (el) => queuePatch({ blocker: { categories: { videoAds: el.checked } } }));
+    bindCheck("optBlockCosmeticEnabled", (el) => queuePatch({ blocker: { cosmeticFiltering: el.checked } }));
+    bindCheck("optBlockAntiDetect", (el) => queuePatch({ blocker: { antiDetection: el.checked } }));
+    bindCheck("optBlockAutoUpdate", (el) => queuePatch({ blocker: { autoUpdateLists: el.checked } }));
+    bindSelect("optBlockUpdateInterval", (el) => queuePatch({ blocker: { updateIntervalHours: Number(el.value || 48) } }));
     bindInput("optBlockedDomains", (el) => queuePatch({ blocker: { blockedDomains: linesToDomains(el.value) } }));
     bindInput("optAllowDomains", (el) => queuePatch({ blocker: { allowDomains: linesToDomains(el.value) } }));
+    bindInput("optBlockCosmeticDisabledHosts", (el) => queuePatch({ blocker: { disableCosmeticOnSite: linesToHostMap(el.value) } }));
+    refs.optBlockCustomCosmeticJson?.addEventListener("blur", (event) => {
+      const el = event.target;
+      try {
+        const parsed = JSON.parse(el.value || "{}");
+        queuePatch({ blocker: { customCosmeticSelectors: parsed } });
+      } catch {
+        setStatus("Custom cosmetic selector JSON invalid", true);
+      }
+    });
+
+    bindCheck("optTunnelEnabled", (el) => queuePatch({ secureTunnel: { enabled: el.checked } }));
+    bindSelect("optTunnelMode", (el) => queuePatch({ secureTunnel: { mode: String(el.value || "preset") } }));
+    bindSelect("optTunnelPreset", (el) => queuePatch({ secureTunnel: { selectedPresetId: String(el.value || "fastest") } }));
+    bindCheck("optTunnelAutoReapply", (el) => queuePatch({ secureTunnel: { autoReapply: el.checked } }));
+    bindSelect("optTunnelReapplyMinutes", (el) => queuePatch({ secureTunnel: { reapplyMinutes: Number(el.value || 20) } }));
+    bindSelect("optTunnelCustomScheme", (el) => queuePatch({ secureTunnel: { custom: { scheme: String(el.value || "http") } } }));
+    bindSelect("optTunnelCustomHost", (el) => queuePatch({ secureTunnel: { custom: { host: String(el.value || "") } } }));
+    bindSelect("optTunnelCustomPort", (el) => queuePatch({ secureTunnel: { custom: { port: Number(el.value || 8080) } } }));
+    bindSelect("optTunnelCustomUser", (el) => queuePatch({ secureTunnel: { custom: { username: String(el.value || "") } } }));
+    bindSelect("optTunnelCustomPass", (el) => queuePatch({ secureTunnel: { custom: { password: String(el.value || "") } } }));
+    bindSelect("optTunnelBypassList", (el) => queuePatch({ secureTunnel: { bypassList: linesToBypassList(el.value) } }));
 
     bindCheck("optAlertsEnabled", (el) => queuePatch({ alerts: { enabled: el.checked } }));
     bindSelect("optAlertFrequency", (el) => queuePatch({ alerts: { frequencyMin: Number(el.value || 45) } }));
+    bindSelect("optAlertCadence", (el) => queuePatch({ alerts: { cadenceMode: String(el.value || "focus_weighted") } }));
     bindCheck("optAlertSound", (el) => queuePatch({ alerts: { soundEnabled: el.checked } }));
+    bindInput("optAlertVolume", (el) => queuePatch({ alerts: { soundVolume: Number(el.value || 35) } }));
+    bindSelect("optAlertPattern", (el) => queuePatch({ alerts: { soundPattern: String(el.value || "double") } }));
+    bindCheck("optAlertToastEnabled", (el) => queuePatch({ alerts: { toastEnabled: el.checked } }));
+    bindCheck("optAlertNotificationEnabled", (el) => queuePatch({ alerts: { notificationEnabled: el.checked } }));
+    bindSelect("optAlertSnoozeMinutes", (el) => queuePatch({ alerts: { snoozeMinutes: Number(el.value || 10) } }));
+    bindSelect("optAlertCooldown", (el) => queuePatch({ alerts: { cooldownMin: Number(el.value || 0) } }));
+    bindSelect("optAlertBurnoutThreshold", (el) => queuePatch({ alerts: { burnoutFocusThresholdMin: Number(el.value || 90) } }));
+    bindCheck("optAlertQuietHoursEnabled", (el) => queuePatch({ alerts: { quietHours: { enabled: el.checked } } }));
+    bindInput("optAlertQuietStart", (el) => queuePatch({ alerts: { quietHours: { start: el.value || "22:30" } } }));
+    bindInput("optAlertQuietEnd", (el) => queuePatch({ alerts: { quietHours: { end: el.value || "06:30" } } }));
     bindCheck("optAlertEye", (el) => queuePatch({ alerts: { types: { eye: el.checked } } }));
     bindCheck("optAlertPosture", (el) => queuePatch({ alerts: { types: { posture: el.checked } } }));
     bindCheck("optAlertBurnout", (el) => queuePatch({ alerts: { types: { burnout: el.checked } } }));
+    bindCheck("optAlertHydration", (el) => queuePatch({ alerts: { types: { hydration: el.checked } } }));
+    bindCheck("optAlertBlink", (el) => queuePatch({ alerts: { types: { blink: el.checked } } }));
+    bindCheck("optAlertMovement", (el) => queuePatch({ alerts: { types: { movement: el.checked } } }));
 
     bindCheck("optSiteInsightEnabled", (el) => queuePatch({ siteInsight: { enabled: el.checked } }));
     bindCheck("optSiteInsightShowOnEverySite", (el) => queuePatch({ siteInsight: { showOnEverySite: el.checked } }));
@@ -575,6 +769,17 @@
     refs.optProfileSearch.addEventListener("input", (event) => {
       state.profileSearch = String(event.target.value || "").trim().toLowerCase();
       renderSiteProfiles();
+    });
+
+    refs.optAlertTest?.addEventListener("click", async () => {
+      const kind = String(refs.optAlertTestType?.value || "eye");
+      const response = await sendMessage({ type: "holmeta:test-alert", kind });
+      if (!response.ok) {
+        setStatus(`Test alert failed: ${response.error || "unknown"}`, true);
+        return;
+      }
+      toast(`Test alert sent (${kind}).`);
+      setStatus("Alert test sent.");
     });
   }
 
@@ -660,6 +865,61 @@
     refs.applyQuickSchedule.addEventListener("click", () => {
       applyQuickSchedulePreset(String(refs.optQuickSchedule.value || "custom"));
       toast("Quick schedule applied.");
+    });
+
+    refs.optRefreshBlockLists?.addEventListener("click", async () => {
+      refs.optRefreshBlockLists.disabled = true;
+      refs.optRefreshBlockLists.textContent = "Refreshing...";
+      const response = await sendMessage({ type: "holmeta:refresh-blocker-lists" });
+      refs.optRefreshBlockLists.disabled = false;
+      refs.optRefreshBlockLists.textContent = "Refresh Filter Lists Now";
+      if (!response.ok) {
+        toast(`Refresh failed: ${response.error || "unknown"}`);
+        return;
+      }
+      state.app = response.state;
+      render();
+      toast("Filter lists refreshed.");
+    });
+
+    refs.optTunnelConnect?.addEventListener("click", async () => {
+      const payload = {
+        mode: String(refs.optTunnelMode?.value || "preset"),
+        presetId: String(refs.optTunnelPreset?.value || "fastest"),
+        custom: {
+          scheme: String(refs.optTunnelCustomScheme?.value || "http"),
+          host: String(refs.optTunnelCustomHost?.value || "").trim(),
+          port: Number(refs.optTunnelCustomPort?.value || 8080),
+          username: String(refs.optTunnelCustomUser?.value || "").trim(),
+          password: String(refs.optTunnelCustomPass?.value || "")
+        }
+      };
+      refs.optTunnelConnect.disabled = true;
+      refs.optTunnelConnect.textContent = "Connecting...";
+      const response = await sendMessage({
+        type: "holmeta:secure-tunnel-connect",
+        ...payload
+      });
+      refs.optTunnelConnect.disabled = false;
+      refs.optTunnelConnect.textContent = "Save & Connect";
+      if (!response.ok) {
+        toast(`Secure Tunnel failed: ${response.error || "unknown"}`);
+        return;
+      }
+      state.app = response.state;
+      render();
+      toast("Secure Tunnel connected.");
+    });
+
+    refs.optTunnelDisconnect?.addEventListener("click", async () => {
+      const response = await sendMessage({ type: "holmeta:secure-tunnel-disconnect" });
+      if (!response.ok) {
+        toast(`Secure Tunnel disconnect failed: ${response.error || "unknown"}`);
+        return;
+      }
+      state.app = response.state;
+      render();
+      toast("Secure Tunnel disconnected.");
     });
 
     refs.exportSettings.addEventListener("click", async () => {

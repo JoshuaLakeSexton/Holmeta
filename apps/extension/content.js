@@ -12,12 +12,60 @@
   const IDS = {
     STYLE: "holmeta-content-style-v3",
     TOAST_HOST: "holmeta-toast-host-v3",
-    INSIGHT_HOST: "holmeta-site-insight-host-v3"
+    INSIGHT_HOST: "holmeta-site-insight-host-v3",
+    BLOCKER_STYLE: "holmeta-blocker-style-v3",
+    PICKER_HUD: "holmeta-color-picker-hud-v3"
   };
 
   const SITE_INSIGHT_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
   const SITE_INSIGHT_LOCAL_THROTTLE_MS = 10000;
-  const SITE_INSIGHT_MODEL_VERSION = 2;
+  const SITE_INSIGHT_MODEL_VERSION = 5;
+  const SITE_INSIGHT_SEEN_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+  const SITE_INSIGHT_SEEN_KEY_PREFIX = "holmeta.siteInsight.seen.v2.";
+
+  const COSMETIC_SELECTORS = {
+    ads: [
+      "ins.adsbygoogle",
+      "iframe[src*='doubleclick.net']",
+      "iframe[src*='googlesyndication.com']",
+      "[class*='adsbygoogle']",
+      ".ad-banner",
+      ".ad-container",
+      ".adsbox",
+      "[id^='google_ads']",
+      "[id*='adslot']",
+      "[class*='sponsored']",
+      "[aria-label*='advertisement' i]",
+      "[data-ad]"
+    ],
+    annoyances: [
+      "#onetrust-banner-sdk",
+      ".onetrust-pc-dark-filter",
+      ".cookie-banner",
+      ".cookie-consent",
+      ".cc-window",
+      ".qc-cmp2-container",
+      ".didomi-popup-open",
+      ".newsletter-popup",
+      ".modal-newsletter",
+      ".subscribe-modal"
+    ],
+    videoAds: [
+      ".ytp-ad-module",
+      ".ytp-ad-overlay-container",
+      ".ytp-ad-player-overlay",
+      ".video-ads",
+      ".ad-showing",
+      "[class*='ad-slot-renderer']"
+    ],
+    antiDetectBait: [
+      ".adsbox",
+      ".ad-placement",
+      ".ad_unit",
+      "#adsbox",
+      ".text-ad-links"
+    ]
+  };
 
   const state = {
     settings: null,
@@ -38,12 +86,29 @@
       lastShownAt: 0,
       lastRenderUrl: "",
       lastRequestedUrl: "",
+      seenHosts: {},
       navHooked: false,
       autoMinimizeTimer: null,
-      pinned: false,
       minimized: false,
       config: null,
       summaryData: null
+    },
+    blocker: {
+      observer: null,
+      scanTimer: null,
+      pickerActive: false,
+      pickerCleanup: null,
+      hiddenCountSent: 0,
+      antiDetectInjected: false
+    },
+    eyeDropper: {
+      active: false,
+      lastHex: "#FFB300",
+      rafId: 0,
+      pendingPoint: null,
+      cleanup: null,
+      hudNode: null,
+      previousCursor: ""
     }
   };
 
@@ -72,6 +137,248 @@
         .toLowerCase();
       return raw || "";
     }
+  }
+
+  function siteInsightSeenKey(host) {
+    const safeHost = normalizeHost(host);
+    if (!safeHost) return "";
+    return `${SITE_INSIGHT_SEEN_KEY_PREFIX}${safeHost}`;
+  }
+
+  function hasSeenSiteInsightHost(host) {
+    const safeHost = normalizeHost(host);
+    if (!safeHost) return false;
+    const inMemoryTs = Number(state.siteInsight.seenHosts?.[safeHost] || 0);
+    if (inMemoryTs > 0 && Date.now() - inMemoryTs <= SITE_INSIGHT_SEEN_TTL_MS) {
+      return true;
+    }
+    const key = siteInsightSeenKey(safeHost);
+    if (!key) return false;
+    try {
+      const raw = window.localStorage?.getItem(key);
+      const ts = Number(raw || 0);
+      if (!Number.isFinite(ts) || ts <= 0) return false;
+      if (Date.now() - ts > SITE_INSIGHT_SEEN_TTL_MS) {
+        window.localStorage?.removeItem(key);
+        return false;
+      }
+      state.siteInsight.seenHosts[safeHost] = ts;
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  function markSeenSiteInsightHost(host) {
+    const safeHost = normalizeHost(host);
+    if (!safeHost) return;
+    state.siteInsight.seenHosts[safeHost] = Date.now();
+    const key = siteInsightSeenKey(safeHost);
+    if (!key) return;
+    try {
+      window.localStorage?.setItem(key, String(state.siteInsight.seenHosts[safeHost]));
+    } catch {
+      // localStorage may be unavailable in strict contexts; non-fatal.
+    }
+  }
+
+  function normalizeHexColor(value, fallback = "") {
+    const raw = String(value || "").trim().toUpperCase();
+    const short = raw.match(/^#([0-9A-F]{3})$/);
+    if (short) {
+      const [r, g, b] = short[1].split("");
+      return `#${r}${r}${g}${g}${b}${b}`;
+    }
+    if (/^#[0-9A-F]{6}$/.test(raw)) return raw;
+    return fallback;
+  }
+
+  function rgbToHex(r, g, b) {
+    const toByte = (n) => Math.max(0, Math.min(255, Number(n || 0)));
+    const toHex = (n) => toByte(n).toString(16).padStart(2, "0").toUpperCase();
+    return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
+  }
+
+  function parseCssColorToHex(value) {
+    const normalized = normalizeHexColor(value, "");
+    if (normalized) return normalized;
+    const rgb = String(value || "").match(/^rgba?\(([^)]+)\)$/i);
+    if (!rgb) return "";
+    const parts = rgb[1].split(",").map((part) => Number(String(part).trim()));
+    if (parts.length < 3 || parts.some((n, idx) => idx < 3 && !Number.isFinite(n))) return "";
+    if (parts.length >= 4 && Number(parts[3]) <= 0) return "";
+    return rgbToHex(parts[0], parts[1], parts[2]);
+  }
+
+  function pickColorFromPoint(x, y) {
+    const element = document.elementFromPoint(Number(x || 0), Number(y || 0));
+    if (!element) return "";
+    const style = window.getComputedStyle(element);
+    const candidates = [
+      style.backgroundColor,
+      style.color,
+      style.borderColor
+    ];
+    for (const color of candidates) {
+      const hex = parseCssColorToHex(color);
+      if (hex) return hex;
+    }
+    return "";
+  }
+
+  function ensurePickerHud() {
+    if (state.eyeDropper.hudNode && document.contains(state.eyeDropper.hudNode)) {
+      return state.eyeDropper.hudNode;
+    }
+    ensureStyle();
+    const hud = document.createElement("div");
+    hud.id = IDS.PICKER_HUD;
+    hud.innerHTML = `
+      <div class="kicker">HOLMETA Eye Dropper</div>
+      <div class="top">
+        <span class="swatch" data-role="swatch"></span>
+        <span class="hex" data-role="hex">${state.eyeDropper.lastHex}</span>
+        <button type="button" data-role="close" aria-label="Close eye dropper">×</button>
+      </div>
+      <p class="hint">Move cursor for live swatch. Click to save color. Press ESC to cancel.</p>
+    `;
+    const close = hud.querySelector('[data-role="close"]');
+    close?.addEventListener("click", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      stopPersistentColorPicker({ reason: "cancelled" });
+    });
+    document.documentElement.appendChild(hud);
+    state.eyeDropper.hudNode = hud;
+    return hud;
+  }
+
+  function updatePickerHud(hex) {
+    const hud = ensurePickerHud();
+    const swatch = hud.querySelector('[data-role="swatch"]');
+    const label = hud.querySelector('[data-role="hex"]');
+    if (swatch) swatch.style.background = hex;
+    if (label) label.textContent = hex;
+  }
+
+  function stopPersistentColorPicker({ reason = "cancelled", silent = false } = {}) {
+    if (state.eyeDropper.cleanup) {
+      try {
+        state.eyeDropper.cleanup();
+      } catch (error) {
+        log("error", "picker_cleanup_failed", { reason: String(error?.message || error) });
+      }
+    }
+    state.eyeDropper.cleanup = null;
+
+    if (state.eyeDropper.rafId) {
+      cancelAnimationFrame(state.eyeDropper.rafId);
+      state.eyeDropper.rafId = 0;
+    }
+    state.eyeDropper.pendingPoint = null;
+    state.eyeDropper.active = false;
+
+    const hud = state.eyeDropper.hudNode || document.getElementById(IDS.PICKER_HUD);
+    if (hud?.remove) hud.remove();
+    state.eyeDropper.hudNode = null;
+
+    document.documentElement.style.cursor = state.eyeDropper.previousCursor || "";
+    state.eyeDropper.previousCursor = "";
+
+    if (!silent && reason === "cancelled") {
+      showToast({
+        title: "Color Picker Closed",
+        body: "Pick was cancelled."
+      });
+    }
+  }
+
+  async function finalizePersistentColorPick(hex, method = "element_sample") {
+    const normalized = normalizeHexColor(hex, "");
+    if (!normalized) {
+      showToast({
+        title: "No color detected",
+        body: "Try hovering over a different area and click again."
+      });
+      return;
+    }
+
+    state.eyeDropper.lastHex = normalized;
+    updatePickerHud(normalized);
+    await sendRuntimeMessage({
+      type: "holmeta:color-picked",
+      hex: normalized,
+      method
+    });
+
+    showToast({
+      title: "Color captured",
+      body: `${normalized} saved to Eye Dropper.`
+    });
+    stopPersistentColorPicker({ reason: "picked", silent: true });
+  }
+
+  function processLivePickerPoint() {
+    state.eyeDropper.rafId = 0;
+    if (!state.eyeDropper.active || !state.eyeDropper.pendingPoint) return;
+    const { x, y } = state.eyeDropper.pendingPoint;
+    state.eyeDropper.pendingPoint = null;
+    const hex = normalizeHexColor(pickColorFromPoint(x, y), "");
+    if (!hex) return;
+    state.eyeDropper.lastHex = hex;
+    updatePickerHud(hex);
+  }
+
+  function queueLivePickerPoint(x, y) {
+    state.eyeDropper.pendingPoint = { x: Number(x || 0), y: Number(y || 0) };
+    if (state.eyeDropper.rafId) return;
+    state.eyeDropper.rafId = requestAnimationFrame(processLivePickerPoint);
+  }
+
+  function startPersistentColorPicker() {
+    if (state.eyeDropper.active) {
+      return { ok: true, active: true, method: "persistent" };
+    }
+
+    state.eyeDropper.active = true;
+    state.eyeDropper.previousCursor = document.documentElement.style.cursor || "";
+    document.documentElement.style.cursor = "crosshair";
+    updatePickerHud(state.eyeDropper.lastHex);
+
+    const onMove = (event) => {
+      queueLivePickerPoint(event.clientX, event.clientY);
+    };
+
+    const onClick = (event) => {
+      if (typeof event.button === "number" && event.button !== 0) return;
+      event.preventDefault();
+      event.stopPropagation();
+      const hex = normalizeHexColor(pickColorFromPoint(event.clientX, event.clientY), state.eyeDropper.lastHex || "");
+      void finalizePersistentColorPick(hex, "live_sample");
+    };
+
+    const onKeyDown = (event) => {
+      if (event.key !== "Escape") return;
+      event.preventDefault();
+      stopPersistentColorPicker({ reason: "cancelled" });
+    };
+
+    window.addEventListener("mousemove", onMove, true);
+    window.addEventListener("click", onClick, true);
+    window.addEventListener("keydown", onKeyDown, true);
+
+    state.eyeDropper.cleanup = () => {
+      window.removeEventListener("mousemove", onMove, true);
+      window.removeEventListener("click", onClick, true);
+      window.removeEventListener("keydown", onKeyDown, true);
+    };
+
+    showToast({
+      title: "Color Picker Active",
+      body: "Live swatch enabled. Move cursor and click to save."
+    });
+
+    return { ok: true, active: true, method: "persistent" };
   }
 
   function currentHost() {
@@ -128,6 +435,14 @@
         margin-bottom: 4px;
       }
 
+      .holmeta-toast .kicker {
+        font-size: 10px;
+        letter-spacing: 0.09em;
+        text-transform: uppercase;
+        color: #d9c5b2;
+        margin-bottom: 6px;
+      }
+
       .holmeta-toast .actions {
         margin-top: 8px;
         display: flex;
@@ -141,6 +456,68 @@
         font-size: 11px;
         min-height: 28px;
         padding: 0 8px;
+        cursor: pointer;
+      }
+
+      #${IDS.PICKER_HUD} {
+        position: fixed;
+        right: 16px;
+        bottom: 16px;
+        z-index: 2147483646;
+        min-width: 220px;
+        max-width: min(320px, 86vw);
+        border: 1px solid rgba(255, 179, 0, 0.72);
+        background: rgba(20, 17, 15, 0.95);
+        box-shadow: 0 0 0 1px rgba(255, 179, 0, 0.16), 0 0 16px rgba(255, 179, 0, 0.28);
+        padding: 10px;
+        display: grid;
+        gap: 8px;
+        pointer-events: auto;
+        color: #f3f3f4;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif;
+      }
+
+      #${IDS.PICKER_HUD} .top {
+        display: grid;
+        grid-template-columns: auto 1fr auto;
+        gap: 8px;
+        align-items: center;
+      }
+
+      #${IDS.PICKER_HUD} .swatch {
+        width: 28px;
+        height: 28px;
+        border: 1px solid rgba(243, 243, 244, 0.42);
+        background: #FFB300;
+      }
+
+      #${IDS.PICKER_HUD} .hex {
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+        font-size: 13px;
+        letter-spacing: 0.05em;
+      }
+
+      #${IDS.PICKER_HUD} .kicker {
+        margin: 0;
+        font-size: 10px;
+        letter-spacing: 0.1em;
+        color: #d9c5b2;
+        text-transform: uppercase;
+      }
+
+      #${IDS.PICKER_HUD} .hint {
+        margin: 0;
+        font-size: 11px;
+        color: #d9c5b2;
+      }
+
+      #${IDS.PICKER_HUD} button {
+        border: 1px solid rgba(196, 32, 33, 0.84);
+        background: rgba(196, 32, 33, 0.18);
+        color: #f3f3f4;
+        min-height: 30px;
+        min-width: 30px;
+        padding: 0;
         cursor: pointer;
       }
 
@@ -185,14 +562,26 @@
 
   function showToast(payload = {}) {
     const host = ensureToastHost();
+    const snoozeMinutes = Math.max(1, Number(payload.snoozeMinutes || 10));
+    const durationMs = Math.max(4000, Math.min(16000, Number(payload.durationMs || 9000)));
+    const kindLabel = {
+      eye: "Eye Relief",
+      posture: "Posture",
+      burnout: "Burnout Reset",
+      hydration: "Hydration",
+      blink: "Blink Reset",
+      movement: "Movement"
+    }[String(payload.kind || "")];
+
     const toast = document.createElement("article");
     toast.className = "holmeta-toast";
     toast.innerHTML = `
       <div class="title">${String(payload.title || "HOLMETA")}</div>
+      ${kindLabel ? `<div class="kicker">${kindLabel}</div>` : ""}
       <div>${String(payload.body || "")}</div>
       <div class="actions">
         <button data-action="dismiss">Dismiss</button>
-        <button data-action="snooze">Snooze 10m</button>
+        <button data-action="snooze">Snooze ${snoozeMinutes}m</button>
       </div>
     `;
 
@@ -201,13 +590,287 @@
       if (!button) return;
       const action = button.getAttribute("data-action");
       if (action === "snooze") {
-        sendRuntimeMessage({ type: "holmeta:snooze-alerts", minutes: 10 });
+        sendRuntimeMessage({ type: "holmeta:snooze-alerts", minutes: snoozeMinutes });
       }
       toast.remove();
     });
 
     host.appendChild(toast);
-    setTimeout(() => toast.remove(), 9000);
+    setTimeout(() => toast.remove(), durationMs);
+  }
+
+  function getBlockerSettings() {
+    return state.settings?.blocker || null;
+  }
+
+  function isCosmeticDisabledForCurrentHost(blocker) {
+    const host = currentHost();
+    if (!host) return false;
+    return Boolean(blocker?.disableCosmeticOnSite?.[host]);
+  }
+
+  function getCustomCosmeticSelectors(blocker) {
+    const host = currentHost();
+    if (!host) return [];
+    const map = blocker?.customCosmeticSelectors;
+    const list = map && typeof map === "object" ? map[host] : [];
+    if (!Array.isArray(list)) return [];
+    return list
+      .map((entry) => String(entry || "").trim())
+      .filter((entry) => entry.length > 0 && entry.length <= 220)
+      .slice(0, 120);
+  }
+
+  function buildCosmeticSelectorList(blocker) {
+    const categories = blocker?.categories || {};
+    const selectors = [];
+    if (categories.ads) selectors.push(...COSMETIC_SELECTORS.ads);
+    if (categories.annoyances) selectors.push(...COSMETIC_SELECTORS.annoyances);
+    if (categories.videoAds) selectors.push(...COSMETIC_SELECTORS.videoAds);
+    selectors.push(...getCustomCosmeticSelectors(blocker));
+    return [...new Set(selectors)];
+  }
+
+  function ensureBlockerStyleNode() {
+    let style = document.getElementById(IDS.BLOCKER_STYLE);
+    if (style) return style;
+    style = document.createElement("style");
+    style.id = IDS.BLOCKER_STYLE;
+    document.documentElement.appendChild(style);
+    return style;
+  }
+
+  async function reportBlockEvents(count, category = "cosmetic") {
+    const n = Math.max(0, Number(count || 0));
+    if (!n) return;
+    await sendRuntimeMessage({
+      type: "holmeta:block-events",
+      count: n,
+      category
+    });
+  }
+
+  async function scanForHiddenAdNodes(selectors) {
+    if (!selectors?.length) return;
+    const max = Math.min(280, selectors.length);
+    let hidden = 0;
+    for (let i = 0; i < max; i += 1) {
+      const selector = selectors[i];
+      let nodes = [];
+      try {
+        nodes = [...document.querySelectorAll(selector)].slice(0, 16);
+      } catch {
+        nodes = [];
+      }
+      for (const node of nodes) {
+        if (!node || node.nodeType !== 1) continue;
+        const key = node.getAttribute("data-holmeta-hidden");
+        if (key === "1") continue;
+        node.setAttribute("data-holmeta-hidden", "1");
+        hidden += 1;
+      }
+    }
+    if (hidden > 0) {
+      state.blocker.hiddenCountSent += hidden;
+      await reportBlockEvents(hidden, "cosmetic");
+    }
+  }
+
+  function disconnectBlockerObserver() {
+    if (state.blocker.observer) {
+      state.blocker.observer.disconnect();
+      state.blocker.observer = null;
+    }
+    if (state.blocker.scanTimer) {
+      clearTimeout(state.blocker.scanTimer);
+      state.blocker.scanTimer = null;
+    }
+  }
+
+  function scheduleCosmeticRescan(selectors) {
+    if (state.blocker.scanTimer) clearTimeout(state.blocker.scanTimer);
+    state.blocker.scanTimer = setTimeout(async () => {
+      state.blocker.scanTimer = null;
+      await scanForHiddenAdNodes(selectors);
+    }, 900);
+  }
+
+  function applyCosmeticFiltering() {
+    const blocker = getBlockerSettings();
+    const style = document.getElementById(IDS.BLOCKER_STYLE);
+    const blockerActive = Boolean(state.effective?.blockerActive);
+    const enabled = blockerActive && Boolean(blocker?.cosmeticFiltering);
+    if (!enabled || isCosmeticDisabledForCurrentHost(blocker)) {
+      disconnectBlockerObserver();
+      if (style) style.textContent = "";
+      return;
+    }
+
+    const selectors = buildCosmeticSelectorList(blocker);
+    const antiDetect = Boolean(blocker?.antiDetection);
+    const hideRules = selectors.length
+      ? `${selectors.join(",\n")} {\n  display: none !important;\n  visibility: hidden !important;\n  pointer-events: none !important;\n}`
+      : "";
+    const antiDetectRules = antiDetect
+      ? `${COSMETIC_SELECTORS.antiDetectBait.join(",\n")} {\n  display: block !important;\n  min-height: 1px !important;\n  max-height: 1px !important;\n  opacity: 0.01 !important;\n}`
+      : "";
+
+    if (antiDetect && !state.blocker.antiDetectInjected) {
+      try {
+        const script = document.createElement("script");
+        script.setAttribute("data-holmeta-anti-detect", "1");
+        script.textContent = `(() => {
+          try {
+            const safeDef = (obj, key, value) => {
+              try { Object.defineProperty(obj, key, { configurable: true, get: () => value }); } catch {}
+            };
+            safeDef(window, "canRunAds", true);
+            safeDef(window, "adBlockDetected", false);
+            safeDef(window, "adblock", false);
+            if (window.navigator) {
+              safeDef(window.navigator, "webdriver", false);
+            }
+            const noop = function() { return { on: () => {}, check: () => {} }; };
+            if (!window.BlockAdBlock) window.BlockAdBlock = noop;
+            if (!window.FuckAdBlock) window.FuckAdBlock = noop;
+          } catch {}
+        })();`;
+        (document.documentElement || document.head || document.body).appendChild(script);
+        script.remove();
+        state.blocker.antiDetectInjected = true;
+      } catch {}
+    }
+
+    const node = ensureBlockerStyleNode();
+    node.textContent = `${hideRules}\n${antiDetectRules}\n`;
+
+    if (!state.blocker.observer) {
+      state.blocker.observer = new MutationObserver(() => {
+        scheduleCosmeticRescan(selectors);
+      });
+      state.blocker.observer.observe(document.documentElement, {
+        childList: true,
+        subtree: true
+      });
+    }
+
+    const jitter = antiDetect ? Math.round(Math.random() * 140) + 40 : 35;
+    setTimeout(() => {
+      scanForHiddenAdNodes(selectors);
+    }, jitter);
+  }
+
+  function buildElementSelector(element) {
+    if (!element || element.nodeType !== 1) return "";
+    const el = element;
+    const id = String(el.id || "").trim();
+    if (id) return `#${escapeSelectorValue(id)}`;
+
+    const classes = String(el.className || "")
+      .split(/\s+/g)
+      .map((cls) => cls.trim())
+      .filter((cls) => cls && !/[0-9]{6,}/.test(cls))
+      .slice(0, 2)
+      .map((cls) => `.${escapeSelectorValue(cls)}`)
+      .join("");
+    const tag = String(el.tagName || "div").toLowerCase();
+    if (classes) return `${tag}${classes}`;
+
+    const parent = el.parentElement;
+    if (parent) {
+      const siblings = [...parent.children].filter((node) => node.tagName === el.tagName);
+      const idx = Math.max(1, siblings.indexOf(el) + 1);
+      const parentTag = String(parent.tagName || "body").toLowerCase();
+      return `${parentTag} > ${tag}:nth-of-type(${idx})`;
+    }
+    return tag;
+  }
+
+  function startBlockElementPicker() {
+    if (state.blocker.pickerActive) return Promise.resolve({ ok: true, reused: true });
+    state.blocker.pickerActive = true;
+
+    return new Promise((resolve) => {
+      const previousCursor = document.documentElement.style.cursor;
+      document.documentElement.style.cursor = "crosshair";
+      showToast({
+        title: "Block Element Picker",
+        body: "Click any page element to hide it on this site. Press ESC to cancel.",
+        durationMs: 8000
+      });
+
+      const cleanup = () => {
+        document.documentElement.style.cursor = previousCursor;
+        window.removeEventListener("mousemove", onMove, true);
+        window.removeEventListener("click", onClick, true);
+        window.removeEventListener("keydown", onKeyDown, true);
+        state.blocker.pickerActive = false;
+        state.blocker.pickerCleanup = null;
+        if (highlight) highlight.remove();
+      };
+
+      const done = (payload) => {
+        cleanup();
+        resolve(payload);
+      };
+
+      const highlight = document.createElement("div");
+      highlight.style.cssText = [
+        "position:fixed",
+        "left:0",
+        "top:0",
+        "width:0",
+        "height:0",
+        "border:2px solid rgba(255,179,0,.95)",
+        "background:rgba(255,179,0,.12)",
+        "z-index:2147483647",
+        "pointer-events:none"
+      ].join(";");
+      document.documentElement.appendChild(highlight);
+
+      const onMove = (event) => {
+        const target = document.elementFromPoint(event.clientX, event.clientY);
+        if (!target || target === highlight) return;
+        const rect = target.getBoundingClientRect();
+        highlight.style.left = `${Math.max(0, rect.left)}px`;
+        highlight.style.top = `${Math.max(0, rect.top)}px`;
+        highlight.style.width = `${Math.max(0, rect.width)}px`;
+        highlight.style.height = `${Math.max(0, rect.height)}px`;
+      };
+
+      const onClick = async (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        const target = document.elementFromPoint(event.clientX, event.clientY);
+        const selector = buildElementSelector(target);
+        if (!selector) {
+          done({ ok: false, error: "selector_failed" });
+          return;
+        }
+        const response = await sendRuntimeMessage({
+          type: "holmeta:add-cosmetic-selector",
+          host: currentHost(),
+          selector
+        });
+        if (!response.ok) {
+          done({ ok: false, error: response.error || "save_failed" });
+          return;
+        }
+        applyCosmeticFiltering();
+        done({ ok: true, selector, host: currentHost() });
+      };
+
+      const onKeyDown = (event) => {
+        if (event.key !== "Escape") return;
+        event.preventDefault();
+        done({ ok: false, error: "cancelled" });
+      };
+
+      state.blocker.pickerCleanup = cleanup;
+      window.addEventListener("mousemove", onMove, true);
+      window.addEventListener("click", onClick, true);
+      window.addEventListener("keydown", onKeyDown, true);
+    });
   }
 
   function getAudioContext() {
@@ -218,7 +881,7 @@
     return state.audioCtx;
   }
 
-  async function playAlertSound(kind = "eye", volume = 0.25) {
+  async function playAlertSound(kind = "eye", volume = 0.25, pattern = "double") {
     const ctx = getAudioContext();
     if (!ctx) return false;
 
@@ -235,22 +898,27 @@
     };
 
     const hz = frequencies[kind] || 520;
-    const t = ctx.currentTime;
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
+    const pulses = pattern === "triple" ? 3 : pattern === "single" ? 1 : 2;
+    const gap = 0.16;
+    const pulseLength = 0.24;
+    const baseGain = Math.max(0.04, Math.min(0.5, Number(volume || 0.25)));
+    const startAt = ctx.currentTime;
 
-    osc.type = "triangle";
-    osc.frequency.setValueAtTime(hz, t);
+    for (let i = 0; i < pulses; i += 1) {
+      const t = startAt + i * (pulseLength + gap);
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = "triangle";
+      osc.frequency.setValueAtTime(hz + i * 12, t);
+      gain.gain.setValueAtTime(0, t);
+      gain.gain.linearRampToValueAtTime(baseGain, t + 0.01);
+      gain.gain.exponentialRampToValueAtTime(0.0001, t + pulseLength);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(t);
+      osc.stop(t + pulseLength + 0.02);
+    }
 
-    gain.gain.setValueAtTime(0, t);
-    gain.gain.linearRampToValueAtTime(Math.max(0.04, Math.min(0.5, Number(volume || 0.25))), t + 0.01);
-    gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.28);
-
-    osc.connect(gain);
-    gain.connect(ctx.destination);
-
-    osc.start(t);
-    osc.stop(t + 0.29);
     return true;
   }
 
@@ -454,6 +1122,104 @@
     return [...new Set(types)];
   }
 
+  function collectStructuredEntities(maxScripts = 10) {
+    const scripts = sampleNodes("script[type='application/ld+json']", maxScripts);
+    const queue = [];
+    const entities = [];
+
+    scripts.forEach((scriptNode) => {
+      try {
+        const parsed = JSON.parse(scriptNode.textContent || "{}");
+        queue.push(parsed);
+      } catch {
+        // ignore invalid json-ld
+      }
+    });
+
+    let cursor = 0;
+    while (cursor < queue.length && entities.length < 90) {
+      const node = queue[cursor];
+      cursor += 1;
+      if (!node) continue;
+      if (Array.isArray(node)) {
+        node.slice(0, 20).forEach((entry) => queue.push(entry));
+        continue;
+      }
+      if (typeof node !== "object") continue;
+
+      const typeRaw = node["@type"];
+      const types = Array.isArray(typeRaw)
+        ? typeRaw.map((entry) => safeText(entry, 40)).filter(Boolean)
+        : [safeText(typeRaw, 40)].filter(Boolean);
+
+      if (types.length) {
+        entities.push({
+          types,
+          name: safeText(node.name || node.legalName || node.alternateName || "", 120),
+          jobTitle: safeText(node.jobTitle || "", 80),
+          foundingDate: safeText(node.foundingDate || node.dateCreated || "", 40),
+          datePublished: safeText(node.datePublished || "", 40),
+          areaServed: safeText(node.areaServed?.name || node.areaServed || "", 64),
+          addressCountry: safeText(
+            node.address?.addressCountry || node.locationCreated?.addressCountry || node.countryOfOrigin || "",
+            64
+          ),
+          interactionCount: safeText(
+            node.interactionStatistic?.userInteractionCount ||
+              node.interactionStatistic?.interactionCount ||
+              node.userInteractionCount ||
+              "",
+            40
+          )
+        });
+      }
+
+      const childrenKeys = [
+        "@graph",
+        "mainEntity",
+        "publisher",
+        "author",
+        "creator",
+        "brand",
+        "about",
+        "isPartOf",
+        "sourceOrganization",
+        "itemReviewed"
+      ];
+      childrenKeys.forEach((key) => {
+        const child = node[key];
+        if (!child) return;
+        if (Array.isArray(child)) {
+          child.slice(0, 12).forEach((entry) => queue.push(entry));
+          return;
+        }
+        queue.push(child);
+      });
+    }
+
+    return entities;
+  }
+
+  function findStructuredEntity(entities, pattern) {
+    return entities.find((entity) => entity.types.some((type) => pattern.test(String(type || "").toLowerCase())));
+  }
+
+  function detectAudienceSizeSignal() {
+    const text = safeText(document.body?.innerText || "", 180000).toLowerCase();
+    const patterns = [
+      /([\d.,]+(?:\s?[kmb])?)\s+(?:monthly|daily|active)?\s*(?:users|members|customers|visitors|subscribers)\b/i,
+      /(?:users|members|customers|visitors|subscribers)\s*[:\-]?\s*([\d.,]+(?:\s?[kmb])?)/i
+    ];
+    for (const pattern of patterns) {
+      const match = text.match(pattern);
+      if (!match?.[1]) continue;
+      const parsed = parseCompactCount(match[1].replace(/\s+/g, ""));
+      if (!parsed) continue;
+      return `${formatCompactCount(parsed)} (page signal)`;
+    }
+    return "";
+  }
+
   function getKnownSiteIntent(host, pathName, searchPart) {
     const path = String(pathName || "").toLowerCase();
     const search = String(searchPart || "").toLowerCase();
@@ -494,10 +1260,28 @@
         ]
       },
       {
+        test: /(^|\.)facebook\.com$|(^|\.)instagram\.com$|(^|\.)tiktok\.com$|(^|\.)snapchat\.com$/,
+        identity: "Social Platform",
+        type: "social",
+        purpose: "Social feed and short-form content discovery."
+      },
+      {
+        test: /(^|\.)linkedin\.com$/,
+        identity: "LinkedIn",
+        type: "social",
+        purpose: "Professional network feed and career platform."
+      },
+      {
         test: /(^|\.)notion\.so$|(^|\.)docs\.google\.com$/,
         identity: "Docs Workspace",
         type: "docs",
         purpose: "Documentation and team knowledge editing workspace."
+      },
+      {
+        test: /(^|\.)docs\.microsoft\.com$|(^|\.)developer\.mozilla\.org$|(^|\.)readthedocs\.io$/,
+        identity: "Technical Documentation",
+        type: "docs",
+        purpose: "Reference documentation and implementation guides."
       },
       {
         test: /(^|\.)reddit\.com$/,
@@ -518,16 +1302,22 @@
         purpose: "Ecommerce marketplace for product discovery and checkout."
       },
       {
+        test: /(^|\.)walmart\.com$|(^|\.)ebay\./,
+        identity: "Ecommerce Marketplace",
+        type: "commerce",
+        purpose: "Product listing, comparison, and purchase workflow."
+      },
+      {
+        test: /(^|\.)etsy\.com$|(^|\.)shopify\.com$|(^|\.)target\.com$/,
+        identity: "Online Storefront",
+        type: "commerce",
+        purpose: "Storefront for product browsing and checkout."
+      },
+      {
         test: /(^|\.)google\.[a-z.]+$|(^|\.)bing\.com$|(^|\.)duckduckgo\.com$/,
         identity: "Search Engine",
         type: "search",
         purpose: "Search engine for ranked information retrieval."
-      },
-      {
-        test: /(^|\.)linkedin\.com$/,
-        identity: "LinkedIn",
-        type: "social",
-        purpose: "Professional network feed and career platform."
       },
       {
         test: /(^|\.)wikipedia\.org$/,
@@ -536,10 +1326,52 @@
         purpose: "Reference encyclopedia for educational lookup."
       },
       {
+        test: /(^|\.)coursera\.org$|(^|\.)udemy\.com$|(^|\.)khanacademy\.org$/,
+        identity: "Learning Platform",
+        type: "education",
+        purpose: "Online learning platform for lessons and coursework."
+      },
+      {
+        test: /(^|\.)jira\.atlassian\.com$|(^|\.)linear\.app$|(^|\.)asana\.com$|(^|\.)trello\.com$/,
+        identity: "Work Management App",
+        type: "webapp",
+        purpose: "Task and project workflow management application."
+      },
+      {
+        test: /(^|\.)salesforce\.com$|(^|\.)hubspot\.com$/,
+        identity: "Business Web App",
+        type: "webapp",
+        purpose: "Account and workflow management web application."
+      },
+      {
+        test: /(^|\.)stackoverflow\.com$|(^|\.)npmjs\.com$|(^|\.)dev\.to$/,
+        identity: "Developer Resource",
+        type: "developer",
+        purpose: "Developer-focused knowledge base, package, or Q&A platform."
+      },
+      {
+        test: /(^|\.)canva\.com$|(^|\.)dribbble\.com$|(^|\.)behance\.net$/,
+        identity: "Design Platform",
+        type: "design",
+        purpose: "Design collaboration, asset creation, or portfolio showcase."
+      },
+      {
+        test: /(^|\.)medium\.com$|(^|\.)substack\.com$/,
+        identity: "Publishing Platform",
+        type: "news",
+        purpose: "Article publishing and newsletter content consumption."
+      },
+      {
         test: /(^|\.)nytimes\.com$|(^|\.)bbc\.com$|(^|\.)cnn\.com$|(^|\.)theguardian\.com$/,
         identity: "News Publisher",
         type: "news",
         purpose: "Editorial news publishing and article browsing."
+      },
+      {
+        test: /(^|\.)netflix\.com$|(^|\.)hulu\.com$|(^|\.)primevideo\.com$|(^|\.)disneyplus\.com$/,
+        identity: "Streaming Service",
+        type: "video",
+        purpose: "Subscription streaming catalog and playback platform."
       }
     ];
 
@@ -552,6 +1384,193 @@
       type: matched.type,
       purpose: route?.purpose || matched.purpose
     };
+  }
+
+  function parseCompactCount(value) {
+    const raw = String(value || "").trim().toLowerCase().replace(/,/g, "");
+    if (!raw) return null;
+    const match = raw.match(/^(\d+(?:\.\d+)?)([kmb])?$/);
+    if (!match) return null;
+    const base = Number(match[1]);
+    if (!Number.isFinite(base)) return null;
+    const multiplier = match[2] === "b" ? 1_000_000_000 : match[2] === "m" ? 1_000_000 : match[2] === "k" ? 1_000 : 1;
+    return Math.round(base * multiplier);
+  }
+
+  function formatCompactCount(value) {
+    if (!Number.isFinite(Number(value))) return "Unknown";
+    const n = Number(value);
+    if (n >= 1_000_000_000) return `${(n / 1_000_000_000).toFixed(1).replace(/\.0$/, "")}B`;
+    if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1).replace(/\.0$/, "")}M`;
+    if (n >= 1_000) return `${(n / 1_000).toFixed(1).replace(/\.0$/, "")}K`;
+    return String(n);
+  }
+
+  function detectOnlineUsersSignal() {
+    const text = safeText(document.body?.innerText || "", 120000).toLowerCase();
+    const patterns = [
+      /([\d.,]+(?:\s?[kmb])?)\s+(?:users?\s+)?online\b/i,
+      /([\d.,]+(?:\s?[kmb])?)\s+watching\b/i,
+      /([\d.,]+(?:\s?[kmb])?)\s+members?\s+online\b/i,
+      /\bonline[:\s]+([\d.,]+(?:\s?[kmb])?)\b/i
+    ];
+    for (const pattern of patterns) {
+      const match = text.match(pattern);
+      if (!match?.[1]) continue;
+      const parsed = parseCompactCount(match[1].replace(/\s+/g, ""));
+      if (!parsed) continue;
+      return `${formatCompactCount(parsed)} (page signal)`;
+    }
+    return "";
+  }
+
+  function getKnownOwnershipSnapshot(host) {
+    const rows = [
+      {
+        test: /(^|\.)youtube\.com$/,
+        ownerName: "Neal Mohan (CEO)",
+        country: "United States",
+        netWorth: "Not publicly disclosed",
+        created: "2005",
+        totalUsers: "2.7B+ monthly users (est.)",
+        onlineNow: "Unknown"
+      },
+      {
+        test: /(^|\.)github\.com$/,
+        ownerName: "Thomas Dohmke (CEO) · Microsoft (Owner)",
+        country: "United States",
+        netWorth: "Not publicly disclosed",
+        created: "2008",
+        totalUsers: "100M+ registered users (est.)",
+        onlineNow: "Unknown"
+      },
+      {
+        test: /(^|\.)figma\.com$/,
+        ownerName: "Dylan Field (CEO)",
+        country: "United States",
+        netWorth: "Not publicly disclosed",
+        created: "2012",
+        totalUsers: "Millions of monthly users (est.)",
+        onlineNow: "Unknown"
+      },
+      {
+        test: /(^|\.)reddit\.com$/,
+        ownerName: "Steve Huffman (CEO)",
+        country: "United States",
+        netWorth: "Not publicly disclosed",
+        created: "2005",
+        totalUsers: "70M+ daily active users (est.)",
+        onlineNow: "Unknown"
+      },
+      {
+        test: /(^|\.)x\.com$|(^|\.)twitter\.com$/,
+        ownerName: "Elon Musk (Owner) · Linda Yaccarino (CEO)",
+        country: "United States",
+        netWorth: "Owner net worth varies; public estimate",
+        created: "2006",
+        totalUsers: "Hundreds of millions of monthly users (est.)",
+        onlineNow: "Unknown"
+      },
+      {
+        test: /(^|\.)google\.[a-z.]+$|(^|\.)bing\.com$|(^|\.)duckduckgo\.com$/,
+        ownerName: "Alphabet / Microsoft / DuckDuckGo (varies by engine)",
+        country: "United States",
+        netWorth: "Public-company dependent",
+        created: "Varies by engine",
+        totalUsers: "Large global search traffic",
+        onlineNow: "Unknown"
+      },
+      {
+        test: /(^|\.)amazon\./,
+        ownerName: "Andy Jassy (CEO)",
+        country: "United States",
+        netWorth: "Not publicly disclosed",
+        created: "1994",
+        totalUsers: "300M+ active customer accounts (est.)",
+        onlineNow: "Unknown"
+      },
+      {
+        test: /(^|\.)linkedin\.com$/,
+        ownerName: "Ryan Roslansky (CEO) · Microsoft (Owner)",
+        country: "United States",
+        netWorth: "Not publicly disclosed",
+        created: "2003",
+        totalUsers: "1B+ members (est.)",
+        onlineNow: "Unknown"
+      },
+      {
+        test: /(^|\.)wikipedia\.org$/,
+        ownerName: "Wikimedia Foundation (nonprofit)",
+        country: "United States",
+        netWorth: "N/A (nonprofit)",
+        created: "2001",
+        totalUsers: "Hundreds of millions of monthly users (est.)",
+        onlineNow: "Unknown"
+      },
+      {
+        test: /(^|\.)notion\.so$/,
+        ownerName: "Ivan Zhao (CEO)",
+        country: "United States",
+        netWorth: "Not publicly disclosed",
+        created: "2016",
+        totalUsers: "Millions of monthly users (est.)",
+        onlineNow: "Unknown"
+      }
+    ];
+    return rows.find((row) => row.test.test(host)) || null;
+  }
+
+  function detectOwnershipSnapshot(host, siteIdentity) {
+    const known = getKnownOwnershipSnapshot(host);
+    const entities = collectStructuredEntities(8);
+    const org = findStructuredEntity(entities, /(organization|corporation|company|newsmediaorganization|website)/);
+    const person = findStructuredEntity(entities, /person/);
+    const cleanKnown = {
+      ownerName: /^unknown$/i.test(String(known?.ownerName || "")) ? "" : String(known?.ownerName || ""),
+      country: /^unknown$/i.test(String(known?.country || "")) ? "" : String(known?.country || ""),
+      netWorth: /^unknown$/i.test(String(known?.netWorth || "")) ? "" : String(known?.netWorth || ""),
+      created: /^unknown$/i.test(String(known?.created || "")) ? "" : String(known?.created || ""),
+      totalUsers: /^unknown$/i.test(String(known?.totalUsers || "")) ? "" : String(known?.totalUsers || ""),
+      onlineNow: /^unknown$/i.test(String(known?.onlineNow || "")) ? "" : String(known?.onlineNow || "")
+    };
+
+    const onlineSignal = detectOnlineUsersSignal();
+    const audienceSignal = detectAudienceSizeSignal();
+    const authorMeta = safeText(
+      document.querySelector("meta[name='author']")?.getAttribute("content") ||
+        document.querySelector("[rel='author']")?.textContent ||
+        "",
+      90
+    );
+    const locale =
+      safeText(document.documentElement?.getAttribute("lang") || "", 20) ||
+      safeText(document.querySelector("meta[property='og:locale']")?.getAttribute("content") || "", 20);
+    const countrySignal = safeText(
+      org?.addressCountry || org?.areaServed || person?.addressCountry || person?.areaServed || "",
+      80
+    );
+    const createdSignal = safeText(org?.foundingDate || person?.foundingDate || "", 40);
+
+    const sourceTags = [];
+    if (known) sourceTags.push("known-site snapshot");
+    if (org || person) sourceTags.push("JSON-LD");
+    if (authorMeta) sourceTags.push("meta/byline");
+    if (onlineSignal || audienceSignal) sourceTags.push("on-page counters");
+
+    const snapshot = {
+      ownerName:
+        cleanKnown.ownerName ||
+        safeText(org?.name || person?.name || authorMeta, 110) ||
+        "Operator not disclosed in page metadata",
+      country: cleanKnown.country || countrySignal || (locale ? `Locale ${locale}` : "Country not disclosed on page"),
+      netWorth: cleanKnown.netWorth || "No reliable public value in local signals",
+      created: cleanKnown.created || createdSignal || "Creation year not disclosed on page",
+      totalUsers: cleanKnown.totalUsers || audienceSignal || "No public user count detected on page",
+      onlineNow: onlineSignal || cleanKnown.onlineNow || "No live user counter detected",
+      source: sourceTags.length ? `Signals: ${sourceTags.join(" + ")}` : "Signals: page heuristics",
+      identity: siteIdentity || host
+    };
+    return snapshot;
   }
 
   function detectSiteIdentity(host, knownIntent = null) {
@@ -576,6 +1595,22 @@
       .split(" ")
       .map((word) => titleCaseWord(word))
       .join(" ");
+  }
+
+  function inferTypeFromDomain(host) {
+    const checks = [
+      { pattern: /(shop|store|cart|checkout|deals|market|mall|coupon|sale)/, type: "commerce", reason: "domain commerce keyword" },
+      { pattern: /(news|press|journal|times|post|herald|gazette|blog)/, type: "news", reason: "domain publishing keyword" },
+      { pattern: /(docs|wiki|help|support|kb|manual|readme)/, type: "docs", reason: "domain docs keyword" },
+      { pattern: /(forum|community|discuss|threads|board)/, type: "community", reason: "domain community keyword" },
+      { pattern: /(learn|academy|course|edu|school|training)/, type: "education", reason: "domain education keyword" },
+      { pattern: /(dev|code|git|repo|api|sdk)/, type: "developer", reason: "domain developer keyword" },
+      { pattern: /(design|ux|ui|creative|portfolio)/, type: "design", reason: "domain design keyword" },
+      { pattern: /(bank|pay|finance|invest|trade|wallet|capital)/, type: "finance", reason: "domain finance keyword" },
+      { pattern: /(travel|hotel|flight|trip|air|booking|vacation)/, type: "travel", reason: "domain travel keyword" },
+      { pattern: /(video|stream|watch|tv|media)/, type: "video", reason: "domain media keyword" }
+    ];
+    return checks.find((entry) => entry.pattern.test(host)) || null;
   }
 
   function detectSiteType(host) {
@@ -620,13 +1655,19 @@
       if (reason) reasons.push(reason);
     };
 
-    if (/github|gitlab|bitbucket|stackoverflow|vercel|netlify/.test(host + " " + text)) bump("developer", 4, "developer domain/text markers");
+    if (/github|gitlab|bitbucket|stackoverflow|vercel|netlify|npm|docker|kubernetes/.test(host + " " + text)) {
+      bump("developer", 4, "developer domain/text markers");
+    }
     if (/figma|dribbble|behance|prototype|wireframe|component library/.test(host + " " + text)) bump("design", 4, "design markers");
-    if (/docs|documentation|knowledge base|read the docs|reference/.test(host + " " + text)) bump("docs", 3, "docs markers");
+    if (/docs|documentation|knowledge base|read the docs|reference|api reference|developer guide/.test(host + " " + text)) {
+      bump("docs", 3, "docs markers");
+    }
     if (/youtube|vimeo|twitch|watch now|play video|playlist/.test(host + " " + text)) bump("video", 4, "video markers");
     if (/reddit|forum|community|discuss|threads|subreddit/.test(host + " " + text)) bump("community", 3, "community markers");
     if (/for you|following|timeline|feed|reels|stories|shorts/.test(text)) bump("social", 3, "feed/social markers");
-    if (/cart|checkout|shop now|add to cart|buy now|price|sku|product/.test(text + " " + path)) bump("commerce", 4, "commerce markers");
+    if (/cart|checkout|shop now|add to cart|buy now|price|sku|product|best seller|deal/.test(text + " " + path)) {
+      bump("commerce", 4, "commerce markers");
+    }
     if (/article|opinion|breaking|newsroom|published|journalist/.test(text + " " + path)) bump("news", 3, "news/article markers");
     if (/course|lesson|syllabus|classroom|learn|training/.test(text + " " + path)) bump("education", 3, "education markers");
     if (/flight|hotel|booking|itinerary|trip/.test(text + " " + host + " " + path)) bump("travel", 3, "travel markers");
@@ -650,14 +1691,27 @@
     const secondScore = ranked[1]?.[1] || 0;
 
     if (topScore < 2) {
+      const domainGuess = inferTypeFromDomain(host);
+      if (domainGuess) {
+        topType = domainGuess.type;
+        topScore = 3;
+        reasons.push(domainGuess.reason);
+      }
+    }
+
+    if (topScore < 2) {
       if (document.querySelector("form input[type='password'], [role='main'] button")) {
         topType = "webapp";
       } else if (document.querySelector("article")) {
         topType = "news";
+      } else if (document.querySelector("video, [class*='video'], [data-testid*='video']")) {
+        topType = "video";
+      } else if (document.querySelector("[href*='cart'], [href*='checkout'], [data-testid*='price' i]")) {
+        topType = "commerce";
       } else if (document.querySelector("main, nav, footer")) {
         topType = "marketing";
       } else {
-        topType = "community";
+        topType = "webapp";
       }
       topScore = 2;
       reasons.push("fallback classification");
@@ -678,7 +1732,7 @@
     };
   }
 
-  function detectAlgorithmContext(host) {
+  function detectAlgorithmContext(host, siteType = "") {
     const path = location.pathname.toLowerCase();
     const search = location.search.toLowerCase();
     const text = buildPageTextSample();
@@ -776,12 +1830,20 @@
     if (/following|subscriptions|subscribed/.test(text)) scoreFollowing += 2;
     if (/trending|top|hot/.test(text)) scoreTrending += 2;
     if (/sponsored|promoted|ad choices|ads/.test(text)) scoreAds += 2;
+    if (/(customers also bought|related products|frequently bought together|sponsored products)/.test(text)) {
+      scoreRecommended += 3;
+      scoreAds += 1;
+    }
+    if (/(best sellers|top picks|most popular)/.test(text)) scoreTrending += 2;
 
     if (document.querySelector("[aria-label*='For you' i], [data-testid*='for-you' i]")) scoreRecommended += 3;
     if (document.querySelector("[aria-label*='Following' i], [href*='subscriptions' i]")) scoreFollowing += 3;
     if (document.querySelector("[aria-label*='Trending' i], [href*='trending' i]")) scoreTrending += 3;
     if (document.querySelector("[aria-label*='Sponsored' i], [data-testid*='sponsored' i], [id*='ad' i], [class*='ad-' i]")) scoreAds += 2;
     if (document.querySelector("input[type='search'], [role='search']")) scoreSearch += 1;
+    if (document.querySelector("[data-testid*='recommend' i], [class*='recommend' i], [aria-label*='Recommended' i]")) {
+      scoreRecommended += 2;
+    }
 
     const ranked = [
       { key: "search", score: scoreSearch, label: "Search results ranking", explanation: "Detected search route and query cues." },
@@ -793,6 +1855,32 @@
 
     if (ranked[0].score >= 4) return { label: ranked[0].label, confidence: "high", explanation: ranked[0].explanation, bucket };
     if (ranked[0].score >= 2) return { label: ranked[0].label, confidence: "medium", explanation: ranked[0].explanation, bucket };
+
+    if (siteType === "commerce") {
+      return {
+        label: "Recommendation feed",
+        confidence: "medium",
+        explanation: "Commerce page signals indicate merchandising and recommendation ranking.",
+        bucket
+      };
+    }
+    if (siteType === "search") {
+      return {
+        label: "Search results ranking",
+        confidence: "medium",
+        explanation: "Search-oriented site type detected.",
+        bucket
+      };
+    }
+    if (siteType === "news") {
+      return {
+        label: "Trending/popularity",
+        confidence: "low",
+        explanation: "Publisher layout suggests editorial popularity ranking.",
+        bucket
+      };
+    }
+
     return { label: "Personalized home", confidence: "low", explanation: "No strong feed markers detected.", bucket };
   }
 
@@ -841,10 +1929,14 @@
       document.querySelector("meta[property='og:description']")?.getAttribute("content") ||
       "";
     const heading = safeText(document.querySelector("h1, h2")?.textContent || "", 120);
+    const entities = collectStructuredEntities(6);
+    const websiteEntity = findStructuredEntity(entities, /(website|webpage|softwareapplication|service)/);
+    const structuredName = safeText(websiteEntity?.name || "", 80);
     const siteName =
       safeText(
         document.querySelector("meta[property='og:site_name']")?.getAttribute("content") ||
           document.querySelector("meta[name='application-name']")?.getAttribute("content") ||
+          structuredName ||
           host,
         64
       );
@@ -1012,6 +2104,228 @@
     return checks.filter(([, pattern]) => pattern.test(blob)).map(([name]) => name);
   }
 
+  function detectTextRepetitionSignals() {
+    const text = safeText(document.body?.innerText || "", 28000).toLowerCase();
+    const sentences = text
+      .split(/[.!?]\s+/)
+      .map((line) => line.replace(/[^a-z0-9\s]/g, "").replace(/\s+/g, " ").trim())
+      .filter((line) => line.length > 34)
+      .slice(0, 80);
+    if (sentences.length < 8) return { duplicateCount: 0, ratio: 0 };
+
+    const seen = new Set();
+    let duplicateCount = 0;
+    for (const sentence of sentences) {
+      const key = sentence.split(" ").slice(0, 12).join(" ");
+      if (!key) continue;
+      if (seen.has(key)) duplicateCount += 1;
+      else seen.add(key);
+    }
+    const ratio = duplicateCount / Math.max(1, sentences.length);
+    return { duplicateCount, ratio };
+  }
+
+  function detectAiBotAuthorship(host) {
+    const text = buildPageTextSample();
+    const entities = collectStructuredEntities(8);
+    const personEntity = findStructuredEntity(entities, /person/);
+    const generatorMeta = safeText(
+      document.querySelector("meta[name='generator']")?.getAttribute("content") ||
+        document.querySelector("meta[name='application-name']")?.getAttribute("content") ||
+        "",
+      180
+    ).toLowerCase();
+    const authorSample = safeText(
+      document.querySelector("[rel='author'], [itemprop='author'], [class*='author'], [data-testid*='author']")?.textContent || "",
+      180
+    ).toLowerCase();
+    const htmlSample = safeText(document.documentElement?.innerText || "", 7000).toLowerCase();
+    const repetition = detectTextRepetitionSignals();
+
+    let score = 0;
+    const reasons = [];
+    const bump = (points, reason) => {
+      score += Number(points || 0);
+      if (reason) reasons.push(reason);
+    };
+
+    if (
+      /(generated by ai|ai-generated|written with (chatgpt|claude|gemini|copilot)|synthetic media|automatically generated|this content was generated)/.test(
+        text + " " + htmlSample
+      )
+    ) {
+      bump(6, "explicit AI generation disclosure");
+    }
+
+    if (/(chatgpt|openai|claude|anthropic|gemini|copilot|midjourney|stability ai)/.test(generatorMeta)) {
+      bump(4, "generator metadata references AI tooling");
+    }
+
+    if (/\b(bot|automation|autopost|autogenerated|ai assistant)\b/.test(authorSample)) {
+      bump(4, "author/byline contains bot or automation marker");
+    }
+
+    if (/\b(paraphrased by ai|drafted by ai|llm)\b/.test(text)) {
+      bump(3, "content contains AI drafting markers");
+    }
+
+    if (/(ai summary|auto-generated summary|generated summary)/.test(text + " " + htmlSample)) {
+      bump(2, "summary labels indicate auto-generation");
+    }
+
+    if (/(reddit\.com|x\.com|twitter\.com|youtube\.com)/.test(host) && /\b(bot|automated|autopost)\b/.test(text)) {
+      bump(2, "platform content includes bot/autopost markers");
+    }
+
+    if (repetition.ratio >= 0.22) {
+      bump(2, "high repeated sentence pattern");
+    }
+
+    if (personEntity?.name && !/\b(bot|automation|autopost)\b/.test(authorSample)) {
+      score = Math.max(0, score - 2);
+      reasons.push("named human author entity detected");
+    }
+
+    if (score >= 7) {
+      return {
+        label: "Likely AI/Bot-authored",
+        confidence: score >= 10 ? "high" : "medium",
+        score,
+        reasons: reasons.slice(0, 4)
+      };
+    }
+    if (score >= 3) {
+      return {
+        label: "Possible AI-assisted or automated",
+        confidence: score >= 5 ? "medium" : "low",
+        score,
+        reasons: reasons.slice(0, 4)
+      };
+    }
+
+    if (score > 0) {
+      return {
+        label: "Low AI/Bot signal",
+        confidence: "low",
+        score,
+        reasons: reasons.slice(0, 4)
+      };
+    }
+
+    return {
+      label: "No AI/Bot evidence in page signals",
+      confidence: "medium",
+      score,
+      reasons: reasons.slice(0, 4)
+    };
+  }
+
+  function detectScamTrapRisk(host) {
+    const text = buildPageTextSample();
+    const hostName = String(host || "").toLowerCase();
+    const path = String(location.pathname || "").toLowerCase();
+    const search = String(location.search || "").toLowerCase();
+    const trust = detectTrustSignals();
+
+    let score = 0;
+    const reasons = [];
+    const bump = (points, reason) => {
+      score += Number(points || 0);
+      if (reason) reasons.push(reason);
+    };
+
+    if (/xn--/.test(hostName)) bump(4, "punycode domain marker");
+    if (/\d{3,}/.test(hostName) || (hostName.match(/-/g) || []).length >= 3) bump(2, "domain entropy pattern");
+    if (/\.(top|xyz|click|work|zip|mov)$/.test(hostName)) bump(2, "high-risk TLD pattern");
+
+    if (
+      /(urgent|act now|limited time|final warning|account suspended|verify immediately|confirm your account|security alert|claim now|you won)/.test(
+        text
+      )
+    ) {
+      bump(4, "urgency/manipulation copy");
+    }
+
+    if (
+      /(seed phrase|private key|wallet connect|crypto giveaway|gift card|wire transfer|bank transfer|send usdt|recovery phrase)/.test(
+        text + " " + search + " " + path
+      )
+    ) {
+      bump(5, "high-risk payment/credential request language");
+    }
+
+    const passwordField = Boolean(document.querySelector("input[type='password']"));
+    const paymentField = Boolean(document.querySelector("input[name*='card' i], input[autocomplete='cc-number'], [data-testid*='payment' i]"));
+    if (passwordField && /verify|suspend|security alert|urgent/.test(text)) {
+      bump(3, "credentials requested with urgency cues");
+    }
+    if (paymentField && /gift card|wire|crypto|instant transfer/.test(text)) {
+      bump(4, "payment form paired with risky transfer language");
+    }
+
+    const links = sampleNodes("a[href]", 180).map((node) => String(node.getAttribute("href") || node.href || ""));
+    let suspiciousLinks = 0;
+    links.forEach((href) => {
+      const normalized = String(href || "").toLowerCase();
+      if (!normalized) return;
+      if (/bit\.ly|tinyurl\.com|goo\.gl|t\.co\/|rb\.gy/.test(normalized)) suspiciousLinks += 1;
+      if (/xn--/.test(normalized)) suspiciousLinks += 2;
+      if (/https?:\/\/\d{1,3}(\.\d{1,3}){3}/.test(normalized)) suspiciousLinks += 2;
+    });
+    if (suspiciousLinks >= 4) {
+      bump(3, "multiple suspicious outbound links");
+    }
+
+    if (detectAggressivePopup()) {
+      bump(1, "aggressive modal detected early");
+    }
+
+    const knownMajorDomain = /(^|\.)(google|youtube|github|figma|amazon|wikipedia|reddit|linkedin|microsoft|apple|netflix|bbc|nytimes|cnn|theguardian|notion|x|twitter)\./.test(
+      hostName
+    );
+    if (knownMajorDomain) {
+      score = Math.max(0, score - 3);
+      reasons.push("known major domain baseline");
+    }
+    if (trust.https) {
+      score = Math.max(0, score - 1);
+    }
+    if (trust.hasPrivacy && trust.hasTerms && trust.hasContact) {
+      score = Math.max(0, score - 2);
+      reasons.push("baseline trust/legal links detected");
+    }
+
+    if (score >= 8) {
+      return {
+        label: "High scam/trap risk",
+        confidence: score >= 11 ? "high" : "medium",
+        score,
+        reasons: reasons.slice(0, 4)
+      };
+    }
+    if (score >= 4) {
+      return {
+        label: "Caution: scam/trap cues",
+        confidence: "medium",
+        score,
+        reasons: reasons.slice(0, 4)
+      };
+    }
+    return {
+      label: "Low scam/trap signal",
+      confidence: score === 0 ? "medium" : "low",
+      score,
+      reasons: reasons.slice(0, 4)
+    };
+  }
+
+  function detectIntegritySignals(host) {
+    return {
+      aiAuthorship: detectAiBotAuthorship(host),
+      scamRisk: detectScamTrapRisk(host)
+    };
+  }
+
   function detectFrictionAndA11y() {
     const popups = detectAggressivePopup() ? 1 : 0;
     const cookieBanner = Boolean(document.querySelector("[id*='cookie' i], [class*='cookie' i], [aria-label*='cookie' i]"));
@@ -1049,9 +2363,30 @@
   }
 
   function buildProfileBullets(summary) {
+    const owner = summary.owner || {
+      ownerName: "Unknown",
+      country: "Unknown",
+      netWorth: "Unknown",
+      created: "Unknown",
+      totalUsers: "Unknown",
+      onlineNow: "Unknown",
+      source: "Unknown"
+    };
+
+    const integrity = summary.integrity || {};
+    const aiAuthorship = integrity.aiAuthorship || {};
+    const scamRisk = integrity.scamRisk || {};
+
     const regular = [];
     regular.push(`Identity: ${summary.siteIdentity || summary.host} · Type: ${summary.siteType} (${summary.siteTypeConfidence})`);
+    regular.push(`AI/Bot authorship: ${aiAuthorship.label || "No AI/Bot evidence in local signals"} (${aiAuthorship.confidence || "low"})`);
+    regular.push(`Scam/Trap risk: ${scamRisk.label || "Low signal"} (${scamRisk.confidence || "low"})`);
+    if (aiAuthorship.reasons?.length) regular.push(`AI/Bot cues: ${aiAuthorship.reasons.join("; ")}`);
+    if (scamRisk.reasons?.length) regular.push(`Risk cues: ${scamRisk.reasons.join("; ")}`);
     regular.push(summary.purposeSummary);
+    regular.push(`CEO/Owner: ${owner.ownerName} · Country: ${owner.country}`);
+    regular.push(`Net worth: ${owner.netWorth} · Created: ${owner.created}`);
+    regular.push(`Users: ${owner.totalUsers} · Online now: ${owner.onlineNow}`);
     regular.push(`Main value: ${summary.metaSnippet || "Clear user action and navigation flow."}`);
     regular.push(
       `Trust signals: HTTPS ${summary.trustSignals.https ? "yes" : "no"} · Privacy ${
@@ -1072,6 +2407,10 @@
 
     const dev = [];
     dev.push(`Identity: ${summary.siteIdentity || summary.host} · ${summary.siteType} (${summary.siteTypeConfidence})`);
+    dev.push(`AI/Bot authorship: ${aiAuthorship.label || "No AI/Bot evidence in local signals"} (${aiAuthorship.confidence || "low"})`);
+    dev.push(`Scam/Trap risk: ${scamRisk.label || "Low signal"} (${scamRisk.confidence || "low"})`);
+    dev.push(`Ownership: ${owner.ownerName} · Created ${owner.created}`);
+    dev.push(`Audience scale: ${owner.totalUsers} · Online now ${owner.onlineNow}`);
     dev.push(`Stack hints: ${summary.stack.length ? summary.stack.join(", ") : "No strong framework signature detected"}`);
     if (summary.performance) {
       dev.push(
@@ -1089,6 +2428,10 @@
     );
 
     const design = [];
+    design.push(`Brand operator: ${owner.ownerName} (${owner.country})`);
+    design.push(`AI/Bot authorship: ${aiAuthorship.label || "No AI/Bot evidence in local signals"} (${aiAuthorship.confidence || "low"})`);
+    design.push(`Scam/Trap risk: ${scamRisk.label || "Low signal"} (${scamRisk.confidence || "low"})`);
+    design.push(`Scale signal: ${owner.totalUsers} · Live now ${owner.onlineNow}`);
     design.push(`Fonts sampled: ${summary.design.topFonts.length ? summary.design.topFonts.join(" | ") : "No stable font sample yet"}`);
     design.push(`Palette sample: ${summary.design.topColors.length ? summary.design.topColors.join(" · ") : "No dominant colors sampled"}`);
     design.push(`Layout pattern: grid ${summary.layout.gridCount} · flex ${summary.layout.flexCount}`);
@@ -1101,6 +2444,10 @@
     );
 
     const uxr = [];
+    uxr.push(`Site owner context: ${owner.ownerName} · Net worth ${owner.netWorth}`);
+    uxr.push(`AI/Bot authorship: ${aiAuthorship.label || "No AI/Bot evidence in local signals"} (${aiAuthorship.confidence || "low"})`);
+    uxr.push(`Scam/Trap risk: ${scamRisk.label || "Low signal"} (${scamRisk.confidence || "low"})`);
+    uxr.push(`Scale context: users ${owner.totalUsers} · online now ${owner.onlineNow}`);
     uxr.push(`Analytics tags: ${summary.analytics.length ? summary.analytics.join(", ") : "No common analytics tags detected"}`);
     uxr.push(`Friction cues: popups ${summary.friction.popups} · cookie banner ${summary.friction.cookieBanner ? "present" : "not detected"}`);
     uxr.push(`Form complexity: ${summary.friction.formInputs} controls in primary form`);
@@ -1116,8 +2463,10 @@
   function computeSiteInsightSummary(host) {
     const siteClassification = detectSiteType(host);
     const siteType = siteClassification.type;
-    const algorithm = detectAlgorithmContext(host);
+    const algorithm = detectAlgorithmContext(host, siteType);
+    const integrity = detectIntegritySignals(host);
     const purposeSummary = detectPurposeSummary(host, siteClassification);
+    const owner = detectOwnershipSnapshot(host, siteClassification.identity || host);
     const trustSignals = detectTrustSignals();
     const navHints = detectNavHints();
     const aggressivePopup = detectAggressivePopup();
@@ -1154,6 +2503,8 @@
       siteIdentity: siteClassification.identity || host,
       classificationReasons: siteClassification.reasons || [],
       algorithm,
+      integrity,
+      owner,
       purposeSummary,
       metaSnippet,
       trustSignals,
@@ -1251,10 +2602,19 @@
           border-radius: var(--hm-radius);
           background: rgba(20, 17, 15, 0.96);
           color: var(--hm-text);
+          position: fixed;
+          right: 12px;
+          bottom: 12px;
+          z-index: 2147483646;
+          width: 34px;
+          min-width: 34px;
+          max-width: 34px;
           min-height: 34px;
-          padding: 0 12px;
-          font-size: 11px;
-          letter-spacing: 0.08em;
+          max-height: 34px;
+          padding: 0;
+          font-size: 14px;
+          font-weight: 700;
+          letter-spacing: 0.02em;
           text-transform: uppercase;
           cursor: pointer;
           display: none;
@@ -1374,6 +2734,75 @@
           line-height: 1.45;
         }
 
+        .hm-integrity {
+          border: 1px solid rgba(243, 243, 244, 0.18);
+          border-radius: var(--hm-radius);
+          background: rgba(20, 17, 15, 0.62);
+          padding: 8px;
+          display: grid;
+          gap: 6px;
+        }
+
+        .hm-integrity-row {
+          display: grid;
+          grid-template-columns: 112px 1fr;
+          gap: 8px;
+          align-items: center;
+        }
+
+        .hm-integrity-row span {
+          color: var(--hm-muted);
+          font-size: 10px;
+          text-transform: uppercase;
+          letter-spacing: 0.08em;
+        }
+
+        .hm-integrity-row strong {
+          color: var(--hm-text);
+          font-size: 11px;
+          font-weight: 700;
+          line-height: 1.35;
+          word-break: break-word;
+        }
+
+        .hm-integrity-note {
+          margin: 0;
+          color: var(--hm-muted);
+          font-size: 10px;
+          line-height: 1.35;
+        }
+
+        .hm-owner {
+          border: 1px solid rgba(243, 243, 244, 0.18);
+          border-radius: var(--hm-radius);
+          background: rgba(20, 17, 15, 0.62);
+          padding: 8px;
+          display: grid;
+          gap: 5px;
+        }
+
+        .hm-owner-row {
+          display: grid;
+          grid-template-columns: 112px 1fr;
+          gap: 8px;
+          align-items: center;
+        }
+
+        .hm-owner-row span {
+          color: var(--hm-muted);
+          font-size: 10px;
+          text-transform: uppercase;
+          letter-spacing: 0.08em;
+        }
+
+        .hm-owner-row strong {
+          color: var(--hm-text);
+          font-size: 11px;
+          font-weight: 600;
+          line-height: 1.35;
+          word-break: break-word;
+        }
+
         .hm-list {
           margin: 0;
           padding: 0;
@@ -1448,8 +2877,6 @@
                 <option value="design">Design</option>
                 <option value="uxr">UXR</option>
               </select>
-              <button id="hmInsightPin" class="hm-btn-amber" title="Pin open" aria-label="Pin open">PIN</button>
-              <button id="hmInsightSettings" class="hm-btn-amber" title="Open settings" aria-label="Open settings">SET</button>
               <button id="hmInsightClose" class="hm-btn-red" title="Close" aria-label="Close">X</button>
             </div>
           </div>
@@ -1459,13 +2886,26 @@
             <span class="hm-chip" id="hmInsightConfidence">confidence</span>
           </div>
           <p class="hm-summary" id="hmInsightSummary"></p>
+          <div class="hm-integrity" id="hmInsightIntegrity">
+            <div class="hm-integrity-row"><span>AI/Bot</span><strong id="hmIntegrityAi">Loading…</strong></div>
+            <div class="hm-integrity-row"><span>Scam Risk</span><strong id="hmIntegrityScam">Loading…</strong></div>
+            <p class="hm-integrity-note" id="hmInsightIntegrityNote">Cues: collecting local signals</p>
+          </div>
+          <div class="hm-owner" id="hmInsightOwner">
+            <div class="hm-owner-row"><span>CEO / Owner</span><strong id="hmOwnerName">Loading…</strong></div>
+            <div class="hm-owner-row"><span>Country</span><strong id="hmOwnerCountry">Loading…</strong></div>
+            <div class="hm-owner-row"><span>Net Worth</span><strong id="hmOwnerNetWorth">Loading…</strong></div>
+            <div class="hm-owner-row"><span>Created</span><strong id="hmOwnerCreated">Loading…</strong></div>
+            <div class="hm-owner-row"><span>Total Users</span><strong id="hmOwnerUsers">Loading…</strong></div>
+            <div class="hm-owner-row"><span>Online Now</span><strong id="hmOwnerOnline">Loading…</strong></div>
+          </div>
           <ul class="hm-list" id="hmInsightBullets"></ul>
           <div class="hm-foot">
             <small id="hmInsightStatus">Holmeta Insight</small>
             <button id="hmInsightDisableSite">Disable on this site</button>
           </div>
         </section>
-        <button class="hm-pill" id="hmInsightPill">Holmeta Insight</button>
+        <button class="hm-pill" id="hmInsightPill" title="Open Holmeta Insight" aria-label="Open Holmeta Insight">H</button>
       </div>
     `;
 
@@ -1473,8 +2913,6 @@
     const pill = shadow.getElementById("hmInsightPill");
     const profile = shadow.getElementById("hmInsightProfile");
     const closeBtn = shadow.getElementById("hmInsightClose");
-    const pinBtn = shadow.getElementById("hmInsightPin");
-    const settingsBtn = shadow.getElementById("hmInsightSettings");
     const disableBtn = shadow.getElementById("hmInsightDisableSite");
 
     closeBtn?.addEventListener("click", () => {
@@ -1483,20 +2921,6 @@
 
     pill?.addEventListener("click", () => {
       restoreInsight();
-    });
-
-    pinBtn?.addEventListener("click", () => {
-      state.siteInsight.pinned = !state.siteInsight.pinned;
-      pinBtn.textContent = state.siteInsight.pinned ? "UNPIN" : "PIN";
-      pinBtn.title = state.siteInsight.pinned ? "Pinned" : "Pin open";
-      if (state.siteInsight.pinned && state.siteInsight.autoMinimizeTimer) {
-        clearTimeout(state.siteInsight.autoMinimizeTimer);
-        state.siteInsight.autoMinimizeTimer = null;
-      }
-    });
-
-    settingsBtn?.addEventListener("click", () => {
-      sendRuntimeMessage({ type: "holmeta:open-options" });
     });
 
     disableBtn?.addEventListener("click", async () => {
@@ -1559,7 +2983,7 @@
       clearTimeout(state.siteInsight.autoMinimizeTimer);
       state.siteInsight.autoMinimizeTimer = null;
     }
-    if (!cfg.autoMinimize || state.siteInsight.pinned) return;
+    if (!cfg.autoMinimize) return;
     const duration = Math.max(6000, Math.min(10000, Number(cfg.durationMs || 8000)));
     state.siteInsight.autoMinimizeTimer = setTimeout(() => {
       minimizeInsight(true);
@@ -1581,7 +3005,7 @@
     return ["regular", "dev", "design", "uxr"].find((key) => profiles[key]) || "regular";
   }
 
-  function renderInsightPanel(summaryData, settings) {
+  function renderInsightPanel(summaryData, settings, viewOptions = {}) {
     ensureInsightUi();
     const shadow = state.siteInsight.shadow;
     if (!shadow) return;
@@ -1589,6 +3013,10 @@
     const selected = resolveProfile(settings);
     const host = summaryData.host || currentHost();
     const algo = summaryData.algorithm || { label: "Unknown", confidence: "low", explanation: "" };
+    const owner = summaryData.owner || {};
+    const integrity = summaryData.integrity || {};
+    const aiAuthorship = integrity.aiAuthorship || {};
+    const scamRisk = integrity.scamRisk || {};
     const bullets = (summaryData.profiles?.[selected] || []).slice(0, selected === "regular" ? 6 : 10);
 
     shadow.getElementById("hmInsightHost").textContent = host;
@@ -1613,7 +3041,29 @@
     shadow.getElementById("hmInsightSummary").textContent = settings?.showPurposeSummary
       ? safeText(summaryData.purposeSummary || "", 220)
       : `Profile: ${profileLabel(selected)}`;
-    shadow.getElementById("hmInsightStatus").textContent = `${summaryData.siteIdentity || host} · ${profileLabel(selected)}`;
+    shadow.getElementById("hmIntegrityAi").textContent = safeText(
+      `${aiAuthorship.label || "No AI/Bot evidence in local signals"} · ${aiAuthorship.confidence || "low"}`,
+      90
+    );
+    shadow.getElementById("hmIntegrityScam").textContent = safeText(
+      `${scamRisk.label || "Low scam/trap signal"} · ${scamRisk.confidence || "low"}`,
+      90
+    );
+    const integrityCues = [
+      ...(aiAuthorship.reasons || []).slice(0, 1),
+      ...(scamRisk.reasons || []).slice(0, 2)
+    ];
+    shadow.getElementById("hmInsightIntegrityNote").textContent = integrityCues.length
+      ? safeText(`Cues: ${integrityCues.join(" · ")}`, 190)
+      : "Cues: no strong risk markers detected";
+    shadow.getElementById("hmOwnerName").textContent = safeText(owner.ownerName || "Not disclosed on page", 110);
+    shadow.getElementById("hmOwnerCountry").textContent = safeText(owner.country || "Not disclosed on page", 90);
+    shadow.getElementById("hmOwnerNetWorth").textContent = safeText(owner.netWorth || "Not disclosed publicly", 90);
+    shadow.getElementById("hmOwnerCreated").textContent = safeText(owner.created || "Not found in local signals", 80);
+    shadow.getElementById("hmOwnerUsers").textContent = safeText(owner.totalUsers || "No public count detected", 100);
+    shadow.getElementById("hmOwnerOnline").textContent = safeText(owner.onlineNow || "No live counter detected", 100);
+    shadow.getElementById("hmInsightStatus").textContent =
+      `${summaryData.siteIdentity || host} · ${profileLabel(selected)} · ${safeText(owner.source || "Local snapshot", 32)}`;
 
     const list = shadow.getElementById("hmInsightBullets");
     list.innerHTML = bullets.map((line) => `<li>${safeText(line, 220)}</li>`).join("");
@@ -1623,15 +3073,27 @@
 
     const panel = shadow.getElementById("hmInsightPanel");
     const pill = shadow.getElementById("hmInsightPill");
-    panel.classList.remove("minimized");
-    pill.classList.remove("show");
-    state.siteInsight.minimized = false;
+    if (state.siteInsight.autoMinimizeTimer) {
+      clearTimeout(state.siteInsight.autoMinimizeTimer);
+      state.siteInsight.autoMinimizeTimer = null;
+    }
+    const openMinimized = Boolean(viewOptions.startMinimized);
+    if (openMinimized) {
+      panel.classList.add("minimized");
+      pill.classList.add("show");
+      state.siteInsight.minimized = true;
+    } else {
+      panel.classList.remove("minimized");
+      pill.classList.remove("show");
+      state.siteInsight.minimized = false;
+    }
     state.siteInsight.summaryData = summaryData;
     state.siteInsight.config = settings;
     state.siteInsight.lastShownAt = Date.now();
     state.siteInsight.lastRenderUrl = location.href;
-
-    scheduleInsightAutoMinimize();
+    if (!openMinimized) {
+      scheduleInsightAutoMinimize();
+    }
   }
 
   async function showSiteInsight(payload = {}) {
@@ -1671,7 +3133,11 @@
       }).catch(() => {});
     }
 
-    renderInsightPanel(summaryData, settings);
+    const seenBefore = Boolean(payload.seenBefore) || hasSeenSiteInsightHost(host);
+    renderInsightPanel(summaryData, settings, { startMinimized: seenBefore });
+    if (!seenBefore) {
+      markSeenSiteInsightHost(host);
+    }
   }
 
   async function refreshSiteInsightFromBackground(reason = "navigation") {
@@ -1756,6 +3222,7 @@
     if (!state.settings) return;
 
     applyLightEngine();
+    applyCosmeticFiltering();
     applyMorphing(Boolean(state.licensePremium && state.settings.advanced?.morphing));
 
     if (state.licensePremium && state.settings.advanced?.biofeedback) {
@@ -1787,7 +3254,28 @@
 
     if (type === "holmeta:sound") {
       const payload = message.payload || {};
-      playAlertSound(payload.kind, payload.volume).then((ok) => sendResponse({ ok }));
+      playAlertSound(payload.kind, payload.volume, payload.pattern).then((ok) => sendResponse({ ok }));
+      return true;
+    }
+
+    if (type === "holmeta:start-color-pick") {
+      sendResponse(startPersistentColorPicker());
+      return false;
+    }
+
+    if (type === "holmeta:stop-color-pick") {
+      stopPersistentColorPicker({ reason: "cancelled", silent: true });
+      sendResponse({ ok: true });
+      return false;
+    }
+
+    if (type === "holmeta:pick-color") {
+      sendResponse(startPersistentColorPicker());
+      return false;
+    }
+
+    if (type === "holmeta:block-element-picker") {
+      startBlockElementPicker().then((result) => sendResponse(result));
       return true;
     }
 

@@ -24,6 +24,16 @@
   --control-h: 40px;
   --control-h-primary: 44px;
   --control-pad-x: 14px;
+  --control-font-size: 12px;
+  --control-font-weight: 600;
+  --control-letter-spacing: 0.1em;
+  --control-line-height: 1.2;
+
+  --glow-red: 0 0 0 1px rgba(196, 32, 33, 0.24), 0 0 14px rgba(196, 32, 33, 0.28);
+  --glow-red-strong: 0 0 0 1px rgba(196, 32, 33, 0.36), 0 0 18px rgba(196, 32, 33, 0.42);
+  --glow-amber: 0 0 0 1px rgba(255, 179, 0, 0.24), 0 0 14px rgba(255, 179, 0, 0.28);
+  --glow-amber-strong: 0 0 0 1px rgba(255, 179, 0, 0.36), 0 0 18px rgba(255, 179, 0, 0.42);
+  --glow-focus: 0 0 0 2px rgba(255, 179, 0, 0.22);
 
   --shadow-1: 0 6px 20px rgba(20, 17, 15, 0.45);
 
