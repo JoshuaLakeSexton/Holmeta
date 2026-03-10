@@ -159,7 +159,6 @@ async function run() {
         ok: Boolean(startResult.ok && startResult.response?.ok),
         error: truncate(startResult.response?.error || startResult.error || "")
       });
-      await runtimeMessage(controller, { type: "holmeta:screenshot-stop" });
 
       const diagnosticTabId = startedTabId > 0 ? startedTabId : Number(activeTab.tabId || 0);
       if (!activeTab.ok || diagnosticTabId <= 0 || !/^https?:/i.test(activeTab.url || "")) {
@@ -183,6 +182,8 @@ async function run() {
           note: truncate(diagnosticsResult.response?.error || diagnosticsResult.error || "")
         });
       }
+
+      await runtimeMessage(controller, { type: "holmeta:screenshot-stop" });
 
       const colorPickResult = await runtimeMessage(controller, { type: "holmeta:start-color-pick" });
       summary.checks.colorPickStart.push({
