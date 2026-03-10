@@ -22,7 +22,9 @@
     "red_lock",
     "gray_warm",
     "dim",
-    "spotlight"
+    "spotlight",
+    "grayscale",
+    "custom"
   ]);
 
   const SPECTRUM_PRESETS = {
@@ -46,10 +48,18 @@
       mediaCount: 0,
       canvasCount: 0,
       iframeCount: 0,
-      profileSource: "global"
+      profileSource: "global",
+      pageTone: "unknown",
+      pageLuminance: 0.5,
+      safeFallback: false
     },
     spotlightPoint: null,
-    enabled: false
+    enabled: false,
+    pageToneCache: {
+      href: "",
+      ts: 0,
+      data: null
+    }
   };
 
   function clamp(value, min, max) {
@@ -105,7 +115,7 @@
     return {
       enabled: false,
       mode: "warm",
-      readingModeEnabled: false,
+      readingModeEnabled: true,
       readingMode: "dark",
       darkThemeVariant: "black",
       lightThemeVariant: "white",
@@ -156,7 +166,7 @@
       mode,
       spectrumPreset,
       enabled: Boolean(raw.enabled ?? base.enabled),
-      readingModeEnabled: Boolean(raw.readingModeEnabled ?? raw.readingThemeEnabled ?? base.readingModeEnabled ?? false),
+      readingModeEnabled: Boolean(raw.readingModeEnabled ?? raw.readingThemeEnabled ?? base.readingModeEnabled ?? true),
       readingMode: ["dark", "light"].includes(String(raw.readingMode || ""))
         ? String(raw.readingMode)
         : (Boolean(raw.darkReadingMode ?? false) ? "dark" : String(base.readingMode || "dark")),
@@ -204,6 +214,77 @@
     };
   }
 
+  function parseRgb(value) {
+    const raw = String(value || "").trim();
+    if (!raw || raw === "transparent") return null;
+    const match = raw.match(/^rgba?\(([^)]+)\)$/i);
+    if (!match) return null;
+    const parts = match[1].split(",").map((v) => Number(String(v).trim()));
+    if (parts.length < 3 || parts.slice(0, 3).some((v) => !Number.isFinite(v))) return null;
+    const alpha = Number.isFinite(parts[3]) ? parts[3] : 1;
+    if (alpha <= 0.02) return null;
+    return {
+      r: clamp(parts[0], 0, 255),
+      g: clamp(parts[1], 0, 255),
+      b: clamp(parts[2], 0, 255),
+      a: clamp(alpha, 0, 1)
+    };
+  }
+
+  function luminance(rgb) {
+    const channel = (value) => {
+      const s = clamp(value / 255, 0, 1);
+      return s <= 0.03928 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4;
+    };
+    return (0.2126 * channel(rgb.r)) + (0.7152 * channel(rgb.g)) + (0.0722 * channel(rgb.b));
+  }
+
+  function detectPageTone(force = false) {
+    const href = String(location.href || "");
+    if (!force && state.pageToneCache.href === href && (now() - state.pageToneCache.ts) < 15000 && state.pageToneCache.data) {
+      return state.pageToneCache.data;
+    }
+
+    const targets = [
+      document.documentElement,
+      document.body,
+      document.querySelector("main"),
+      document.querySelector("#app"),
+      document.querySelector("[role='main']"),
+      document.querySelector("article"),
+      ...Array.from(document.querySelectorAll("section,div")).slice(0, 8)
+    ].filter(Boolean);
+
+    const samples = [];
+    for (const node of targets) {
+      try {
+        const style = getComputedStyle(node);
+        const rgb = parseRgb(style.backgroundColor);
+        if (rgb) samples.push(luminance(rgb));
+      } catch {
+        // Ignore style sampling failures and continue.
+      }
+    }
+
+    let avg = 0.58;
+    if (samples.length) {
+      avg = samples.reduce((sum, value) => sum + value, 0) / samples.length;
+    }
+
+    const tone = avg < 0.34 ? "dark" : avg > 0.62 ? "light" : "mixed";
+    const output = {
+      tone,
+      luminance: Number(avg.toFixed(3))
+    };
+
+    state.pageToneCache = {
+      href,
+      ts: now(),
+      data: output
+    };
+    return output;
+  }
+
   function chooseStrategy(profile, media) {
     const host = getHost();
     const maybeColorCritical = /(figma|photopea|canva|pixlr)/i.test(host);
@@ -218,26 +299,42 @@
   }
 
   function ensureStyle() {
+    const styleNodes = document.querySelectorAll(`#${IDS.STYLE}`);
+    if (styleNodes.length > 1) {
+      styleNodes.forEach((node, index) => {
+        if (index > 0) node.remove();
+      });
+    }
     if (document.getElementById(IDS.STYLE)) return;
     const style = document.createElement("style");
     style.id = IDS.STYLE;
     style.textContent = `
       :root.holmeta-light-active {
         --holmeta-light-filter: none;
-        --holmeta-reading-filter: none;
+        --holmeta-reading-bg: #111111;
+        --holmeta-reading-surface: #181818;
+        --holmeta-reading-fg: #f3f3f4;
+        --holmeta-reading-muted: #d9c5b2;
+        --holmeta-reading-link: #ffb300;
+        --holmeta-reading-border: rgba(243, 243, 244, 0.24);
+        --holmeta-reading-control-bg: #1c1c1c;
+      }
+
+      :root.holmeta-reading-dark {
+        color-scheme: dark !important;
+      }
+
+      :root.holmeta-reading-light {
+        color-scheme: light !important;
       }
 
       html.holmeta-light-active {
-        filter: var(--holmeta-reading-filter) var(--holmeta-light-filter) !important;
+        filter: var(--holmeta-light-filter) !important;
       }
 
-      html.holmeta-reading-dark img,
-      html.holmeta-reading-dark video,
-      html.holmeta-reading-dark picture,
-      html.holmeta-reading-dark canvas,
-      html.holmeta-reading-dark svg,
-      html.holmeta-reading-dark iframe {
-        filter: invert(1) hue-rotate(180deg) contrast(1.04) brightness(1.02) !important;
+      html.holmeta-reading-theme :where(img, video, picture, canvas, svg, iframe) {
+        filter: none !important;
+        mix-blend-mode: normal !important;
       }
 
       #${IDS.OVERLAY} {
@@ -314,6 +411,12 @@
   }
 
   function ensureLayer(id) {
+    const nodes = document.querySelectorAll(`#${id}`);
+    if (nodes.length > 1) {
+      nodes.forEach((node, index) => {
+        if (index > 0) node.remove();
+      });
+    }
     let node = document.getElementById(id);
     if (node) return node;
     node = document.createElement("div");
@@ -324,10 +427,10 @@
 
   function clear() {
     document.documentElement.classList.remove("holmeta-light-active");
+    document.documentElement.classList.remove("holmeta-reading-theme");
     document.documentElement.classList.remove("holmeta-reading-dark");
     document.documentElement.classList.remove("holmeta-reading-light");
     document.documentElement.style.removeProperty("--holmeta-light-filter");
-    document.documentElement.style.removeProperty("--holmeta-reading-filter");
 
     const overlay = document.getElementById(IDS.OVERLAY);
     if (overlay) overlay.remove();
@@ -420,6 +523,58 @@
     return globalProfile;
   }
 
+  function createDefaultReadingProfile() {
+    return {
+      enabled: false,
+      mode: "dark",
+      preset: "soft_black",
+      intensity: 44
+    };
+  }
+
+  function normalizeReadingProfile(input, fallback) {
+    const base = {
+      ...createDefaultReadingProfile(),
+      ...(fallback || {})
+    };
+    const raw = input && typeof input === "object" ? input : {};
+    const mode = ["dark", "light"].includes(String(raw.mode || ""))
+      ? String(raw.mode)
+      : String(base.mode || "dark");
+    const preset = [
+      "soft_black",
+      "dim_slate",
+      "gentle_night",
+      "soft_paper",
+      "neutral_light",
+      "warm_page"
+    ].includes(String(raw.preset || ""))
+      ? String(raw.preset)
+      : String(base.preset || "soft_black");
+    return {
+      ...base,
+      ...raw,
+      enabled: Boolean(raw.enabled ?? base.enabled),
+      mode,
+      preset,
+      intensity: Math.round(clamp(raw.intensity ?? base.intensity, 0, 100))
+    };
+  }
+
+  function pickReadingProfile(readingSettings, host) {
+    const fallback = createDefaultReadingProfile();
+    const settings = readingSettings && typeof readingSettings === "object" ? readingSettings : {};
+    const globalProfile = normalizeReadingProfile(settings, fallback);
+    const map = settings.perSiteOverrides && typeof settings.perSiteOverrides === "object"
+      ? settings.perSiteOverrides
+      : {};
+    const direct = map[host];
+    if (direct && typeof direct === "object") {
+      return normalizeReadingProfile(direct, globalProfile);
+    }
+    return globalProfile;
+  }
+
   function profileToStyle(profile, strategy, rampFactor) {
     const i = clamp(profile.intensity, 0, 100) / 100;
     const d = clamp(profile.dim, 0, 60) / 100;
@@ -493,6 +648,16 @@
         overlayOpacity = 0.06 + (i * 0.30) + (d * 0.26) + (blueCut * 0.08);
         filter = `grayscale(0.92) sepia(0.55) brightness(${(b - (i * 0.10)).toFixed(3)}) contrast(${(1 - (c * 0.20)).toFixed(3)}) saturate(${(sat * 0.82).toFixed(3)})`;
         break;
+      case "grayscale":
+        overlayBg = "rgba(0, 0, 0, 1)";
+        overlayOpacity = 0.03 + (i * 0.24) + (d * 0.18);
+        filter = `grayscale(1) brightness(${(b - (i * 0.08)).toFixed(3)}) contrast(${(1 - (c * 0.18)).toFixed(3)}) saturate(0.2)`;
+        break;
+      case "custom":
+        overlayBg = `rgba(${Math.round(clamp(tintR, 0, 255))}, ${Math.round(clamp(tintG, 0, 255))}, ${Math.round(clamp(tintB, 0, 255))}, 1)`;
+        overlayOpacity = 0.02 + (i * 0.44) + (d * 0.22);
+        filter = `brightness(${(b - (i * 0.08)).toFixed(3)}) contrast(${(1 - (c * 0.20)).toFixed(3)}) saturate(${(sat * 0.9).toFixed(3)})`;
+        break;
       case "dim":
         overlayBg = "rgba(0, 0, 0, 1)";
         overlayOpacity = 0.06 + (i * 0.66) + (d * 0.30);
@@ -522,7 +687,7 @@
 
     return {
       overlayBg,
-      overlayOpacity: clamp(overlayOpacity, 0, 0.92),
+      overlayOpacity: clamp(overlayOpacity, 0, 0.72),
       filter
     };
   }
@@ -543,78 +708,148 @@
     return { x: 50, y: 42 };
   }
 
-  function readingThemeForProfile(profile = {}) {
-    const mode = profile.readingMode === "light" ? "light" : "dark";
-    const darkVariant = ["black", "brown", "gray"].includes(profile.darkThemeVariant)
-      ? profile.darkThemeVariant
-      : "black";
-    const lightVariant = ["white", "warm", "gray"].includes(profile.lightThemeVariant)
-      ? profile.lightThemeVariant
-      : "white";
+  function readingThemeForProfile(profile = {}, pageTone = { tone: "mixed", luminance: 0.5 }) {
+    const mode = profile.mode === "light" ? "light" : "dark";
+    const preset = String(profile.preset || (mode === "light" ? "neutral_light" : "soft_black"));
+    const tone = pageTone.tone || "mixed";
+    const alreadyDark = tone === "dark";
+    const intensityFactor = clamp(profile.intensity, 0, 100) / 100;
 
     if (mode === "dark") {
-      if (darkVariant === "brown") {
+      if (preset === "gentle_night") {
         return {
           mode,
-          variant: darkVariant,
-          filter: "invert(0.95) hue-rotate(166deg) sepia(0.32) saturate(0.88) brightness(0.82) contrast(0.93)",
-          overlayBg: "rgba(72, 56, 42, 1)",
-          overlayBoost: 0.08
+          variant: preset,
+          overlayBg: "rgba(54, 39, 31, 1)",
+          overlayOpacity: clamp((alreadyDark ? 0.07 : 0.24) + (intensityFactor * 0.18), 0.04, 0.42),
+          maxOverlayOpacity: alreadyDark ? 0.22 : 0.48,
+          filter: "brightness(0.985) contrast(1.04)"
         };
       }
-      if (darkVariant === "gray") {
+      if (preset === "dim_slate") {
         return {
           mode,
-          variant: darkVariant,
-          filter: "invert(0.95) hue-rotate(180deg) grayscale(0.28) brightness(0.82) contrast(0.92)",
-          overlayBg: "rgba(48, 48, 48, 1)",
-          overlayBoost: 0.08
+          variant: preset,
+          overlayBg: "rgba(26, 29, 34, 1)",
+          overlayOpacity: clamp((alreadyDark ? 0.06 : 0.22) + (intensityFactor * 0.17), 0.04, 0.40),
+          maxOverlayOpacity: alreadyDark ? 0.20 : 0.46,
+          filter: "brightness(0.988) contrast(1.03)"
         };
       }
       return {
         mode,
-        variant: darkVariant,
-        filter: "invert(0.95) hue-rotate(180deg) brightness(0.80) contrast(0.94) saturate(0.84)",
-        overlayBg: "rgba(14, 14, 14, 1)",
-        overlayBoost: 0.1
+        variant: "soft_black",
+        overlayBg: "rgba(10, 12, 15, 1)",
+        overlayOpacity: clamp((alreadyDark ? 0.07 : 0.26) + (intensityFactor * 0.20), 0.04, 0.46),
+        maxOverlayOpacity: alreadyDark ? 0.22 : 0.52,
+        filter: "brightness(0.98) contrast(1.05)"
       };
     }
 
-    if (lightVariant === "warm") {
+    if (preset === "warm_page") {
       return {
         mode,
-        variant: lightVariant,
-        filter: "brightness(1.03) contrast(0.97) sepia(0.15) saturate(0.92)",
-        overlayBg: "rgba(255, 244, 220, 1)",
-        overlayBoost: 0.04
+        variant: preset,
+        overlayBg: "rgba(252, 241, 219, 1)",
+        overlayOpacity: clamp((alreadyDark ? 0.04 : 0.10) + (intensityFactor * 0.10), 0.02, 0.20),
+        maxOverlayOpacity: alreadyDark ? 0.12 : 0.24,
+        filter: alreadyDark ? "brightness(1.015) contrast(1.0)" : "brightness(1.006) contrast(1.0)"
       };
     }
-    if (lightVariant === "gray") {
+    if (preset === "soft_paper") {
       return {
         mode,
-        variant: lightVariant,
-        filter: "brightness(1.02) contrast(0.98) grayscale(0.18)",
-        overlayBg: "rgba(235, 235, 235, 1)",
-        overlayBoost: 0.03
+        variant: preset,
+        overlayBg: "rgba(237, 239, 242, 1)",
+        overlayOpacity: clamp((alreadyDark ? 0.03 : 0.09) + (intensityFactor * 0.08), 0.02, 0.18),
+        maxOverlayOpacity: alreadyDark ? 0.10 : 0.20,
+        filter: alreadyDark ? "brightness(1.012) contrast(1.0)" : "brightness(1.004) contrast(1.0)"
       };
     }
     return {
       mode,
-      variant: lightVariant,
-      filter: "brightness(1.02) contrast(0.99) saturate(0.98)",
-      overlayBg: "rgba(255, 255, 255, 1)",
-      overlayBoost: 0.03
+      variant: "neutral_light",
+      overlayBg: "rgba(250, 248, 244, 1)",
+      overlayOpacity: clamp((alreadyDark ? 0.03 : 0.08) + (intensityFactor * 0.08), 0.02, 0.16),
+      maxOverlayOpacity: alreadyDark ? 0.10 : 0.20,
+      filter: alreadyDark ? "brightness(1.01) contrast(1.0)" : "brightness(1.003) contrast(1.0)"
+    };
+  }
+
+  function joinFilters(...filters) {
+    return filters
+      .map((value) => String(value || "").trim())
+      .filter((value) => value && value !== "none")
+      .join(" ")
+      .trim() || "none";
+  }
+
+  function supplementalReadingAdjustment(profile = {}, pageTone = { tone: "mixed" }) {
+    const mode = String(profile.mode || "warm");
+    const intensityFactor = clamp(profile.intensity, 0, 100) / 100;
+    const dimFactor = clamp(profile.dim, 0, 60) / 100;
+    const tone = pageTone.tone || "mixed";
+    const darkPage = tone === "dark";
+
+    if (mode === "red_overlay" || mode === "red_mono" || mode === "red_lock") {
+      return {
+        overlayFactor: darkPage ? 0.12 : 0.22,
+        overlayBg: mode === "red_lock" ? "rgba(186, 28, 22, 1)" : "rgba(194, 46, 34, 1)",
+        filter: `saturate(${(0.90 - (intensityFactor * 0.08)).toFixed(3)})`
+      };
+    }
+
+    if (mode === "gray_warm") {
+      return {
+        overlayFactor: darkPage ? 0.08 : 0.16,
+        filter: `grayscale(${(0.16 + (intensityFactor * 0.16)).toFixed(3)}) sepia(${(0.10 + (intensityFactor * 0.12)).toFixed(3)})`
+      };
+    }
+
+    if (mode === "dim") {
+      return {
+        overlayFactor: darkPage ? 0.08 : 0.16,
+        filter: `brightness(${(0.99 - (dimFactor * 0.08)).toFixed(3)})`
+      };
+    }
+
+    if (mode === "spotlight") {
+      return {
+        overlayFactor: darkPage ? 0.04 : 0.1,
+        filter: "none"
+      };
+    }
+
+    const warmBias = mode === "cool_focus" ? 0.06 : 0.12;
+    return {
+      overlayFactor: darkPage ? 0.06 : 0.14,
+      filter: `sepia(${(warmBias + (intensityFactor * 0.12)).toFixed(3)}) saturate(${(0.97 - (intensityFactor * 0.05)).toFixed(3)})`
     };
   }
 
   function apply(payload = {}) {
     const settings = payload.settings || {};
-    const lightSettings = settings.light || {};
+    const legacyLight = settings.light || {};
+    const lightSettings = settings.lightFilter || legacyLight || {};
+    const readingSettings = settings.readingTheme || {
+      enabled: Boolean(legacyLight.readingModeEnabled ?? false),
+      mode: legacyLight.readingMode === "light" ? "light" : "dark",
+      preset: legacyLight.readingMode === "light"
+        ? (legacyLight.lightThemeVariant === "gray" ? "soft_paper" : legacyLight.lightThemeVariant === "warm" ? "warm_page" : "neutral_light")
+        : (legacyLight.darkThemeVariant === "gray" ? "dim_slate" : legacyLight.darkThemeVariant === "brown" ? "gentle_night" : "soft_black"),
+      intensity: Number(legacyLight.intensity || 44),
+      perSiteOverrides: legacyLight.siteProfiles || {},
+      excludedSites: Array.isArray(legacyLight.excludedHosts)
+        ? Object.fromEntries(legacyLight.excludedHosts.map((host) => [normalizeHost(host), true]))
+        : {}
+    };
     const effective = payload.effective || {};
+    const debugEnabled = Boolean(payload.meta?.debug);
 
     const host = getHost();
-    const excludedHosts = Array.isArray(lightSettings.excludedHosts) ? lightSettings.excludedHosts.map(normalizeHost) : [];
-    const excluded = excludedHosts.includes(host);
+    const filterExcluded = Boolean(lightSettings.excludedSites?.[host] || (Array.isArray(lightSettings.excludedHosts) && lightSettings.excludedHosts.map(normalizeHost).includes(host)));
+    const readingExcluded = Boolean(readingSettings.excludedSites?.[host] || (Array.isArray(readingSettings.excludedHosts) && readingSettings.excludedHosts.map(normalizeHost).includes(host)));
+    const excluded = filterExcluded && readingExcluded;
 
     const media = countMedia();
     state.diagnostics.host = host;
@@ -627,10 +862,11 @@
     const scheduleActive = !lightSettings.schedule?.enabled || inRange(lightSettings.schedule.start || "20:00", lightSettings.schedule.end || "06:00");
     const runtimeEnabled = typeof effective.lightActive === "boolean" ? effective.lightActive : scheduleActive;
     const profile = pickProfile(lightSettings, host);
+    const readingProfile = pickReadingProfile(readingSettings, host);
     if (profile.mode === "spotlight") profile.spotlightEnabled = true;
 
-    const filterEnabled = Boolean(baseEnabled && runtimeEnabled);
-    const readingThemeEnabled = profile.readingModeEnabled !== false;
+    const filterEnabled = Boolean(baseEnabled && runtimeEnabled && !filterExcluded);
+    const readingThemeEnabled = Boolean(readingProfile.enabled && !readingExcluded);
 
     if ((!filterEnabled && !readingThemeEnabled) || excluded) {
       clear();
@@ -641,24 +877,58 @@
     const overlay = ensureLayer(IDS.OVERLAY);
     const focus = ensureLayer(IDS.FOCUS);
 
-    const rampFactor = computeRampFactor(profile);
-    const strategy = chooseStrategy(profile, media);
-    const style = profileToStyle(profile, strategy, rampFactor);
+    const rampFactor = filterEnabled ? computeRampFactor(profile) : 1;
+    const pageTone = detectPageTone();
+    const strategy = filterEnabled ? chooseStrategy(profile, media) : "overlay";
+    const style = filterEnabled
+      ? profileToStyle(profile, strategy, rampFactor)
+      : { overlayBg: "rgba(0,0,0,1)", overlayOpacity: 0, filter: "none" };
     const readingTheme = readingThemeEnabled
-      ? readingThemeForProfile(profile)
-      : { mode: "off", variant: "off", filter: "none", overlayBoost: 0 };
-    const readingFilter = readingThemeEnabled ? readingTheme.filter : "none";
+      ? readingThemeForProfile(readingProfile, pageTone)
+      : { mode: "off", variant: "off", overlayBg: style.overlayBg, overlayOpacity: 0, maxOverlayOpacity: 0.62, filter: "none" };
+
+    let overlayBg = style.overlayBg;
+    let overlayOpacity = filterEnabled ? style.overlayOpacity : 0;
+    let pageFilter = filterEnabled ? style.filter : "none";
+    let safeFallback = false;
+
+    if (readingThemeEnabled) {
+      overlayBg = readingTheme.overlayBg || overlayBg;
+      overlayOpacity = readingTheme.overlayOpacity || 0;
+      pageFilter = readingTheme.filter || "none";
+
+      if (filterEnabled) {
+        const supplemental = supplementalReadingAdjustment(profile, pageTone);
+        overlayOpacity = clamp(
+          overlayOpacity + ((style.overlayOpacity || 0) * (supplemental.overlayFactor || 0)),
+          0,
+          readingTheme.maxOverlayOpacity || 0.52
+        );
+        if (supplemental.overlayBg && /^red_/.test(String(profile.mode || ""))) {
+          overlayBg = supplemental.overlayBg;
+        }
+        pageFilter = joinFilters(pageFilter, supplemental.filter);
+      }
+    }
+
+    if (pageTone.tone === "dark" && overlayOpacity > 0.28) {
+      overlayOpacity = 0.28;
+      safeFallback = true;
+    }
+    if (pageTone.tone === "light" && readingThemeEnabled && readingProfile.mode === "light" && overlayOpacity > 0.20) {
+      overlayOpacity = 0.20;
+      safeFallback = true;
+    }
 
     document.documentElement.classList.add("holmeta-light-active");
+    document.documentElement.classList.toggle("holmeta-reading-theme", readingThemeEnabled);
     document.documentElement.classList.toggle("holmeta-reading-dark", readingThemeEnabled && readingTheme.mode === "dark");
     document.documentElement.classList.toggle("holmeta-reading-light", readingThemeEnabled && readingTheme.mode === "light");
-    document.documentElement.style.setProperty("--holmeta-light-filter", filterEnabled ? style.filter : "none");
-    document.documentElement.style.setProperty("--holmeta-reading-filter", readingFilter);
+    document.documentElement.style.setProperty("--holmeta-light-filter", pageFilter);
 
-    const themedOverlayOpacity = clamp((filterEnabled ? style.overlayOpacity : 0) + (readingThemeEnabled ? (readingTheme.overlayBoost || 0) : 0), 0, 0.92);
-    overlay.style.setProperty("--holmeta-overlay-bg", readingThemeEnabled ? (readingTheme.overlayBg || style.overlayBg) : style.overlayBg);
-    overlay.style.setProperty("--holmeta-overlay-opacity", String(themedOverlayOpacity));
-    if (themedOverlayOpacity > 0) {
+    overlay.style.setProperty("--holmeta-overlay-bg", overlayBg);
+    overlay.style.setProperty("--holmeta-overlay-opacity", String(overlayOpacity));
+    if (overlayOpacity > 0) {
       overlay.classList.add("active");
     } else {
       overlay.classList.remove("active");
@@ -689,10 +959,26 @@
 
     state.enabled = true;
     state.diagnostics.active = filterEnabled || readingThemeEnabled;
-    state.diagnostics.mode = filterEnabled ? profile.mode : "reading_only";
+    state.diagnostics.mode = readingThemeEnabled
+      ? `${readingTheme.mode}_reading`
+      : (filterEnabled ? profile.mode : "none");
     state.diagnostics.strategy = strategy;
     state.diagnostics.readingMode = readingTheme.mode;
     state.diagnostics.readingVariant = readingTheme.variant;
+    state.diagnostics.pageTone = pageTone.tone;
+    state.diagnostics.pageLuminance = pageTone.luminance;
+    state.diagnostics.safeFallback = safeFallback;
+    if (debugEnabled) {
+      console.info("[Holmeta light]", {
+        mode: state.diagnostics.mode,
+        strategy,
+        pageTone: pageTone.tone,
+        pageLuminance: pageTone.luminance,
+        overlayOpacity: Number(overlayOpacity.toFixed(3)),
+        filter: pageFilter,
+        excluded
+      });
+    }
 
     return { ...state.diagnostics };
   }

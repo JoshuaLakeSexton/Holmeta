@@ -24,6 +24,7 @@
   },
   "permissions": [
     "storage",
+    "offscreen",
     "proxy",
     "tabs",
     "activeTab",

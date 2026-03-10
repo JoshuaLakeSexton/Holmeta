@@ -425,12 +425,14 @@ html {
 
 .hm-nav-links {
   display: flex;
-  flex-wrap: wrap;
-  gap: var(--s-2);
+  flex-wrap: nowrap;
+  gap: var(--s-1);
+  align-items: center;
   font-family: var(--ff-mono);
   font-size: var(--fs-1);
   text-transform: uppercase;
   letter-spacing: var(--ls-meta);
+  white-space: nowrap;
 }
 
 .hm-nav-links a,
@@ -440,6 +442,7 @@ html {
   min-height: 32px;
   display: inline-flex;
   align-items: center;
+  white-space: nowrap;
 }
 
 .hm-nav-links a:hover,

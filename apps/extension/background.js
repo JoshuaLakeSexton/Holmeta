@@ -27,6 +27,42 @@ const SCREEN_PRESETS = new Set([
   "mobile_large"
 ]);
 
+const LIGHT_FILTER_MODES = [
+  "warm",
+  "amber",
+  "candle",
+  "paper",
+  "cool_focus",
+  "red_overlay",
+  "red_mono",
+  "red_lock",
+  "gray_warm",
+  "dim",
+  "spotlight",
+  "grayscale",
+  "custom"
+];
+
+const LIGHT_FILTER_SPECTRUM_PRESETS = [
+  "balanced",
+  "amber_590",
+  "red_630",
+  "deep_red_660",
+  "candle_1800k",
+  "neutral_3500k",
+  "daylight_5000k",
+  "melatonin_guard"
+];
+
+const READING_THEME_PRESETS = [
+  "soft_black",
+  "dim_slate",
+  "gentle_night",
+  "soft_paper",
+  "neutral_light",
+  "warm_page"
+];
+
 const ALARMS = {
   HEALTH: "holmeta-v3-health-alert",
   DEEPWORK: "holmeta-v3-deepwork-transition",
@@ -383,6 +419,459 @@ function normalizeFavorites(list) {
   return out;
 }
 
+function normalizeScreenshotToolSettings(input, fallback = null) {
+  const base = fallback && typeof fallback === "object"
+    ? fallback
+    : {
+        enabled: true,
+        padding: 8,
+        targetMode: "smart",
+        aspectRatio: "none",
+        customAspectWidth: 16,
+        customAspectHeight: 9,
+        minTargetWidth: 40,
+        minTargetHeight: 24,
+        outputScale: 1,
+        backgroundMode: "original",
+        showTooltip: true,
+        autoCopy: false,
+        previewRounded: false
+      };
+
+  const raw = input && typeof input === "object" ? input : {};
+  return {
+    ...base,
+    ...raw,
+    enabled: Boolean(raw.enabled ?? base.enabled),
+    padding: Math.round(clamp(raw.padding ?? base.padding, 0, 24)),
+    targetMode: ["smart", "exact", "parent"].includes(String(raw.targetMode || ""))
+      ? String(raw.targetMode)
+      : String(base.targetMode || "smart"),
+    aspectRatio: ["none", "square", "4:3", "16:9", "custom"].includes(String(raw.aspectRatio || ""))
+      ? String(raw.aspectRatio)
+      : String(base.aspectRatio || "none"),
+    customAspectWidth: Math.round(clamp(raw.customAspectWidth ?? base.customAspectWidth, 1, 999)),
+    customAspectHeight: Math.round(clamp(raw.customAspectHeight ?? base.customAspectHeight, 1, 999)),
+    minTargetWidth: Math.round(clamp(raw.minTargetWidth ?? base.minTargetWidth, 12, 2400)),
+    minTargetHeight: Math.round(clamp(raw.minTargetHeight ?? base.minTargetHeight, 12, 1800)),
+    outputScale: Number(raw.outputScale ?? base.outputScale) >= 2 ? 2 : 1,
+    backgroundMode: ["original", "white", "transparent"].includes(String(raw.backgroundMode || ""))
+      ? String(raw.backgroundMode)
+      : String(base.backgroundMode || "original"),
+    showTooltip: Boolean(raw.showTooltip ?? base.showTooltip),
+    autoCopy: Boolean(raw.autoCopy ?? base.autoCopy),
+    previewRounded: Boolean(raw.previewRounded ?? base.previewRounded)
+  };
+}
+
+function createDefaultReadingThemeSettings() {
+  return {
+    enabled: false,
+    mode: "dark", // dark | light
+    preset: "soft_black", // soft_black | dim_slate | gentle_night | soft_paper | neutral_light | warm_page
+    intensity: 44,
+    perSiteOverrides: {},
+    excludedSites: {}
+  };
+}
+
+function createDefaultLightFilterSettings() {
+  return {
+    enabled: false,
+    mode: "warm", // warm | amber | candle | paper | cool_focus | red_overlay | red_mono | red_lock | gray_warm | dim | spotlight | grayscale | custom
+    spectrumPreset: "balanced",
+    intensity: 45,
+    dim: 18,
+    contrastSoft: 8,
+    brightness: 96,
+    saturation: 100,
+    blueCut: 65,
+    tintRed: 100,
+    tintGreen: 62,
+    tintBlue: 30,
+    reduceWhites: true,
+    videoSafe: false,
+    spotlightEnabled: false,
+    therapyMode: false,
+    therapyDuration: 3,
+    therapyCadence: "gentle", // slow | medium | gentle
+    schedule: {
+      enabled: false,
+      start: "20:00",
+      end: "06:00",
+      useSunset: false,
+      rampMinutes: 45,
+      quickPreset: "custom" // custom | evening | workday | late_night
+    },
+    perSiteOverrides: {},
+    excludedSites: {}
+  };
+}
+
+function normalizeSiteOverrideMap(rawMap) {
+  if (!rawMap || typeof rawMap !== "object") return {};
+  return Object.fromEntries(
+    Object.entries(rawMap)
+      .map(([host, value]) => [normalizeHost(host), value])
+      .filter(([host, value]) => Boolean(host) && value && typeof value === "object")
+  );
+}
+
+function normalizeExcludedSiteMap(rawMap) {
+  if (Array.isArray(rawMap)) {
+    return Object.fromEntries(
+      normalizeDomainList(rawMap).map((host) => [host, true])
+    );
+  }
+  if (!rawMap || typeof rawMap !== "object") return {};
+  return Object.fromEntries(
+    Object.entries(rawMap)
+      .map(([host, enabled]) => [normalizeHost(host), Boolean(enabled)])
+      .filter(([host, enabled]) => Boolean(host) && enabled)
+  );
+}
+
+function readingPresetFromLegacy(mode, darkVariant, lightVariant) {
+  if (mode === "light") {
+    if (lightVariant === "gray") return "soft_paper";
+    if (lightVariant === "warm") return "warm_page";
+    return "neutral_light";
+  }
+  if (darkVariant === "gray") return "dim_slate";
+  if (darkVariant === "brown") return "gentle_night";
+  return "soft_black";
+}
+
+function normalizeReadingThemeSettings(rawSettings, fallback, legacyLight = {}) {
+  const base = fallback && typeof fallback === "object"
+    ? fallback
+    : createDefaultReadingThemeSettings();
+  const raw = rawSettings && typeof rawSettings === "object" ? rawSettings : {};
+  const legacyMode = ["dark", "light"].includes(String(legacyLight.readingMode || ""))
+    ? String(legacyLight.readingMode)
+    : "dark";
+  const mode = ["dark", "light"].includes(String(raw.mode || ""))
+    ? String(raw.mode)
+    : legacyMode;
+  const presetRaw = String(raw.preset || "");
+  const preset = READING_THEME_PRESETS.includes(presetRaw)
+    ? presetRaw
+    : readingPresetFromLegacy(mode, String(legacyLight.darkThemeVariant || ""), String(legacyLight.lightThemeVariant || ""));
+  const enabled = Boolean(raw.enabled ?? legacyLight.readingModeEnabled ?? base.enabled);
+  const intensity = Math.round(clamp(raw.intensity ?? legacyLight.intensity ?? base.intensity, 0, 100));
+  const siteOverridesRaw = raw.perSiteOverrides || raw.siteProfiles || {};
+  const excludeRaw = raw.excludedSites || raw.excludedHosts || legacyLight.excludedHosts || {};
+  const siteOverrides = normalizeSiteOverrideMap(siteOverridesRaw);
+  const excludedSites = normalizeExcludedSiteMap(excludeRaw);
+
+  const normalizedOverrides = {};
+  for (const [host, value] of Object.entries(siteOverrides)) {
+    const row = value && typeof value === "object" ? value : {};
+    const rowMode = ["dark", "light"].includes(String(row.mode || "")) ? String(row.mode) : mode;
+    normalizedOverrides[host] = {
+      enabled: Boolean(row.enabled ?? true),
+      mode: rowMode,
+      preset: READING_THEME_PRESETS.includes(String(row.preset || ""))
+        ? String(row.preset)
+        : readingPresetFromLegacy(rowMode, String(row.darkThemeVariant || legacyLight.darkThemeVariant || ""), String(row.lightThemeVariant || legacyLight.lightThemeVariant || "")),
+      intensity: Math.round(clamp(row.intensity ?? intensity, 0, 100))
+    };
+  }
+
+  return {
+    ...base,
+    ...raw,
+    enabled,
+    mode,
+    preset,
+    intensity,
+    perSiteOverrides: normalizedOverrides,
+    excludedSites
+  };
+}
+
+function normalizeLightFilterSettings(rawSettings, fallback, legacyLight = {}) {
+  const base = fallback && typeof fallback === "object"
+    ? fallback
+    : createDefaultLightFilterSettings();
+  const raw = rawSettings && typeof rawSettings === "object" ? rawSettings : {};
+  const schedule = {
+    ...base.schedule,
+    ...(raw.schedule && typeof raw.schedule === "object" ? raw.schedule : {}),
+    ...(legacyLight.schedule && typeof legacyLight.schedule === "object" ? legacyLight.schedule : {})
+  };
+  const modeRaw = String(raw.mode || legacyLight.mode || base.mode || "warm");
+  const mode = LIGHT_FILTER_MODES.includes(modeRaw)
+    ? modeRaw
+    : (modeRaw === "red" ? "red_overlay" : "warm");
+  const spectrumPresetRaw = String(raw.spectrumPreset || legacyLight.spectrumPreset || base.spectrumPreset || "balanced");
+  const spectrumPreset = LIGHT_FILTER_SPECTRUM_PRESETS.includes(spectrumPresetRaw)
+    ? spectrumPresetRaw
+    : "balanced";
+  const siteOverridesRaw = raw.perSiteOverrides || raw.siteProfiles || {};
+  const excludeRaw = raw.excludedSites || raw.excludedHosts || legacyLight.excludedHosts || {};
+  const siteOverrides = normalizeSiteOverrideMap(siteOverridesRaw);
+  const excludedSites = normalizeExcludedSiteMap(excludeRaw);
+
+  const normalizedOverrides = {};
+  for (const [host, value] of Object.entries(siteOverrides)) {
+    const row = value && typeof value === "object" ? value : {};
+    const rowModeRaw = String(row.mode || mode);
+    normalizedOverrides[host] = {
+      enabled: Boolean(row.enabled ?? true),
+      mode: LIGHT_FILTER_MODES.includes(rowModeRaw) ? rowModeRaw : mode,
+      spectrumPreset: LIGHT_FILTER_SPECTRUM_PRESETS.includes(String(row.spectrumPreset || ""))
+        ? String(row.spectrumPreset)
+        : spectrumPreset,
+      intensity: Math.round(clamp(row.intensity ?? raw.intensity ?? legacyLight.intensity ?? base.intensity, 0, 100)),
+      dim: Math.round(clamp(row.dim ?? raw.dim ?? legacyLight.dim ?? base.dim, 0, 60)),
+      contrastSoft: Math.round(clamp(row.contrastSoft ?? raw.contrastSoft ?? legacyLight.contrastSoft ?? base.contrastSoft, 0, 30)),
+      brightness: Math.round(clamp(row.brightness ?? raw.brightness ?? legacyLight.brightness ?? base.brightness, 70, 120)),
+      saturation: Math.round(clamp(row.saturation ?? raw.saturation ?? legacyLight.saturation ?? base.saturation, 40, 140)),
+      blueCut: Math.round(clamp(row.blueCut ?? raw.blueCut ?? legacyLight.blueCut ?? base.blueCut, 0, 100)),
+      tintRed: Math.round(clamp(row.tintRed ?? raw.tintRed ?? legacyLight.tintRed ?? base.tintRed, 0, 100)),
+      tintGreen: Math.round(clamp(row.tintGreen ?? raw.tintGreen ?? legacyLight.tintGreen ?? base.tintGreen, 0, 100)),
+      tintBlue: Math.round(clamp(row.tintBlue ?? raw.tintBlue ?? legacyLight.tintBlue ?? base.tintBlue, 0, 100)),
+      reduceWhites: Boolean(row.reduceWhites ?? raw.reduceWhites ?? legacyLight.reduceWhites ?? base.reduceWhites),
+      videoSafe: Boolean(row.videoSafe ?? raw.videoSafe ?? legacyLight.videoSafe ?? base.videoSafe),
+      spotlightEnabled: Boolean(row.spotlightEnabled ?? raw.spotlightEnabled ?? legacyLight.spotlightEnabled ?? base.spotlightEnabled),
+      therapyMode: Boolean(row.therapyMode ?? raw.therapyMode ?? legacyLight.therapyMode ?? base.therapyMode),
+      therapyDuration: Math.round(clamp(row.therapyDuration ?? row.therapyMinutes ?? raw.therapyDuration ?? raw.therapyMinutes ?? legacyLight.therapyMinutes ?? base.therapyDuration, 1, 20)),
+      therapyCadence: ["slow", "medium", "gentle"].includes(String(row.therapyCadence || ""))
+        ? String(row.therapyCadence)
+        : String(raw.therapyCadence || legacyLight.therapyCadence || base.therapyCadence || "gentle")
+    };
+  }
+
+  return {
+    ...base,
+    ...raw,
+    enabled: Boolean(raw.enabled ?? legacyLight.enabled ?? base.enabled),
+    mode,
+    spectrumPreset,
+    intensity: Math.round(clamp(raw.intensity ?? legacyLight.intensity ?? base.intensity, 0, 100)),
+    dim: Math.round(clamp(raw.dim ?? legacyLight.dim ?? base.dim, 0, 60)),
+    contrastSoft: Math.round(clamp(raw.contrastSoft ?? legacyLight.contrastSoft ?? base.contrastSoft, 0, 30)),
+    brightness: Math.round(clamp(raw.brightness ?? legacyLight.brightness ?? base.brightness, 70, 120)),
+    saturation: Math.round(clamp(raw.saturation ?? legacyLight.saturation ?? base.saturation, 40, 140)),
+    blueCut: Math.round(clamp(raw.blueCut ?? legacyLight.blueCut ?? base.blueCut, 0, 100)),
+    tintRed: Math.round(clamp(raw.tintRed ?? legacyLight.tintRed ?? base.tintRed, 0, 100)),
+    tintGreen: Math.round(clamp(raw.tintGreen ?? legacyLight.tintGreen ?? base.tintGreen, 0, 100)),
+    tintBlue: Math.round(clamp(raw.tintBlue ?? legacyLight.tintBlue ?? base.tintBlue, 0, 100)),
+    reduceWhites: Boolean(raw.reduceWhites ?? legacyLight.reduceWhites ?? base.reduceWhites),
+    videoSafe: Boolean(raw.videoSafe ?? legacyLight.videoSafe ?? base.videoSafe),
+    spotlightEnabled: Boolean(raw.spotlightEnabled ?? legacyLight.spotlightEnabled ?? base.spotlightEnabled),
+    therapyMode: Boolean(raw.therapyMode ?? legacyLight.therapyMode ?? base.therapyMode),
+    therapyDuration: Math.round(clamp(raw.therapyDuration ?? raw.therapyMinutes ?? legacyLight.therapyMinutes ?? base.therapyDuration, 1, 20)),
+    therapyCadence: ["slow", "medium", "gentle"].includes(String(raw.therapyCadence || legacyLight.therapyCadence || ""))
+      ? String(raw.therapyCadence || legacyLight.therapyCadence || "gentle")
+      : "gentle",
+    schedule: {
+      enabled: Boolean(schedule.enabled),
+      start: normalizeTime(schedule.start, base.schedule.start),
+      end: normalizeTime(schedule.end, base.schedule.end),
+      useSunset: Boolean(schedule.useSunset),
+      rampMinutes: Math.round(clamp(schedule.rampMinutes, 0, 120)),
+      quickPreset: ["custom", "evening", "workday", "late_night"].includes(String(schedule.quickPreset || ""))
+        ? String(schedule.quickPreset)
+        : "custom"
+    },
+    perSiteOverrides: normalizedOverrides,
+    excludedSites
+  };
+}
+
+function lightFilterModeToLegacy(mode = "warm") {
+  if (mode === "grayscale") return "gray_warm";
+  if (mode === "custom") return "warm";
+  return mode;
+}
+
+function readingThemeToLegacyVariants(reading = {}) {
+  const mode = reading.mode === "light" ? "light" : "dark";
+  const preset = String(reading.preset || "");
+  if (mode === "dark") {
+    if (preset === "dim_slate") return { darkThemeVariant: "gray", lightThemeVariant: "white" };
+    if (preset === "gentle_night") return { darkThemeVariant: "brown", lightThemeVariant: "white" };
+    return { darkThemeVariant: "black", lightThemeVariant: "white" };
+  }
+  if (preset === "soft_paper") return { darkThemeVariant: "black", lightThemeVariant: "gray" };
+  if (preset === "warm_page") return { darkThemeVariant: "black", lightThemeVariant: "warm" };
+  return { darkThemeVariant: "black", lightThemeVariant: "white" };
+}
+
+function buildLegacyLightFromSeparated(lightFilter = {}, readingTheme = {}, fallback = null) {
+  const base = fallback && typeof fallback === "object"
+    ? fallback
+    : {};
+  const variants = readingThemeToLegacyVariants(readingTheme);
+  const excludedHosts = normalizeDomainList([
+    ...Object.keys(lightFilter.excludedSites || {}),
+    ...Object.keys(readingTheme.excludedSites || {})
+  ]);
+  const siteProfiles = {};
+  const hosts = new Set([
+    ...Object.keys(lightFilter.perSiteOverrides || {}),
+    ...Object.keys(readingTheme.perSiteOverrides || {})
+  ]);
+  for (const host of hosts) {
+    const filterSite = lightFilter.perSiteOverrides?.[host] || {};
+    const readingSite = readingTheme.perSiteOverrides?.[host] || {};
+    const readingVars = readingThemeToLegacyVariants(readingSite);
+    siteProfiles[host] = {
+      enabled: Boolean(filterSite.enabled ?? readingSite.enabled ?? true),
+      mode: lightFilterModeToLegacy(filterSite.mode || lightFilter.mode || "warm"),
+      readingModeEnabled: Boolean(readingSite.enabled ?? readingTheme.enabled ?? false),
+      readingMode: readingSite.mode || readingTheme.mode || "dark",
+      darkThemeVariant: readingVars.darkThemeVariant,
+      lightThemeVariant: readingVars.lightThemeVariant,
+      spectrumPreset: filterSite.spectrumPreset || lightFilter.spectrumPreset || "balanced",
+      intensity: Math.round(clamp(filterSite.intensity ?? lightFilter.intensity ?? 45, 0, 100)),
+      dim: Math.round(clamp(filterSite.dim ?? lightFilter.dim ?? 18, 0, 60)),
+      contrastSoft: Math.round(clamp(filterSite.contrastSoft ?? lightFilter.contrastSoft ?? 8, 0, 30)),
+      brightness: Math.round(clamp(filterSite.brightness ?? lightFilter.brightness ?? 96, 70, 120)),
+      saturation: Math.round(clamp(filterSite.saturation ?? lightFilter.saturation ?? 100, 40, 140)),
+      blueCut: Math.round(clamp(filterSite.blueCut ?? lightFilter.blueCut ?? 65, 0, 100)),
+      tintRed: Math.round(clamp(filterSite.tintRed ?? lightFilter.tintRed ?? 100, 0, 100)),
+      tintGreen: Math.round(clamp(filterSite.tintGreen ?? lightFilter.tintGreen ?? 62, 0, 100)),
+      tintBlue: Math.round(clamp(filterSite.tintBlue ?? lightFilter.tintBlue ?? 30, 0, 100)),
+      reduceWhites: Boolean(filterSite.reduceWhites ?? lightFilter.reduceWhites ?? true),
+      videoSafe: Boolean(filterSite.videoSafe ?? lightFilter.videoSafe ?? false),
+      spotlightEnabled: Boolean(filterSite.spotlightEnabled ?? lightFilter.spotlightEnabled ?? false),
+      therapyMode: Boolean(filterSite.therapyMode ?? lightFilter.therapyMode ?? false),
+      therapyMinutes: Math.round(clamp(filterSite.therapyDuration ?? filterSite.therapyMinutes ?? lightFilter.therapyDuration ?? 3, 1, 20)),
+      therapyCadence: String(filterSite.therapyCadence || lightFilter.therapyCadence || "gentle")
+    };
+  }
+
+  return {
+    ...base,
+    enabled: Boolean(lightFilter.enabled),
+    mode: lightFilterModeToLegacy(lightFilter.mode || "warm"),
+    readingModeEnabled: Boolean(readingTheme.enabled),
+    readingMode: readingTheme.mode === "light" ? "light" : "dark",
+    darkThemeVariant: variants.darkThemeVariant,
+    lightThemeVariant: variants.lightThemeVariant,
+    spectrumPreset: lightFilter.spectrumPreset || "balanced",
+    intensity: Math.round(clamp(lightFilter.intensity ?? 45, 0, 100)),
+    dim: Math.round(clamp(lightFilter.dim ?? 18, 0, 60)),
+    contrastSoft: Math.round(clamp(lightFilter.contrastSoft ?? 8, 0, 30)),
+    brightness: Math.round(clamp(lightFilter.brightness ?? 96, 70, 120)),
+    saturation: Math.round(clamp(lightFilter.saturation ?? 100, 40, 140)),
+    blueCut: Math.round(clamp(lightFilter.blueCut ?? 65, 0, 100)),
+    tintRed: Math.round(clamp(lightFilter.tintRed ?? 100, 0, 100)),
+    tintGreen: Math.round(clamp(lightFilter.tintGreen ?? 62, 0, 100)),
+    tintBlue: Math.round(clamp(lightFilter.tintBlue ?? 30, 0, 100)),
+    reduceWhites: Boolean(lightFilter.reduceWhites),
+    videoSafe: Boolean(lightFilter.videoSafe),
+    spotlightEnabled: Boolean(lightFilter.spotlightEnabled),
+    therapyMode: Boolean(lightFilter.therapyMode),
+    therapyMinutes: Math.round(clamp(lightFilter.therapyDuration ?? 3, 1, 20)),
+    therapyCadence: String(lightFilter.therapyCadence || "gentle"),
+    schedule: {
+      enabled: Boolean(lightFilter.schedule?.enabled),
+      start: normalizeTime(lightFilter.schedule?.start, "20:00"),
+      end: normalizeTime(lightFilter.schedule?.end, "06:00"),
+      useSunset: Boolean(lightFilter.schedule?.useSunset),
+      rampMinutes: Math.round(clamp(lightFilter.schedule?.rampMinutes ?? 45, 0, 120)),
+      quickPreset: ["custom", "evening", "workday", "late_night"].includes(String(lightFilter.schedule?.quickPreset || ""))
+        ? String(lightFilter.schedule?.quickPreset)
+        : "custom"
+    },
+    excludedHosts,
+    siteProfiles
+  };
+}
+
+function legacyLightPatchToSeparated(lightPatch) {
+  const raw = lightPatch && typeof lightPatch === "object" ? lightPatch : {};
+  const lightFilter = {};
+  const readingTheme = {};
+
+  if (Object.prototype.hasOwnProperty.call(raw, "enabled")) lightFilter.enabled = Boolean(raw.enabled);
+  if (Object.prototype.hasOwnProperty.call(raw, "mode")) lightFilter.mode = String(raw.mode || "warm");
+  if (Object.prototype.hasOwnProperty.call(raw, "spectrumPreset")) lightFilter.spectrumPreset = String(raw.spectrumPreset || "balanced");
+  if (Object.prototype.hasOwnProperty.call(raw, "intensity")) lightFilter.intensity = Number(raw.intensity || 0);
+  if (Object.prototype.hasOwnProperty.call(raw, "dim")) lightFilter.dim = Number(raw.dim || 0);
+  if (Object.prototype.hasOwnProperty.call(raw, "contrastSoft")) lightFilter.contrastSoft = Number(raw.contrastSoft || 0);
+  if (Object.prototype.hasOwnProperty.call(raw, "brightness")) lightFilter.brightness = Number(raw.brightness || 0);
+  if (Object.prototype.hasOwnProperty.call(raw, "saturation")) lightFilter.saturation = Number(raw.saturation || 100);
+  if (Object.prototype.hasOwnProperty.call(raw, "blueCut")) lightFilter.blueCut = Number(raw.blueCut || 0);
+  if (Object.prototype.hasOwnProperty.call(raw, "tintRed")) lightFilter.tintRed = Number(raw.tintRed || 0);
+  if (Object.prototype.hasOwnProperty.call(raw, "tintGreen")) lightFilter.tintGreen = Number(raw.tintGreen || 0);
+  if (Object.prototype.hasOwnProperty.call(raw, "tintBlue")) lightFilter.tintBlue = Number(raw.tintBlue || 0);
+  if (Object.prototype.hasOwnProperty.call(raw, "reduceWhites")) lightFilter.reduceWhites = Boolean(raw.reduceWhites);
+  if (Object.prototype.hasOwnProperty.call(raw, "videoSafe")) lightFilter.videoSafe = Boolean(raw.videoSafe);
+  if (Object.prototype.hasOwnProperty.call(raw, "spotlightEnabled")) lightFilter.spotlightEnabled = Boolean(raw.spotlightEnabled);
+  if (Object.prototype.hasOwnProperty.call(raw, "therapyMode")) lightFilter.therapyMode = Boolean(raw.therapyMode);
+  if (Object.prototype.hasOwnProperty.call(raw, "therapyMinutes")) lightFilter.therapyDuration = Number(raw.therapyMinutes || 0);
+  if (Object.prototype.hasOwnProperty.call(raw, "therapyCadence")) lightFilter.therapyCadence = String(raw.therapyCadence || "gentle");
+  if (raw.schedule && typeof raw.schedule === "object") lightFilter.schedule = { ...raw.schedule };
+  if (Object.prototype.hasOwnProperty.call(raw, "excludedHosts")) {
+    lightFilter.excludedSites = normalizeExcludedSiteMap(raw.excludedHosts);
+  }
+
+  if (Object.prototype.hasOwnProperty.call(raw, "readingModeEnabled")) {
+    readingTheme.enabled = Boolean(raw.readingModeEnabled);
+  }
+  const mode = ["dark", "light"].includes(String(raw.readingMode || "")) ? String(raw.readingMode) : "dark";
+  if (Object.prototype.hasOwnProperty.call(raw, "readingMode")) readingTheme.mode = mode;
+  if (
+    Object.prototype.hasOwnProperty.call(raw, "darkThemeVariant") ||
+    Object.prototype.hasOwnProperty.call(raw, "lightThemeVariant") ||
+    Object.prototype.hasOwnProperty.call(raw, "readingMode")
+  ) {
+    readingTheme.preset = readingPresetFromLegacy(mode, String(raw.darkThemeVariant || ""), String(raw.lightThemeVariant || ""));
+  }
+  if (Object.prototype.hasOwnProperty.call(raw, "intensity")) {
+    readingTheme.intensity = Number(raw.intensity || 0);
+  }
+  if (Object.prototype.hasOwnProperty.call(raw, "excludedHosts")) {
+    readingTheme.excludedSites = normalizeExcludedSiteMap(raw.excludedHosts);
+  }
+
+  if (raw.siteProfiles && typeof raw.siteProfiles === "object") {
+    const filterOverrides = {};
+    const readingOverrides = {};
+    for (const [hostInput, profileInput] of Object.entries(raw.siteProfiles)) {
+      const host = normalizeHost(hostInput);
+      if (!host || !profileInput || typeof profileInput !== "object") continue;
+      const profile = profileInput;
+      filterOverrides[host] = {
+        enabled: Boolean(profile.enabled ?? true),
+        mode: String(profile.mode || raw.mode || "warm"),
+        spectrumPreset: String(profile.spectrumPreset || raw.spectrumPreset || "balanced"),
+        intensity: Number(profile.intensity ?? raw.intensity ?? 45),
+        dim: Number(profile.dim ?? raw.dim ?? 18),
+        contrastSoft: Number(profile.contrastSoft ?? raw.contrastSoft ?? 8),
+        brightness: Number(profile.brightness ?? raw.brightness ?? 96),
+        saturation: Number(profile.saturation ?? raw.saturation ?? 100),
+        blueCut: Number(profile.blueCut ?? raw.blueCut ?? 65),
+        tintRed: Number(profile.tintRed ?? raw.tintRed ?? 100),
+        tintGreen: Number(profile.tintGreen ?? raw.tintGreen ?? 62),
+        tintBlue: Number(profile.tintBlue ?? raw.tintBlue ?? 30),
+        reduceWhites: Boolean(profile.reduceWhites ?? raw.reduceWhites ?? true),
+        videoSafe: Boolean(profile.videoSafe ?? raw.videoSafe ?? false),
+        spotlightEnabled: Boolean(profile.spotlightEnabled ?? raw.spotlightEnabled ?? false),
+        therapyMode: Boolean(profile.therapyMode ?? raw.therapyMode ?? false),
+        therapyDuration: Number(profile.therapyDuration ?? profile.therapyMinutes ?? raw.therapyMinutes ?? 3),
+        therapyCadence: String(profile.therapyCadence || raw.therapyCadence || "gentle")
+      };
+      const rowMode = ["dark", "light"].includes(String(profile.readingMode || "")) ? String(profile.readingMode) : mode;
+      readingOverrides[host] = {
+        enabled: Boolean(profile.readingModeEnabled ?? true),
+        mode: rowMode,
+        preset: readingPresetFromLegacy(rowMode, String(profile.darkThemeVariant || raw.darkThemeVariant || ""), String(profile.lightThemeVariant || raw.lightThemeVariant || "")),
+        intensity: Number(profile.intensity ?? raw.intensity ?? 45)
+      };
+    }
+    if (Object.keys(filterOverrides).length) lightFilter.perSiteOverrides = filterOverrides;
+    if (Object.keys(readingOverrides).length) readingTheme.perSiteOverrides = readingOverrides;
+  }
+
+  return { lightFilter, readingTheme };
+}
+
 function hhmmToMinutes(value) {
   const [h, m] = String(value || "00:00").split(":").map((n) => Number(n || 0));
   return h * 60 + m;
@@ -417,10 +906,12 @@ function createDefaultState() {
       lastValidatedAt: 0
     },
     settings: {
+      readingTheme: createDefaultReadingThemeSettings(),
+      lightFilter: createDefaultLightFilterSettings(),
       light: {
         enabled: false,
         mode: "warm", // warm | amber | candle | paper | cool_focus | red_overlay | red_mono | red_lock | gray_warm | dim | spotlight
-        readingModeEnabled: false, // toggle for dark/light reading layer
+        readingModeEnabled: true, // toggle for dark/light reading layer
         readingMode: "dark", // dark | light
         darkThemeVariant: "black", // black | brown | gray
         lightThemeVariant: "white", // white | warm | gray
@@ -534,6 +1025,21 @@ function createDefaultState() {
         recentHex: "#FFB300",
         swatches: []
       },
+      screenshotTool: {
+        enabled: true,
+        padding: 8,
+        targetMode: "smart", // smart | exact | parent
+        aspectRatio: "none", // none | square | 4:3 | 16:9 | custom
+        customAspectWidth: 16,
+        customAspectHeight: 9,
+        minTargetWidth: 40,
+        minTargetHeight: 24,
+        outputScale: 1, // 1 | 2
+        backgroundMode: "original", // original | white | transparent
+        showTooltip: true,
+        autoCopy: false,
+        previewRounded: false
+      },
       favorites: {
         links: []
       },
@@ -620,6 +1126,13 @@ function createDefaultState() {
         authFailures: 0,
         autoCursor: 0,
         lastAppliedSignature: ""
+      },
+      screenshotTool: {
+        activeTabId: 0,
+        activeWindowId: 0,
+        startedAt: 0,
+        lastCaptureAt: 0,
+        lastError: ""
       }
     },
     cache: {
@@ -690,6 +1203,9 @@ function incrementDaily(state, field, amount) {
 function normalizeState(input) {
   const base = createDefaultState();
   const raw = input && typeof input === "object" ? input : {};
+  const rawSettings = raw.settings && typeof raw.settings === "object" ? raw.settings : {};
+  const hasReadingTheme = Object.prototype.hasOwnProperty.call(rawSettings, "readingTheme");
+  const hasLightFilter = Object.prototype.hasOwnProperty.call(rawSettings, "lightFilter");
 
   const merged = {
     ...base,
@@ -713,7 +1229,7 @@ function normalizeState(input) {
   merged.license.key = String(merged.license.key || "").slice(0, 120);
   merged.license.lastValidatedAt = Math.max(0, Number(merged.license.lastValidatedAt || 0));
 
-  merged.settings.light = {
+  const legacyLight = {
     ...base.settings.light,
     ...(merged.settings.light || {}),
     schedule: {
@@ -721,69 +1237,23 @@ function normalizeState(input) {
       ...(merged.settings.light?.schedule || {})
     }
   };
-  if (merged.settings.light.mode === "red") {
-    merged.settings.light.mode = "red_overlay";
-  }
-  merged.settings.light.mode = ["warm", "amber", "candle", "paper", "cool_focus", "red_overlay", "red_mono", "red_lock", "gray_warm", "dim", "spotlight"].includes(merged.settings.light.mode)
-    ? merged.settings.light.mode
-    : "warm";
-  merged.settings.light.readingModeEnabled = Boolean(
-    merged.settings.light.readingModeEnabled ?? merged.settings.light.readingThemeEnabled ?? false
+  if (legacyLight.mode === "red") legacyLight.mode = "red_overlay";
+
+  merged.settings.readingTheme = normalizeReadingThemeSettings(
+    hasReadingTheme ? (merged.settings.readingTheme || {}) : {},
+    base.settings.readingTheme,
+    legacyLight
   );
-  merged.settings.light.readingMode = ["dark", "light"].includes(String(merged.settings.light.readingMode || ""))
-    ? String(merged.settings.light.readingMode)
-    : (Boolean(merged.settings.light.darkReadingMode) ? "dark" : "light");
-  merged.settings.light.darkThemeVariant = ["black", "brown", "gray"].includes(String(merged.settings.light.darkThemeVariant || ""))
-    ? String(merged.settings.light.darkThemeVariant)
-    : "black";
-  merged.settings.light.lightThemeVariant = ["white", "warm", "gray"].includes(String(merged.settings.light.lightThemeVariant || ""))
-    ? String(merged.settings.light.lightThemeVariant)
-    : "white";
-  merged.settings.light.spectrumPreset = [
-    "balanced",
-    "amber_590",
-    "red_630",
-    "deep_red_660",
-    "candle_1800k",
-    "neutral_3500k",
-    "daylight_5000k",
-    "melatonin_guard"
-  ].includes(merged.settings.light.spectrumPreset)
-    ? merged.settings.light.spectrumPreset
-    : "balanced";
-  merged.settings.light.intensity = Math.round(clamp(merged.settings.light.intensity, 0, 100));
-  merged.settings.light.dim = Math.round(clamp(merged.settings.light.dim, 0, 60));
-  merged.settings.light.contrastSoft = Math.round(clamp(merged.settings.light.contrastSoft, 0, 30));
-  merged.settings.light.brightness = Math.round(clamp(merged.settings.light.brightness, 70, 120));
-  merged.settings.light.saturation = Math.round(clamp(merged.settings.light.saturation, 50, 140));
-  merged.settings.light.blueCut = Math.round(clamp(merged.settings.light.blueCut, 0, 100));
-  merged.settings.light.tintRed = Math.round(clamp(merged.settings.light.tintRed, 0, 100));
-  merged.settings.light.tintGreen = Math.round(clamp(merged.settings.light.tintGreen, 0, 100));
-  merged.settings.light.tintBlue = Math.round(clamp(merged.settings.light.tintBlue, 0, 100));
-  merged.settings.light.reduceWhites = Boolean(merged.settings.light.reduceWhites);
-  merged.settings.light.videoSafe = Boolean(merged.settings.light.videoSafe);
-  merged.settings.light.spotlightEnabled = Boolean(merged.settings.light.spotlightEnabled);
-  merged.settings.light.therapyMode = Boolean(merged.settings.light.therapyMode);
-  merged.settings.light.therapyMinutes = Math.round(clamp(merged.settings.light.therapyMinutes, 1, 20));
-  merged.settings.light.therapyCadence = ["slow", "medium", "gentle"].includes(merged.settings.light.therapyCadence)
-    ? merged.settings.light.therapyCadence
-    : "gentle";
-  merged.settings.light.schedule.enabled = Boolean(merged.settings.light.schedule.enabled);
-  merged.settings.light.schedule.start = normalizeTime(merged.settings.light.schedule.start, "20:00");
-  merged.settings.light.schedule.end = normalizeTime(merged.settings.light.schedule.end, "06:00");
-  merged.settings.light.schedule.useSunset = Boolean(merged.settings.light.schedule.useSunset);
-  merged.settings.light.schedule.rampMinutes = Math.round(clamp(merged.settings.light.schedule.rampMinutes, 0, 120));
-  merged.settings.light.schedule.quickPreset = ["custom", "evening", "workday", "late_night"].includes(merged.settings.light.schedule.quickPreset)
-    ? merged.settings.light.schedule.quickPreset
-    : "custom";
-  merged.settings.light.excludedHosts = normalizeDomainList(merged.settings.light.excludedHosts);
-  merged.settings.light.siteProfiles = merged.settings.light.siteProfiles && typeof merged.settings.light.siteProfiles === "object"
-    ? Object.fromEntries(
-        Object.entries(merged.settings.light.siteProfiles)
-          .map(([host, profile]) => [normalizeHost(host), profile])
-          .filter(([host]) => Boolean(host))
-      )
-    : {};
+  merged.settings.lightFilter = normalizeLightFilterSettings(
+    hasLightFilter ? (merged.settings.lightFilter || {}) : {},
+    base.settings.lightFilter,
+    legacyLight
+  );
+  merged.settings.light = buildLegacyLightFromSeparated(
+    merged.settings.lightFilter,
+    merged.settings.readingTheme,
+    legacyLight
+  );
 
   merged.settings.blocker = {
     ...base.settings.blocker,
@@ -919,6 +1389,12 @@ function normalizeState(input) {
   merged.settings.eyeDropper.recentHex = normalizeHexColor(merged.settings.eyeDropper.recentHex, "#FFB300");
   merged.settings.eyeDropper.swatches = normalizeHexSwatches(merged.settings.eyeDropper.swatches);
 
+  merged.settings.screenshotTool = {
+    ...base.settings.screenshotTool,
+    ...(merged.settings.screenshotTool || {})
+  };
+  merged.settings.screenshotTool = normalizeScreenshotToolSettings(merged.settings.screenshotTool, base.settings.screenshotTool);
+
   merged.settings.favorites = {
     ...base.settings.favorites,
     ...(merged.settings.favorites || {})
@@ -1049,6 +1525,15 @@ function normalizeState(input) {
   merged.runtime.secureTunnel.authFailures = Math.max(0, Number(merged.runtime.secureTunnel.authFailures || 0));
   merged.runtime.secureTunnel.autoCursor = Math.max(0, Number(merged.runtime.secureTunnel.autoCursor || 0));
   merged.runtime.secureTunnel.lastAppliedSignature = String(merged.runtime.secureTunnel.lastAppliedSignature || "").slice(0, 120);
+  merged.runtime.screenshotTool = {
+    ...base.runtime.screenshotTool,
+    ...(merged.runtime.screenshotTool || {})
+  };
+  merged.runtime.screenshotTool.activeTabId = Math.max(0, Number(merged.runtime.screenshotTool.activeTabId || 0));
+  merged.runtime.screenshotTool.activeWindowId = Math.max(0, Number(merged.runtime.screenshotTool.activeWindowId || 0));
+  merged.runtime.screenshotTool.startedAt = Math.max(0, Number(merged.runtime.screenshotTool.startedAt || 0));
+  merged.runtime.screenshotTool.lastCaptureAt = Math.max(0, Number(merged.runtime.screenshotTool.lastCaptureAt || 0));
+  merged.runtime.screenshotTool.lastError = String(merged.runtime.screenshotTool.lastError || "").slice(0, 220);
   merged.runtime.windowResizeBackup =
     merged.runtime.windowResizeBackup && typeof merged.runtime.windowResizeBackup === "object"
       ? {
@@ -1134,6 +1619,19 @@ function tabsCreate(opts) {
   return new Promise((resolve) => chrome.tabs.create(opts, resolve));
 }
 
+function tabsCaptureVisibleTab(windowId, options = {}) {
+  return new Promise((resolve) => {
+    chrome.tabs.captureVisibleTab(windowId, options, (dataUrl) => {
+      const err = chrome.runtime.lastError;
+      if (err) {
+        resolve({ ok: false, error: err.message || "capture_failed", dataUrl: "" });
+        return;
+      }
+      resolve({ ok: Boolean(dataUrl), error: dataUrl ? "" : "empty_capture", dataUrl: String(dataUrl || "") });
+    });
+  });
+}
+
 function windowsGet(windowId, getInfo = {}) {
   return new Promise((resolve) => {
     chrome.windows.get(windowId, getInfo, (windowObj) => {
@@ -1184,6 +1682,345 @@ function sendTab(tabId, message) {
       resolve({ ok: true, res });
     });
   });
+}
+
+function isRestrictedExtensionPageUrl(urlLike) {
+  const url = String(urlLike || "").trim().toLowerCase();
+  if (!url) return true;
+  if (/^(chrome|edge|brave|vivaldi|opera):\/\//.test(url)) return true;
+  if (/^chrome-extension:\/\//.test(url)) return true;
+  if (/^about:/.test(url)) return true;
+  if (/^file:\/\//.test(url)) return true;
+  if (/^https:\/\/chrome\.google\.com\/webstore/i.test(url)) return true;
+  if (/^https:\/\/chromewebstore\.google\.com/i.test(url)) return true;
+  if (/^https:\/\/microsoftedge\.microsoft\.com\/addons/i.test(url)) return true;
+  return !/^https?:\/\//.test(url);
+}
+
+async function ensureContentScriptReady(tabId) {
+  const ping = await sendTab(tabId, { type: "holmeta:ping" });
+  if (ping.ok && ping.res?.ok) return { ok: true, injected: false };
+  if (ping.ok && ping.res?.ok === false && !isMissingReceiverError(ping.res?.error)) {
+    return { ok: true, injected: false };
+  }
+  if (!ping.ok && !isMissingReceiverError(ping.error)) {
+    return { ok: false, error: ping.error || "receiver_unavailable" };
+  }
+
+  const injected = await executeScriptFiles(tabId, ["light/engine.js", "content.js"]);
+  if (!injected.ok) return { ok: false, error: injected.error || "inject_failed" };
+  const verify = await sendTab(tabId, { type: "holmeta:ping" });
+  if (!verify.ok || !verify.res?.ok) {
+    return { ok: false, error: verify.error || verify.res?.error || "receiver_not_ready" };
+  }
+  return { ok: true, injected: true };
+}
+
+async function dataUrlToBlob(dataUrl) {
+  const res = await fetch(String(dataUrl || ""));
+  return res.blob();
+}
+
+async function blobToDataUrl(blob) {
+  const buffer = await blob.arrayBuffer();
+  const bytes = new Uint8Array(buffer);
+  let binary = "";
+  const chunkSize = 0x8000;
+  for (let i = 0; i < bytes.length; i += chunkSize) {
+    binary += String.fromCharCode(...bytes.subarray(i, i + chunkSize));
+  }
+  return `data:${blob.type || "image/png"};base64,${btoa(binary)}`;
+}
+
+function aspectRatioValue(settings = {}) {
+  const aspect = String(settings.aspectRatio || "none");
+  if (aspect === "square") return 1;
+  if (aspect === "4:3") return 4 / 3;
+  if (aspect === "16:9") return 16 / 9;
+  if (aspect === "custom") {
+    const w = Math.max(1, Number(settings.customAspectWidth || 16));
+    const h = Math.max(1, Number(settings.customAspectHeight || 9));
+    return w / h;
+  }
+  return 0;
+}
+
+function fitRectToAspect(rect, aspect, viewport) {
+  if (!Number.isFinite(aspect) || aspect <= 0) return rect;
+  let next = { ...rect };
+  const currentRatio = rect.width / Math.max(rect.height, 1);
+  if (currentRatio > aspect) {
+    const targetHeight = rect.width / aspect;
+    const delta = targetHeight - rect.height;
+    next.y -= delta / 2;
+    next.height = targetHeight;
+  } else {
+    const targetWidth = rect.height * aspect;
+    const delta = targetWidth - rect.width;
+    next.x -= delta / 2;
+    next.width = targetWidth;
+  }
+
+  const maxWidth = Math.max(1, Number(viewport.width || next.width));
+  const maxHeight = Math.max(1, Number(viewport.height || next.height));
+  next.width = Math.min(next.width, maxWidth);
+  next.height = Math.min(next.height, maxHeight);
+  next.x = clamp(next.x, 0, Math.max(0, maxWidth - next.width));
+  next.y = clamp(next.y, 0, Math.max(0, maxHeight - next.height));
+  return next;
+}
+
+function normalizeCaptureRect(message = {}, settings = {}) {
+  const viewport = {
+    width: Math.max(1, Number(message.viewport?.width || message.viewportWidth || 0)),
+    height: Math.max(1, Number(message.viewport?.height || message.viewportHeight || 0))
+  };
+
+  const source = message.rect && typeof message.rect === "object" ? message.rect : {};
+  const minW = Math.max(12, Number(settings.minTargetWidth || 40));
+  const minH = Math.max(12, Number(settings.minTargetHeight || 24));
+  const pad = Math.max(0, Number(settings.padding || 0));
+
+  let width = Math.max(minW, Number(source.width || 0));
+  let height = Math.max(minH, Number(source.height || 0));
+  let x = Number(source.x || 0);
+  let y = Number(source.y || 0);
+
+  const cx = x + (Number(source.width || width) / 2);
+  const cy = y + (Number(source.height || height) / 2);
+  x = cx - (width / 2);
+  y = cy - (height / 2);
+
+  x -= pad;
+  y -= pad;
+  width += pad * 2;
+  height += pad * 2;
+
+  let rect = { x, y, width, height };
+  const aspect = aspectRatioValue(settings);
+  rect = fitRectToAspect(rect, aspect, viewport);
+
+  rect.x = clamp(rect.x, 0, Math.max(0, viewport.width - 1));
+  rect.y = clamp(rect.y, 0, Math.max(0, viewport.height - 1));
+  rect.width = clamp(rect.width, 1, Math.max(1, viewport.width - rect.x));
+  rect.height = clamp(rect.height, 1, Math.max(1, viewport.height - rect.y));
+
+  return { rect, viewport };
+}
+
+async function cropVisibleCapture(dataUrl, message = {}, settings = {}) {
+  if (typeof OffscreenCanvas === "undefined" || typeof createImageBitmap !== "function") {
+    return { ok: false, error: "canvas_api_unavailable" };
+  }
+  const imageBlob = await dataUrlToBlob(dataUrl);
+  const imageBitmap = await createImageBitmap(imageBlob);
+  try {
+    const normalized = normalizeCaptureRect(message, settings);
+    const viewportWidth = Math.max(1, normalized.viewport.width);
+    const viewportHeight = Math.max(1, normalized.viewport.height);
+    const scaleX = imageBitmap.width / viewportWidth;
+    const scaleY = imageBitmap.height / viewportHeight;
+    const outputScale = Number(settings.outputScale || 1) >= 2 ? 2 : 1;
+
+    const sx = Math.max(0, Math.floor(normalized.rect.x * scaleX));
+    const sy = Math.max(0, Math.floor(normalized.rect.y * scaleY));
+    const sw = Math.max(1, Math.floor(normalized.rect.width * scaleX));
+    const sh = Math.max(1, Math.floor(normalized.rect.height * scaleY));
+    const safeSw = Math.min(sw, Math.max(1, imageBitmap.width - sx));
+    const safeSh = Math.min(sh, Math.max(1, imageBitmap.height - sy));
+
+    const canvas = new OffscreenCanvas(
+      Math.max(1, Math.floor(safeSw * outputScale)),
+      Math.max(1, Math.floor(safeSh * outputScale))
+    );
+    const ctx = canvas.getContext("2d", { alpha: settings.backgroundMode !== "white" });
+    if (!ctx) {
+      return { ok: false, error: "canvas_context_unavailable" };
+    }
+
+    if (settings.backgroundMode === "white") {
+      ctx.fillStyle = "#FFFFFF";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+    } else if (settings.backgroundMode === "transparent") {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+    }
+
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = "high";
+    ctx.drawImage(
+      imageBitmap,
+      sx, sy, safeSw, safeSh,
+      0, 0, canvas.width, canvas.height
+    );
+
+    const blob = await canvas.convertToBlob({ type: "image/png" });
+    const outDataUrl = await blobToDataUrl(blob);
+    return {
+      ok: true,
+      imageDataUrl: outDataUrl,
+      width: canvas.width,
+      height: canvas.height,
+      rect: normalized.rect
+    };
+  } finally {
+    if (typeof imageBitmap.close === "function") imageBitmap.close();
+  }
+}
+
+async function startScreenshotToolOnActiveTab(state) {
+  const tabs = await tabsQuery({ active: true, currentWindow: true });
+  const tab = tabs.find((t) => Number.isInteger(t.id));
+  if (!tab) return { ok: false, error: "no_active_tab" };
+  const tabUrl = String(tab.url || "");
+  if (isRestrictedExtensionPageUrl(tabUrl)) {
+    return { ok: false, error: "restricted_page" };
+  }
+  const ready = await ensureContentScriptReady(tab.id);
+  if (!ready.ok) {
+    if (ready.error === "cannot_access_tab") {
+      return { ok: false, error: "restricted_page" };
+    }
+    return { ok: false, error: "content_script_unavailable" };
+  }
+  const result = await sendTab(tab.id, {
+    type: "holmeta:screenshot-start",
+    payload: { settings: state.settings.screenshotTool }
+  });
+  if ((!result.ok || result.res?.ok === false) && isMissingReceiverError(result.error || result.res?.error)) {
+    const retryReady = await ensureContentScriptReady(tab.id);
+    if (!retryReady.ok) {
+      return { ok: false, error: "content_script_unavailable" };
+    }
+    const retry = await sendTab(tab.id, {
+      type: "holmeta:screenshot-start",
+      payload: { settings: state.settings.screenshotTool }
+    });
+    if (retry.ok && retry.res?.ok !== false) {
+      state.runtime.screenshotTool.activeTabId = Number(tab.id || 0);
+      state.runtime.screenshotTool.activeWindowId = Number(tab.windowId || 0);
+      state.runtime.screenshotTool.startedAt = now();
+      state.runtime.screenshotTool.lastError = "";
+      await saveState(state);
+      return { ok: true, tabId: tab.id };
+    }
+    return { ok: false, error: retry.error || retry.res?.error || "start_failed" };
+  }
+  if (!result.ok || result.res?.ok === false) {
+    return { ok: false, error: result.error || result.res?.error || "start_failed" };
+  }
+  state.runtime.screenshotTool.activeTabId = Number(tab.id || 0);
+  state.runtime.screenshotTool.activeWindowId = Number(tab.windowId || 0);
+  state.runtime.screenshotTool.startedAt = now();
+  state.runtime.screenshotTool.lastError = "";
+  await saveState(state);
+  return { ok: true, tabId: tab.id };
+}
+
+async function stopScreenshotToolOnActiveTab(state) {
+  const tabId = Number(state.runtime?.screenshotTool?.activeTabId || 0);
+  if (tabId > 0) {
+    await sendTab(tabId, { type: "holmeta:screenshot-stop" });
+  } else {
+    const tabs = await tabsQuery({ active: true, currentWindow: true });
+    const tab = tabs.find((t) => Number.isInteger(t.id) && /^https?:/i.test(String(t.url || "")));
+    if (tab) await sendTab(tab.id, { type: "holmeta:screenshot-stop" });
+  }
+  state.runtime.screenshotTool.activeTabId = 0;
+  state.runtime.screenshotTool.activeWindowId = 0;
+  state.runtime.screenshotTool.startedAt = 0;
+  state.runtime.screenshotTool.lastError = "";
+  await saveState(state);
+  return { ok: true };
+}
+
+function runtimeSend(message) {
+  return new Promise((resolve) => {
+    chrome.runtime.sendMessage(message, (res) => {
+      const err = chrome.runtime.lastError;
+      if (err) {
+        resolve({ ok: false, error: err.message || "runtime_send_failed" });
+        return;
+      }
+      resolve(res || { ok: false, error: "empty_response" });
+    });
+  });
+}
+
+function isWebTab(tab) {
+  if (!tab || !Number.isInteger(tab.id)) return false;
+  const url = String(tab.url || "");
+  return /^https?:/i.test(url);
+}
+
+async function sendToBestWebTab(type, payload, preferActive = true) {
+  const tried = new Set();
+  const trySend = async (tab) => {
+    if (!isWebTab(tab)) return { ok: false, error: "not_web_tab" };
+    if (tried.has(tab.id)) return { ok: false, error: "already_tried" };
+    tried.add(tab.id);
+    return sendTab(tab.id, { type, payload });
+  };
+
+  if (preferActive) {
+    const activeTabs = await tabsQuery({ active: true, lastFocusedWindow: true });
+    for (const tab of activeTabs) {
+      // eslint-disable-next-line no-await-in-loop
+      const sent = await trySend(tab);
+      if (sent.ok) return { ok: true, tabId: tab.id };
+    }
+  }
+
+  const allTabs = await tabsQuery({});
+  for (const tab of allTabs) {
+    // eslint-disable-next-line no-await-in-loop
+    const sent = await trySend(tab);
+    if (sent.ok) return { ok: true, tabId: tab.id };
+  }
+
+  return { ok: false, error: "no_web_receiver" };
+}
+
+async function ensureOffscreenAudioDocument() {
+  if (!chrome.offscreen?.createDocument || !chrome.offscreen?.Reason?.AUDIO_PLAYBACK) {
+    return { ok: false, error: "offscreen_api_unavailable" };
+  }
+  try {
+    let hasDoc = false;
+    if (typeof chrome.offscreen.hasDocument === "function") {
+      hasDoc = Boolean(await chrome.offscreen.hasDocument());
+    }
+    if (!hasDoc) {
+      await chrome.offscreen.createDocument({
+        url: "offscreen.html",
+        reasons: [chrome.offscreen.Reason.AUDIO_PLAYBACK],
+        justification: "Play Holmeta health alert tones when service worker alarms fire."
+      });
+    }
+    return { ok: true };
+  } catch (error) {
+    const text = String(error?.message || error || "offscreen_create_failed");
+    if (/single offscreen document|already exists/i.test(text)) {
+      return { ok: true };
+    }
+    return { ok: false, error: text };
+  }
+}
+
+async function playAlertSoundReliable(payload = {}) {
+  const offscreen = await ensureOffscreenAudioDocument();
+  if (offscreen.ok) {
+    const result = await runtimeSend({
+      type: "holmeta:offscreen-sound",
+      payload
+    });
+    if (result?.ok) return { ok: true, channel: "offscreen" };
+  }
+
+  const fallback = await sendToBestWebTab("holmeta:sound", payload, true);
+  if (fallback.ok) {
+    return { ok: true, channel: "content_tab" };
+  }
+  return { ok: false, channel: "none", error: fallback.error || "sound_unavailable" };
 }
 
 function executeScriptFiles(tabId, files) {
@@ -1540,10 +2377,10 @@ async function applySecureTunnel(state, { force = false, reason = "manual" } = {
 }
 
 function isLightActiveNow(state) {
-  const light = state.settings.light;
-  if (!light.enabled) return false;
-  if (!light.schedule.enabled) return true;
-  return inTimeRange(light.schedule.start, light.schedule.end, new Date());
+  const lightFilter = state.settings.lightFilter || state.settings.light || {};
+  if (!lightFilter.enabled) return false;
+  if (!lightFilter.schedule?.enabled) return true;
+  return inTimeRange(lightFilter.schedule.start, lightFilter.schedule.end, new Date());
 }
 
 function isBlockerActiveNow(state) {
@@ -1562,6 +2399,9 @@ function isBlockerActiveNow(state) {
 
 function effectivePayload(state) {
   return {
+    meta: {
+      debug: Boolean(state.meta?.debug)
+    },
     settings: state.settings,
     license: {
       premium: Boolean(state.license.premium)
@@ -1598,6 +2438,13 @@ function publicState(state) {
       windowResizeBackup: resizeBackup,
       blockerRuleLimitHit: Boolean(state.runtime.blockerRuleLimitHit),
       blockerLastRuleCount: Math.max(0, Number(state.runtime.blockerLastRuleCount || 0)),
+      screenshotTool: {
+        activeTabId: Math.max(0, Number(state.runtime?.screenshotTool?.activeTabId || 0)),
+        activeWindowId: Math.max(0, Number(state.runtime?.screenshotTool?.activeWindowId || 0)),
+        startedAt: Math.max(0, Number(state.runtime?.screenshotTool?.startedAt || 0)),
+        lastCaptureAt: Math.max(0, Number(state.runtime?.screenshotTool?.lastCaptureAt || 0)),
+        lastError: String(state.runtime?.screenshotTool?.lastError || "")
+      },
       secureTunnel: {
         connected: Boolean(tunnelRuntime.connected),
         connectedAt: Math.max(0, Number(tunnelRuntime.connectedAt || 0)),
@@ -1889,25 +2736,25 @@ function reminderCopy(kind) {
   };
 }
 
-async function pingActiveTab(type, payload) {
-  const tabs = await tabsQuery({ active: true, currentWindow: true });
-  const tab = tabs.find((t) => Number.isInteger(t.id) && /^https?:/i.test(String(t.url || "")));
-  if (!tab) return;
-  await sendTab(tab.id, { type, payload });
-}
-
 async function fireAlert(kind = "auto", test = false) {
   const state = await loadState();
   const alerts = state.settings.alerts;
   const ts = now();
+  const delivery = {
+    notification: false,
+    toast: false,
+    sound: false,
+    soundChannel: "none",
+    soundError: ""
+  };
 
   if (!test) {
-    if (!alerts.enabled) return state;
-    if (Number(alerts.snoozeUntil || 0) > ts) return state;
-    if (isAlertQuietHours(state, ts)) return state;
+    if (!alerts.enabled) return { state, skipped: true, reason: "alerts_disabled", delivery };
+    if (Number(alerts.snoozeUntil || 0) > ts) return { state, skipped: true, reason: "snoozed", delivery };
+    if (isAlertQuietHours(state, ts)) return { state, skipped: true, reason: "quiet_hours", delivery };
     const cooldownMs = Math.max(0, Number(alerts.cooldownMin || 0)) * 60 * 1000;
     if (cooldownMs > 0 && Number(state.runtime.lastAlertAt || 0) > 0 && ts - Number(state.runtime.lastAlertAt || 0) < cooldownMs) {
-      return state;
+      return { state, skipped: true, reason: "cooldown", delivery };
     }
   }
 
@@ -1919,7 +2766,7 @@ async function fireAlert(kind = "auto", test = false) {
   if (type === "auto") {
     type = getReminderType(state) || "eye";
   }
-  if (!enabledTypes.length && !test) return state;
+  if (!enabledTypes.length && !test) return { state, skipped: true, reason: "no_enabled_types", delivery };
 
   const copy = reminderCopy(type);
   const id = `holmeta-alert-${now()}`;
@@ -1938,34 +2785,49 @@ async function fireAlert(kind = "auto", test = false) {
         { title: "Open Protocol" }
       ]
     });
+    delivery.notification = true;
   }
 
   if (alerts.toastEnabled) {
-    await pingActiveTab("holmeta:toast", {
+    const toastResult = await sendToBestWebTab("holmeta:toast", {
       title: copy.title,
       body: copy.body,
       kind: type,
       severity: copy.severity,
       durationMs: 9000,
       snoozeMinutes
-    });
+    }, true);
+    delivery.toast = Boolean(toastResult.ok);
   }
 
   if (alerts.soundEnabled) {
-    await pingActiveTab("holmeta:sound", {
+    const soundResult = await playAlertSoundReliable({
       kind: type,
       volume: Math.max(0.05, Math.min(0.85, Number(alerts.soundVolume || 35) / 100)),
       pattern: alerts.soundPattern || "double"
     });
+    delivery.sound = Boolean(soundResult.ok);
+    delivery.soundChannel = soundResult.channel || "none";
+    delivery.soundError = String(soundResult.error || "");
+  }
+
+  if (!delivery.toast && !delivery.notification) {
+    await notificationCreate(`${id}-fallback`, {
+      type: "basic",
+      iconUrl: "assets/icons/icon128.png",
+      title: `HOLMETA: ${copy.title}`,
+      message: `${copy.body} (Fallback notification)`
+    });
+    delivery.notification = true;
   }
 
   state.runtime.lastAlertAt = ts;
   state.runtime.lastAlertType = type;
   state.stats.alertsFired += 1;
   incrementDaily(state, "alerts", 1);
-  log(state, "info", "alert_fired", { type, test, cadenceMode: alerts.cadenceMode });
+  log(state, "info", "alert_fired", { type, test, cadenceMode: alerts.cadenceMode, delivery });
   await saveState(state);
-  return state;
+  return { state, skipped: false, reason: "", delivery };
 }
 
 function isSafeFilterHost(host) {
@@ -2448,7 +3310,7 @@ async function scheduleRuntimeAlarms(state) {
   }
 
   const needsHeartbeat =
-    state.settings.light.enabled ||
+    Boolean(state.settings.lightFilter?.enabled || state.settings.light?.enabled) ||
     state.settings.blocker.enabled ||
     state.settings.deepWork.active ||
     state.settings.alerts.enabled;
@@ -2481,7 +3343,7 @@ async function initializeRuntime(reason = "startup") {
 
 async function runCommand(command) {
   const state = await loadState();
-  const light = state.settings.light;
+  const light = state.settings.lightFilter || state.settings.light;
 
   if (command === "toggle_light_filters" || command === "toggle-light-filter") {
     light.enabled = !light.enabled;
@@ -2521,8 +3383,9 @@ async function startDeepWork(focusMin, breakMin) {
   state.settings.deepWork.nextTransitionAt = now() + focus * 60 * 1000;
 
   if (state.settings.deepWork.autoLight) {
-    state.settings.light.enabled = true;
-    if (state.settings.light.mode === "dim") state.settings.light.mode = "warm";
+    const light = state.settings.lightFilter || state.settings.light;
+    light.enabled = true;
+    if (light.mode === "dim") light.mode = "warm";
   }
 
   await saveState(state);
@@ -2894,8 +3757,13 @@ if (chrome.webRequest?.onAuthRequired?.addListener) {
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   (async () => {
-    const state = await loadState();
     const type = String(message?.type || "");
+    if (type === "holmeta:offscreen-sound") {
+      // Offscreen document handles this message; ignore in service worker.
+      return;
+    }
+
+    const state = await loadState();
 
     if (type === "holmeta:get-state") {
       sendResponse({ ok: true, state: publicState(state) });
@@ -2955,9 +3823,14 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
     if (type === "holmeta:update-settings") {
       const patch = message.patch && typeof message.patch === "object" ? message.patch : {};
-      state.settings = normalizeState({ settings: mergeDeep(state.settings, patch), license: state.license }).settings;
+      let expandedPatch = patch;
+      if (patch.light && typeof patch.light === "object") {
+        const mapped = legacyLightPatchToSeparated(patch.light);
+        expandedPatch = mergeDeep(expandedPatch, mapped);
+      }
+      state.settings = normalizeState({ settings: mergeDeep(state.settings, expandedPatch), license: state.license }).settings;
       await saveState(state);
-      if (patchTouchesSecureTunnel(patch)) {
+      if (patchTouchesSecureTunnel(expandedPatch)) {
         await applySecureTunnel(state, { force: true, reason: "settings_patch" });
       }
       await scheduleRuntimeAlarms(state);
@@ -3038,8 +3911,9 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
     if (type === "holmeta:apply-all-tabs") {
       let settingsChanged = false;
-      if (Boolean(message.ensureLightEnabled) && !state.settings.light.enabled) {
-        state.settings.light.enabled = true;
+      if (Boolean(message.ensureLightEnabled) && !(state.settings.lightFilter?.enabled || state.settings.light?.enabled)) {
+        if (state.settings.lightFilter) state.settings.lightFilter.enabled = true;
+        else state.settings.light.enabled = true;
         settingsChanged = true;
       }
 
@@ -3139,6 +4013,73 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       return;
     }
 
+    if (type === "holmeta:screenshot-start" || type === "SCREENSHOT_START") {
+      const started = await startScreenshotToolOnActiveTab(state);
+      if (!started.ok) {
+        state.runtime.screenshotTool.lastError = started.error || "start_failed";
+        await saveState(state);
+        sendResponse({ ok: false, error: started.error || "start_failed", state: publicState(state) });
+        return;
+      }
+      await broadcastState(state);
+      sendResponse({ ok: true, state: publicState(state), tabId: started.tabId });
+      return;
+    }
+
+    if (type === "holmeta:screenshot-stop" || type === "SCREENSHOT_CANCEL") {
+      const stopped = await stopScreenshotToolOnActiveTab(state);
+      await broadcastState(state);
+      sendResponse({ ok: Boolean(stopped.ok), state: publicState(state) });
+      return;
+    }
+
+    if (type === "holmeta:screenshot-capture" || type === "SCREENSHOT_CAPTURE") {
+      if (!sender?.tab || !Number.isInteger(Number(sender.tab.id || 0))) {
+        sendResponse({ ok: false, error: "invalid_sender_tab" });
+        return;
+      }
+
+      const incomingSettings = message.settings && typeof message.settings === "object"
+        ? message.settings
+        : {};
+      const screenshotSettings = normalizeScreenshotToolSettings(
+        mergeDeep(state.settings.screenshotTool, incomingSettings),
+        state.settings.screenshotTool
+      );
+
+      const senderWindowId = Number(sender.tab.windowId || 0);
+      const captureWindowId = Number.isInteger(senderWindowId) && senderWindowId > 0
+        ? senderWindowId
+        : undefined;
+      const captured = await tabsCaptureVisibleTab(captureWindowId, { format: "png" });
+      if (!captured.ok || !captured.dataUrl) {
+        state.runtime.screenshotTool.lastError = captured.error || "capture_failed";
+        await saveState(state);
+        sendResponse({ ok: false, error: captured.error || "capture_failed" });
+        return;
+      }
+
+      const cropped = await cropVisibleCapture(captured.dataUrl, message, screenshotSettings);
+      if (!cropped.ok) {
+        state.runtime.screenshotTool.lastError = cropped.error || "crop_failed";
+        await saveState(state);
+        sendResponse({ ok: false, error: cropped.error || "crop_failed" });
+        return;
+      }
+
+      state.runtime.screenshotTool.lastCaptureAt = now();
+      state.runtime.screenshotTool.lastError = "";
+      await saveState(state);
+      sendResponse({
+        ok: true,
+        imageDataUrl: cropped.imageDataUrl,
+        width: cropped.width,
+        height: cropped.height,
+        rect: cropped.rect
+      });
+      return;
+    }
+
     if (type === "holmeta:color-picked") {
       const hex = normalizeHexColor(message.hex, "");
       if (!hex) {
@@ -3160,9 +4101,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         sendResponse({ ok: false, error: "invalid_host" });
         return;
       }
-      const set = new Set(state.settings.light.excludedHosts || []);
-      set.add(host);
-      state.settings.light.excludedHosts = [...set];
+      state.settings.lightFilter.excludedSites = {
+        ...(state.settings.lightFilter.excludedSites || {}),
+        [host]: true
+      };
       await saveState(state);
       await broadcastState(state);
       sendResponse({ ok: true, state: publicState(state) });
@@ -3175,29 +4117,31 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         sendResponse({ ok: false, error: "invalid_host" });
         return;
       }
-      state.settings.light.siteProfiles[host] = {
+      state.settings.lightFilter.perSiteOverrides[host] = {
         enabled: true,
-        mode: state.settings.light.mode,
-        readingModeEnabled: state.settings.light.readingModeEnabled,
-        readingMode: state.settings.light.readingMode,
-        darkThemeVariant: state.settings.light.darkThemeVariant,
-        lightThemeVariant: state.settings.light.lightThemeVariant,
-        spectrumPreset: state.settings.light.spectrumPreset,
-        intensity: state.settings.light.intensity,
-        dim: state.settings.light.dim,
-        contrastSoft: state.settings.light.contrastSoft,
-        brightness: state.settings.light.brightness,
-        saturation: state.settings.light.saturation,
-        blueCut: state.settings.light.blueCut,
-        tintRed: state.settings.light.tintRed,
-        tintGreen: state.settings.light.tintGreen,
-        tintBlue: state.settings.light.tintBlue,
-        reduceWhites: state.settings.light.reduceWhites,
-        videoSafe: state.settings.light.videoSafe,
-        spotlightEnabled: state.settings.light.spotlightEnabled,
-        therapyMode: state.settings.light.therapyMode,
-        therapyMinutes: state.settings.light.therapyMinutes,
-        therapyCadence: state.settings.light.therapyCadence
+        mode: state.settings.lightFilter.mode,
+        spectrumPreset: state.settings.lightFilter.spectrumPreset,
+        intensity: state.settings.lightFilter.intensity,
+        dim: state.settings.lightFilter.dim,
+        contrastSoft: state.settings.lightFilter.contrastSoft,
+        brightness: state.settings.lightFilter.brightness,
+        saturation: state.settings.lightFilter.saturation,
+        blueCut: state.settings.lightFilter.blueCut,
+        tintRed: state.settings.lightFilter.tintRed,
+        tintGreen: state.settings.lightFilter.tintGreen,
+        tintBlue: state.settings.lightFilter.tintBlue,
+        reduceWhites: state.settings.lightFilter.reduceWhites,
+        videoSafe: state.settings.lightFilter.videoSafe,
+        spotlightEnabled: state.settings.lightFilter.spotlightEnabled,
+        therapyMode: state.settings.lightFilter.therapyMode,
+        therapyDuration: state.settings.lightFilter.therapyDuration,
+        therapyCadence: state.settings.lightFilter.therapyCadence
+      };
+      state.settings.readingTheme.perSiteOverrides[host] = {
+        enabled: true,
+        mode: state.settings.readingTheme.mode,
+        preset: state.settings.readingTheme.preset,
+        intensity: state.settings.readingTheme.intensity
       };
       await saveState(state);
       await broadcastState(state);
@@ -3393,8 +4337,19 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
     if (type === "holmeta:test-alert") {
       const requestedKind = String(message.kind || "eye");
-      await fireAlert(requestedKind, true);
-      sendResponse({ ok: true });
+      const result = await fireAlert(requestedKind, true);
+      sendResponse({
+        ok: !result?.skipped,
+        skipped: Boolean(result?.skipped),
+        reason: String(result?.reason || ""),
+        delivery: result?.delivery || {
+          notification: false,
+          toast: false,
+          sound: false,
+          soundChannel: "none",
+          soundError: ""
+        }
+      });
       return;
     }
 

@@ -14,7 +14,8 @@
     TOAST_HOST: "holmeta-toast-host-v3",
     INSIGHT_HOST: "holmeta-site-insight-host-v3",
     BLOCKER_STYLE: "holmeta-blocker-style-v3",
-    PICKER_HUD: "holmeta-color-picker-hud-v3"
+    PICKER_HUD: "holmeta-color-picker-hud-v3",
+    SCREENSHOT_HOST: "holmeta-screenshot-host-v3"
   };
 
   const SITE_INSIGHT_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
@@ -109,6 +110,18 @@
       cleanup: null,
       hudNode: null,
       previousCursor: ""
+    },
+    screenshot: {
+      active: false,
+      host: null,
+      targetEl: null,
+      targetRect: null,
+      pointer: { x: 0, y: 0, alt: false, shift: false },
+      rafId: 0,
+      listeners: null,
+      previewVisible: false,
+      captureInFlight: false,
+      lastSwitchAt: 0
     }
   };
 
@@ -137,6 +150,12 @@
         .toLowerCase();
       return raw || "";
     }
+  }
+
+  function clamp(value, min, max) {
+    const n = Number(value);
+    if (!Number.isFinite(n)) return min;
+    return Math.max(min, Math.min(max, n));
   }
 
   function siteInsightSeenKey(host) {
@@ -381,6 +400,459 @@
     return { ok: true, active: true, method: "persistent" };
   }
 
+  function screenshotSettings() {
+    const raw = state.settings?.screenshotTool || {};
+    const aspect = ["none", "square", "4:3", "16:9", "custom"].includes(String(raw.aspectRatio || ""))
+      ? String(raw.aspectRatio)
+      : "none";
+    return {
+      enabled: Boolean(raw.enabled ?? true),
+      padding: Math.max(0, Math.min(24, Number(raw.padding || 8))),
+      targetMode: ["smart", "exact", "parent"].includes(String(raw.targetMode || ""))
+        ? String(raw.targetMode)
+        : "smart",
+      aspectRatio: aspect,
+      customAspectWidth: Math.max(1, Math.min(999, Number(raw.customAspectWidth || 16))),
+      customAspectHeight: Math.max(1, Math.min(999, Number(raw.customAspectHeight || 9))),
+      minTargetWidth: Math.max(12, Math.min(2400, Number(raw.minTargetWidth || 40))),
+      minTargetHeight: Math.max(12, Math.min(1800, Number(raw.minTargetHeight || 24))),
+      outputScale: Number(raw.outputScale || 1) >= 2 ? 2 : 1,
+      backgroundMode: ["original", "white", "transparent"].includes(String(raw.backgroundMode || ""))
+        ? String(raw.backgroundMode)
+        : "original",
+      showTooltip: Boolean(raw.showTooltip ?? true),
+      autoCopy: Boolean(raw.autoCopy),
+      previewRounded: Boolean(raw.previewRounded)
+    };
+  }
+
+  function isScreenshotHostNode(node) {
+    if (!node || typeof node.closest !== "function") return false;
+    return Boolean(node.closest(`#${IDS.SCREENSHOT_HOST}`));
+  }
+
+  function ensureScreenshotHost() {
+    ensureStyle();
+    let host = document.getElementById(IDS.SCREENSHOT_HOST);
+    if (!host) {
+      host = document.createElement("div");
+      host.id = IDS.SCREENSHOT_HOST;
+      host.innerHTML = `
+        <div class="hm-shot-mask" data-role="mask" hidden></div>
+        <div class="hm-shot-hole" data-role="hole" hidden></div>
+        <div class="hm-shot-tip" data-role="tip" hidden></div>
+      `;
+      document.documentElement.appendChild(host);
+    }
+    state.screenshot.host = host;
+    return host;
+  }
+
+  function getScreenshotOverlayRefs() {
+    const host = ensureScreenshotHost();
+    return {
+      host,
+      mask: host.querySelector('[data-role="mask"]'),
+      hole: host.querySelector('[data-role="hole"]'),
+      tip: host.querySelector('[data-role="tip"]'),
+      preview: host.querySelector('.hm-shot-preview')
+    };
+  }
+
+  function elementVisualScore(element, rect, settings) {
+    if (!element || !rect) return -9999;
+    const tag = String(element.tagName || "").toLowerCase();
+    const style = window.getComputedStyle(element);
+    if (style.visibility === "hidden" || style.display === "none" || Number(style.opacity || 1) <= 0.02) return -9999;
+    if (style.pointerEvents === "none") return -9999;
+
+    const width = Math.round(rect.width);
+    const height = Math.round(rect.height);
+    if (width < settings.minTargetWidth || height < settings.minTargetHeight) return -9999;
+
+    const area = width * height;
+    const viewportArea = Math.max(window.innerWidth * window.innerHeight, 1);
+    const coverage = area / viewportArea;
+    if (coverage >= 0.96) return -9000;
+
+    const semanticScore = {
+      article: 48,
+      section: 36,
+      main: 40,
+      nav: 32,
+      figure: 46,
+      img: 50,
+      picture: 48,
+      video: 52,
+      canvas: 44,
+      button: 40,
+      form: 34,
+      pre: 42,
+      code: 28,
+      table: 34,
+      aside: 20,
+      div: 10
+    }[tag] || 6;
+
+    let score = semanticScore;
+    score += Math.min(42, Math.log10(Math.max(area, 1)) * 16);
+    score -= Math.max(0, coverage - 0.72) * 220;
+
+    if (/(block|flex|grid|table)/.test(style.display)) score += 14;
+    if (parseFloat(style.borderWidth || "0") > 0) score += 8;
+    if (style.backgroundColor && !/rgba?\(\s*0,\s*0,\s*0,\s*0\s*\)/i.test(style.backgroundColor)) score += 10;
+    if (style.boxShadow && style.boxShadow !== "none") score += 6;
+
+    if (/^(span|small|b|i|u|strong|em|label|path|svg|use)$/.test(tag)) score -= 26;
+    if (["html", "body"].includes(tag)) score -= 60;
+
+    const idClass = `${element.id || ""} ${element.className || ""}`.toLowerCase();
+    if (/(card|panel|modal|dialog|content|result|product|item|tile|post|comment|entry)/.test(idClass)) score += 14;
+    if (/(icon|badge|avatar|chip|tag|tiny)/.test(idClass)) score -= 12;
+
+    return score;
+  }
+
+  function pickScreenshotTargetFromEvent(pointer) {
+    const settings = screenshotSettings();
+    const x = Number(pointer?.x || 0);
+    const y = Number(pointer?.y || 0);
+    const initial = document.elementFromPoint(x, y);
+    if (!initial || isScreenshotHostNode(initial)) return null;
+
+    const forceExact = settings.targetMode === "exact" || Boolean(pointer?.alt);
+    const preferParent = settings.targetMode === "parent" || Boolean(pointer?.shift);
+    const chain = [];
+    let node = initial;
+    let depth = 0;
+    while (node && depth < 10) {
+      if (node.nodeType === Node.ELEMENT_NODE && !isScreenshotHostNode(node)) {
+        chain.push(node);
+      }
+      node = node.parentElement;
+      depth += 1;
+    }
+    if (!chain.length) return null;
+
+    if (forceExact) {
+      const rect = chain[0].getBoundingClientRect();
+      if (elementVisualScore(chain[0], rect, settings) > -9000) {
+        return { element: chain[0], rect };
+      }
+    }
+
+    const scored = chain
+      .map((element, idx) => {
+        const rect = element.getBoundingClientRect();
+        const score = elementVisualScore(element, rect, settings) - idx * 5;
+        return { element, rect, score, idx };
+      })
+      .filter((row) => row.score > -9000)
+      .sort((a, b) => b.score - a.score);
+
+    if (!scored.length) return null;
+    let best = scored[0];
+    if (preferParent && scored[1]) {
+      best = scored[1];
+    }
+
+    if (state.screenshot.targetEl && state.screenshot.targetEl !== best.element) {
+      const nowTs = Date.now();
+      const prev = state.screenshot.targetEl;
+      if (
+        nowTs - state.screenshot.lastSwitchAt < 120 &&
+        prev.contains(best.element) &&
+        state.screenshot.targetRect?.width > best.rect.width &&
+        state.screenshot.targetRect?.height > best.rect.height
+      ) {
+        return { element: prev, rect: state.screenshot.targetRect };
+      }
+      state.screenshot.lastSwitchAt = nowTs;
+    }
+    return { element: best.element, rect: best.rect };
+  }
+
+  function updateScreenshotOverlayFromState() {
+    if (!state.screenshot.active) return;
+    const refs = getScreenshotOverlayRefs();
+    if (!refs.mask || !refs.hole || !refs.tip) return;
+    refs.mask.hidden = false;
+
+    const target = state.screenshot.targetEl;
+    if (!target || !document.contains(target)) {
+      refs.hole.hidden = true;
+      refs.tip.hidden = true;
+      return;
+    }
+
+    const rect = target.getBoundingClientRect();
+    const settings = screenshotSettings();
+    if (rect.width < settings.minTargetWidth || rect.height < settings.minTargetHeight) {
+      refs.hole.hidden = true;
+      refs.tip.hidden = true;
+      return;
+    }
+
+    state.screenshot.targetRect = rect;
+    refs.hole.hidden = false;
+    refs.hole.style.transform = `translate(${Math.round(rect.left)}px, ${Math.round(rect.top)}px)`;
+    refs.hole.style.width = `${Math.round(rect.width)}px`;
+    refs.hole.style.height = `${Math.round(rect.height)}px`;
+
+    if (settings.showTooltip) {
+      const tag = String(target.tagName || "element").toLowerCase();
+      refs.tip.hidden = false;
+      refs.tip.textContent = `${tag} · ${Math.round(rect.width)}×${Math.round(rect.height)}`;
+      const tipLeft = clamp(rect.left, 8, Math.max(8, window.innerWidth - 220));
+      const tipTop = rect.top > 36 ? rect.top - 30 : rect.bottom + 8;
+      refs.tip.style.transform = `translate(${Math.round(tipLeft)}px, ${Math.round(tipTop)}px)`;
+    } else {
+      refs.tip.hidden = true;
+    }
+  }
+
+  function queueScreenshotOverlayUpdate(pointerEvent = null) {
+    if (pointerEvent) {
+      state.screenshot.pointer = {
+        x: pointerEvent.clientX,
+        y: pointerEvent.clientY,
+        alt: Boolean(pointerEvent.altKey),
+        shift: Boolean(pointerEvent.shiftKey)
+      };
+    }
+    if (state.screenshot.rafId) return;
+    state.screenshot.rafId = requestAnimationFrame(() => {
+      state.screenshot.rafId = 0;
+      if (!state.screenshot.active) return;
+      const picked = pickScreenshotTargetFromEvent(state.screenshot.pointer);
+      if (picked?.element) {
+        state.screenshot.targetEl = picked.element;
+        state.screenshot.targetRect = picked.rect;
+      }
+      updateScreenshotOverlayFromState();
+    });
+  }
+
+  async function copyImageDataUrl(dataUrl) {
+    try {
+      if (!navigator.clipboard?.write || typeof ClipboardItem === "undefined") return false;
+      const blob = await fetch(dataUrl).then((res) => res.blob());
+      await navigator.clipboard.write([new ClipboardItem({ [blob.type || "image/png"]: blob })]);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  function downloadImageDataUrl(dataUrl) {
+    const anchor = document.createElement("a");
+    const stamp = new Date();
+    const id = `${stamp.getFullYear()}${String(stamp.getMonth() + 1).padStart(2, "0")}${String(stamp.getDate()).padStart(2, "0")}-${String(stamp.getHours()).padStart(2, "0")}${String(stamp.getMinutes()).padStart(2, "0")}${String(stamp.getSeconds()).padStart(2, "0")}`;
+    anchor.href = dataUrl;
+    anchor.download = `holmeta-element-${id}.png`;
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+  }
+
+  function removeScreenshotPreview() {
+    const host = state.screenshot.host || document.getElementById(IDS.SCREENSHOT_HOST);
+    if (!host) return;
+    host.querySelector(".hm-shot-preview")?.remove();
+    state.screenshot.previewVisible = false;
+  }
+
+  function renderScreenshotPreview(result) {
+    const host = ensureScreenshotHost();
+    removeScreenshotPreview();
+    const settings = screenshotSettings();
+    const panel = document.createElement("section");
+    panel.className = `hm-shot-preview${settings.previewRounded ? " rounded" : ""}`;
+    panel.innerHTML = `
+      <p class="kicker">HOLMETA Element Screenshot</p>
+      <p class="meta">${Math.round(result.width)}×${Math.round(result.height)} px</p>
+      <img src="${result.imageDataUrl}" alt="Captured element screenshot preview" />
+      <div class="hm-shot-actions">
+        <button type="button" data-action="copy">Copy</button>
+        <button type="button" data-action="download">Download</button>
+        <button type="button" data-action="retry">Retry</button>
+        <button type="button" data-action="close">Close</button>
+      </div>
+    `;
+
+    panel.addEventListener("click", async (event) => {
+      const button = event.target.closest("button");
+      if (!button) return;
+      const action = button.getAttribute("data-action");
+      if (action === "copy") {
+        const ok = await copyImageDataUrl(result.imageDataUrl);
+        showToast({ title: ok ? "Screenshot copied" : "Copy blocked", body: ok ? "Image copied to clipboard." : "Clipboard permission is blocked on this page." });
+        return;
+      }
+      if (action === "download") {
+        downloadImageDataUrl(result.imageDataUrl);
+        showToast({ title: "Download started", body: "PNG saved from preview." });
+        return;
+      }
+      if (action === "retry") {
+        removeScreenshotPreview();
+        startScreenshotTool({ settings });
+        return;
+      }
+      if (action === "close") {
+        removeScreenshotPreview();
+      }
+    });
+
+    host.appendChild(panel);
+    state.screenshot.previewVisible = true;
+  }
+
+  async function runElementCapture() {
+    if (state.screenshot.captureInFlight) return;
+    if (!state.screenshot.targetRect) {
+      showToast({ title: "No target selected", body: "Hover a valid element, then click once." });
+      return;
+    }
+
+    state.screenshot.captureInFlight = true;
+    const settings = screenshotSettings();
+    const rect = state.screenshot.targetRect;
+    const payload = {
+      type: "holmeta:screenshot-capture",
+      rect: {
+        x: rect.left,
+        y: rect.top,
+        width: rect.width,
+        height: rect.height
+      },
+      viewport: {
+        width: window.innerWidth,
+        height: window.innerHeight
+      },
+      dpr: window.devicePixelRatio || 1,
+      settings
+    };
+
+    // Hide selection chrome before capture so the crop is clean.
+    const refs = getScreenshotOverlayRefs();
+    refs.mask?.setAttribute("hidden", "true");
+    refs.hole?.setAttribute("hidden", "true");
+    refs.tip?.setAttribute("hidden", "true");
+    await new Promise((resolve) => setTimeout(resolve, 32));
+
+    const response = await sendRuntimeMessage(payload);
+    state.screenshot.captureInFlight = false;
+    if (!response?.ok || !response.imageDataUrl) {
+      if (state.screenshot.active) {
+        queueScreenshotOverlayUpdate();
+      }
+      showToast({ title: "Capture failed", body: String(response?.error || "Unable to capture screenshot.") });
+      return;
+    }
+
+    stopScreenshotTool({ silent: true, keepPreview: true });
+    renderScreenshotPreview(response);
+    if (settings.autoCopy) {
+      const copied = await copyImageDataUrl(response.imageDataUrl);
+      if (copied) showToast({ title: "Screenshot copied", body: "Image copied automatically." });
+    }
+  }
+
+  function stopScreenshotTool({ silent = false, keepPreview = false } = {}) {
+    if (state.screenshot.listeners) {
+      const { onMove, onScroll, onResize, onClick, onKeyDown } = state.screenshot.listeners;
+      window.removeEventListener("mousemove", onMove, true);
+      window.removeEventListener("scroll", onScroll, true);
+      window.removeEventListener("resize", onResize, true);
+      window.removeEventListener("click", onClick, true);
+      window.removeEventListener("keydown", onKeyDown, true);
+      state.screenshot.listeners = null;
+    }
+    if (state.screenshot.rafId) {
+      cancelAnimationFrame(state.screenshot.rafId);
+      state.screenshot.rafId = 0;
+    }
+    state.screenshot.active = false;
+    state.screenshot.captureInFlight = false;
+    state.screenshot.targetEl = null;
+    state.screenshot.targetRect = null;
+    const refs = getScreenshotOverlayRefs();
+    refs.mask?.setAttribute("hidden", "true");
+    refs.hole?.setAttribute("hidden", "true");
+    refs.tip?.setAttribute("hidden", "true");
+    if (!keepPreview) removeScreenshotPreview();
+    if (!silent) {
+      showToast({ title: "Screenshot mode stopped", body: "Element capture has been disabled." });
+    }
+  }
+
+  function startScreenshotTool(payload = {}) {
+    const settings = screenshotSettings();
+    if (!settings.enabled) {
+      return { ok: false, error: "disabled_in_settings" };
+    }
+
+    if (state.screenshot.active) {
+      queueScreenshotOverlayUpdate();
+      return { ok: true, active: true };
+    }
+
+    ensureScreenshotHost();
+    removeScreenshotPreview();
+    const refs = getScreenshotOverlayRefs();
+    refs.mask?.removeAttribute("hidden");
+    const onMove = (event) => {
+      if (isScreenshotHostNode(event.target)) return;
+      queueScreenshotOverlayUpdate(event);
+    };
+    const onScroll = () => queueScreenshotOverlayUpdate();
+    const onResize = () => queueScreenshotOverlayUpdate();
+    const onClick = (event) => {
+      if (!state.screenshot.active) return;
+      if (isScreenshotHostNode(event.target)) return;
+      if (typeof event.button === "number" && event.button !== 0) return;
+      event.preventDefault();
+      event.stopPropagation();
+      event.stopImmediatePropagation();
+      void runElementCapture();
+    };
+    const onKeyDown = (event) => {
+      if (event.key !== "Escape") return;
+      event.preventDefault();
+      stopScreenshotTool({ silent: false });
+    };
+
+    window.addEventListener("mousemove", onMove, true);
+    window.addEventListener("scroll", onScroll, true);
+    window.addEventListener("resize", onResize, true);
+    window.addEventListener("click", onClick, true);
+    window.addEventListener("keydown", onKeyDown, true);
+
+    state.screenshot.listeners = { onMove, onScroll, onResize, onClick, onKeyDown };
+    state.screenshot.active = true;
+    state.screenshot.lastSwitchAt = Date.now();
+
+    if (payload?.pointer) {
+      state.screenshot.pointer = {
+        x: Number(payload.pointer.x || 0),
+        y: Number(payload.pointer.y || 0),
+        alt: false,
+        shift: false
+      };
+    } else {
+      state.screenshot.pointer = {
+        x: Math.round(window.innerWidth * 0.5),
+        y: Math.round(window.innerHeight * 0.4),
+        alt: false,
+        shift: false
+      };
+    }
+    queueScreenshotOverlayUpdate();
+    showToast({ title: "Element Screenshot active", body: "Hover target element, click once to capture." });
+    return { ok: true, active: true };
+  }
+
   function currentHost() {
     return normalizeHost(location.href);
   }
@@ -518,6 +990,101 @@
         min-height: 30px;
         min-width: 30px;
         padding: 0;
+        cursor: pointer;
+      }
+
+      #${IDS.SCREENSHOT_HOST} {
+        position: fixed;
+        inset: 0;
+        z-index: 2147483646;
+        pointer-events: none;
+      }
+
+      #${IDS.SCREENSHOT_HOST} .hm-shot-mask {
+        position: fixed;
+        inset: 0;
+        background: rgba(20, 17, 15, 0.44);
+        pointer-events: none;
+      }
+
+      #${IDS.SCREENSHOT_HOST} .hm-shot-hole {
+        position: fixed;
+        border: 1px solid rgba(255, 179, 0, 0.94);
+        box-shadow:
+          inset 0 0 0 1px rgba(255, 179, 0, 0.44),
+          0 0 0 9999px rgba(20, 17, 15, 0.42),
+          0 0 14px rgba(255, 179, 0, 0.36);
+        pointer-events: none;
+        transition: transform 90ms linear, width 90ms linear, height 90ms linear;
+      }
+
+      #${IDS.SCREENSHOT_HOST} .hm-shot-tip {
+        position: fixed;
+        min-height: 24px;
+        padding: 4px 8px;
+        border: 1px solid rgba(255, 179, 0, 0.72);
+        background: rgba(20, 17, 15, 0.96);
+        color: #F3F3F4;
+        font: 600 11px/1.3 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+        letter-spacing: 0.04em;
+        white-space: nowrap;
+        pointer-events: none;
+      }
+
+      #${IDS.SCREENSHOT_HOST} .hm-shot-preview {
+        position: fixed;
+        right: 16px;
+        bottom: 16px;
+        width: min(360px, calc(100vw - 24px));
+        border: 1px solid rgba(243, 243, 244, 0.22);
+        background: rgba(20, 17, 15, 0.97);
+        color: #F3F3F4;
+        padding: 10px;
+        display: grid;
+        gap: 8px;
+        pointer-events: auto;
+      }
+
+      #${IDS.SCREENSHOT_HOST} .hm-shot-preview.rounded img {
+        border-radius: 12px;
+      }
+
+      #${IDS.SCREENSHOT_HOST} .hm-shot-preview .kicker {
+        margin: 0;
+        font-size: 10px;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: #D9C5B2;
+      }
+
+      #${IDS.SCREENSHOT_HOST} .hm-shot-preview .meta {
+        margin: 0;
+        font-size: 11px;
+        color: #D9C5B2;
+      }
+
+      #${IDS.SCREENSHOT_HOST} .hm-shot-preview img {
+        width: 100%;
+        max-height: 220px;
+        object-fit: contain;
+        border: 1px solid rgba(243, 243, 244, 0.2);
+        background: #14110F;
+      }
+
+      #${IDS.SCREENSHOT_HOST} .hm-shot-actions {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
+      }
+
+      #${IDS.SCREENSHOT_HOST} .hm-shot-actions button {
+        min-height: 34px;
+        border: 1px solid rgba(196, 32, 33, 0.84);
+        background: rgba(196, 32, 33, 0.16);
+        color: #F3F3F4;
+        font: 600 11px/1.2 -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
         cursor: pointer;
       }
 
@@ -3230,10 +3797,21 @@
     } else {
       stopBiofeedbackFallback();
     }
+
+    if (!state.settings.screenshotTool?.enabled && state.screenshot.active) {
+      stopScreenshotTool({ silent: true });
+    } else if (state.screenshot.active) {
+      queueScreenshotOverlayUpdate();
+    }
   }
 
   chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     const type = String(message?.type || "");
+
+    if (type === "holmeta:ping") {
+      sendResponse({ ok: true, ready: true });
+      return false;
+    }
 
     if (type === "holmeta:apply-state") {
       applyState(message.payload || {});
@@ -3271,6 +3849,17 @@
 
     if (type === "holmeta:pick-color") {
       sendResponse(startPersistentColorPicker());
+      return false;
+    }
+
+    if (type === "holmeta:screenshot-start" || type === "SCREENSHOT_START") {
+      sendResponse(startScreenshotTool(message.payload || {}));
+      return false;
+    }
+
+    if (type === "holmeta:screenshot-stop" || type === "SCREENSHOT_CANCEL") {
+      stopScreenshotTool({ silent: true });
+      sendResponse({ ok: true });
       return false;
     }
 

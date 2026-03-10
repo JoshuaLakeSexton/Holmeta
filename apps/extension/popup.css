@@ -664,6 +664,43 @@ select:disabled {
   line-height: 1.45;
 }
 
+.alert-intro {
+  border: 1px solid rgba(243, 243, 244, 0.12);
+  background: rgba(20, 17, 15, 0.58);
+  padding: var(--space-2) var(--space-3);
+}
+
+.alert-intro strong {
+  color: var(--text);
+  font-weight: 700;
+}
+
+.alert-channel-row {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-2);
+}
+
+.alert-chip {
+  min-height: 30px;
+  border: 1px solid rgba(243, 243, 244, 0.18);
+  background: rgba(20, 17, 15, 0.66);
+  color: var(--muted);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 0 var(--space-2);
+}
+
+.alert-chip.is-on {
+  border-color: rgba(255, 179, 0, 0.86);
+  color: var(--warning);
+  box-shadow: var(--glow-amber);
+}
+
 .value {
   min-width: 42px;
   text-align: right;

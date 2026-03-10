@@ -20,6 +20,15 @@
     mobile_large: { width: 430, height: 932, label: "Mobile Large" }
   };
 
+  const READING_PRESET_LABELS = {
+    soft_black: "Soft Black",
+    dim_slate: "Dim Slate",
+    gentle_night: "Gentle Night",
+    soft_paper: "Soft Paper",
+    neutral_light: "Neutral Light",
+    warm_page: "Warm Page"
+  };
+
   const state = {
     hydrated: false,
     editing: new Set(),
@@ -33,7 +42,8 @@
     alertTestType: "eye",
     eyeDraftHex: "#FFB300",
     favoriteDraftUrl: "",
-    tunnelTimerHandle: null
+    tunnelTimerHandle: null,
+    screenshotRunning: false
   };
 
   const onboardingSteps = [
@@ -60,13 +70,15 @@
     lightMode: document.getElementById("lightMode"),
     lightIntensity: document.getElementById("lightIntensity"),
     lightIntensityValue: document.getElementById("lightIntensityValue"),
-    readingModeOn: document.getElementById("readingModeOn"),
-    readingModeOff: document.getElementById("readingModeOff"),
-    readingModeDark: document.getElementById("readingModeDark"),
-    readingModeLight: document.getElementById("readingModeLight"),
-    readingModeStatus: document.getElementById("readingModeStatus"),
-    readingDarkVariant: document.getElementById("readingDarkVariant"),
-    readingLightVariant: document.getElementById("readingLightVariant"),
+    readingThemeEnabled: document.getElementById("readingThemeEnabled"),
+    readingThemeDark: document.getElementById("readingThemeDark"),
+    readingThemeLight: document.getElementById("readingThemeLight"),
+    readingThemePreset: document.getElementById("readingThemePreset"),
+    readingThemeIntensity: document.getElementById("readingThemeIntensity"),
+    readingThemeIntensityValue: document.getElementById("readingThemeIntensityValue"),
+    readingThemeThisSiteEnabled: document.getElementById("readingThemeThisSiteEnabled"),
+    readingThemeExcludeSite: document.getElementById("readingThemeExcludeSite"),
+    readingThemeStatus: document.getElementById("readingThemeStatus"),
     lightThisSiteEnabled: document.getElementById("lightThisSiteEnabled"),
     lightExcludeSite: document.getElementById("lightExcludeSite"),
     lightApplyAll: document.getElementById("lightApplyAll"),
@@ -116,6 +128,23 @@
     eyeClearSwatches: document.getElementById("eyeClearSwatches"),
     eyeSwatchesGrid: document.getElementById("eyeSwatchesGrid"),
     eyeDropperStatus: document.getElementById("eyeDropperStatus"),
+
+    screenshotEnabled: document.getElementById("screenshotEnabled"),
+    screenshotStart: document.getElementById("screenshotStart"),
+    screenshotStop: document.getElementById("screenshotStop"),
+    screenshotStatus: document.getElementById("screenshotStatus"),
+    screenshotPadding: document.getElementById("screenshotPadding"),
+    screenshotTargetMode: document.getElementById("screenshotTargetMode"),
+    screenshotAspectRatio: document.getElementById("screenshotAspectRatio"),
+    screenshotCustomAspectWidth: document.getElementById("screenshotCustomAspectWidth"),
+    screenshotCustomAspectHeight: document.getElementById("screenshotCustomAspectHeight"),
+    screenshotMinWidth: document.getElementById("screenshotMinWidth"),
+    screenshotMinHeight: document.getElementById("screenshotMinHeight"),
+    screenshotOutputScale: document.getElementById("screenshotOutputScale"),
+    screenshotBackgroundMode: document.getElementById("screenshotBackgroundMode"),
+    screenshotShowTooltip: document.getElementById("screenshotShowTooltip"),
+    screenshotAutoCopy: document.getElementById("screenshotAutoCopy"),
+    screenshotPreviewRounded: document.getElementById("screenshotPreviewRounded"),
 
     favoriteAddCurrent: document.getElementById("favoriteAddCurrent"),
     favoriteUrlInput: document.getElementById("favoriteUrlInput"),
@@ -187,6 +216,9 @@
     testAlert: document.getElementById("testAlert"),
     snoozeAlertsNow: document.getElementById("snoozeAlertsNow"),
     alertStatus: document.getElementById("alertStatus"),
+    alertChannelSound: document.getElementById("alertChannelSound"),
+    alertChannelToast: document.getElementById("alertChannelToast"),
+    alertChannelNotification: document.getElementById("alertChannelNotification"),
 
     siteInsightEnabled: document.getElementById("siteInsightEnabled"),
     siteInsightProfile: document.getElementById("siteInsightProfile"),
@@ -382,14 +414,36 @@
     el.checked = Boolean(value);
   }
 
+  function getLightFilterState() {
+    return state.app?.settings?.lightFilter || state.app?.settings?.light || {};
+  }
+
+  function getReadingThemeState() {
+    return state.app?.settings?.readingTheme || {};
+  }
+
   function getLightSiteProfile() {
-    const map = state.app?.settings?.light?.siteProfiles || {};
+    const light = getLightFilterState();
+    const map = light.perSiteOverrides || light.siteProfiles || {};
     return state.currentHost ? map[state.currentHost] : null;
   }
 
-  function isSiteExcluded() {
-    const list = state.app?.settings?.light?.excludedHosts || [];
-    return Boolean(state.currentHost && list.includes(state.currentHost));
+  function getReadingSiteProfile() {
+    const reading = getReadingThemeState();
+    const map = reading.perSiteOverrides || reading.siteProfiles || {};
+    return state.currentHost ? map[state.currentHost] : null;
+  }
+
+  function isFilterSiteExcluded() {
+    const light = getLightFilterState();
+    const map = light.excludedSites || {};
+    return Boolean(state.currentHost && map[state.currentHost]);
+  }
+
+  function isReadingSiteExcluded() {
+    const reading = getReadingThemeState();
+    const map = reading.excludedSites || {};
+    return Boolean(state.currentHost && map[state.currentHost]);
   }
 
   function renderPremium() {
@@ -405,16 +459,37 @@
     refs.premiumBanner.hidden = premium;
   }
 
+  function renderReadingTheme() {
+    const reading = getReadingThemeState();
+    const siteProfile = getReadingSiteProfile();
+    const effective = {
+      enabled: Boolean(reading.enabled),
+      mode: siteProfile?.mode ?? reading.mode ?? "dark",
+      preset: siteProfile?.preset ?? reading.preset ?? "soft_black",
+      intensity: siteProfile?.intensity ?? reading.intensity ?? 44
+    };
+
+    setChecked(refs.readingThemeEnabled, effective.enabled);
+    refs.readingThemeDark.classList.toggle("is-active", effective.mode === "dark");
+    refs.readingThemeLight.classList.toggle("is-active", effective.mode === "light");
+    setInputValue(refs.readingThemePreset, effective.preset);
+    setInputValue(refs.readingThemeIntensity, effective.intensity);
+    refs.readingThemeIntensityValue.textContent = `${effective.intensity}%`;
+    setChecked(refs.readingThemeThisSiteEnabled, Boolean(siteProfile));
+    setChecked(refs.readingThemeExcludeSite, isReadingSiteExcluded());
+
+    const presetLabel = READING_PRESET_LABELS[String(effective.preset || "")] || "Soft Black";
+    refs.readingThemeStatus.textContent = effective.enabled
+      ? `Active: ${effective.mode === "dark" ? "Night / Dark" : "Day / Light"} · ${presetLabel}`
+      : "Reading Theme is off. Toggle On to apply.";
+  }
+
   function renderLight() {
-    const light = state.app.settings.light;
+    const light = getLightFilterState();
     const siteProfile = getLightSiteProfile();
 
     const effective = {
       mode: siteProfile?.mode ?? light.mode,
-      readingModeEnabled: siteProfile?.readingModeEnabled ?? light.readingModeEnabled ?? false,
-      readingMode: siteProfile?.readingMode ?? light.readingMode ?? "dark",
-      darkThemeVariant: siteProfile?.darkThemeVariant ?? light.darkThemeVariant ?? "black",
-      lightThemeVariant: siteProfile?.lightThemeVariant ?? light.lightThemeVariant ?? "white",
       spectrumPreset: siteProfile?.spectrumPreset ?? light.spectrumPreset,
       intensity: siteProfile?.intensity ?? light.intensity,
       dim: siteProfile?.dim ?? light.dim,
@@ -429,30 +504,17 @@
       videoSafe: siteProfile?.videoSafe ?? light.videoSafe,
       spotlightEnabled: siteProfile?.spotlightEnabled ?? light.spotlightEnabled,
       therapyMode: siteProfile?.therapyMode ?? light.therapyMode,
-      therapyMinutes: siteProfile?.therapyMinutes ?? light.therapyMinutes,
+      therapyDuration: siteProfile?.therapyDuration ?? siteProfile?.therapyMinutes ?? light.therapyDuration ?? light.therapyMinutes ?? 3,
       therapyCadence: siteProfile?.therapyCadence ?? light.therapyCadence
     };
 
-    setChecked(refs.lightEnabled, light.enabled);
+    setChecked(refs.lightEnabled, Boolean(light.enabled));
     setInputValue(refs.lightMode, effective.mode);
     setInputValue(refs.lightIntensity, effective.intensity);
     refs.lightIntensityValue.textContent = `${effective.intensity}%`;
-    refs.readingModeOn.classList.toggle("is-active", effective.readingModeEnabled);
-    refs.readingModeOff.classList.toggle("is-active", !effective.readingModeEnabled);
-    refs.readingModeDark.classList.toggle("is-active", effective.readingMode === "dark");
-    refs.readingModeLight.classList.toggle("is-active", effective.readingMode === "light");
-    refs.readingModeDark.disabled = !effective.readingModeEnabled;
-    refs.readingModeLight.disabled = !effective.readingModeEnabled;
-    refs.readingDarkVariant.disabled = !effective.readingModeEnabled;
-    refs.readingLightVariant.disabled = !effective.readingModeEnabled;
-    refs.readingModeStatus.textContent = effective.readingModeEnabled
-      ? `Reading mode: On · ${effective.readingMode === "dark" ? "Dark" : "Light"}`
-      : "Reading mode: Off";
-    setInputValue(refs.readingDarkVariant, effective.darkThemeVariant);
-    setInputValue(refs.readingLightVariant, effective.lightThemeVariant);
 
     setChecked(refs.lightThisSiteEnabled, Boolean(siteProfile));
-    setChecked(refs.lightExcludeSite, isSiteExcluded());
+    setChecked(refs.lightExcludeSite, isFilterSiteExcluded());
 
     setChecked(refs.reduceWhites, effective.reduceWhites);
     setChecked(refs.videoSafe, effective.videoSafe);
@@ -474,7 +536,7 @@
     setChecked(refs.spotlightEnabled, effective.spotlightEnabled);
 
     setChecked(refs.therapyMode, effective.therapyMode);
-    setInputValue(refs.therapyMinutes, effective.therapyMinutes);
+    setInputValue(refs.therapyMinutes, effective.therapyDuration);
     setInputValue(refs.therapyCadence, effective.therapyCadence);
 
     let info = state.currentHost ? `Site: ${state.currentHost}` : "Site: unavailable";
@@ -520,6 +582,71 @@
     }
 
     refs.eyeDropperStatus.textContent = `Saved swatches: ${swatches.length} / 12`;
+  }
+
+  function getScreenshotSettings() {
+    return state.app?.settings?.screenshotTool || {
+      enabled: true,
+      padding: 8,
+      targetMode: "smart",
+      aspectRatio: "none",
+      customAspectWidth: 16,
+      customAspectHeight: 9,
+      minTargetWidth: 40,
+      minTargetHeight: 24,
+      outputScale: 1,
+      backgroundMode: "original",
+      showTooltip: true,
+      autoCopy: false,
+      previewRounded: false
+    };
+  }
+
+  function renderScreenshotTool() {
+    const shot = getScreenshotSettings();
+    const runtime = state.app?.runtime?.screenshotTool || {};
+    const running = Boolean(state.screenshotRunning || Number(runtime.activeTabId || 0) > 0);
+    state.screenshotRunning = running;
+
+    setChecked(refs.screenshotEnabled, shot.enabled);
+    setInputValue(refs.screenshotPadding, String(shot.padding ?? 8));
+    setInputValue(refs.screenshotTargetMode, shot.targetMode || "smart");
+    setInputValue(refs.screenshotAspectRatio, shot.aspectRatio || "none");
+    setInputValue(refs.screenshotCustomAspectWidth, String(shot.customAspectWidth ?? 16));
+    setInputValue(refs.screenshotCustomAspectHeight, String(shot.customAspectHeight ?? 9));
+    setInputValue(refs.screenshotMinWidth, String(shot.minTargetWidth ?? 40));
+    setInputValue(refs.screenshotMinHeight, String(shot.minTargetHeight ?? 24));
+    setInputValue(refs.screenshotOutputScale, String(shot.outputScale ?? 1));
+    setInputValue(refs.screenshotBackgroundMode, shot.backgroundMode || "original");
+    setChecked(refs.screenshotShowTooltip, shot.showTooltip !== false);
+    setChecked(refs.screenshotAutoCopy, Boolean(shot.autoCopy));
+    setChecked(refs.screenshotPreviewRounded, Boolean(shot.previewRounded));
+
+    const customAspect = String(shot.aspectRatio || "none") === "custom";
+    refs.screenshotCustomAspectWidth.disabled = !customAspect;
+    refs.screenshotCustomAspectHeight.disabled = !customAspect;
+
+    refs.screenshotStart.disabled = !shot.enabled;
+    refs.screenshotStop.disabled = !running;
+
+    if (!shot.enabled) {
+      refs.screenshotStatus.textContent = "Disabled. Turn on Screenshot Tool to capture elements.";
+      return;
+    }
+    if (running) {
+      refs.screenshotStatus.textContent = "Capture mode active. Hover target element, click once to capture.";
+      return;
+    }
+    const lastError = String(runtime.lastError || "");
+    if (lastError) {
+      if (["restricted_page", "content_script_unavailable", "no_active_tab", "no_active_web_tab"].includes(lastError)) {
+        refs.screenshotStatus.textContent = "Last error: Screenshot unavailable on this page.";
+      } else {
+        refs.screenshotStatus.textContent = `Last error: ${lastError}`;
+      }
+      return;
+    }
+    refs.screenshotStatus.textContent = "Ready. Start capture, hover an element, click once to crop.";
   }
 
   function getFavoritesState() {
@@ -771,14 +898,51 @@
     setInputValue(refs.alertSnoozeMinutes, alerts.snoozeMinutes || 10);
     setInputValue(refs.alertCooldown, alerts.cooldownMin || 0);
     setInputValue(refs.alertBurnoutThreshold, alerts.burnoutFocusThresholdMin || 90);
+    refs.alertChannelSound?.classList.toggle("is-on", Boolean(alerts.soundEnabled));
+    refs.alertChannelToast?.classList.toggle("is-on", Boolean(alerts.toastEnabled));
+    refs.alertChannelNotification?.classList.toggle("is-on", Boolean(alerts.notificationEnabled));
+
+    const dependentControls = [
+      refs.alertFrequency,
+      refs.alertCadence,
+      refs.alertTypeEye,
+      refs.alertTypePosture,
+      refs.alertTypeBurnout,
+      refs.alertTypeHydration,
+      refs.alertTypeBlink,
+      refs.alertTypeMovement,
+      refs.alertSound,
+      refs.alertSoundVolume,
+      refs.alertSoundPattern,
+      refs.alertToastEnabled,
+      refs.alertNotificationEnabled,
+      refs.alertQuietHoursEnabled,
+      refs.alertQuietStart,
+      refs.alertQuietEnd,
+      refs.alertSnoozeMinutes,
+      refs.alertCooldown,
+      refs.alertBurnoutThreshold
+    ];
+    dependentControls.forEach((control) => {
+      if (!control) return;
+      control.disabled = !alerts.enabled;
+    });
 
     const enabledTypeCount = enabledTypes.length;
     const snoozeUntil = Number(alerts.snoozeUntil || 0);
     const quietEnabled = Boolean(alerts.quietHours?.enabled);
     const nowTs = Date.now();
+    if (!alerts.enabled) {
+      refs.alertStatus.textContent = "Alerts off. Turn on and press Test Alert to verify channels.";
+      return;
+    }
+    if (!alerts.notificationEnabled && !alerts.toastEnabled) {
+      refs.alertStatus.textContent = "Enable at least one popup channel (On-page or System) to receive reminders.";
+      return;
+    }
     if (snoozeUntil > nowTs) {
       const mins = Math.max(1, Math.ceil((snoozeUntil - nowTs) / 60000));
-      refs.alertStatus.textContent = `Snoozed for ${mins}m · ${enabledTypeCount} alert types armed`;
+      refs.alertStatus.textContent = `Snoozed for ${mins}m · ${enabledTypeCount} reminder types armed`;
       return;
     }
     const cadenceLabel = alerts.cadenceMode === "focus_weighted"
@@ -786,7 +950,7 @@
       : alerts.cadenceMode === "random"
         ? "random"
         : "cycle";
-    refs.alertStatus.textContent = `${enabledTypeCount} types · ${alerts.frequencyMin}m cadence (${cadenceLabel})${quietEnabled ? " · quiet hours active" : ""}`;
+    refs.alertStatus.textContent = `${enabledTypeCount} reminder types · every ${alerts.frequencyMin}m (${cadenceLabel})${quietEnabled ? " · quiet hours on" : ""}`;
   }
 
   function renderSiteInsight() {
@@ -845,9 +1009,11 @@
     if (!state.app) return;
     renderPremium();
     renderFavorites();
+    renderReadingTheme();
     renderLight();
     renderScreenEmulator();
     renderEyeDropper();
+    renderScreenshotTool();
     renderBlocker();
     renderSecureTunnel();
     renderAlerts();
@@ -1031,12 +1197,19 @@
     queuePatch({ advanced: { biofeedback: nextEnabled } });
   }
 
+  function currentReadingPatchFromUI() {
+    const mode = refs.readingThemeDark.classList.contains("is-active") ? "dark" : "light";
+    const preset = String(refs.readingThemePreset.value || (mode === "dark" ? "soft_black" : "neutral_light"));
+    const intensity = Math.max(0, Math.min(100, Number(refs.readingThemeIntensity.value || 44)));
+    return {
+      mode,
+      preset,
+      intensity
+    };
+  }
+
   function currentLightPatchFromUI() {
     const mode = String(refs.lightMode.value || "warm");
-    const readingModeEnabled = refs.readingModeOn.classList.contains("is-active");
-    const readingMode = refs.readingModeDark.classList.contains("is-active") ? "dark" : "light";
-    const darkThemeVariant = String(refs.readingDarkVariant.value || "black");
-    const lightThemeVariant = String(refs.readingLightVariant.value || "white");
     const spectrumPreset = String(refs.lightSpectrumPreset.value || "balanced");
     const intensity = Math.max(0, Math.min(100, Number(refs.lightIntensity.value || 0)));
     const dim = Math.max(0, Math.min(60, Number(refs.lightDim.value || 0)));
@@ -1051,15 +1224,11 @@
     const videoSafe = Boolean(refs.videoSafe.checked);
     const spotlightEnabled = Boolean(refs.spotlightEnabled.checked);
     const therapyMode = Boolean(refs.therapyMode.checked);
-    const therapyMinutes = Math.max(1, Math.min(10, Number(refs.therapyMinutes.value || 3)));
+    const therapyDuration = Math.max(1, Math.min(10, Number(refs.therapyMinutes.value || 3)));
     const therapyCadence = String(refs.therapyCadence.value || "gentle");
 
     return {
       mode,
-      readingModeEnabled,
-      readingMode,
-      darkThemeVariant,
-      lightThemeVariant,
       spectrumPreset,
       intensity,
       dim,
@@ -1074,112 +1243,114 @@
       videoSafe,
       spotlightEnabled,
       therapyMode,
-      therapyMinutes,
+      therapyDuration,
       therapyCadence
     };
   }
 
-  async function setSiteOverride(enabled) {
+  function queueLightPatch(partial) {
+    const light = getLightFilterState();
+    const siteProfile = getLightSiteProfile();
+    if (state.currentHost && siteProfile) {
+      const map = { ...(light.perSiteOverrides || light.siteProfiles || {}) };
+      map[state.currentHost] = deepMerge(map[state.currentHost] || {}, partial);
+      queuePatch({ lightFilter: { perSiteOverrides: map } });
+      return;
+    }
+    queuePatch({ lightFilter: partial });
+  }
+
+  function queueReadingPatch(partial) {
+    const reading = getReadingThemeState();
+    const siteProfile = getReadingSiteProfile();
+    if (state.currentHost && siteProfile) {
+      const map = { ...(reading.perSiteOverrides || reading.siteProfiles || {}) };
+      map[state.currentHost] = deepMerge(map[state.currentHost] || {}, partial);
+      queuePatch({ readingTheme: { perSiteOverrides: map } });
+      return;
+    }
+    queuePatch({ readingTheme: partial });
+  }
+
+  function setLightSiteOverride(enabled) {
     if (!state.currentHost) {
       toast("No active website detected.");
       refs.lightThisSiteEnabled.checked = false;
       return;
     }
-
-    const map = { ...(state.app.settings.light.siteProfiles || {}) };
+    const light = getLightFilterState();
+    const map = { ...(light.perSiteOverrides || light.siteProfiles || {}) };
     if (enabled) {
       map[state.currentHost] = {
         enabled: true,
         ...currentLightPatchFromUI()
       };
-      toast(`Site override enabled for ${state.currentHost}`);
+      toast(`Light Filter override enabled for ${state.currentHost}`);
     } else {
       delete map[state.currentHost];
-      toast(`Site override removed for ${state.currentHost}`);
+      toast(`Light Filter override removed for ${state.currentHost}`);
     }
-
-    queuePatch({ light: { siteProfiles: map } });
+    queuePatch({ lightFilter: { perSiteOverrides: map } });
   }
 
-  function setExcludeSite(enabled) {
+  function setLightExcludeSite(enabled) {
     if (!state.currentHost) {
       toast("No active website detected.");
       refs.lightExcludeSite.checked = false;
       return;
     }
-
-    const set = new Set(state.app.settings.light.excludedHosts || []);
-    if (enabled) set.add(state.currentHost);
-    else set.delete(state.currentHost);
-
-    queuePatch({ light: { excludedHosts: [...set] } });
+    const light = getLightFilterState();
+    const map = { ...(light.excludedSites || {}) };
+    if (enabled) map[state.currentHost] = true;
+    else delete map[state.currentHost];
+    queuePatch({ lightFilter: { excludedSites: map } });
   }
 
-  function queueLightPatch(partial) {
-    const siteProfile = getLightSiteProfile();
-    if (state.currentHost && siteProfile) {
-      const map = { ...(state.app.settings.light.siteProfiles || {}) };
-      map[state.currentHost] = deepMerge(map[state.currentHost] || {}, partial);
-      queuePatch({ light: { siteProfiles: map } });
+  function setReadingSiteOverride(enabled) {
+    if (!state.currentHost) {
+      toast("No active website detected.");
+      refs.readingThemeThisSiteEnabled.checked = false;
       return;
     }
-    queuePatch({ light: partial });
+    const reading = getReadingThemeState();
+    const map = { ...(reading.perSiteOverrides || reading.siteProfiles || {}) };
+    if (enabled) {
+      map[state.currentHost] = {
+        enabled: true,
+        ...currentReadingPatchFromUI()
+      };
+      toast(`Reading Theme override enabled for ${state.currentHost}`);
+    } else {
+      delete map[state.currentHost];
+      toast(`Reading Theme override removed for ${state.currentHost}`);
+    }
+    queuePatch({ readingTheme: { perSiteOverrides: map } });
   }
 
-  function setReadingModeFeatureEnabled(enabled) {
-    const nextEnabled = Boolean(enabled);
-    const globalPatch = {
-      readingModeEnabled: nextEnabled,
-      schedule: {
-        enabled: false
-      }
-    };
-
-    const siteProfile = getLightSiteProfile();
-    if (state.currentHost && siteProfile) {
-      const map = { ...(state.app.settings.light.siteProfiles || {}) };
-      map[state.currentHost] = deepMerge(map[state.currentHost] || {}, {
-        readingModeEnabled: nextEnabled
-      });
-      queuePatch({
-        light: {
-          ...globalPatch,
-          siteProfiles: map
-        }
-      });
+  function setReadingExcludeSite(enabled) {
+    if (!state.currentHost) {
+      toast("No active website detected.");
+      refs.readingThemeExcludeSite.checked = false;
       return;
     }
-
-    queuePatch({ light: globalPatch });
+    const reading = getReadingThemeState();
+    const map = { ...(reading.excludedSites || {}) };
+    if (enabled) map[state.currentHost] = true;
+    else delete map[state.currentHost];
+    queuePatch({ readingTheme: { excludedSites: map } });
   }
 
   function setReadingModeWithEnable(mode) {
     const safeMode = mode === "light" ? "light" : "dark";
-    const globalPatch = {
-      readingModeEnabled: true,
-      readingMode: safeMode,
-      schedule: {
-        enabled: false
-      }
-    };
-
-    const siteProfile = getLightSiteProfile();
-    if (state.currentHost && siteProfile) {
-      const map = { ...(state.app.settings.light.siteProfiles || {}) };
-      map[state.currentHost] = deepMerge(map[state.currentHost] || {}, {
-        readingModeEnabled: true,
-        readingMode: safeMode
-      });
-      queuePatch({
-        light: {
-          ...globalPatch,
-          siteProfiles: map
-        }
-      });
-      return;
-    }
-
-    queuePatch({ light: globalPatch });
+    const current = currentReadingPatchFromUI();
+    const nextPreset = safeMode === "dark"
+      ? (["soft_black", "dim_slate", "gentle_night"].includes(current.preset) ? current.preset : "soft_black")
+      : (["soft_paper", "neutral_light", "warm_page"].includes(current.preset) ? current.preset : "neutral_light");
+    queueReadingPatch({
+      enabled: true,
+      mode: safeMode,
+      preset: nextPreset
+    });
   }
 
   function getEyeToolState() {
@@ -1189,6 +1360,11 @@
   function queueEyeDropperPatch(partial) {
     const current = getEyeToolState();
     queuePatch({ eyeDropper: deepMerge(current, partial) });
+  }
+
+  function queueScreenshotPatch(partial) {
+    const current = getScreenshotSettings();
+    queuePatch({ screenshotTool: deepMerge(current, partial) });
   }
 
   function secureTunnelPayloadFromUI() {
@@ -1274,90 +1450,72 @@
   function bindEvents() {
     bindEditingTracking();
 
-    refs.lightEnabled.addEventListener("change", (e) => queuePatch({ light: { enabled: e.target.checked } }));
-    refs.lightMode.addEventListener("change", (e) => queueLightPatch({ mode: e.target.value }));
-    refs.readingModeOn.addEventListener("click", async () => {
-      refs.readingModeOn.classList.add("is-active");
-      refs.readingModeOff.classList.remove("is-active");
-      setReadingModeFeatureEnabled(true);
-      await applyAllTabs({ ensureLightEnabled: false, quiet: true });
-    });
-
-    refs.readingModeOff.addEventListener("click", async () => {
-      refs.readingModeOff.classList.add("is-active");
-      refs.readingModeOn.classList.remove("is-active");
-      setReadingModeFeatureEnabled(false);
-      await applyAllTabs({ ensureLightEnabled: false, quiet: true });
-    });
-
-    refs.readingModeDark.addEventListener("click", async () => {
-      refs.readingModeDark.classList.add("is-active");
-      refs.readingModeLight.classList.remove("is-active");
+    refs.readingThemeEnabled.addEventListener("change", (e) => queuePatch({ readingTheme: { enabled: e.target.checked } }));
+    refs.readingThemeDark.addEventListener("click", async () => {
+      refs.readingThemeDark.classList.add("is-active");
+      refs.readingThemeLight.classList.remove("is-active");
       setReadingModeWithEnable("dark");
       await applyAllTabs({ ensureLightEnabled: false, quiet: true });
     });
 
-    refs.readingModeLight.addEventListener("click", async () => {
-      refs.readingModeLight.classList.add("is-active");
-      refs.readingModeDark.classList.remove("is-active");
+    refs.readingThemeLight.addEventListener("click", async () => {
+      refs.readingThemeLight.classList.add("is-active");
+      refs.readingThemeDark.classList.remove("is-active");
       setReadingModeWithEnable("light");
       await applyAllTabs({ ensureLightEnabled: false, quiet: true });
     });
 
-    refs.readingDarkVariant.addEventListener("change", (e) => {
-      queueLightPatch({ darkThemeVariant: String(e.target.value || "black") });
+    refs.readingThemePreset.addEventListener("change", (e) => {
+      queueReadingPatch({ preset: String(e.target.value || "soft_black") });
     });
 
-    refs.readingLightVariant.addEventListener("change", (e) => {
-      queueLightPatch({ lightThemeVariant: String(e.target.value || "white") });
+    refs.readingThemeIntensity.addEventListener("input", (e) => {
+      const value = Math.max(0, Math.min(100, Number(e.target.value || 44)));
+      refs.readingThemeIntensityValue.textContent = `${value}%`;
+      queueReadingPatch({ intensity: value });
     });
+
+    refs.readingThemeThisSiteEnabled.addEventListener("change", (e) => setReadingSiteOverride(e.target.checked));
+    refs.readingThemeExcludeSite.addEventListener("change", (e) => setReadingExcludeSite(e.target.checked));
+
+    refs.lightEnabled.addEventListener("change", (e) => queuePatch({ lightFilter: { enabled: e.target.checked } }));
+    refs.lightMode.addEventListener("change", (e) => queueLightPatch({ mode: e.target.value }));
     refs.lightIntensity.addEventListener("input", (e) => {
       const value = Math.max(0, Math.min(100, Number(e.target.value || 0)));
       refs.lightIntensityValue.textContent = `${value}%`;
       queueLightPatch({ intensity: value });
     });
 
-    refs.lightThisSiteEnabled.addEventListener("change", (e) => setSiteOverride(e.target.checked));
-    refs.lightExcludeSite.addEventListener("change", (e) => setExcludeSite(e.target.checked));
+    refs.lightThisSiteEnabled.addEventListener("change", (e) => setLightSiteOverride(e.target.checked));
+    refs.lightExcludeSite.addEventListener("change", (e) => setLightExcludeSite(e.target.checked));
     refs.lightApplyAll.addEventListener("click", async () => {
       await applyAllTabs({ ensureLightEnabled: false, quiet: false });
     });
 
-    refs.saveSiteProfile.addEventListener("click", () => setSiteOverride(true));
+    refs.saveSiteProfile.addEventListener("click", () => setLightSiteOverride(true));
 
     refs.copyGlobalToSite.addEventListener("click", () => {
       if (!state.currentHost) {
         toast("No active website detected.");
         return;
       }
-      const light = state.app.settings.light;
-      const map = { ...(light.siteProfiles || {}) };
-      map[state.currentHost] = {
+      const light = getLightFilterState();
+      const reading = getReadingThemeState();
+      const lightMap = { ...(light.perSiteOverrides || light.siteProfiles || {}) };
+      const readingMap = { ...(reading.perSiteOverrides || reading.siteProfiles || {}) };
+      lightMap[state.currentHost] = {
         enabled: true,
-        readingModeEnabled: light.readingModeEnabled ?? false,
-        mode: light.mode,
-        readingMode: light.readingMode,
-        darkThemeVariant: light.darkThemeVariant,
-        lightThemeVariant: light.lightThemeVariant,
-        spectrumPreset: light.spectrumPreset,
-        intensity: light.intensity,
-        dim: light.dim,
-        contrastSoft: light.contrastSoft,
-        brightness: light.brightness,
-        saturation: light.saturation,
-        blueCut: light.blueCut,
-        tintRed: light.tintRed,
-        tintGreen: light.tintGreen,
-        tintBlue: light.tintBlue,
-        reduceWhites: light.reduceWhites,
-        videoSafe: light.videoSafe,
-        spotlightEnabled: light.spotlightEnabled,
-        therapyMode: light.therapyMode,
-        therapyMinutes: light.therapyMinutes,
-        therapyCadence: light.therapyCadence
+        ...currentLightPatchFromUI()
       };
-      queuePatch({ light: { siteProfiles: map } });
-      toast(`Copied global profile to ${state.currentHost}`);
+      readingMap[state.currentHost] = {
+        enabled: true,
+        ...currentReadingPatchFromUI()
+      };
+      queuePatch({
+        lightFilter: { perSiteOverrides: lightMap },
+        readingTheme: { perSiteOverrides: readingMap }
+      });
+      toast(`Copied global profiles to ${state.currentHost}`);
     });
 
     refs.reduceWhites.addEventListener("change", (e) => queueLightPatch({ reduceWhites: e.target.checked }));
@@ -1408,7 +1566,7 @@
     refs.therapyMode.addEventListener("change", (e) => queueLightPatch({ therapyMode: e.target.checked }));
     refs.therapyMinutes.addEventListener("input", (e) => {
       const value = Math.max(1, Math.min(10, Number(e.target.value || 3)));
-      queueLightPatch({ therapyMinutes: value });
+      queueLightPatch({ therapyDuration: value });
     });
     refs.therapyCadence.addEventListener("change", (e) => queueLightPatch({ therapyCadence: e.target.value }));
 
@@ -1548,6 +1706,114 @@
     });
 
     refs.eyeAddSwatch.addEventListener("click", saveCurrentEyeHexToSwatches);
+
+    refs.screenshotEnabled.addEventListener("change", (event) => {
+      queueScreenshotPatch({ enabled: Boolean(event.target.checked) });
+    });
+
+    refs.screenshotPadding.addEventListener("change", (event) => {
+      const value = Math.max(0, Math.min(24, Number(event.target.value || 8)));
+      queueScreenshotPatch({ padding: value });
+    });
+
+    refs.screenshotTargetMode.addEventListener("change", (event) => {
+      queueScreenshotPatch({ targetMode: String(event.target.value || "smart") });
+    });
+
+    refs.screenshotAspectRatio.addEventListener("change", (event) => {
+      const aspectRatio = String(event.target.value || "none");
+      queueScreenshotPatch({ aspectRatio });
+    });
+
+    refs.screenshotCustomAspectWidth.addEventListener("change", (event) => {
+      const value = Math.max(1, Math.min(999, Number(event.target.value || 16)));
+      setInputValue(refs.screenshotCustomAspectWidth, String(value));
+      queueScreenshotPatch({ customAspectWidth: value });
+    });
+
+    refs.screenshotCustomAspectHeight.addEventListener("change", (event) => {
+      const value = Math.max(1, Math.min(999, Number(event.target.value || 9)));
+      setInputValue(refs.screenshotCustomAspectHeight, String(value));
+      queueScreenshotPatch({ customAspectHeight: value });
+    });
+
+    refs.screenshotMinWidth.addEventListener("change", (event) => {
+      const value = Math.max(12, Math.min(2400, Number(event.target.value || 40)));
+      setInputValue(refs.screenshotMinWidth, String(value));
+      queueScreenshotPatch({ minTargetWidth: value });
+    });
+
+    refs.screenshotMinHeight.addEventListener("change", (event) => {
+      const value = Math.max(12, Math.min(1800, Number(event.target.value || 24)));
+      setInputValue(refs.screenshotMinHeight, String(value));
+      queueScreenshotPatch({ minTargetHeight: value });
+    });
+
+    refs.screenshotOutputScale.addEventListener("change", (event) => {
+      const value = Number(event.target.value || 1) >= 2 ? 2 : 1;
+      queueScreenshotPatch({ outputScale: value });
+    });
+
+    refs.screenshotBackgroundMode.addEventListener("change", (event) => {
+      queueScreenshotPatch({ backgroundMode: String(event.target.value || "original") });
+    });
+
+    refs.screenshotShowTooltip.addEventListener("change", (event) => {
+      queueScreenshotPatch({ showTooltip: Boolean(event.target.checked) });
+    });
+
+    refs.screenshotAutoCopy.addEventListener("change", (event) => {
+      queueScreenshotPatch({ autoCopy: Boolean(event.target.checked) });
+    });
+
+    refs.screenshotPreviewRounded.addEventListener("change", (event) => {
+      queueScreenshotPatch({ previewRounded: Boolean(event.target.checked) });
+    });
+
+    refs.screenshotStart.addEventListener("click", async () => {
+      const settings = getScreenshotSettings();
+      if (!settings.enabled) {
+        toast("Screenshot Tool is disabled.");
+        return;
+      }
+      await flushPatchNow();
+      refs.screenshotStart.disabled = true;
+      refs.screenshotStart.textContent = "Starting...";
+      const response = await sendMessage({ type: "SCREENSHOT_START" });
+      refs.screenshotStart.disabled = false;
+      refs.screenshotStart.textContent = "Start Capture";
+      if (!response?.ok) {
+        const code = String(response?.error || "unknown");
+        if (["restricted_page", "no_active_tab", "no_active_web_tab", "content_script_unavailable"].includes(code)) {
+          toast("Screenshot unavailable on this page.");
+        } else {
+          toast("Capture failed. Try reloading the page.");
+        }
+        state.screenshotRunning = false;
+        renderScreenshotTool();
+        return;
+      }
+      if (response.state) {
+        state.app = response.state;
+      }
+      state.screenshotRunning = true;
+      renderScreenshotTool();
+      toast("Screenshot mode active. Hover any element and click once.");
+    });
+
+    refs.screenshotStop.addEventListener("click", async () => {
+      const response = await sendMessage({ type: "SCREENSHOT_CANCEL" });
+      if (!response?.ok) {
+        toast(`Screenshot stop failed: ${response?.error || "unknown"}`);
+        return;
+      }
+      if (response.state) {
+        state.app = response.state;
+      }
+      state.screenshotRunning = false;
+      renderScreenshotTool();
+      toast("Screenshot mode stopped.");
+    });
 
     refs.favoriteUrlInput.addEventListener("input", (event) => {
       state.favoriteDraftUrl = String(event.target.value || "");
@@ -1888,10 +2154,21 @@
       const kind = String(state.alertTestType || refs.alertTestType.value || "eye");
       const response = await sendMessage({ type: "holmeta:test-alert", kind });
       if (!response.ok) {
-        toast(`Test failed: ${response.error || "unknown"}`);
+        const reason = String(response.reason || response.error || "unknown");
+        toast(`Test failed: ${reason}`);
         return;
       }
-      toast(`Test alert dispatched (${kind}).`);
+      const delivery = response.delivery || {};
+      const channels = [
+        delivery.notification ? "system" : null,
+        delivery.toast ? "on-page" : null,
+        delivery.sound ? `sound (${delivery.soundChannel || "unknown"})` : null
+      ].filter(Boolean);
+      if (!channels.length) {
+        toast("Test alert ran, but no output channels were reachable on this page.");
+        return;
+      }
+      toast(`Test alert delivered (${kind}) via ${channels.join(", ")}.`);
     });
 
     refs.snoozeAlertsNow.addEventListener("click", async () => {

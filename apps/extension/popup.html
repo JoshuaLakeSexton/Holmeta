@@ -48,9 +48,64 @@
         <p id="favoritesStatus" class="micro">Saved: 0 / 20</p>
       </section>
 
+      <section class="panel core" id="readingThemePanel">
+        <div class="section-head">
+          <h2>2) Reading Theme</h2>
+          <label class="switch" aria-label="Toggle reading theme">
+            <input id="readingThemeEnabled" type="checkbox" />
+            <span>On</span>
+          </label>
+        </div>
+
+        <div class="field-row">
+          <label>Mode</label>
+          <div class="reading-theme-wrap">
+            <div class="row reading-theme-buttons">
+              <button id="readingThemeDark" class="secondary" type="button">Night / Dark</button>
+              <button id="readingThemeLight" class="ghost" type="button">Day / Light</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="field-row">
+          <label for="readingThemePreset">Preset</label>
+          <select id="readingThemePreset" aria-label="Reading theme preset">
+            <option value="soft_black">Soft Black</option>
+            <option value="dim_slate">Dim Slate</option>
+            <option value="gentle_night">Gentle Night</option>
+            <option value="soft_paper">Soft Paper</option>
+            <option value="neutral_light">Neutral Light</option>
+            <option value="warm_page">Warm Page</option>
+          </select>
+        </div>
+
+        <div class="field-row">
+          <label for="readingThemeIntensity">Reading Intensity</label>
+          <div class="range-wrap">
+            <input id="readingThemeIntensity" type="range" min="0" max="100" step="1" />
+            <span id="readingThemeIntensityValue" class="value">44%</span>
+          </div>
+        </div>
+
+        <div class="row actions-row alert-types">
+          <label class="switch" title="Enable Reading Theme override for this host">
+            <input id="readingThemeThisSiteEnabled" type="checkbox" />
+            <span>This site override</span>
+          </label>
+          <label class="switch" title="Exclude this host from Reading Theme">
+            <input id="readingThemeExcludeSite" type="checkbox" />
+            <span>Exclude site</span>
+          </label>
+        </div>
+
+        <p id="readingThemeStatus" class="micro">
+          Reading Theme runs independently from Light Filter Tool.
+        </p>
+      </section>
+
       <section class="panel core" id="lightPanel">
         <div class="section-head">
-          <h2>2) Light Filter Tool</h2>
+          <h2>3) Light Filter Tool</h2>
           <label class="switch" aria-label="Toggle light filter">
             <input id="lightEnabled" type="checkbox" />
             <span>On</span>
@@ -69,8 +124,10 @@
             <option value="red_mono">Red Monochrome</option>
             <option value="red_lock">Red Spectrum Lock</option>
             <option value="gray_warm">Grayscale + Warm</option>
+            <option value="grayscale">True Grayscale</option>
             <option value="dim">Dim / Night</option>
             <option value="spotlight">Focus Spotlight</option>
+            <option value="custom">Custom Spectrum</option>
           </select>
         </div>
 
@@ -82,39 +139,7 @@
           </div>
         </div>
 
-        <div class="field-row">
-          <label>Dark / Light Reading</label>
-          <div class="reading-theme-wrap">
-            <div class="row reading-mode-toggle">
-              <button id="readingModeOn" class="secondary" type="button">Reading On</button>
-              <button id="readingModeOff" class="ghost" type="button">Reading Off</button>
-            </div>
-            <div class="row reading-theme-buttons">
-              <button id="readingModeDark" class="secondary" type="button">Dark</button>
-              <button id="readingModeLight" class="ghost" type="button">Light</button>
-            </div>
-            <p id="readingModeStatus" class="micro">Reading mode: On · Dark</p>
-            <div class="row reading-theme-selects">
-              <label for="readingDarkVariant" class="micro">Dark Type</label>
-              <select id="readingDarkVariant" aria-label="Dark mode type">
-                <option value="black">Black</option>
-                <option value="brown">Brown</option>
-                <option value="gray">Gray</option>
-              </select>
-            </div>
-            <div class="row reading-theme-selects">
-              <label for="readingLightVariant" class="micro">Light Type</label>
-              <select id="readingLightVariant" aria-label="Light mode type">
-                <option value="white">White</option>
-                <option value="warm">Warm</option>
-                <option value="gray">Soft Gray</option>
-              </select>
-            </div>
-          </div>
-        </div>
-        <p class="micro">
-          Dark Mode: switch to dark or white reading for night &amp; day browsing. More than dark theme style, it helps maintain eye comfort.
-        </p>
+        <p class="micro">Light Filter Tool controls warmth, tint, dimming, and spectral comfort independent of Reading Theme.</p>
 
         <div class="row actions-row alert-types">
           <label class="switch" title="Enable site override using current global profile">
@@ -232,7 +257,7 @@
 
       <section class="panel core" id="screenEmulatorPanel">
         <div class="section-head">
-          <h2>3) Screen Resolution Emulator</h2>
+          <h2>4) Screen Resolution Emulator</h2>
           <label class="switch" aria-label="Screen emulator state">
             <input id="screenEmulatorActive" type="checkbox" disabled />
             <span>Active</span>
@@ -274,7 +299,7 @@
 
       <section class="panel core" id="eyeDropperPanel">
         <div class="section-head">
-          <h2>4) Color Eye Dropper</h2>
+          <h2>5) Color Eye Dropper</h2>
           <button id="eyePickFromPage" class="secondary">Pick from Page</button>
         </div>
 
@@ -302,9 +327,106 @@
         <p id="eyeDropperStatus" class="micro">Saved swatches: 0 / 12</p>
       </section>
 
+      <section class="panel core" id="screenshotPanel">
+        <div class="section-head">
+          <h2>6) Element Screenshot Tool</h2>
+          <label class="switch" aria-label="Enable screenshot tool">
+            <input id="screenshotEnabled" type="checkbox" />
+            <span>On</span>
+          </label>
+        </div>
+
+        <div class="row actions-row">
+          <button id="screenshotStart" class="primary" type="button">Start Capture</button>
+          <button id="screenshotStop" class="ghost" type="button">Stop</button>
+        </div>
+
+        <p id="screenshotStatus" class="micro">Ready. Hover an element, click once to capture.</p>
+
+        <details class="inline-advanced">
+          <summary>Capture Settings</summary>
+
+          <div class="field-row">
+            <label for="screenshotPadding">Padding</label>
+            <select id="screenshotPadding">
+              <option value="0">0 px</option>
+              <option value="4">4 px</option>
+              <option value="8">8 px</option>
+              <option value="12">12 px</option>
+              <option value="16">16 px</option>
+              <option value="24">24 px</option>
+            </select>
+          </div>
+
+          <div class="field-row">
+            <label for="screenshotTargetMode">Targeting</label>
+            <select id="screenshotTargetMode">
+              <option value="smart">Smart Auto</option>
+              <option value="exact">Exact Element</option>
+              <option value="parent">Prefer Parent Container</option>
+            </select>
+          </div>
+
+          <div class="field-row">
+            <label for="screenshotAspectRatio">Aspect</label>
+            <select id="screenshotAspectRatio">
+              <option value="none">None</option>
+              <option value="square">Square (1:1)</option>
+              <option value="4:3">4:3</option>
+              <option value="16:9">16:9</option>
+              <option value="custom">Custom</option>
+            </select>
+          </div>
+
+          <div class="field-row">
+            <label>Custom Aspect</label>
+            <div class="row screen-size-row">
+              <input id="screenshotCustomAspectWidth" type="number" min="1" max="999" step="1" aria-label="Aspect width" />
+              <span class="micro">:</span>
+              <input id="screenshotCustomAspectHeight" type="number" min="1" max="999" step="1" aria-label="Aspect height" />
+            </div>
+          </div>
+
+          <div class="field-row">
+            <label>Min Target Size</label>
+            <div class="row screen-size-row">
+              <input id="screenshotMinWidth" type="number" min="12" max="2400" step="1" aria-label="Minimum target width" />
+              <span class="micro">×</span>
+              <input id="screenshotMinHeight" type="number" min="12" max="1800" step="1" aria-label="Minimum target height" />
+            </div>
+          </div>
+
+          <div class="field-row">
+            <label for="screenshotOutputScale">Output Scale</label>
+            <select id="screenshotOutputScale">
+              <option value="1">1x</option>
+              <option value="2">2x</option>
+            </select>
+          </div>
+
+          <div class="field-row">
+            <label for="screenshotBackgroundMode">Background</label>
+            <select id="screenshotBackgroundMode">
+              <option value="original">Original Crop</option>
+              <option value="white">White Flatten</option>
+              <option value="transparent">Transparent</option>
+            </select>
+          </div>
+
+          <div class="field-row compact">
+            <label class="switch"><input id="screenshotShowTooltip" type="checkbox" /><span>Show Tooltip</span></label>
+            <label class="switch"><input id="screenshotAutoCopy" type="checkbox" /><span>Auto-copy</span></label>
+          </div>
+
+          <div class="field-row compact">
+            <label class="switch"><input id="screenshotPreviewRounded" type="checkbox" /><span>Rounded Preview</span></label>
+          </div>
+        </details>
+      </section>
+
       <section class="panel core" id="blockerPanel">
         <div class="section-head">
-          <h2>5) Site Blocker Tool</h2>
+          <h2>7) Site Blocker Tool</h2>
           <label class="switch" aria-label="Toggle site blocker">
             <input id="blockerEnabled" type="checkbox" />
             <span>On</span>
@@ -376,7 +498,7 @@
 
       <section class="panel core" id="secureTunnelPanel">
         <div class="section-head">
-          <h2>6) Secure Tunnel</h2>
+          <h2>8) Secure Tunnel</h2>
           <label class="switch" aria-label="Toggle secure tunnel">
             <input id="secureTunnelEnabled" type="checkbox" />
             <span>On</span>
@@ -437,11 +559,19 @@
 
       <section class="panel core" id="alertsPanel">
         <div class="section-head">
-          <h2>7) Health Alert Popups</h2>
+          <h2>9) Health Alert Popups</h2>
           <label class="switch" aria-label="Toggle health alerts">
             <input id="alertsEnabled" type="checkbox" />
             <span>On</span>
           </label>
+        </div>
+
+        <p class="micro alert-intro">Protocol sends gentle break cues. Use <strong>Test Alert</strong> to verify sound and popup delivery now.</p>
+
+        <div class="alert-channel-row" aria-label="Alert channels">
+          <span id="alertChannelSound" class="alert-chip">Sound</span>
+          <span id="alertChannelToast" class="alert-chip">On-page</span>
+          <span id="alertChannelNotification" class="alert-chip">System</span>
         </div>
 
         <div class="field-row">
@@ -478,7 +608,7 @@
           </select>
         </div>
 
-        <div class="row actions-row">
+        <div class="row actions-row alert-types">
           <label class="switch">
             <input id="alertTypeEye" type="checkbox" />
             <span>Eye</span>
@@ -517,7 +647,7 @@
         </div>
 
         <details class="inline-advanced">
-          <summary>Alert Controls</summary>
+          <summary>Advanced Alert Controls</summary>
           <div class="field-row">
             <label for="alertSoundVolume">Sound Volume</label>
             <div class="range-wrap">
@@ -584,7 +714,7 @@
         </details>
 
         <div class="row actions-row">
-          <button id="testAlert" class="secondary">Test Alert</button>
+          <button id="testAlert" class="primary">Test Alert</button>
           <button id="snoozeAlertsNow" class="ghost">Snooze Now</button>
         </div>
         <p id="alertStatus" class="micro">Alerts ready.</p>
@@ -592,7 +722,7 @@
 
       <section class="panel core" id="siteInsightPanel">
         <div class="section-head">
-          <h2>8) Site Insight Popup</h2>
+          <h2>10) Site Insight Popup</h2>
           <label class="switch" aria-label="Toggle site insight popup">
             <input id="siteInsightEnabled" type="checkbox" />
             <span>On</span>
@@ -638,7 +768,7 @@
       </section>
 
       <details class="panel fold" id="deepWorkFold">
-        <summary>9) Deep Work Protocol</summary>
+        <summary>10) Deep Work Protocol</summary>
         <div class="field-row">
           <label for="pomodoroPreset">Pomodoro</label>
           <select id="pomodoroPreset" aria-label="Pomodoro preset">
@@ -655,7 +785,7 @@
       </details>
 
       <details class="panel fold" id="advancedFold">
-        <summary>10) Advanced Lab (Premium)</summary>
+        <summary>11) Advanced Lab (Premium)</summary>
 
         <div class="premium-banner" id="premiumBanner">
           <span>Premium feature set</span>

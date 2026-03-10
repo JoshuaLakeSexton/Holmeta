@@ -2,6 +2,16 @@ import { Panel } from "@/components/holmeta/Panel";
 
 const changelog = [
   {
+    date: "2026-03-10",
+    id: "HM-2026-03-10-A",
+    summary: "Light Filters hardening: dark/light reading now uses safe single-strategy rendering with page-tone fallback clamps to prevent unreadable pages."
+  },
+  {
+    date: "2026-03-10",
+    id: "HM-2026-03-10-B",
+    summary: "Production verification pass: Netlify env check, checkout smoke for monthly_a + yearly, gated download access control, and extension zip sync validation."
+  },
+  {
     date: "2026-03-04",
     id: "HM-2026-03-04-B",
     summary: "GA hardening: gated extension download, no-login license activation flow, and webhook idempotency checks."
@@ -31,7 +41,7 @@ export default function StatusPage() {
         <h1 className="hm-title">Holmeta Release Status</h1>
         <p className="hm-chip status-active">STATUS: OPERATIONAL</p>
         <p className="hm-chip status-warning">MONITORING: ENABLED (FUNCTION LOGS + CLIENT ERROR INGEST)</p>
-        <p className="hm-meta">Last updated: March 4, 2026</p>
+        <p className="hm-meta">Last updated: March 10, 2026</p>
       </Panel>
 
       <Panel>
