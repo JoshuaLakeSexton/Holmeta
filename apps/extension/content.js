@@ -1359,6 +1359,10 @@
 
     return new Promise((resolve) => {
       const previousCursor = document.documentElement.style.cursor;
+      let highlight = null;
+      let onMove = null;
+      let onClick = null;
+      let onKeyDown = null;
       document.documentElement.style.cursor = "crosshair";
       showToast({
         title: "Block Element Picker",
@@ -1381,7 +1385,7 @@
         resolve(payload);
       };
 
-      const highlight = document.createElement("div");
+      highlight = document.createElement("div");
       highlight.style.cssText = [
         "position:fixed",
         "left:0",
@@ -1395,7 +1399,7 @@
       ].join(";");
       document.documentElement.appendChild(highlight);
 
-      const onMove = (event) => {
+      onMove = (event) => {
         const target = document.elementFromPoint(event.clientX, event.clientY);
         if (!target || target === highlight) return;
         const rect = target.getBoundingClientRect();
@@ -1405,7 +1409,7 @@
         highlight.style.height = `${Math.max(0, rect.height)}px`;
       };
 
-      const onClick = async (event) => {
+      onClick = async (event) => {
         event.preventDefault();
         event.stopPropagation();
         const target = document.elementFromPoint(event.clientX, event.clientY);
@@ -1427,7 +1431,7 @@
         done({ ok: true, selector, host: currentHost() });
       };
 
-      const onKeyDown = (event) => {
+      onKeyDown = (event) => {
         if (event.key !== "Escape") return;
         event.preventDefault();
         done({ ok: false, error: "cancelled" });
@@ -3476,7 +3480,6 @@
       </div>
     `;
 
-    const panel = shadow.getElementById("hmInsightPanel");
     const pill = shadow.getElementById("hmInsightPill");
     const profile = shadow.getElementById("hmInsightProfile");
     const closeBtn = shadow.getElementById("hmInsightClose");

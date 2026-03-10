@@ -7,7 +7,6 @@
   const UPGRADE_URL = "https://www.holmeta.com/pricing";
   const WEBSITE_URL = "https://holmeta.com";
   const DASHBOARD_URL = "https://holmeta.com/dashboard";
-  const RATE_URL = "https://chromewebstore.google.com";
   const FAVORITE_LIMIT = 20;
   const SCREEN_PRESETS = {
     desktop_hd: { width: 1366, height: 768, label: "Desktop HD" },

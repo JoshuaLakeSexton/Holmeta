@@ -6,7 +6,7 @@
 // - Premium placeholders stored locally (future server validation hook documented)
 
 const STORAGE_KEY = "holmeta.v3.state";
-const LEGACY_KEYS = ["holmeta.v2.state", "holmeta.settings", "holmeta.v3"];
+const _LEGACY_KEYS = ["holmeta.v2.state", "holmeta.settings", "holmeta.v3"];
 const VERSION = "3.0.0";
 const SCHEMA_VERSION = 6;
 const LOG_LIMIT = 500;
@@ -105,7 +105,7 @@ const DNR_CATEGORY_RANGES = {
 
 const ALARMS_BLOCKER_UPDATE = "holmeta-v3-blocker-update";
 
-const FILTER_CATEGORY_META = {
+const _FILTER_CATEGORY_META = {
   ads: { label: "Ads & banners" },
   trackers: { label: "Trackers & analytics" },
   malware: { label: "Malware / phishing domains" },
@@ -1615,10 +1615,6 @@ function tabsQuery(query) {
   return new Promise((resolve) => chrome.tabs.query(query, resolve));
 }
 
-function tabsCreate(opts) {
-  return new Promise((resolve) => chrome.tabs.create(opts, resolve));
-}
-
 function tabsCaptureVisibleTab(windowId, options = {}) {
   return new Promise((resolve) => {
     chrome.tabs.captureVisibleTab(windowId, options, (dataUrl) => {
@@ -2984,7 +2980,7 @@ function buildPatternRules({ startId, endId = 29999, patterns, priority = 1, act
   return rules;
 }
 
-function buildHostRulesForCategory({ category, startId, endId = 29999, hosts, includeMainFrame = false }) {
+function buildHostRulesForCategory({ startId, endId = 29999, hosts, includeMainFrame = false }) {
   const rules = [];
   let id = startId;
   for (const host of hosts || []) {
@@ -3189,7 +3185,6 @@ function buildBlockRules(state) {
     if (!range) return;
     const hosts = getBlockerCategoryHosts(state, category);
     const hostRules = buildHostRulesForCategory({
-      category,
       startId: range.start,
       endId: range.end,
       hosts,
@@ -3783,7 +3778,18 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     }
 
     if (type === "holmeta:get-light-diagnostics") {
-      const tabId = Number(sender?.tab?.id || message.tabId || 0);
+      let tabId = Number(message.tabId || 0);
+      if ((!Number.isInteger(tabId) || tabId <= 0) && Number.isInteger(Number(sender?.tab?.id || 0))) {
+        const senderUrl = String(sender?.tab?.url || "");
+        if (/^https?:/i.test(senderUrl)) {
+          tabId = Number(sender.tab.id || 0);
+        }
+      }
+      if (!Number.isInteger(tabId) || tabId <= 0) {
+        const tabs = await tabsQuery({ active: true, currentWindow: true });
+        const activeTab = tabs.find((candidate) => Number.isInteger(candidate?.id) && /^https?:/i.test(String(candidate?.url || "")));
+        tabId = Number(activeTab?.id || 0);
+      }
       if (!Number.isInteger(tabId) || tabId <= 0) {
         sendResponse({ ok: false, error: "invalid_tab" });
         return;
