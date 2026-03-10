@@ -60,5 +60,6 @@ Set one:
 ## Current Status Snapshot (March 10, 2026)
 
 - Automated gates: passing (`lint`, `typecheck`, `build`, `test`, env check, extension validate).
+- Runtime smoke automation: `npm run qa:extension-runtime` passes core checks (popup typing persistence, screenshot start, color picker start, sound alert path via offscreen audio) across GitHub, Stripe, YouTube, NYTimes, and Amazon.
 - Paid flow: partial automation pass (checkout creation and access control pass), but **real completed checkout + reveal + activation + downgrade** still needs execution and signoff.
-- Runtime manual QA: requires in-browser execution against latest build before GO.
+- Runtime manual QA: still required for final visual readability signoff on dark/light rendering across target sites.
