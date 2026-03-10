@@ -38,6 +38,9 @@ export default function TermsPage() {
           <li>Do not attempt to abuse billing, license, or entitlement systems.</li>
           <li>Use at your own discretion in accordance with browser and platform policies.</li>
         </ul>
+        <p className="hm-meta">
+          Contact: <a href="mailto:reach@holmeta.com">reach@holmeta.com</a>
+        </p>
         <div className="hm-cta-row">
           <Button href="/privacy">Open Privacy</Button>
           <Button href="/dashboard/subscribe" variant="primary">Start 3-Day Trial</Button>

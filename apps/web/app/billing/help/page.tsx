@@ -30,7 +30,10 @@ export default function BillingHelpPage() {
           Refunds are handled case-by-case. Include your checkout session id and reason so support can review quickly.
         </p>
         <ul className="hm-protocol-grid">
-          <li><strong>Contact:</strong> use the support address listed on your Stripe receipt.</li>
+          <li>
+            <strong>Contact:</strong>{" "}
+            <a href="mailto:reach@holmeta.com">reach@holmeta.com</a>
+          </li>
           <li><strong>Subject:</strong> HOLMETA REFUND REQUEST</li>
           <li><strong>Include:</strong> session id, purchase date, and a brief issue summary</li>
         </ul>

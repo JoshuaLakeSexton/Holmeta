@@ -37,6 +37,9 @@ export default function PrivacyPage() {
           <li>Camera access is optional and requested only if webcam posture mode is enabled.</li>
           <li>Billing, download gating, and license checks are processed through secure server functions.</li>
         </ul>
+        <p className="hm-meta">
+          Contact: <a href="mailto:reach@holmeta.com">reach@holmeta.com</a>
+        </p>
         <div className="hm-cta-row">
           <Button href="/terms">Open Terms</Button>
           <Button href="/dashboard/subscribe" variant="primary">Start 3-Day Trial</Button>

@@ -261,6 +261,7 @@ export default function HomePage() {
         <a href="/status">Status / Changelog</a>
         <a href="/privacy">Privacy</a>
         <a href="/terms">Terms</a>
+        <a href="mailto:reach@holmeta.com">Contact</a>
         <a href="/dashboard/subscribe">Start 3-Day Trial</a>
       </footer>
     </main>
