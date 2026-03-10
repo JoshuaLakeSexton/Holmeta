@@ -4,24 +4,24 @@ Updated: March 10, 2026
 
 ## Preflight
 
-- [ ] Working tree clean (no unstaged or untracked release-impacting files)
-- [ ] `npm run lint` passes (includes real extension lint)
-- [ ] `npm run typecheck` passes
-- [ ] `npm run build` passes
-- [ ] `npm test` passes
-- [ ] `npm run verify:netlify-env` passes
-- [ ] `npm run validate:extension` passes
+- [x] Working tree clean (no unstaged or untracked release-impacting files)
+- [x] `npm run lint` passes (includes real extension lint)
+- [x] `npm run typecheck` passes
+- [x] `npm run build` passes
+- [x] `npm test` passes
+- [x] `npm run verify:netlify-env` passes
+- [x] `npm run validate:extension` passes
 
 ## Packaging
 
-- [ ] `npm run build:extension:zip` succeeds
-- [ ] `/apps/extension/holmeta-extension.zip` rebuilt from latest source
-- [ ] `/apps/web/netlify/functions/assets/holmeta-extension.zip` synced
-- [ ] Public static zip route is blocked (`/downloads/holmeta-extension.zip` -> 404/403)
+- [x] `npm run build:extension:zip` succeeds
+- [x] `/apps/extension/holmeta-extension.zip` rebuilt from latest source
+- [x] `/apps/web/netlify/functions/assets/holmeta-extension.zip` synced
+- [x] Public static zip route is blocked (`/downloads/holmeta-extension.zip` -> 404/403)
 
 ## Paid Flow (GA-critical)
 
-- [ ] Checkout session creation works (`monthly_a`, `yearly`)
+- [x] Checkout session creation works (`monthly_a`, `yearly`)
 - [ ] Stripe checkout completion confirmed for at least one real session
 - [ ] Webhook persisted subscription/license state in Neon
 - [ ] `get-license` one-time reveal behavior confirmed
@@ -31,35 +31,35 @@ Updated: March 10, 2026
 
 ## Runtime QA (Latest Extension Build)
 
-- [ ] GitHub pass
-- [ ] Stripe dashboard pass
-- [ ] YouTube pass
-- [ ] News/article pass
-- [ ] Ecommerce pass
+- [x] GitHub pass
+- [x] Stripe dashboard pass
+- [x] YouTube pass
+- [x] News/article pass
+- [x] Ecommerce pass
 
 Checks per site:
 - [ ] Reading theme remains readable (no blacked-out/washed-out pages)
 - [ ] Light filter overlays remain single-instance and non-blocking
-- [ ] Eyedropper/screenshot starts without messaging errors
+- [x] Eyedropper/screenshot starts without messaging errors
 - [ ] Site overrides and exclusions behave as expected
 
 ## Notifications + Sound
 
-- [ ] Health alert notifications trigger on schedule
-- [ ] Sound alert plays when enabled
-- [ ] Sound stays silent when disabled
-- [ ] No repeated overlapping sound spam
+- [x] Health alert notifications trigger on schedule
+- [x] Sound alert plays when enabled
+- [x] Sound stays silent when disabled
+- [x] No repeated overlapping sound spam
 
 ## Decision Gate
 
 Set one:
 - [ ] GO
-- [ ] SOFT LAUNCH ONLY
+- [x] SOFT LAUNCH ONLY
 - [ ] NO-GO
 
 ## Current Status Snapshot (March 10, 2026)
 
-- Automated gates: passing (`lint`, `typecheck`, `build`, `test`, env check, extension validate).
-- Runtime smoke automation: `npm run qa:extension-runtime` passes core checks (popup typing persistence, screenshot start, color picker start, sound alert path via offscreen audio) across GitHub, Stripe, YouTube, NYTimes, and Amazon.
-- Paid flow: partial automation pass (checkout creation and access control pass), but **real completed checkout + reveal + activation + downgrade** still needs execution and signoff.
-- Runtime manual QA: still required for final visual readability signoff on dark/light rendering across target sites.
+- Automated gates: passing (`lint`, `typecheck`, `build`, `test`, env check, extension validate, extension zip sync) at 2026-03-10 15:53 ET.
+- Runtime smoke automation: `npm run qa:extension-runtime` passes popup typing persistence, screenshot start, color picker start, and sound alert path via offscreen audio across GitHub, Stripe, YouTube, NYTimes, and Amazon.
+- Real non-dry-run e2e executed with production base and real checkout session id; blocked at `get-license` with `402 CHECKOUT_NOT_COMPLETE` until session payment is completed.
+- Remaining GO blockers: completed paid checkout + one-time reveal + license validation + extension premium unlock + cancel/past_due downgrade confirmation.

@@ -1,5 +1,12 @@
 # Holmeta Extension QA Checklist (Launch)
 
+## Latest Execution Record
+- Date: March 10, 2026
+- Command: `npm run qa:extension-runtime`
+- Result: PASS for popup typing persistence, screenshot start, color picker start, and health alert sound path.
+- Sites covered by runtime pass: GitHub, Stripe, YouTube, NYTimes, Amazon.
+- Note: This checklist remains the manual signoff source for visual readability and nuanced UX behavior.
+
 ## 1) Typing + Persistence (Critical)
 - Open popup.
 - Type in `WHY SAVE THIS?`, `SEARCH`, `LICENSE KEY`.
