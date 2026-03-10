@@ -8,8 +8,10 @@
     "build:zip": "npm run build",
     "zip": "npm run build",
     "check": "npm run lint && npm run typecheck",
-    "lint": "node -e \"console.log('lint: no-op for backup extension layout')\"",
-    "typecheck": "node -e \"console.log('extension typecheck: no-op (plain JS)')\"",
+    "lint": "eslint . --ext .js --max-warnings=0",
+    "lint:fix": "npm run lint -- --fix",
+    "typecheck": "node ../../scripts/validate-extension.mjs",
+    "validate:extension": "node ../../scripts/validate-extension.mjs",
     "test": "node -e \"console.log('test: no automated tests configured for backup extension layout')\""
   }
 }
