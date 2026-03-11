@@ -7,8 +7,8 @@ import { normalizeLocale } from "@/lib/i18n/config";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "holmeta",
-  description: "Extension-first screen health and deep work ops console",
+  title: "HOLMETA",
+  description: "HOLMETA",
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || process.env.PUBLIC_BASE_URL || "https://holmeta.com")
 };
 

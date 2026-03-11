@@ -7,11 +7,12 @@
     "prisma:generate": "prisma generate --schema prisma/schema.prisma",
     "prisma:dbpush": "prisma db push --schema prisma/schema.prisma",
     "css:guard": "node ../../scripts/check-css-integrity.mjs",
+    "check:locales": "node ../../scripts/check-web-locales.mjs",
     "prebuild": "npm run css:guard",
     "build": "npm run prisma:generate && next build",
     "start": "next start",
     "typecheck": "rm -f tsconfig.tsbuildinfo .next/cache/.tsbuildinfo && npm run prisma:generate && next typegen && tsc -p tsconfig.json --noEmit",
-    "lint": "node -e \"console.log('web lint: no-op')\"",
+    "lint": "npm run check:locales",
     "test": "vitest run"
   },
   "dependencies": {

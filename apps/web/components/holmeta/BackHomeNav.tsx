@@ -43,7 +43,7 @@ export function BackHomeNav() {
   }
 
   return (
-    <div className="hm-web-nav hm-web-nav-box" role="navigation" aria-label="Quick navigation">
+    <div className="hm-web-nav hm-web-nav-box" role="navigation" aria-label={t(messages, "common.quickNavigation", "Quick navigation")}>
       <LocaleSwitcher compact />
       <Button onClick={onBack} className="hm-web-nav-btn hm-web-nav-btn--mini" disabled={!canGoBack && isHome}>
         {t(messages, "common.back", "Back")}

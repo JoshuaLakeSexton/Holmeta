@@ -1,8 +1,11 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { usePathname } from "next/navigation";
 
 import { detectBrowser, type BrowserType } from "@/lib/browser";
+import { getMessages, t } from "@/lib/i18n/messages";
+import { splitLocaleFromPath } from "@/lib/i18n/config";
 
 import { Button } from "./Button";
 
@@ -11,6 +14,9 @@ type DownloadCTAProps = {
 };
 
 export function DownloadCTA({ className = "" }: DownloadCTAProps) {
+  const pathname = usePathname();
+  const { locale } = splitLocaleFromPath(pathname || "/");
+  const messages = useMemo(() => getMessages(locale || "en"), [locale]);
   const [detectedType, setDetectedType] = useState<BrowserType>("unknown");
 
   useEffect(() => {
@@ -42,7 +48,7 @@ export function DownloadCTA({ className = "" }: DownloadCTAProps) {
 
   return (
     <Button href={href} variant="primary" className={className}>
-      Download Extension
+      {t(messages, "download.downloadButton", "Download Extension")}
     </Button>
   );
 }

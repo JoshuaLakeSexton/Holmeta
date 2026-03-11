@@ -68,10 +68,10 @@ export function HomePageContent({ locale = "en" }: HomePageProps) {
     <main className="shell hm-home" id="top">
       <Panel as="header" className="hm-home-header">
         <div className="hm-top-nav">
-          <a href="#top" className="hm-brand" aria-label="HOLMETA home">
+          <a href="#top" className="hm-brand" aria-label={t(messages, "home.aria.homeLink", "HOLMETA home")}>
             {t(messages, "common.brand", "HOLMETA")}
           </a>
-          <nav className="hm-nav-links" aria-label="Primary navigation">
+          <nav className="hm-nav-links" aria-label={t(messages, "home.aria.primaryNavigation", "Primary navigation")}>
             <a href="#features">{t(messages, "home.nav.features", "Features")}</a>
             <a href="#how-it-works">{t(messages, "home.nav.howItWorks", "How it Works")}</a>
             <a href="#privacy">{t(messages, "home.nav.privacy", "Privacy")}</a>
@@ -128,7 +128,7 @@ export function HomePageContent({ locale = "en" }: HomePageProps) {
             </ul>
           </Panel>
 
-          <Panel className="hm-proof-card" id="demo" aria-label="Holmeta demo preview">
+          <Panel className="hm-proof-card" id="demo" aria-label={t(messages, "home.aria.demoPreview", "Holmeta demo preview")}>
             <p className="hm-kicker">{t(messages, "home.demo.kicker", "30-SECOND DEMO")}</p>
             <p className="hm-meta">{t(messages, "home.demo.summary", "See filter toggle, focus timer, and reminder prompts in one quick walkthrough.")}</p>
             <figure className="hm-proof-frame hm-demo-frame">
@@ -141,17 +141,17 @@ export function HomePageContent({ locale = "en" }: HomePageProps) {
                 controls
               >
                 <source src={DEMO_VIDEO_PATH} type="video/mp4" />
-                Your browser does not support the demo video.
+                {t(messages, "home.demo.unsupported", "Your browser does not support the demo video.")}
               </video>
             </figure>
           </Panel>
         </div>
       </section>
 
-      <section className="hm-section" aria-label="Proof strip">
+      <section className="hm-section" aria-label={t(messages, "home.aria.proofStrip", "Proof strip")}>
         <Panel>
           <p className="hm-kicker">{t(messages, "home.trust.kicker", "BUILT FOR PEOPLE WHO LIVE IN TABS")}</p>
-          <div className="hm-trust-strip" aria-label="Trust markers">
+          <div className="hm-trust-strip" aria-label={t(messages, "home.aria.trustMarkers", "Trust markers")}>
             {trustItems.map((item) => (
               <span key={item} className="hm-chip">{item}</span>
             ))}
@@ -262,7 +262,7 @@ export function HomePageContent({ locale = "en" }: HomePageProps) {
         </Panel>
       </section>
 
-      <footer className="hm-footer" aria-label="Footer links">
+      <footer className="hm-footer" aria-label={t(messages, "home.aria.footerLinks", "Footer links")}>
         <a href={localizedHref(locale, "/status")}>{t(messages, "home.footer.status", "Status / Changelog")}</a>
         <a href={localizedHref(locale, "/privacy")}>{t(messages, "home.footer.privacy", "Privacy")}</a>
         <a href={localizedHref(locale, "/terms")}>{t(messages, "home.footer.terms", "Terms")}</a>

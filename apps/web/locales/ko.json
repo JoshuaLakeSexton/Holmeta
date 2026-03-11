@@ -14,7 +14,10 @@
     "readPrivacy": "개인정보",
     "readTerms": "이용약관",
     "back": "뒤로",
-    "home": "홈"
+    "home": "홈",
+    "brand": "HOLMETA",
+    "contactEmail": "reach@holmeta.com",
+    "quickNavigation": "빠른 탐색"
   },
   "home": {
     "title": "눈을 보호하고, 집중을 유지하세요.",
@@ -27,11 +30,117 @@
       "pricing": "요금",
       "faq": "FAQ"
     },
-    "why": { "title": "사용자가 Holmeta를 계속 쓰는 이유" },
-    "how": { "title": "Holmeta 사용 방법" },
-    "pricing": { "title": "간단한 요금" },
-    "privacy": { "title": "브라우저 안에서 동작" },
-    "faq": { "title": "자주 묻는 질문" }
+    "why": {
+      "title": "사용자가 Holmeta를 계속 쓰는 이유",
+      "kicker": "HOLMETA를 선택하는 이유",
+      "items": [
+        {
+          "title": "눈의 피로 감소",
+          "body": "브라우저 조명 필터를 켜면 늦은 작업에 눈이 편해집니다."
+        },
+        {
+          "title": "계속해서 깊은 일을 하세요",
+          "body": "방해를 줄이고 추진력을 유지하는 데 도움이 되는 집중 세션을 실행하세요."
+        },
+        {
+          "title": "재설정하는 것을 잊지 마세요",
+          "body": "휴식, 깜박임, 자세, 수분 공급에 대한 미묘한 알림을 받으세요."
+        }
+      ]
+    },
+    "how": {
+      "title": "Holmeta 사용 방법",
+      "kicker": "작동 원리",
+      "steps": [
+        "3일 평가판을 시작하세요",
+        "확장 프로그램 다운로드",
+        "1분 안에 필터, 집중 모드, 알림을 켜보세요"
+      ],
+      "body": "복잡한 설정이 없습니다. 계정 미로가 없습니다. 설치하고, 활성화하고, 시작하세요."
+    },
+    "pricing": {
+      "title": "간단한 요금",
+      "kicker": "가격",
+      "planTitle": "HOLMETA PREMIUM — 월 $2",
+      "bullets": [
+        "적색광 + 희미함 + 대비 필터",
+        "포커스 타이머 및 심층 작업 모드",
+        "휴식, 깜박임, 자세 및 수분 섭취 알림",
+        "사이트별 사전 설정",
+        "3일 평가판, 언제든지 취소 가능"
+      ],
+      "foot": "광고가 없습니다. 데이터 판매 비즈니스 모델이 없습니다. 더 나은 작업을 수행하는 데 도움이 되는 집중 유틸리티입니다."
+    },
+    "privacy": {
+      "title": "브라우저 안에서 동작",
+      "kicker": "개인정보 보호",
+      "body": "Holmeta는 작업하는 곳, 즉 브라우저 내부에서 실행됩니다. 민감한 컨트롤은 로컬로 유지됩니다. 결제는 프리미엄 기능만 잠금 해제합니다.",
+      "bullets": [
+        "기본적으로 로컬 우선",
+        "브라우저 전용 설계",
+        "언제든지 취소",
+        "광고 중심의 비즈니스 모델 없음"
+      ]
+    },
+    "faq": {
+      "title": "자주 묻는 질문",
+      "kicker": "FAQ",
+      "items": [
+        {
+          "q": "Holmeta이(가) 지급되는 이유는 무엇인가요?",
+          "a": "Holmeta는 지속적인 업데이트, 개인 정보 보호 우선 로컬 제어 및 광고 기반 비즈니스 모델이 없는 집중 유틸리티입니다. $2/month에서는 브라우저의 눈과 주의를 더 편안하게 해주는 작은 도구로 설계되었습니다."
+        },
+        {
+          "q": "Holmeta는 시스템 전체에서 작동하나요?",
+          "a": "Holmeta v1은 기본적으로 브라우저 전용입니다."
+        },
+        {
+          "q": "재판 중에는 어떤 일이 발생하나요?",
+          "a": "3일 동안 프리미엄 기능을 이용할 수 있습니다. 언제든지 취소하세요."
+        },
+        {
+          "q": "어떤 데이터를 저장하나요?",
+          "a": "프리미엄을 잠금 해제하려면 청구 및 라이선스 기록이 필요합니다. 핵심 탐색 컨트롤은 확장 프로그램에서 로컬로 실행됩니다."
+        },
+        {
+          "q": "어떤 브라우저가 지원되나요?",
+          "a": "이제 Chromium 브라우저를 사용하세요. 나중에 매장 유통이 늘어나면 지원을 확대하세요."
+        }
+      ]
+    },
+    "kicker": "미션 브리핑",
+    "proof": [
+      "원클릭 레드 모드",
+      "심층 작업 타이머",
+      "잔소리하지 않는 휴식 알림"
+    ],
+    "demo": {
+      "kicker": "30초 데모",
+      "summary": "한 번의 빠른 안내로 필터 토글, 포커스 타이머, 알림 메시지를 확인하세요.",
+      "unsupported": "귀하의 브라우저는 데모 비디오를 지원하지 않습니다."
+    },
+    "trust": {
+      "kicker": "탭을 사용하는 사람들을 위해 제작됨",
+      "items": [
+        "브라우저 전용 컨트롤",
+        "로컬 우선 기본값",
+        "광고 중심의 비즈니스 모델 없음"
+      ]
+    },
+    "footer": {
+      "status": "상태 / 변경 로그",
+      "privacy": "개인정보",
+      "terms": "이용약관",
+      "contact": "문의"
+    },
+    "aria": {
+      "homeLink": "HOLMETA 홈",
+      "primaryNavigation": "기본 탐색",
+      "demoPreview": "Holmeta 데모 미리보기",
+      "proofStrip": "프루프 스트립",
+      "trustMarkers": "신뢰 표시",
+      "footerLinks": "바닥글 링크"
+    }
   },
   "pricingPage": {
     "subtitle": "언어는 현지화하고, 결제 로직은 일관되게 유지합니다.",
@@ -45,31 +154,238 @@
   },
   "dashboard": {
     "title": "3일 체험 시작",
-    "statusReady": "상태: 체험 시작 준비 완료"
+    "statusReady": "상태: 체험 시작 준비 완료",
+    "kicker": "평가판 결제",
+    "body": "흐름을 단순하게 유지하세요. 먼저 결제하고 성공하면 라이선스를 공개한 다음 확장 프로그램을 다운로드하고 활성화하세요.",
+    "statusCreating": "상태: 결제 세션 생성 중",
+    "statusFailed": "상태: 체크아웃 실패({message})",
+    "selectPlan": "플랜 선택",
+    "afterCheckout": "결제 후",
+    "steps": [
+      "결제 세션 ID로 /billing/success을(를) 엽니다.",
+      "일회용 라이센스 키를 공개하고 복사하세요.",
+      "확장 프로그램을 다운로드하고 키로 프리미엄을 활성화하세요."
+    ],
+    "plans": {
+      "monthly_a": {
+        "title": "HOLMETA 프리미엄",
+        "detail": "$2/mo · 3일 평가판"
+      },
+      "yearly": {
+        "title": "HOLMETA 연간",
+        "detail": "연간 청구"
+      }
+    }
   },
   "subscribe": {
-    "title": "요금제를 선택하고 결제를 진행하세요"
+    "title": "요금제를 선택하고 결제를 진행하세요",
+    "kicker": "3일 평가판 시작",
+    "body": "평가판은 Stripe Checkout에서 시작됩니다. 결제 후 Billing Success에 접속하여 라이선스를 공개하고 다운로드할 수 있습니다.",
+    "statusReady": "상태: 3일 평가판 시작 준비됨",
+    "statusOpening": "상태: {plan} 결제 시작 중",
+    "statusFailed": "상태: 체크아웃 실패({message})",
+    "alreadyCheckedOut": "이미 체크아웃했습니다",
+    "plans": {
+      "monthly_a": {
+        "label": "HOLMETA 프리미엄",
+        "detail": "$2/mo",
+        "note": "3일 평가판 포함"
+      },
+      "yearly": {
+        "label": "HOLMETA 연간",
+        "detail": "연간 청구",
+        "note": "일일 사용자에게 가장 적합"
+      }
+    },
+    "creating": "세션 생성 중…",
+    "startTrial": "3일 평가판 시작"
   },
   "billingSuccess": {
     "title": "Holmeta 라이선스 키",
     "reveal": "라이선스 확인",
     "manage": "결제 관리",
-    "download": "확장 프로그램 다운로드"
+    "download": "확장 프로그램 다운로드",
+    "kicker": "결제 성공",
+    "body": "지금 이 키를 저장하세요. 확장 프로그램 내에서 프리미엄을 활성화하려면 이 정보가 필요합니다.",
+    "statusReady": "상태: 준비됨",
+    "statusSessionRequired": "상태: 세션 ID가 필요합니다.",
+    "statusFetching": "상태: 라이센스 키를 가져오는 중",
+    "statusAlreadyRevealed": "상태: 이 세션에 대한 라이선스가 이미 공개되었습니다.",
+    "statusLicenseReady": "상태: 라이센스 준비됨",
+    "statusLicenseFailed": "상태: 라이센스 가져오기 실패({message})",
+    "statusLicenseCopied": "상태: 라이센스가 복사되었습니다.",
+    "statusCopyFailed": "상태: 복사 실패",
+    "statusOpeningPortal": "상태: 결제 포털 개설 중",
+    "statusPortalFailed": "상태: 포털 실패({message})",
+    "statusVerifyingDownload": "상태: 다운로드 액세스 확인 중",
+    "statusDownloadStarted": "상태: 다운로드 시작됨",
+    "statusDownloadFailed": "상태: 다운로드 실패({message})",
+    "sessionLabel": "결제 세션 ID",
+    "licenseBox": "라이센스 키",
+    "notRevealed": "아직 공개되지 않음",
+    "help": "환불/취소 도움말",
+    "copy": "라이센스 복사",
+    "openDownload": "다운로드 페이지 열기",
+    "activateTitle": "1분 안에 활성화하세요",
+    "activateSteps": [
+      "브라우저에서 확장 프로그램을 다운로드하고 로드하세요.",
+      "확장 팝업을 열고 프리미엄 잠금 해제로 이동하세요.",
+      "라이센스 키를 붙여넣고 활성화를 클릭하세요.",
+      "청구 및 취소 액세스를 위해 이 페이지를 북마크에 보관하세요."
+    ]
   },
   "download": {
     "title": "Holmeta 확장 프로그램 다운로드",
-    "downloadButton": "확장 프로그램 다운로드"
+    "downloadButton": "확장 프로그램 다운로드",
+    "kicker": "평가판 후 다운로드",
+    "flowKicker": "흐름",
+    "flowTitle": "평가판 시작 → 결제 성공 → 다운로드",
+    "flowBody": "아직 결제를 시작하지 않았다면 먼저 3일 평가판을 시작하세요. 이미 결제하신 경우 아래 세션 ID 또는 라이선스 키를 사용하세요.",
+    "storesKicker": "브라우저 스토어",
+    "protectedKicker": "보호된 우편번호 다운로드",
+    "manualKicker": "수동 설치(크롬)",
+    "manualBody": "다운로드 후: zip 압축 풀기 → chrome://extensions 열기 → 개발자 모드 활성화 → 압축 풀기 로드 → Manifest.json이 포함된 추출된 폴더 선택.",
+    "detected": "감지된 브라우저",
+    "recommended": "추천 매장",
+    "statusEnter": "상태: 다운로드하려면 세션 ID 또는 라이센스를 입력하세요.",
+    "statusNeedInput": "상태: 결제 세션 ID 또는 라이센스 키를 입력하세요.",
+    "statusVerifying": "상태: 평가판 또는 구독 확인 중",
+    "statusNoEntitlement": "상태: 활성화된 평가판이나 구독이 없습니다.",
+    "statusDownloadFailed": "상태: 다운로드 실패({message})",
+    "statusEmpty": "상태: 빈 다운로드 응답",
+    "statusStarted": "상태: 다운로드 시작됨",
+    "notDetected": "감지되지 않음",
+    "chooseBrowser": "브라우저를 선택하세요",
+    "storeChromium": "크롬 / 엣지",
+    "storeFirefox": "파이어폭스",
+    "storeSafari": "원정 여행",
+    "installStore": "스토어에서 설치",
+    "storeMissing": "스토어 링크가 구성되지 않았습니다.",
+    "downloadVerifying": "확인 중…",
+    "sessionLabel": "결제 세션 ID",
+    "licenseLabel": "라이센스 키(대체)",
+    "choiceLabels": {
+      "chromium": "크롬 / 엣지 / 브레이브 / 비발디 / 아크",
+      "firefox": "파이어폭스",
+      "safari": "원정 여행"
+    }
   },
   "billingHelp": {
-    "title": "라이선스, 해지, 환불"
+    "title": "라이선스, 해지, 환불",
+    "kicker": "결제 지원",
+    "body": "결제 후 도움이 필요하신가요? 이 페이지를 사용하여 라이센스 키를 복구하거나 Stripe에서 취소하거나 환불 검토를 요청하세요.",
+    "quickActions": "빠른 작업",
+    "recover": "라이센스 키 복구",
+    "readTerms": "청구 약관 읽기",
+    "cancelTitle": "취소 방법",
+    "cancelSteps": [
+      "결제 session_id로 /billing/success을(를) 엽니다.",
+      "청구 관리를 클릭하여 Stripe 청구 포털을 엽니다.",
+      "Stripe에서 구독 취소를 선택합니다."
+    ],
+    "refundTitle": "환불 요청",
+    "refundBody": "환불은 사례별로 처리됩니다. 지원팀에서 신속하게 검토할 수 있도록 결제 세션 ID와 이유를 포함하세요.",
+    "contactLabel": "연락하다",
+    "subjectLabel": "주제",
+    "subject": "HOLMETA 환불 요청",
+    "includeLabel": "포함하다",
+    "includeBody": "세션 ID, 구매 날짜, 간략한 이슈 요약"
   },
   "privacyPage": {
-    "title": "Holmeta 개인정보 처리방침"
+    "title": "Holmeta 개인정보 처리방침",
+    "kicker": "개인정보 보호정책",
+    "effective": "시행일: 2026년 3월 2일",
+    "storeTitle": "우리가 저장하는 것",
+    "store": [
+      "확장 설정 및 미리 알림 로그는 기본적으로 브라우저에 로컬로 저장됩니다.",
+      "스트라이프 청구 기록 및 라이선스 해시는 구독 및 잠금 해제 확인을 위해 서버 측에 저장됩니다.",
+      "유료 기능을 잠금 해제하기 위해 자격 상태(평가판/active/inactive)가 저장됩니다."
+    ],
+    "notStoreTitle": "우리가 저장하지 않는 것",
+    "notStore": [
+      "키로깅이 없습니다.",
+      "개인 데이터를 판매하지 않습니다.",
+      "광고 분석을 위한 페이지 콘텐츠 수집이 없습니다."
+    ],
+    "processingTitle": "허가 및 처리",
+    "processing": [
+      "화면 필터와 알림 오버레이는 브라우저 내에서 실행됩니다.",
+      "카메라 액세스는 선택 사항이며 웹캠 상태 모드가 활성화된 경우에만 요청됩니다.",
+      "결제, 다운로드 게이팅, 라이선스 확인은 보안 서버 기능을 통해 처리됩니다."
+    ],
+    "contact": "연락하다",
+    "openTerms": "공개 약관"
   },
   "termsPage": {
-    "title": "Holmeta 이용약관"
+    "title": "Holmeta 이용약관",
+    "kicker": "이용약관",
+    "effective": "시행일: 2026년 3월 2일",
+    "scopeTitle": "서비스 범위",
+    "scope": [
+      "Holmeta는 브라우저 기반 웰니스 및 포커스 도구를 제공합니다.",
+      "Holmeta은 의학적 조언, 진단 또는 치료가 아닙니다.",
+      "일부 기능에는 활성 구독이 필요합니다."
+    ],
+    "billingTitle": "청구 및 평가판",
+    "billing": [
+      "프리미엄 가격은 월 2달러입니다.",
+      "구독 페이지에서 제공되는 경우 연간 청구도 가능합니다.",
+      "평가판 조건은 Stripe Checkout에 표시됩니다.",
+      "청구 지원 및 Stripe 포털에서 환불 검토를 관리, 취소 또는 요청할 수 있습니다."
+    ],
+    "acceptableTitle": "허용되는 사용",
+    "acceptable": [
+      "불법적인 행위에 서비스를 이용하지 마십시오.",
+      "청구, 라이센스 또는 권한 부여 시스템을 남용하려고 시도하지 마십시오.",
+      "브라우저 및 플랫폼 정책에 따라 귀하의 재량에 따라 사용하십시오."
+    ],
+    "contact": "연락하다",
+    "openPrivacy": "개인 정보 보호 공개"
   },
   "statusPage": {
-    "title": "Holmeta 출시 상태"
+    "title": "Holmeta 출시 상태",
+    "kicker": "시스템 상태",
+    "operational": "상태: 작동 중",
+    "monitoring": "모니터링: 활성화됨(기능 로그 + 클라이언트 오류 수집)",
+    "updated": "최종 업데이트 날짜: 2026년 3월 10일",
+    "recent": "최근 변경 내역",
+    "changelog": [
+      {
+        "date": "2026-03-10",
+        "id": "HM-2026-03-10-A",
+        "summary": "조명 필터 강화: dark/light 읽기는 이제 읽을 수 없는 페이지를 방지하기 위해 페이지 톤 폴백 클램프와 함께 안전한 단일 전략 렌더링을 사용합니다."
+      },
+      {
+        "date": "2026-03-10",
+        "id": "HM-2026-03-10-B",
+        "summary": "프로덕션 검증 패스: Netlify 환경 확인, Monthly_a + 연간 체크아웃 스모크, 제한적 다운로드 액세스 제어 및 확장 zip 동기화 검증."
+      },
+      {
+        "date": "2026-03-04",
+        "id": "HM-2026-03-04-B",
+        "summary": "GA 강화: 제한 확장 다운로드, 로그인 없는 라이선스 활성화 흐름 및 웹훅 멱등성 검사."
+      },
+      {
+        "date": "2026-03-04",
+        "id": "HM-2026-03-04-A",
+        "summary": "계획 단순화: 월별_a + 체크아웃, 검증 및 스모크 스크립트 전반에 걸쳐 연간만 가능합니다."
+      },
+      {
+        "date": "2026-02-25",
+        "id": "HM-2026-02-25-B",
+        "summary": "확장 zip 동기화 및 CSS 무결성 보호를 통해 Netlify 빌드 파이프라인이 안정화되었습니다."
+      },
+      {
+        "date": "2026-02-24",
+        "id": "HM-2026-02-24-C",
+        "summary": "브라우저 인식 다운로드 흐름을 통해 홈페이지 구조가 미션 브리핑 형식으로 업데이트되었습니다."
+      }
+    ]
+  },
+  "billingCancel": {
+    "kicker": "결제가 취소되었습니다.",
+    "title": "요금이 청구되지 않았습니다",
+    "body": "준비가 되면 결제를 다시 시작하고 3일 평가판을 시작하세요.",
+    "help": "결제 도움말"
   }
 }

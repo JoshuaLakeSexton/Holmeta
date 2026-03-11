@@ -17,12 +17,6 @@ const SAFARI_URL = process.env.NEXT_PUBLIC_SAFARI_URL || "";
 
 type BrowserChoice = "chromium" | "firefox" | "safari";
 
-const choiceLabels: Record<BrowserChoice, string> = {
-  chromium: "Chrome / Edge / Brave / Vivaldi / Arc",
-  firefox: "Firefox",
-  safari: "Safari"
-};
-
 function apiUrl(path: string): string {
   const base = API_BASE.replace(/\/$/, "");
   return `${base}/${path}`;
@@ -76,6 +70,11 @@ type DownloadPageProps = {
 
 export function DownloadPageContent({ locale = "en" }: DownloadPageProps) {
   const messages = getMessages(locale);
+  const choiceLabels: Record<BrowserChoice, string> = {
+    chromium: t(messages, "download.choiceLabels.chromium", "Chrome / Edge / Brave / Vivaldi / Arc"),
+    firefox: t(messages, "download.choiceLabels.firefox", "Firefox"),
+    safari: t(messages, "download.choiceLabels.safari", "Safari")
+  };
   const [detectedType, setDetectedType] = useState<BrowserType>("unknown");
   const [selectedChoice, setSelectedChoice] = useState<BrowserChoice | null>(null);
   const [sessionId, setSessionId] = useState<string>(() => sessionIdFromQuery());

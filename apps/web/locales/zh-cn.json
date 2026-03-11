@@ -14,7 +14,10 @@
     "readPrivacy": "隐私",
     "readTerms": "条款",
     "back": "返回",
-    "home": "首页"
+    "home": "首页",
+    "brand": "HOLMETA",
+    "contactEmail": "reach@holmeta.com",
+    "quickNavigation": "快速导航"
   },
   "home": {
     "title": "保护眼睛，保持专注。",
@@ -27,11 +30,117 @@
       "pricing": "价格",
       "faq": "常见问题"
     },
-    "why": { "title": "为什么用户会持续使用 Holmeta" },
-    "how": { "title": "Holmeta 如何工作" },
-    "pricing": { "title": "简单定价" },
-    "privacy": { "title": "专为浏览器场景打造" },
-    "faq": { "title": "常见问题" }
+    "why": {
+      "title": "为什么用户会持续使用 Holmeta",
+      "kicker": "为什么选择 HOLMETA",
+      "items": [
+        {
+          "title": "减少眼睛疲劳",
+          "body": "打开浏览器滤光镜，让您的眼睛在后期工作时更加轻松。"
+        },
+        {
+          "title": "继续深入工作",
+          "body": "举办焦点会议可以减少干扰并帮助您保持动力。"
+        },
+        {
+          "title": "记得重置",
+          "body": "获得关于休息、眨眼、姿势和补水的微妙提醒。"
+        }
+      ]
+    },
+    "how": {
+      "title": "Holmeta 如何工作",
+      "kicker": "它是如何运作的",
+      "steps": [
+        "开始 3 天试用",
+        "下载扩展程序",
+        "一分钟内打开滤镜、对焦模式和提醒"
+      ],
+      "body": "没有复杂的设置。没有帐户迷宫。只需安装、激活即可。"
+    },
+    "pricing": {
+      "title": "简单定价",
+      "kicker": "定价",
+      "planTitle": "HOLMETA Premium — 每月 $2",
+      "bullets": [
+        "红光+暗光+对比滤镜",
+        "专注定时器和深度工作模式",
+        "休息、眨眼、姿势和补水提醒",
+        "每个站点预设",
+        "3 天试用，随时取消"
+      ],
+      "foot": "没有广告。没有数据销售的商业模式。只是一个专注的实用程序，可以帮助您更好地工作。"
+    },
+    "privacy": {
+      "title": "专为浏览器场景打造",
+      "kicker": "隐私",
+      "body": "Holmeta 在您工作的地方运行：浏览器内。敏感控件保留在本地。计费仅解锁高级功能。",
+      "bullets": [
+        "默认情况下本地优先",
+        "设计上仅限浏览器",
+        "随时取消",
+        "无广告驱动的商业模式"
+      ]
+    },
+    "faq": {
+      "title": "常见问题",
+      "kicker": "常问问题",
+      "items": [
+        {
+          "q": "为什么支付 Holmeta？",
+          "a": "Holmeta 是一个专注的实用程序，具有持续更新、隐私优先的本地控制功能，并且没有基于广告的商业模式。它的价格为 $2/month，它被设计成一个小工具，可以让您的浏览器更容易被您的眼睛和注意力所使用。"
+        },
+        {
+          "q": "Holmeta 是否在整个系统范围内有效？",
+          "a": "Holmeta v1 在设计上仅限浏览器使用。"
+        },
+        {
+          "q": "审判期间会发生什么？",
+          "a": "您可以使用高级功能 3 天。随时取消。"
+        },
+        {
+          "q": "您存储什么数据？",
+          "a": "解锁高级版所需的账单和许可证记录。核心浏览控件在您的扩展中本地运行。"
+        },
+        {
+          "q": "支持哪些浏览器？",
+          "a": "现在是 Chromium 浏览器。随着商店分销的增长，稍后扩大支持。"
+        }
+      ]
+    },
+    "kicker": "任务简报",
+    "proof": [
+      "一键红色模式",
+      "深度工作计时器",
+      "不烦人的休息提醒"
+    ],
+    "demo": {
+      "kicker": "30 秒演示",
+      "summary": "通过快速演练即可查看滤镜切换、焦点计时器和提醒提示。",
+      "unsupported": "您的浏览器不支持演示视频。"
+    },
+    "trust": {
+      "kicker": "专为生活在 Tabs 中的人们打造",
+      "items": [
+        "仅限浏览器的控件",
+        "本地优先默认值",
+        "无广告驱动的商业模式"
+      ]
+    },
+    "footer": {
+      "status": "状态 / 更新日志",
+      "privacy": "隐私",
+      "terms": "条款",
+      "contact": "联系"
+    },
+    "aria": {
+      "homeLink": "__品牌__首页",
+      "primaryNavigation": "主要导航",
+      "demoPreview": "Holmeta 演示预览",
+      "proofStrip": "校样条",
+      "trustMarkers": "信任标记",
+      "footerLinks": "页脚链接"
+    }
   },
   "pricingPage": {
     "subtitle": "语言本地化，计费逻辑一致，升级路径清晰。",
@@ -44,31 +153,239 @@
     "footer": "显示币种可能会本地化，最终扣费金额以 Stripe Checkout 为准。"
   },
   "dashboard": {
-    "title": "开始 3 天试用"
+    "title": "开始 3 天试用",
+    "kicker": "试用结帐",
+    "body": "保持流程简单：首先结账，成功后显示您的许可证，然后下载并激活扩展。",
+    "statusReady": "状态：准备开始 3 天试用",
+    "statusCreating": "状态：正在创建结账会话",
+    "statusFailed": "状态：结帐失败 ({message})",
+    "selectPlan": "选择计划",
+    "afterCheckout": "结账后",
+    "steps": [
+      "使用您的结帐会话 ID 打开 /billing/success。",
+      "显示并复制您的一次性许可证密钥。",
+      "下载扩展程序并使用您的密钥激活高级版。"
+    ],
+    "plans": {
+      "monthly_a": {
+        "title": "HOLMETA 高级版",
+        "detail": "$2/mo · 3 天试用"
+      },
+      "yearly": {
+        "title": "HOLMETA 每年",
+        "detail": "按年计费"
+      }
+    }
   },
   "subscribe": {
-    "title": "选择方案并继续结账"
+    "title": "选择方案并继续结账",
+    "kicker": "开始 3 天试用",
+    "body": "试用在 Stripe Checkout 中开始。付款后，您将进入“计费成功”以显示许可证并下载。",
+    "statusReady": "状态：准备开始 3 天试用",
+    "statusOpening": "状态：开放 {plan} 结帐",
+    "statusFailed": "状态：结帐失败 ({message})",
+    "alreadyCheckedOut": "我已经结帐了",
+    "plans": {
+      "monthly_a": {
+        "label": "HOLMETA 高级版",
+        "detail": "$2/mo",
+        "note": "包括 3 天试用期"
+      },
+      "yearly": {
+        "label": "HOLMETA 每年",
+        "detail": "按年计费",
+        "note": "最适合日常用户"
+      }
+    },
+    "creating": "正在创建会话...",
+    "startTrial": "开始 3 天试用"
   },
   "billingSuccess": {
     "title": "您的 Holmeta 许可证密钥",
     "reveal": "显示许可证",
     "manage": "管理订阅",
-    "download": "下载扩展"
+    "download": "下载扩展",
+    "kicker": "结帐成功",
+    "body": "立即保存此密钥。您需要它来激活扩展内的高级版。",
+    "statusReady": "状态：准备就绪",
+    "statusSessionRequired": "状态：需要会话 ID",
+    "statusFetching": "状态：正在获取许可证密钥",
+    "statusAlreadyRevealed": "状态：本次会议的许可证已公布",
+    "statusLicenseReady": "状态：许可就绪",
+    "statusLicenseFailed": "状态：许可证获取失败 ({message})",
+    "statusLicenseCopied": "状态：许可证已复制",
+    "statusCopyFailed": "状态：复制失败",
+    "statusOpeningPortal": "状态：开放计费门户",
+    "statusPortalFailed": "状态：门户失败 ({message})",
+    "statusVerifyingDownload": "状态：正在验证下载访问权限",
+    "statusDownloadStarted": "状态：下载已开始",
+    "statusDownloadFailed": "状态：下载失败 ({message})",
+    "sessionLabel": "结帐会话 ID",
+    "licenseBox": "许可证密钥",
+    "notRevealed": "尚未揭晓",
+    "help": "退款/取消帮助",
+    "copy": "复制许可证",
+    "openDownload": "打开下载页面",
+    "activateTitle": "一分钟内激活",
+    "activateSteps": [
+      "在浏览器中下载并加载扩展程序。",
+      "打开扩展弹出窗口并转到高级解锁。",
+      "粘贴许可证密钥并单击激活。",
+      "将此页面添加为书签，以便进行计费和取消访问。"
+    ]
   },
   "download": {
     "title": "下载 Holmeta 扩展",
-    "downloadButton": "下载扩展"
+    "downloadButton": "下载扩展",
+    "kicker": "试用后下载",
+    "flowKicker": "流动",
+    "flowTitle": "开始试用→结帐成功→下载",
+    "flowBody": "如果您尚未开始结账，请先开始 3 天试用。如果您已付款，请使用下面的会话 ID 或许可证密钥。",
+    "storesKicker": "浏览器商店",
+    "protectedKicker": "受保护的 zip 下载",
+    "manualKicker": "手动安装（铬）",
+    "manualBody": "下载后：解压zip→打开chrome：//extensions→启用开发者模式→加载解压→选择包含manifest.json的解压文件夹。",
+    "detected": "检测到的浏览器",
+    "recommended": "推荐店铺",
+    "statusEnter": "状态：输入会话 ID 或许可证进行下载",
+    "statusNeedInput": "状态：输入结帐会话 ID 或许可证密钥",
+    "statusVerifying": "状态：验证试用或订阅",
+    "statusNoEntitlement": "状态：未找到有效的试用或订阅",
+    "statusDownloadFailed": "状态：下载失败 ({message})",
+    "statusEmpty": "状态：空下载响应",
+    "statusStarted": "状态：下载已开始",
+    "notDetected": "未检测到",
+    "chooseBrowser": "选择您的浏览器",
+    "storeChromium": "镀铬/边缘",
+    "storeFirefox": "火狐浏览器",
+    "storeSafari": "狩猎之旅",
+    "installStore": "从商店安装",
+    "storeMissing": "商店链接未配置",
+    "downloadVerifying": "正在验证...",
+    "sessionLabel": "结帐会话 ID",
+    "licenseLabel": "许可证密钥（备用）",
+    "choiceLabels": {
+      "chromium": "铬/边缘/勇敢/维瓦尔第/弧",
+      "firefox": "火狐浏览器",
+      "safari": "狩猎之旅"
+    }
   },
   "billingHelp": {
-    "title": "许可证、取消与退款"
+    "title": "许可证、取消与退款",
+    "kicker": "计费支持",
+    "body": "结账后需要帮助吗？使用此页面恢复您的许可证密钥、在 Stripe 中取消或请求退款审核。",
+    "quickActions": "快速行动",
+    "recover": "恢复许可证密钥",
+    "readTerms": "阅读计费条款",
+    "cancelTitle": "如何取消",
+    "cancelSteps": [
+      "使用您的结账 session_id 打开 /billing/success。",
+      "单击管理账单以打开 Stripe 账单门户。",
+      "在 Stripe 中，选择取消订阅。"
+    ],
+    "refundTitle": "退款请求",
+    "refundBody": "退款将根据具体情况进行处理。包括您的结账会话 ID 和原因，以便支持人员可以快速审核。",
+    "contactLabel": "接触",
+    "subjectLabel": "主题",
+    "subject": "HOLMETA 退款请求",
+    "includeLabel": "包括",
+    "includeBody": "会话 ID、购买日期和简短的问题摘要"
   },
   "privacyPage": {
-    "title": "Holmeta 隐私政策"
+    "title": "Holmeta 隐私政策",
+    "kicker": "隐私政策",
+    "effective": "生效日期：2026 年 3 月 2 日",
+    "storeTitle": "我们存储什么",
+    "store": [
+      "默认情况下，扩展程序设置和提醒日志存储在本地浏览器中。",
+      "Stripe 计费记录和许可证哈希存储在服务器端，用于订阅和解锁检查。",
+      "存储权利状态（试用/active/inactive）以解锁付费功能。"
+    ],
+    "notStoreTitle": "我们不存储什么",
+    "notStore": [
+      "没有键盘记录。",
+      "不出售个人数据。",
+      "无需收集页面内容进行广告分析。"
+    ],
+    "processingTitle": "权限和处理",
+    "processing": [
+      "屏幕过滤器和提醒叠加在浏览器中运行。",
+      "摄像头访问是可选的，并且仅在启用网络摄像头姿势模式时才需要。",
+      "计费、下载门控和许可证检查均通过安全服务器功能进行处理。"
+    ],
+    "contact": "接触",
+    "openTerms": "开放条款"
   },
   "termsPage": {
-    "title": "Holmeta 使用条款"
+    "title": "Holmeta 使用条款",
+    "kicker": "使用条款",
+    "effective": "生效日期：2026 年 3 月 2 日",
+    "scopeTitle": "服务范围",
+    "scope": [
+      "Holmeta 提供基于浏览器的健康和焦点工具。",
+      "Holmeta 不是医疗建议、诊断或治疗。",
+      "某些功能需要有效订阅。"
+    ],
+    "billingTitle": "计费和试用",
+    "billing": [
+      "高级定价为每月 2 美元。",
+      "订阅页面上还提供按年计费。",
+      "试用条款显示在 Stripe Checkout 中。",
+      "您可以从计费支持和 Stripe 门户管理、取消或请求退款审核。"
+    ],
+    "acceptableTitle": "可接受的使用",
+    "acceptable": [
+      "请勿使用该服务进行非法活动。",
+      "请勿尝试滥用计费、许可或权利系统。",
+      "请您根据浏览器和平台政策自行决定使用。"
+    ],
+    "contact": "接触",
+    "openPrivacy": "开放隐私"
   },
   "statusPage": {
-    "title": "Holmeta 发布状态"
+    "title": "Holmeta 发布状态",
+    "kicker": "系统状态",
+    "operational": "状态：运营中",
+    "monitoring": "监控：已启用（功能日志+客户端错误摄取）",
+    "updated": "最后更新时间：2026 年 3 月 10 日",
+    "recent": "最近的变更日志",
+    "changelog": [
+      {
+        "date": "2026-03-10",
+        "id": "HM-2026-03-10-A",
+        "summary": "光过滤器强化：dark/light 阅读现在使用带有页面色调后备钳位的安全单策略渲染来防止无法读取的页面。"
+      },
+      {
+        "date": "2026-03-10",
+        "id": "HM-2026-03-10-B",
+        "summary": "生产验证通过：Netlify 环境检查、每月_a + 每年检查烟雾、门控下载访问控制和扩展 zip 同步验证。"
+      },
+      {
+        "date": "2026-03-04",
+        "id": "HM-2026-03-04-B",
+        "summary": "GA 强化：门控扩展下载、免登录许可证激活流程和 Webhook 幂等性检查。"
+      },
+      {
+        "date": "2026-03-04",
+        "id": "HM-2026-03-04-A",
+        "summary": "计划简化：每月_a + 每年仅跨结帐、验证和烟雾脚本。"
+      },
+      {
+        "date": "2026-02-25",
+        "id": "HM-2026-02-25-B",
+        "summary": "Netlify 构建管道通过扩展 zip 同步和 CSS 完整性保护保持稳定。"
+      },
+      {
+        "date": "2026-02-24",
+        "id": "HM-2026-02-24-C",
+        "summary": "主页结构更新为任务简报格式，具有浏览器感知的下载流程。"
+      }
+    ]
+  },
+  "billingCancel": {
+    "kicker": "结账已取消",
+    "title": "没有收费",
+    "body": "准备好后，重新开始结账并开始 3 天试用。",
+    "help": "计费帮助"
   }
 }

@@ -14,7 +14,10 @@
     "readPrivacy": "隱私",
     "readTerms": "條款",
     "back": "返回",
-    "home": "首頁"
+    "home": "首頁",
+    "brand": "HOLMETA",
+    "contactEmail": "reach@holmeta.com",
+    "quickNavigation": "快速導覽"
   },
   "home": {
     "title": "保護眼睛，維持專注。",
@@ -27,11 +30,117 @@
       "pricing": "價格",
       "faq": "常見問題"
     },
-    "why": { "title": "為何使用者持續開著 Holmeta" },
-    "how": { "title": "Holmeta 如何運作" },
-    "pricing": { "title": "簡單定價" },
-    "privacy": { "title": "專為瀏覽器工作流程設計" },
-    "faq": { "title": "常見問題" }
+    "why": {
+      "title": "為何使用者持續開著 Holmeta",
+      "kicker": "為什麼選擇 HOLMETA",
+      "items": [
+        {
+          "title": "減少眼睛疲勞",
+          "body": "打開瀏覽器濾光鏡，讓您的眼睛在後製時更加輕鬆。"
+        },
+        {
+          "title": "繼續深入工作",
+          "body": "舉辦焦點會議可以減少干擾並幫助您保持動力。"
+        },
+        {
+          "title": "記得重置",
+          "body": "獲得關於休息、眨眼、姿勢和補水的微妙提醒。"
+        }
+      ]
+    },
+    "how": {
+      "title": "Holmeta 如何運作",
+      "kicker": "它是如何運作的",
+      "steps": [
+        "開始 3 天試用",
+        "下載擴充功能",
+        "一分鐘內開啟濾鏡、對焦模式和提醒"
+      ],
+      "body": "沒有複雜的設定。沒有帳戶迷宮。只需安裝、啟用即可。"
+    },
+    "pricing": {
+      "title": "簡單定價",
+      "kicker": "定價",
+      "planTitle": "HOLMETA Premium — 每月 $2",
+      "bullets": [
+        "紅光+暗光+對比濾鏡",
+        "專注定時器和深度工作模式",
+        "休息、眨眼、姿勢和補水提醒",
+        "每個站點預設",
+        "3 天試用，隨時取消"
+      ],
+      "foot": "沒有廣告。沒有數據銷售的商業模式。只是一個專注的實用程序，可以幫助您更好地工作。"
+    },
+    "privacy": {
+      "title": "專為瀏覽器工作流程設計",
+      "kicker": "隱私",
+      "body": "Holmeta 在您工作的地方運作：瀏覽器內。敏感控制保留在本地。計費僅解鎖高級功能。",
+      "bullets": [
+        "預設為本地優先",
+        "設計上僅限瀏覽器",
+        "隨時取消",
+        "無廣告驅動的商業模式"
+      ]
+    },
+    "faq": {
+      "title": "常見問題",
+      "kicker": "常問問題",
+      "items": [
+        {
+          "q": "為什麼要支付 Holmeta？",
+          "a": "Holmeta 是一個專注的實用程序，具有持續更新、隱私優先的本地控制功能，並且沒有基於廣告的商業模式。它的價格為 $2/month，它被設計成一個小工具，可以讓您的瀏覽器更容易被您的眼睛和注意力所使用。"
+        },
+        {
+          "q": "Holmeta 是否在整個系統範圍內有效？",
+          "a": "Holmeta v1 在設計上僅限瀏覽器使用。"
+        },
+        {
+          "q": "審判期間會發生什麼事？",
+          "a": "您可以使用進階功能 3 天。隨時取消。"
+        },
+        {
+          "q": "您儲存什麼資料？",
+          "a": "解鎖高級版所需的帳單和許可證記錄。核心瀏覽控制項會在您的擴充功能中本地運行。"
+        },
+        {
+          "q": "支援哪些瀏覽器？",
+          "a": "現在是 Chromium 瀏覽器。隨著商店分銷的成長，稍後擴大支援。"
+        }
+      ]
+    },
+    "kicker": "任務簡報",
+    "proof": [
+      "一鍵紅色模式",
+      "深度工作計時器",
+      "不煩人的休息提醒"
+    ],
+    "demo": {
+      "kicker": "30 秒演示",
+      "summary": "透過快速演練即可檢視濾鏡切換、焦點計時器和提醒提示。",
+      "unsupported": "您的瀏覽器不支援演示影片。"
+    },
+    "trust": {
+      "kicker": "專為生活在 Tabs 中的人們打造",
+      "items": [
+        "僅限瀏覽器的控件",
+        "本地優先預設值",
+        "無廣告驅動的商業模式"
+      ]
+    },
+    "footer": {
+      "status": "狀態 / 更新日誌",
+      "privacy": "隱私",
+      "terms": "條款",
+      "contact": "聯絡"
+    },
+    "aria": {
+      "homeLink": "__品牌__首頁",
+      "primaryNavigation": "主要導航",
+      "demoPreview": "Holmeta 示範預覽",
+      "proofStrip": "校樣條",
+      "trustMarkers": "信任標記",
+      "footerLinks": "頁尾連結"
+    }
   },
   "pricingPage": {
     "subtitle": "語言在地化、計費邏輯一致、升級流程清楚。",
@@ -44,31 +153,239 @@
     "footer": "顯示幣別可能為在地化，最終扣款金額以 Stripe Checkout 顯示為準。"
   },
   "dashboard": {
-    "title": "開始 3 天試用"
+    "title": "開始 3 天試用",
+    "kicker": "試用結帳",
+    "body": "保持流程簡單：先結帳，成功後顯示您的許可證，然後下載並啟動擴充功能。",
+    "statusReady": "狀態：準備開始 3 天試用",
+    "statusCreating": "狀態：正在建立結帳會話",
+    "statusFailed": "狀態：結帳失敗 ({message})",
+    "selectPlan": "選擇計劃",
+    "afterCheckout": "結帳後",
+    "steps": [
+      "使用您的結帳會話 ID 開啟 /billing/success。",
+      "顯示並複製您的一次性許可證密鑰。",
+      "下載擴充功能並使用您的金鑰啟動高級版。"
+    ],
+    "plans": {
+      "monthly_a": {
+        "title": "HOLMETA 進階版",
+        "detail": "$2/mo · 3 天試用"
+      },
+      "yearly": {
+        "title": "HOLMETA 每年",
+        "detail": "按年計費"
+      }
+    }
   },
   "subscribe": {
-    "title": "選擇方案並前往結帳"
+    "title": "選擇方案並前往結帳",
+    "kicker": "開始 3 天試用",
+    "body": "試用在 Stripe Checkout 中開始。付款後，您將進入“計費成功”以顯示許可證並下載。",
+    "statusReady": "狀態：準備開始 3 天試用",
+    "statusOpening": "狀態：開放 {plan} 結帳",
+    "statusFailed": "狀態：結帳失敗 ({message})",
+    "alreadyCheckedOut": "我已經結帳了",
+    "plans": {
+      "monthly_a": {
+        "label": "HOLMETA 進階版",
+        "detail": "$2/mo",
+        "note": "包括 3 天試用期"
+      },
+      "yearly": {
+        "label": "HOLMETA 每年",
+        "detail": "按年計費",
+        "note": "最適合日常用戶"
+      }
+    },
+    "creating": "正在創建會話...",
+    "startTrial": "開始 3 天試用"
   },
   "billingSuccess": {
     "title": "您的 Holmeta 授權金鑰",
     "reveal": "顯示授權",
     "manage": "管理訂閱",
-    "download": "下載擴充功能"
+    "download": "下載擴充功能",
+    "kicker": "結帳成功",
+    "body": "立即儲存此密鑰。您需要它來啟動擴充內的高級版。",
+    "statusReady": "狀態：準備就緒",
+    "statusSessionRequired": "狀態：需要會話 ID",
+    "statusFetching": "狀態：正在取得許可證密鑰",
+    "statusAlreadyRevealed": "狀態：本次會議的許可證已公佈",
+    "statusLicenseReady": "狀態：許可就緒",
+    "statusLicenseFailed": "狀態：許可證取得失敗 ({message})",
+    "statusLicenseCopied": "狀態：許可證已複製",
+    "statusCopyFailed": "狀態：複製失敗",
+    "statusOpeningPortal": "狀態：開放計費門戶",
+    "statusPortalFailed": "狀態：門戶失敗 ({message})",
+    "statusVerifyingDownload": "狀態：正在驗證下載存取權限",
+    "statusDownloadStarted": "狀態：下載已開始",
+    "statusDownloadFailed": "狀態：下載失敗 ({message})",
+    "sessionLabel": "結帳會話 ID",
+    "licenseBox": "許可證密鑰",
+    "notRevealed": "尚未揭曉",
+    "help": "退款/取消協助",
+    "copy": "複製許可證",
+    "openDownload": "開啟下載頁面",
+    "activateTitle": "一分鐘內激活",
+    "activateSteps": [
+      "在瀏覽器中下載並載入擴充功能。",
+      "打開擴展彈出視窗並轉到高級解鎖。",
+      "貼上許可證密鑰並點擊啟動。",
+      "將此頁面加入書籤，以便進行計費和取消訪問。"
+    ]
   },
   "download": {
     "title": "下載 Holmeta 擴充功能",
-    "downloadButton": "下載擴充功能"
+    "downloadButton": "下載擴充功能",
+    "kicker": "試用後下載",
+    "flowKicker": "流動",
+    "flowTitle": "開始試用→結帳成功→下載",
+    "flowBody": "如果您尚未開始結帳，請先開始 3 天試用。如果您已付款，請使用下面的會話 ID 或許可證金鑰。",
+    "storesKicker": "瀏覽器商店",
+    "protectedKicker": "受保護的 zip 下載",
+    "manualKicker": "手動安裝（鉻）",
+    "manualBody": "下載後：解壓縮zip→開啟chrome：//extensions→啟用開發者模式→載入解壓縮→選擇包含manifest.json的解壓縮資料夾。",
+    "detected": "偵測到的瀏覽器",
+    "recommended": "推薦店鋪",
+    "statusEnter": "狀態：輸入會話 ID 或許可證進行下載",
+    "statusNeedInput": "狀態：輸入結帳會話 ID 或許可證金鑰",
+    "statusVerifying": "狀態：驗證試用或訂閱",
+    "statusNoEntitlement": "狀態：未找到有效的試用或訂閱",
+    "statusDownloadFailed": "狀態：下載失敗 ({message})",
+    "statusEmpty": "狀態：空下載回應",
+    "statusStarted": "狀態：下載已開始",
+    "notDetected": "未檢測到",
+    "chooseBrowser": "選擇您的瀏覽器",
+    "storeChromium": "鍍鉻/邊緣",
+    "storeFirefox": "火狐瀏覽器",
+    "storeSafari": "狩獵之旅",
+    "installStore": "從商店安裝",
+    "storeMissing": "商店連結未配置",
+    "downloadVerifying": "正在驗證...",
+    "sessionLabel": "結帳會話 ID",
+    "licenseLabel": "許可證密鑰（備用）",
+    "choiceLabels": {
+      "chromium": "鉻/邊緣/勇敢/維瓦爾第/弧",
+      "firefox": "火狐瀏覽器",
+      "safari": "狩獵之旅"
+    }
   },
   "billingHelp": {
-    "title": "授權、取消與退款"
+    "title": "授權、取消與退款",
+    "kicker": "計費支持",
+    "body": "結帳後需要幫忙嗎？使用此頁面恢復您的許可證金鑰、在 Stripe 中取消或要求退款審核。",
+    "quickActions": "快速行動",
+    "recover": "恢復許可證密鑰",
+    "readTerms": "閱讀計費條款",
+    "cancelTitle": "如何取消",
+    "cancelSteps": [
+      "使用您的結帳 session_id 開啟 /billing/success。",
+      "按一下管理帳單以開啟 Stripe 帳單入口網站。",
+      "在 Stripe 中，選擇取消訂閱。"
+    ],
+    "refundTitle": "退款請求",
+    "refundBody": "退款將根據具體情況進行處理。包括您的結帳會話 ID 和原因，以便支援人員可以快速審核。",
+    "contactLabel": "接觸",
+    "subjectLabel": "主題",
+    "subject": "HOLMETA 退款請求",
+    "includeLabel": "包括",
+    "includeBody": "會話 ID、購買日期和簡短的問題摘要"
   },
   "privacyPage": {
-    "title": "Holmeta 隱私政策"
+    "title": "Holmeta 隱私政策",
+    "kicker": "隱私權政策",
+    "effective": "生效日期：2026 年 3 月 2 日",
+    "storeTitle": "我們儲存什麼",
+    "store": [
+      "預設情況下，擴充功能設定和提醒日誌儲存在本機瀏覽器中。",
+      "Stripe 計費記錄和許可證雜湊儲存在伺服器端，用於訂閱和解鎖檢查。",
+      "儲存權利狀態（試用/active/inactive）以解鎖付費功能。"
+    ],
+    "notStoreTitle": "我們不儲存什麼",
+    "notStore": [
+      "沒有鍵盤記錄。",
+      "不出售個人資料。",
+      "無需收集頁面內容進行廣告分析。"
+    ],
+    "processingTitle": "權限和處理",
+    "processing": [
+      "螢幕過濾器和提醒疊加在瀏覽器中運作。",
+      "攝影機存取是可選的，並且僅在啟用網路攝影機姿勢模式時才需要。",
+      "計費、下載門控和許可證檢查均透過安全伺服器功能處理。"
+    ],
+    "contact": "接觸",
+    "openTerms": "開放條款"
   },
   "termsPage": {
-    "title": "Holmeta 使用條款"
+    "title": "Holmeta 使用條款",
+    "kicker": "使用條款",
+    "effective": "生效日期：2026 年 3 月 2 日",
+    "scopeTitle": "服務範圍",
+    "scope": [
+      "Holmeta 提供以瀏覽器為基礎的健康和焦點工具。",
+      "Holmeta 不是醫療建議、診斷或治療。",
+      "某些功能需要有效訂閱。"
+    ],
+    "billingTitle": "計費和試用",
+    "billing": [
+      "高級定價為每月 2 美元。",
+      "訂閱頁面上也提供按年計費。",
+      "試用條款顯示在 Stripe Checkout 中。",
+      "您可以從計費支援和 Stripe 入口網站管理、取消或要求退款審核。"
+    ],
+    "acceptableTitle": "可接受的使用",
+    "acceptable": [
+      "請勿使用該服務進行非法活動。",
+      "請勿嘗試濫用計費、許可或權利系統。",
+      "請您根據瀏覽器和平台政策自行決定使用。"
+    ],
+    "contact": "接觸",
+    "openPrivacy": "開放隱私"
   },
   "statusPage": {
-    "title": "Holmeta 發布狀態"
+    "title": "Holmeta 發布狀態",
+    "kicker": "系統狀態",
+    "operational": "狀態：營運中",
+    "monitoring": "監控：已啟用（功能日誌+客戶端錯誤攝取）",
+    "updated": "最後更新時間：2026 年 3 月 10 日",
+    "recent": "最近的變更日誌",
+    "changelog": [
+      {
+        "date": "2026-03-10",
+        "id": "HM-2026-03-10-A",
+        "summary": "光過濾器強化：dark/light 閱讀現在使用帶有頁面色調後備箝位的安全單策略渲染來防止無法讀取的頁面。"
+      },
+      {
+        "date": "2026-03-10",
+        "id": "HM-2026-03-10-B",
+        "summary": "生產驗證通過：Netlify 環境檢查、每月_a + 每年檢查煙霧、門控下載存取控制和擴展 zip 同步驗證。"
+      },
+      {
+        "date": "2026-03-04",
+        "id": "HM-2026-03-04-B",
+        "summary": "GA 強化：閘控擴充下載、免登入許可證啟動流程和 Webhook 冪等性檢查。"
+      },
+      {
+        "date": "2026-03-04",
+        "id": "HM-2026-03-04-A",
+        "summary": "計劃簡化：每月_a + 每年僅跨結帳、驗證和煙霧腳本。"
+      },
+      {
+        "date": "2026-02-25",
+        "id": "HM-2026-02-25-B",
+        "summary": "Netlify 建置管道透過擴展 zip 同步和 CSS 完整性保護保持穩定。"
+      },
+      {
+        "date": "2026-02-24",
+        "id": "HM-2026-02-24-C",
+        "summary": "主頁結構更新為任務簡報格式，具有瀏覽器感知的下載流程。"
+      }
+    ]
+  },
+  "billingCancel": {
+    "kicker": "結帳已取消",
+    "title": "沒有收費",
+    "body": "準備好後，重新開始結帳並開始 3 天試用。",
+    "help": "計費幫助"
   }
 }

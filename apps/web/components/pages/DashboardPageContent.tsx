@@ -93,7 +93,7 @@ export function DashboardPageContent({ locale = "en" }: DashboardPageProps) {
   return (
     <main className="shell">
       <Panel as="header">
-        <p className="hm-kicker">TRIAL CHECKOUT</p>
+        <p className="hm-kicker">{t(messages, "dashboard.kicker", "TRIAL CHECKOUT")}</p>
         <h1 className="hm-title">{t(messages, "dashboard.title", "start your 3-day trial")}</h1>
         <p className="hm-meta">
           {t(messages, "dashboard.body", "Keep your flow simple: checkout first, reveal your license on success, then download and activate the extension.")}
