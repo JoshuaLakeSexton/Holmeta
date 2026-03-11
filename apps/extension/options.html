@@ -19,7 +19,18 @@
         </div>
       </header>
 
-      <section class="panel">
+      <section id="optAccessLockPanel" class="panel" hidden aria-live="polite">
+        <h2>Access Locked</h2>
+        <p id="optAccessLockMessage" class="muted">Holmeta access is inactive.</p>
+        <p id="optAccessLockTiming" class="muted">Reactivate subscription to unlock all tools.</p>
+        <div class="grid cols-3">
+          <button id="optAccessStartTrial" class="primary" type="button">Start / Reactivate</button>
+          <button id="optAccessManageBilling" class="secondary" type="button">Manage Billing</button>
+          <button id="optAccessRefresh" class="secondary" type="button">Refresh Access</button>
+        </div>
+      </section>
+
+      <section id="optPanelLight" class="panel">
         <h2>1) Light Filters v2.0</h2>
         <div class="grid cols-4">
           <label class="switch-row"><input id="optLightEnabled" type="checkbox" />Enabled</label>
@@ -141,7 +152,7 @@
         </div>
       </section>
 
-      <section class="panel">
+      <section id="optPanelAppearance" class="panel">
         <h2>2) Dark / Light Theme</h2>
         <p class="muted">Simple page reading theme. Independent from Light Filters and Adaptive Site Theme.</p>
         <div class="grid cols-4">
@@ -198,7 +209,7 @@
         </label>
       </section>
 
-      <section class="panel">
+      <section id="optPanelAdaptive" class="panel">
         <h2>3) Adaptive Site Theme</h2>
         <p class="muted">Advanced site transformation engine. Independent from Reading Theme and Light Filters.</p>
         <div class="grid cols-4">
@@ -256,7 +267,7 @@
         </label>
       </section>
 
-      <section class="panel">
+      <section id="optPanelBlocker" class="panel">
         <h2>4) Site Blocker Tool</h2>
         <div class="grid cols-3">
           <label class="switch-row"><input id="optBlockerEnabled" type="checkbox" />Enabled</label>
@@ -313,7 +324,7 @@
         </label>
       </section>
 
-      <section class="panel">
+      <section id="optPanelTunnel" class="panel">
         <h2>5) Secure Tunnel</h2>
         <p class="muted">Browser-only proxy tunnel for privacy and geo-routing. No full-device VPN behavior.</p>
         <div class="grid cols-4">
@@ -373,7 +384,7 @@
         <p class="muted">This protects only browser traffic. For full-device VPN protection, use a desktop VPN app.</p>
       </section>
 
-      <section class="panel">
+      <section id="optPanelAlerts" class="panel">
         <h2>6) Health Alert Popups</h2>
         <div class="grid cols-4">
           <label class="switch-row"><input id="optAlertsEnabled" type="checkbox" />Enabled</label>
@@ -463,7 +474,7 @@
         </div>
       </section>
 
-      <section class="panel">
+      <section id="optPanelInsight" class="panel">
         <h2>7) Site Insight Popup</h2>
         <p class="muted">On-page insight card shown on navigation complete. Local heuristics only.</p>
         <div class="grid cols-4">
@@ -507,7 +518,7 @@
         </div>
       </section>
 
-      <section class="panel">
+      <section id="optPanelDeepWork" class="panel">
         <h2>8) Deep Work Mode</h2>
         <div class="grid cols-3">
           <label>Focus Minutes <input id="optFocusMinutes" type="number" min="10" max="180" step="1" /></label>
@@ -517,7 +528,7 @@
         </div>
       </section>
 
-      <section class="panel">
+      <section id="optPanelAccess" class="panel">
         <h2>9) Premium + Advanced</h2>
         <p class="muted">Advanced modules are premium-gated in v3.0 local build.</p>
         <div class="grid cols-3">
@@ -537,7 +548,7 @@
         </div>
       </section>
 
-      <section class="panel">
+      <section id="optPanelStats" class="panel">
         <h2>10) Local Dashboard</h2>
         <div class="stats-grid">
           <div class="stat"><span>Focus minutes today</span><strong id="statFocus">0</strong></div>
@@ -548,7 +559,7 @@
         <div id="weeklyBars" class="bars"></div>
       </section>
 
-      <section class="panel">
+      <section id="optPanelData" class="panel">
         <h2>11) Data + Debug</h2>
         <div class="grid cols-3">
           <label class="switch-row"><input id="optDebug" type="checkbox" />Debug Mode</label>
@@ -565,6 +576,7 @@
     </main>
 
     <div id="toastHost" class="toast-host" aria-live="polite"></div>
+    <script src="ui/tool-registry.js"></script>
     <script src="options.js"></script>
   </body>
 </html>

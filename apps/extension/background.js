@@ -8,7 +8,7 @@
 const STORAGE_KEY = "holmeta.v3.state";
 const _LEGACY_KEYS = ["holmeta.v2.state", "holmeta.settings", "holmeta.v3"];
 const VERSION = "3.0.0";
-const SCHEMA_VERSION = 8;
+const SCHEMA_VERSION = 9;
 const LOG_LIMIT = 500;
 const DOMAIN_LIMIT = 600;
 const SWATCH_LIMIT = 12;
@@ -18,6 +18,21 @@ const SITE_INSIGHT_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 const SITE_INSIGHT_THROTTLE_MS = 10 * 1000;
 const TRANSLATE_HISTORY_LIMIT = 120;
 const SAVED_PHRASE_LIMIT = 200;
+const TRIAL_DURATION_MS = 3 * 24 * 60 * 60 * 1000;
+const ENTITLEMENT_OFFLINE_GRACE_MS = 24 * 60 * 60 * 1000;
+const ENTITLEMENT_MIN_NEXT_CHECK_SEC = 60;
+const ENTITLEMENT_MAX_NEXT_CHECK_SEC = 7 * 24 * 60 * 60;
+const ENTITLEMENT_VALIDATE_URL = "https://holmeta.com/.netlify/functions/validate-license";
+const ENTITLEMENT_STATES = {
+  ACCESS_UNKNOWN: "ACCESS_UNKNOWN",
+  TRIAL_ACTIVE: "TRIAL_ACTIVE",
+  SUB_ACTIVE: "SUB_ACTIVE",
+  SUB_TRIALING: "SUB_TRIALING",
+  SUB_PAST_DUE: "SUB_PAST_DUE",
+  SUB_CANCELED_ACTIVE_UNTIL_END: "SUB_CANCELED_ACTIVE_UNTIL_END",
+  BILLING_REQUIRED: "BILLING_REQUIRED",
+  ACCESS_LOCKED: "ACCESS_LOCKED"
+};
 const SCREEN_PRESETS = new Set([
   "desktop_hd",
   "desktop_fhd",
@@ -348,6 +363,24 @@ let dnrBufferedCounters = {
 
 function now() {
   return Date.now();
+}
+
+function newInstallId() {
+  try {
+    if (globalThis.crypto?.randomUUID) {
+      return globalThis.crypto.randomUUID();
+    }
+  } catch {
+    // Fallback below.
+  }
+  return `hm-${Math.random().toString(36).slice(2, 10)}-${now().toString(36)}`;
+}
+
+function toEpochMs(input) {
+  if (!input) return 0;
+  if (typeof input === "number" && Number.isFinite(input)) return Math.max(0, Math.floor(input));
+  const parsed = Date.parse(String(input));
+  return Number.isFinite(parsed) ? Math.max(0, Math.floor(parsed)) : 0;
 }
 
 function toDayKey(ts = now()) {
@@ -1284,6 +1317,258 @@ function inTimeRange(start, end, date = new Date()) {
   return cur >= s || cur < e;
 }
 
+function createDefaultEntitlement() {
+  return {
+    state: ENTITLEMENT_STATES.ACCESS_UNKNOWN,
+    source: "none",
+    installId: "",
+    licenseKey: "",
+    trial: {
+      startedAt: 0,
+      endsAt: 0,
+      durationMs: TRIAL_DURATION_MS,
+      trigger: "first_open"
+    },
+    subscription: {
+      status: "inactive",
+      plan: "none",
+      entitled: false,
+      active: false,
+      trialEndsAt: 0,
+      renewsAt: 0
+    },
+    lastCheckedAt: 0,
+    nextCheckAt: 0,
+    lastError: "",
+    lockedReason: "",
+    graceUntil: 0
+  };
+}
+
+function normalizeEntitlement(rawEntitlement, legacyLicense = {}) {
+  const base = createDefaultEntitlement();
+  const raw = rawEntitlement && typeof rawEntitlement === "object" ? rawEntitlement : {};
+  const trialRaw = raw.trial && typeof raw.trial === "object" ? raw.trial : {};
+  const subscriptionRaw = raw.subscription && typeof raw.subscription === "object"
+    ? raw.subscription
+    : {};
+
+  const normalized = {
+    ...base,
+    ...raw,
+    trial: {
+      ...base.trial,
+      ...trialRaw
+    },
+    subscription: {
+      ...base.subscription,
+      ...subscriptionRaw
+    }
+  };
+
+  normalized.installId = String(normalized.installId || "").trim().slice(0, 80);
+  normalized.licenseKey = String(
+    normalized.licenseKey
+    || legacyLicense.key
+    || ""
+  ).trim().slice(0, 120);
+  normalized.source = ["none", "trial", "server", "cache"].includes(String(normalized.source || ""))
+    ? String(normalized.source)
+    : "none";
+
+  normalized.trial.startedAt = Math.max(0, Number(normalized.trial.startedAt || 0));
+  normalized.trial.durationMs = Math.max(60 * 60 * 1000, Number(normalized.trial.durationMs || TRIAL_DURATION_MS));
+  normalized.trial.endsAt = Math.max(
+    0,
+    Number(
+      normalized.trial.endsAt
+      || (normalized.trial.startedAt ? normalized.trial.startedAt + normalized.trial.durationMs : 0)
+    )
+  );
+  normalized.trial.trigger = String(normalized.trial.trigger || "first_open").slice(0, 40);
+
+  normalized.subscription.status = String(normalized.subscription.status || "inactive").trim().toLowerCase().slice(0, 40) || "inactive";
+  normalized.subscription.plan = String(normalized.subscription.plan || "none").trim().slice(0, 40) || "none";
+  normalized.subscription.entitled = Boolean(normalized.subscription.entitled);
+  normalized.subscription.active = Boolean(normalized.subscription.active);
+  normalized.subscription.trialEndsAt = Math.max(0, Number(normalized.subscription.trialEndsAt || 0));
+  normalized.subscription.renewsAt = Math.max(0, Number(normalized.subscription.renewsAt || 0));
+
+  normalized.lastCheckedAt = Math.max(0, Number(normalized.lastCheckedAt || 0));
+  normalized.nextCheckAt = Math.max(0, Number(normalized.nextCheckAt || 0));
+  normalized.lastError = String(normalized.lastError || "").slice(0, 240);
+  normalized.lockedReason = String(normalized.lockedReason || "").slice(0, 160);
+  normalized.graceUntil = Math.max(0, Number(normalized.graceUntil || 0));
+  normalized.state = String(normalized.state || ENTITLEMENT_STATES.ACCESS_UNKNOWN);
+
+  return normalized;
+}
+
+function shouldStartTrialForSource(source) {
+  return source === "popup" || source === "options";
+}
+
+const LOCK_BYPASS_MESSAGE_TYPES = new Set([
+  "holmeta:get-state",
+  "holmeta:activate-license",
+  "holmeta:clear-license",
+  "holmeta:entitlement-refresh",
+  "holmeta:set-onboarded",
+  "holmeta:open-options",
+  "holmeta:set-debug",
+  "holmeta:export-logs"
+]);
+
+function isMessageAllowedWhenLocked(type) {
+  return LOCK_BYPASS_MESSAGE_TYPES.has(String(type || ""));
+}
+
+function computeAccessDecision(state, ts = now()) {
+  const entitlement = state.entitlement || createDefaultEntitlement();
+  const hasLiveSubscription = Boolean(
+    entitlement.subscription?.entitled
+    || entitlement.subscription?.active
+  );
+
+  if (hasLiveSubscription) {
+    const subStatus = String(entitlement.subscription.status || "inactive");
+    if (subStatus === "trialing") {
+      return {
+        access: true,
+        state: ENTITLEMENT_STATES.SUB_TRIALING,
+        reason: "subscription_trialing"
+      };
+    }
+    return {
+      access: true,
+      state: ENTITLEMENT_STATES.SUB_ACTIVE,
+      reason: "subscription_active"
+    };
+  }
+
+  const trialStartedAt = Number(entitlement.trial?.startedAt || 0);
+  const trialEndsAt = Number(entitlement.trial?.endsAt || 0);
+  if (trialStartedAt > 0 && trialEndsAt > ts) {
+    return {
+      access: true,
+      state: ENTITLEMENT_STATES.TRIAL_ACTIVE,
+      reason: "local_trial_active"
+    };
+  }
+
+  const status = String(entitlement.subscription?.status || "inactive");
+  if (status === "past_due" || status === "unpaid") {
+    return {
+      access: false,
+      state: ENTITLEMENT_STATES.SUB_PAST_DUE,
+      reason: "billing_failed"
+    };
+  }
+
+  if (status === "canceled" && Number(entitlement.subscription?.renewsAt || 0) > ts) {
+    return {
+      access: true,
+      state: ENTITLEMENT_STATES.SUB_CANCELED_ACTIVE_UNTIL_END,
+      reason: "cancelled_but_active_until_period_end"
+    };
+  }
+
+  if (status === "canceled") {
+    return {
+      access: false,
+      state: ENTITLEMENT_STATES.ACCESS_LOCKED,
+      reason: "subscription_canceled"
+    };
+  }
+
+  if (entitlement.licenseKey) {
+    if (Number(entitlement.graceUntil || 0) > ts) {
+      return {
+        access: true,
+        state: ENTITLEMENT_STATES.ACCESS_UNKNOWN,
+        reason: "offline_grace"
+      };
+    }
+    return {
+      access: false,
+      state: ENTITLEMENT_STATES.ACCESS_LOCKED,
+      reason: "subscription_inactive"
+    };
+  }
+
+  return {
+    access: false,
+    state: ENTITLEMENT_STATES.BILLING_REQUIRED,
+    reason: "trial_ended_no_subscription"
+  };
+}
+
+function hasProductAccess(state) {
+  return Boolean(computeAccessDecision(state, now()).access);
+}
+
+function syncEntitlementAccess(state) {
+  if (!state.entitlement || typeof state.entitlement !== "object") {
+    state.entitlement = createDefaultEntitlement();
+  }
+  if (!state.entitlement.installId) {
+    state.entitlement.installId = newInstallId();
+  }
+
+  const decision = computeAccessDecision(state, now());
+  state.entitlement.state = decision.state;
+  state.entitlement.lockedReason = decision.reason;
+  state.license.premium = Boolean(decision.access);
+  state.license.key = String(state.entitlement.licenseKey || "").slice(0, 120);
+  return decision;
+}
+
+function maybeStartTrial(state, trigger = "first_open") {
+  if (!state?.entitlement) return false;
+  const trial = state.entitlement.trial || {};
+  if (Number(trial.startedAt || 0) > 0) return false;
+  const startedAt = now();
+  state.entitlement.trial = {
+    ...createDefaultEntitlement().trial,
+    ...trial,
+    startedAt,
+    endsAt: startedAt + TRIAL_DURATION_MS,
+    durationMs: TRIAL_DURATION_MS,
+    trigger: String(trigger || "first_open").slice(0, 40)
+  };
+  state.entitlement.source = state.entitlement.source === "server" ? "server" : "trial";
+  return true;
+}
+
+function markLockedSettings(settings) {
+  const next = JSON.parse(JSON.stringify(settings || {}));
+  if (!next || typeof next !== "object") return {};
+  if (next.lightFilter) next.lightFilter.enabled = false;
+  if (next.light) next.light.enabled = false;
+  if (next.readingTheme) next.readingTheme.enabled = false;
+  if (next.darkLightTheme) next.darkLightTheme.enabled = false;
+  if (next.adaptiveSiteTheme) next.adaptiveSiteTheme.enabled = false;
+  if (next.blocker) {
+    next.blocker.enabled = false;
+    next.blocker.nuclear = false;
+  }
+  if (next.alerts) next.alerts.enabled = false;
+  if (next.deepWork) next.deepWork.active = false;
+  if (next.advanced) {
+    next.advanced.biofeedback = false;
+    next.advanced.morphing = false;
+    next.advanced.taskWeaver = false;
+    next.advanced.dashboardPredictions = false;
+    next.advanced.collaborativeSync = false;
+  }
+  if (next.siteInsight) next.siteInsight.enabled = false;
+  if (next.translate) next.translate.enabled = false;
+  if (next.screenshotTool) next.screenshotTool.enabled = false;
+  if (next.secureTunnel) next.secureTunnel.enabled = false;
+  if (next.screenEmulator) next.screenEmulator.active = false;
+  return next;
+}
+
 function createDefaultState() {
   return {
     schemaVersion: SCHEMA_VERSION,
@@ -1303,6 +1588,7 @@ function createDefaultState() {
       key: "",
       lastValidatedAt: 0
     },
+    entitlement: createDefaultEntitlement(),
     settings: {
       readingTheme: createDefaultReadingThemeSettings(),
       darkLightTheme: createDefaultReadingThemeSettings(),
@@ -1637,6 +1923,7 @@ function normalizeState(input) {
     ...raw,
     meta: { ...base.meta, ...(raw.meta || {}) },
     license: { ...base.license, ...(raw.license || {}) },
+    entitlement: { ...base.entitlement, ...(raw.entitlement || {}) },
     settings: { ...base.settings, ...(raw.settings || {}) },
     stats: { ...base.stats, ...(raw.stats || {}) },
     runtime: { ...base.runtime, ...(raw.runtime || {}) },
@@ -1653,6 +1940,7 @@ function normalizeState(input) {
   merged.license.premium = Boolean(merged.license.premium);
   merged.license.key = String(merged.license.key || "").slice(0, 120);
   merged.license.lastValidatedAt = Math.max(0, Number(merged.license.lastValidatedAt || 0));
+  merged.entitlement = normalizeEntitlement(merged.entitlement, merged.license);
 
   const legacyLight = {
     ...base.settings.light,
@@ -1906,8 +2194,9 @@ function normalizeState(input) {
     ...(merged.settings.advanced || {})
   };
 
-  // Premium gate enforcement in logic (not just UI)
-  if (!merged.license.premium) {
+  // Gate advanced modules based on centralized entitlement access.
+  const accessDecision = syncEntitlementAccess(merged);
+  if (!accessDecision.access) {
     merged.settings.advanced.biofeedback = false;
     merged.settings.advanced.morphing = false;
     merged.settings.advanced.taskWeaver = false;
@@ -2153,9 +2442,26 @@ function isRestrictedExtensionPageUrl(urlLike) {
   return !/^https?:\/\//.test(url);
 }
 
+const CONTENT_SCRIPT_FILES = [
+  "appearance/appearance-state.js",
+  "appearance/theme-detector.js",
+  "appearance/media-guard.js",
+  "appearance/ui-surface-classifier.js",
+  "appearance/component-normalizer.js",
+  "appearance/dynamic-node-processor.js",
+  "appearance/site-compatibility.js",
+  "appearance/token-remapper.js",
+  "appearance/appearance-engine.js",
+  "light/engine.js",
+  "translate/engine.js",
+  "content.js"
+];
+
 async function ensureContentScriptReady(tabId) {
   const ping = await sendTab(tabId, { type: "holmeta:ping" }, { frameId: 0 });
-  if (ping.ok && ping.res?.ok) return { ok: true, injected: false };
+  if (ping.ok && ping.res?.ok && ping.res?.appearanceEngine !== false) {
+    return { ok: true, injected: false };
+  }
   if (ping.ok && ping.res?.ok === false && !isMissingReceiverError(ping.res?.error)) {
     return { ok: true, injected: false };
   }
@@ -2163,7 +2469,7 @@ async function ensureContentScriptReady(tabId) {
     return { ok: false, error: ping.error || "receiver_unavailable" };
   }
 
-  const injected = await executeScriptFiles(tabId, ["light/engine.js", "translate/engine.js", "content.js"]);
+  const injected = await executeScriptFiles(tabId, CONTENT_SCRIPT_FILES);
   if (!injected.ok) return { ok: false, error: injected.error || "inject_failed" };
   const verify = await sendTab(tabId, { type: "holmeta:ping" }, { frameId: 0 });
   if (!verify.ok || !verify.res?.ok) {
@@ -2457,7 +2763,7 @@ async function runTranslateActionOnActiveTab(type, payload = {}) {
     return { ok: false, error: sent.error || "translate_send_failed" };
   }
   if (sent.res?.ok === false && sent.res?.error === "translate_engine_unavailable") {
-    const reinjected = await executeScriptFiles(tab.id, ["light/engine.js", "translate/engine.js", "content.js"]);
+    const reinjected = await executeScriptFiles(tab.id, CONTENT_SCRIPT_FILES);
     if (!reinjected.ok) {
       return { ok: false, error: reinjected.error || "translate_engine_unavailable" };
     }
@@ -2817,6 +3123,10 @@ async function clearSecureTunnel(state, reason = "manual") {
 }
 
 async function applySecureTunnel(state, { force = false, reason = "manual" } = {}) {
+  if (!hasProductAccess(state)) {
+    return clearSecureTunnel(state, `${reason}_locked`);
+  }
+
   const tunnel = state.settings.secureTunnel || createDefaultState().settings.secureTunnel;
   if (!tunnel.enabled) {
     return clearSecureTunnel(state, reason);
@@ -2914,6 +3224,7 @@ async function applySecureTunnel(state, { force = false, reason = "manual" } = {
 }
 
 function isLightActiveNow(state) {
+  if (!hasProductAccess(state)) return false;
   const lightFilter = state.settings.lightFilter || state.settings.light || {};
   if (!lightFilter.enabled) return false;
   if (!lightFilter.schedule?.enabled) return true;
@@ -2921,6 +3232,7 @@ function isLightActiveNow(state) {
 }
 
 function isBlockerActiveNow(state) {
+  if (!hasProductAccess(state)) return false;
   const blocker = state.settings.blocker;
   if (!blocker.enabled) return false;
   if (Number(blocker.pausedUntil || 0) > now()) return false;
@@ -2934,25 +3246,41 @@ function isBlockerActiveNow(state) {
   return true;
 }
 
+function effectiveSettingsForAccess(state) {
+  if (hasProductAccess(state)) return state.settings;
+  return markLockedSettings(state.settings);
+}
+
 function effectivePayload(state) {
+  const effectiveSettings = effectiveSettingsForAccess(state);
+  const decision = computeAccessDecision(state, now());
   return {
     meta: {
       debug: Boolean(state.meta?.debug)
     },
-    settings: state.settings,
+    settings: effectiveSettings,
     license: {
-      premium: Boolean(state.license.premium)
+      premium: Boolean(decision.access)
+    },
+    entitlement: {
+      state: String(state.entitlement?.state || ENTITLEMENT_STATES.ACCESS_UNKNOWN),
+      reason: String(state.entitlement?.lockedReason || ""),
+      access: Boolean(decision.access)
     },
     effective: {
-      lightActive: isLightActiveNow(state),
-      adaptiveThemeActive: Boolean(state.settings?.adaptiveSiteTheme?.enabled),
-      blockerActive: isBlockerActiveNow(state),
-      deepWorkActive: Boolean(state.settings.deepWork.active)
+      lightActive: isLightActiveNow({ ...state, settings: effectiveSettings }),
+      adaptiveThemeActive: Boolean(effectiveSettings?.adaptiveSiteTheme?.enabled),
+      blockerActive: isBlockerActiveNow({ ...state, settings: effectiveSettings }),
+      deepWorkActive: Boolean(effectiveSettings?.deepWork?.active)
     }
   };
 }
 
 function publicState(state) {
+  const accessDecision = computeAccessDecision(state, now());
+  const trialEndsAt = Number(state.entitlement?.trial?.endsAt || 0);
+  const trialRemainingMs = Math.max(0, trialEndsAt - now());
+  const effectiveSettings = effectiveSettingsForAccess(state);
   const resizeBackup = state.runtime?.windowResizeBackup || null;
   const tunnelRuntime = state.runtime?.secureTunnel || createDefaultState().runtime.secureTunnel;
   return {
@@ -2964,10 +3292,38 @@ function publicState(state) {
       showRatePrompt: shouldShowRatePrompt(state)
     },
     license: {
-      premium: Boolean(state.license.premium),
+      premium: Boolean(accessDecision.access),
       lastValidatedAt: Number(state.license.lastValidatedAt || 0)
     },
-    settings: state.settings,
+    entitlement: {
+      state: String(state.entitlement?.state || ENTITLEMENT_STATES.ACCESS_UNKNOWN),
+      source: String(state.entitlement?.source || "none"),
+      reason: String(state.entitlement?.lockedReason || ""),
+      access: Boolean(accessDecision.access),
+      trial: {
+        startedAt: Math.max(0, Number(state.entitlement?.trial?.startedAt || 0)),
+        endsAt: trialEndsAt,
+        remainingMs: trialRemainingMs
+      },
+      subscription: {
+        status: String(state.entitlement?.subscription?.status || "inactive"),
+        plan: String(state.entitlement?.subscription?.plan || "none"),
+        entitled: Boolean(state.entitlement?.subscription?.entitled),
+        renewsAt: Math.max(0, Number(state.entitlement?.subscription?.renewsAt || 0)),
+        trialEndsAt: Math.max(0, Number(state.entitlement?.subscription?.trialEndsAt || 0))
+      },
+      licenseKeyPresent: Boolean(String(state.entitlement?.licenseKey || "")),
+      lastCheckedAt: Math.max(0, Number(state.entitlement?.lastCheckedAt || 0)),
+      nextCheckAt: Math.max(0, Number(state.entitlement?.nextCheckAt || 0)),
+      lastError: String(state.entitlement?.lastError || "")
+    },
+    access: {
+      allowed: Boolean(accessDecision.access),
+      locked: !Boolean(accessDecision.access),
+      state: String(state.entitlement?.state || ENTITLEMENT_STATES.ACCESS_UNKNOWN),
+      reason: String(state.entitlement?.lockedReason || "")
+    },
+    settings: effectiveSettings,
     stats: state.stats,
     history: {
       translate: Array.isArray(state.history?.translate) ? state.history.translate : []
@@ -3123,12 +3479,14 @@ async function loadState() {
   }
 
   memoryState = normalizeState(raw);
+  syncEntitlementAccess(memoryState);
   await storageSet({ [STORAGE_KEY]: memoryState });
   return memoryState;
 }
 
 async function saveState(state) {
   memoryState = normalizeState(state);
+  syncEntitlementAccess(memoryState);
   await storageSet({ [STORAGE_KEY]: memoryState });
   return memoryState;
 }
@@ -3843,6 +4201,13 @@ async function scheduleRuntimeAlarms(state) {
     alarmClear(ALARMS.PROXY_REAPPLY)
   ]);
 
+  if (!hasProductAccess(state)) {
+    if (String(state.entitlement?.licenseKey || "")) {
+      alarmCreate(ALARMS.HEARTBEAT, { periodInMinutes: 15 });
+    }
+    return;
+  }
+
   if (state.settings.alerts.enabled && getEnabledReminderTypes(state).length > 0) {
     alarmCreate(ALARMS.HEALTH, { periodInMinutes: state.settings.alerts.frequencyMin });
   }
@@ -3882,6 +4247,12 @@ async function scheduleRuntimeAlarms(state) {
 async function initializeRuntime(reason = "startup") {
   const state = await loadState();
   log(state, "info", "initialize", { reason });
+  if (String(state.entitlement?.licenseKey || "")) {
+    const forceRefresh = ["install", "update", "startup", "boot"].includes(String(reason || ""));
+    await refreshEntitlement(state, { force: forceRefresh, reason: `initialize_${reason}` });
+  } else {
+    syncEntitlementAccess(state);
+  }
   maybeBindDnrDebugCounters();
   await scheduleRuntimeAlarms(state);
   await applyDnrRules(state);
@@ -3892,6 +4263,9 @@ async function initializeRuntime(reason = "startup") {
 
 async function runCommand(command) {
   const state = await loadState();
+  if (!hasProductAccess(state)) {
+    return { ok: false, error: "access_locked", state: publicState(state) };
+  }
   const light = state.settings.lightFilter || state.settings.light;
 
   if (command === "toggle_light_filters" || command === "toggle-light-filter") {
@@ -4036,22 +4410,31 @@ async function heartbeatTick() {
   const state = await loadState();
   state.runtime.lastHeartbeatAt = now();
 
-  if (isLightActiveNow(state)) {
+  if (
+    String(state.entitlement?.licenseKey || "")
+    && Number(state.entitlement?.nextCheckAt || 0) <= now()
+  ) {
+    await refreshEntitlement(state, { force: true, reason: "heartbeat" });
+  }
+
+  if (hasProductAccess(state) && isLightActiveNow(state)) {
     state.stats.lightUsageMinutes += 5;
     incrementDaily(state, "lightMinutes", 5);
   }
 
-  if (isBlockerActiveNow(state)) {
+  if (hasProductAccess(state) && isBlockerActiveNow(state)) {
     state.stats.blockerUsageMinutes += 5;
     incrementDaily(state, "blockerMinutes", 5);
   }
 
   await saveState(state);
   await applyDnrRules(state);
+  await applySecureTunnel(state, { force: false, reason: "heartbeat" });
   await broadcastState(state);
 }
 
 async function maybeShowSiteInsight(tabId, urlLike, state) {
+  if (!hasProductAccess(state)) return;
   const host = normalizeHost(urlLike);
   if (!host) return;
   const config = state.settings.siteInsight || createDefaultState().settings.siteInsight;
@@ -4109,27 +4492,167 @@ function generateTaskWeaverSuggestions(tabs) {
   return unique;
 }
 
+async function validateLicenseWithServer(licenseKey, installId) {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 12000);
+  try {
+    const response = await fetch(ENTITLEMENT_VALIDATE_URL, {
+      method: "POST",
+      headers: {
+        "content-type": "application/json"
+      },
+      body: JSON.stringify({
+        licenseKey,
+        installId
+      }),
+      signal: controller.signal
+    });
+
+    let payload = null;
+    try {
+      payload = await response.json();
+    } catch {
+      payload = null;
+    }
+
+    if (!response.ok) {
+      return {
+        ok: false,
+        error: String(payload?.error || `http_${response.status}`),
+        statusCode: response.status
+      };
+    }
+
+    if (!payload || payload.ok !== true) {
+      return {
+        ok: false,
+        error: String(payload?.error || "entitlement_response_invalid"),
+        statusCode: response.status
+      };
+    }
+
+    return {
+      ok: true,
+      payload
+    };
+  } catch (error) {
+    const name = String(error?.name || "");
+    if (name === "AbortError") {
+      return {
+        ok: false,
+        error: "entitlement_timeout",
+        statusCode: 0
+      };
+    }
+    return {
+      ok: false,
+      error: String(error?.message || "entitlement_fetch_failed"),
+      statusCode: 0
+    };
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+
+function applyEntitlementValidationPayload(state, payload) {
+  const entitlement = state.entitlement || createDefaultEntitlement();
+  const checkedAt = now();
+  const status = String(payload?.status || "inactive").trim().toLowerCase() || "inactive";
+  const entitled = Boolean(payload?.entitled || payload?.active);
+  const nextCheckAfterSec = Math.round(clamp(
+    Number(payload?.nextCheckAfterSec || (entitled ? 12 * 60 * 60 : 5 * 60)),
+    ENTITLEMENT_MIN_NEXT_CHECK_SEC,
+    ENTITLEMENT_MAX_NEXT_CHECK_SEC
+  ));
+
+  entitlement.subscription = {
+    status,
+    plan: String(payload?.plan || "none"),
+    entitled,
+    active: Boolean(payload?.active),
+    trialEndsAt: toEpochMs(payload?.trialEndsAt),
+    renewsAt: toEpochMs(payload?.renewsAt)
+  };
+  entitlement.source = "server";
+  entitlement.lastCheckedAt = checkedAt;
+  entitlement.nextCheckAt = checkedAt + nextCheckAfterSec * 1000;
+  entitlement.lastError = "";
+  entitlement.graceUntil = entitled ? checkedAt + ENTITLEMENT_OFFLINE_GRACE_MS : 0;
+  state.entitlement = entitlement;
+  state.license.lastValidatedAt = checkedAt;
+  const decision = syncEntitlementAccess(state);
+  return { decision };
+}
+
+async function refreshEntitlement(state, { force = false, reason = "manual" } = {}) {
+  const entitlement = state.entitlement || createDefaultEntitlement();
+  const licenseKey = String(entitlement.licenseKey || "").trim();
+
+  if (!licenseKey) {
+    syncEntitlementAccess(state);
+    return { ok: true, skipped: true, reason: "no_license" };
+  }
+
+  const ts = now();
+  if (!force && Number(entitlement.nextCheckAt || 0) > ts) {
+    syncEntitlementAccess(state);
+    return { ok: true, skipped: true, reason: "not_due" };
+  }
+
+  const lookup = await validateLicenseWithServer(licenseKey, entitlement.installId || newInstallId());
+  if (!lookup.ok) {
+    entitlement.lastCheckedAt = ts;
+    entitlement.nextCheckAt = ts + 5 * 60 * 1000;
+    entitlement.lastError = String(lookup.error || "entitlement_refresh_failed").slice(0, 240);
+    if (entitlement.subscription?.entitled) {
+      entitlement.graceUntil = Math.max(Number(entitlement.graceUntil || 0), ts + ENTITLEMENT_OFFLINE_GRACE_MS);
+      entitlement.source = "cache";
+    }
+    state.entitlement = entitlement;
+    syncEntitlementAccess(state);
+    log(state, "error", "entitlement_refresh_failed", {
+      reason,
+      error: lookup.error || "unknown"
+    });
+    return { ok: false, error: lookup.error || "entitlement_refresh_failed" };
+  }
+
+  applyEntitlementValidationPayload(state, lookup.payload || {});
+  log(state, "info", "entitlement_refreshed", {
+    reason,
+    status: state.entitlement.subscription.status,
+    accessState: state.entitlement.state
+  });
+  return { ok: true, skipped: false, state: state.entitlement.state };
+}
+
 async function activateLicense(keyRaw) {
   const key = String(keyRaw || "").trim();
   const state = await loadState();
-
-  // Placeholder local validation for freemium mode.
-  // Future integration point: fetch signed license status from holmeta backend.
-  const valid = /^((HM)|(HOLMETA))[-_][A-Z0-9-]{6,}$/i.test(key);
+  const valid = /^((HM)|(HOLMETA))[-_A-Z0-9]{8,}$/i.test(key);
   if (!valid) {
-    state.license.premium = false;
-    state.license.key = "";
-    state.license.lastValidatedAt = now();
-    await saveState(state);
-    return { ok: false, error: "invalid_license", state: publicState(state) };
+    return { ok: false, error: "invalid_license_format", state: publicState(state) };
   }
 
-  state.license.premium = true;
+  state.entitlement.licenseKey = key;
   state.license.key = key;
-  state.license.lastValidatedAt = now();
-  await saveState(state);
-  log(state, "info", "license_activated", { hash: hashText(key) });
 
+  const refreshed = await refreshEntitlement(state, { force: true, reason: "activate_license" });
+  await saveState(state);
+  await scheduleRuntimeAlarms(state);
+  await applyDnrRules(state);
+  await applySecureTunnel(state, { force: true, reason: "entitlement_change" });
+  await broadcastState(state);
+
+  if (!refreshed.ok) {
+    return { ok: false, error: refreshed.error || "entitlement_refresh_failed", state: publicState(state) };
+  }
+
+  if (!hasProductAccess(state)) {
+    return { ok: false, error: "license_not_entitled", state: publicState(state) };
+  }
+
+  log(state, "info", "license_activated", { hash: hashText(key) });
   return { ok: true, state: publicState(state) };
 }
 
@@ -4142,7 +4665,7 @@ async function startColorPickOnActiveTab() {
 
   let result = await sendTab(tab.id, { type: "holmeta:start-color-pick" }, { frameId: 0 });
   if (!result.ok && isMissingReceiverError(result.error)) {
-    const injected = await executeScriptFiles(tab.id, ["light/engine.js", "translate/engine.js", "content.js"]);
+    const injected = await executeScriptFiles(tab.id, CONTENT_SCRIPT_FILES);
     if (!injected.ok) {
       return { ok: false, error: injected.error || "inject_failed" };
     }
@@ -4315,7 +4838,42 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     const state = await loadState();
 
     if (type === "holmeta:get-state") {
+      let changed = false;
+      const source = String(message?.source || "");
+      if (shouldStartTrialForSource(source)) {
+        if (maybeStartTrial(state, "first_open")) {
+          changed = true;
+          log(state, "info", "trial_started", {
+            source,
+            endsAt: Number(state.entitlement?.trial?.endsAt || 0)
+          });
+        }
+      }
+
+      if (
+        String(state.entitlement?.licenseKey || "")
+        && Number(state.entitlement?.nextCheckAt || 0) <= now()
+      ) {
+        const refreshed = await refreshEntitlement(state, { force: false, reason: `get_state_${source || "unknown"}` });
+        if (!refreshed.ok || !refreshed.skipped) changed = true;
+      } else {
+        syncEntitlementAccess(state);
+      }
+
+      if (changed) {
+        await saveState(state);
+        await scheduleRuntimeAlarms(state);
+        await applyDnrRules(state);
+        await applySecureTunnel(state, { force: true, reason: "get_state_sync" });
+        await broadcastState(state);
+      }
+
       sendResponse({ ok: true, state: publicState(state) });
+      return;
+    }
+
+    if (!hasProductAccess(state) && !isMessageAllowedWhenLocked(type)) {
+      sendResponse({ ok: false, error: "access_locked", state: publicState(state) });
       return;
     }
 
@@ -5134,6 +5692,21 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       return;
     }
 
+    if (type === "holmeta:entitlement-refresh") {
+      const refreshed = await refreshEntitlement(state, { force: true, reason: "manual_refresh" });
+      await saveState(state);
+      await scheduleRuntimeAlarms(state);
+      await applyDnrRules(state);
+      await applySecureTunnel(state, { force: true, reason: "manual_refresh" });
+      await broadcastState(state);
+      sendResponse({
+        ok: refreshed.ok,
+        error: refreshed.ok ? "" : (refreshed.error || "entitlement_refresh_failed"),
+        state: publicState(state)
+      });
+      return;
+    }
+
     if (type === "holmeta:activate-license") {
       const result = await activateLicense(message.key || "");
       sendResponse(result);
@@ -5141,10 +5714,26 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     }
 
     if (type === "holmeta:clear-license") {
-      state.license.premium = false;
-      state.license.key = "";
+      state.entitlement.licenseKey = "";
+      state.entitlement.subscription = {
+        status: "inactive",
+        plan: "none",
+        entitled: false,
+        active: false,
+        trialEndsAt: 0,
+        renewsAt: 0
+      };
+      state.entitlement.lastError = "";
+      state.entitlement.lastCheckedAt = now();
+      state.entitlement.nextCheckAt = 0;
+      state.entitlement.graceUntil = 0;
+      syncEntitlementAccess(state);
       state.license.lastValidatedAt = now();
       await saveState(state);
+      await scheduleRuntimeAlarms(state);
+      await applyDnrRules(state);
+      await applySecureTunnel(state, { force: true, reason: "clear_license" });
+      await broadcastState(state);
       sendResponse({ ok: true, state: publicState(state) });
       return;
     }

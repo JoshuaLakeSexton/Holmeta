@@ -31,6 +31,11 @@ input[type="checkbox"] {
   min-width: 0;
 }
 
+#optAccessLockPanel {
+  border-color: rgba(196, 32, 33, 0.74);
+  box-shadow: var(--glow-red);
+}
+
 .hero {
   grid-template-columns: 1fr auto;
   align-items: start;

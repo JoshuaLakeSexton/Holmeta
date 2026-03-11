@@ -4,6 +4,7 @@
 (() => {
   const SAVE_DEBOUNCE_MS = 420;
   const UPGRADE_URL = "https://www.holmeta.com/pricing";
+  const BILLING_URL = "https://www.holmeta.com/pricing";
 
   const state = {
     app: null,
@@ -13,7 +14,8 @@
     saveInFlight: false,
     diagnostics: null,
     activeHost: "",
-    profileSearch: ""
+    profileSearch: "",
+    optionsOrderApplied: false
   };
 
   const $ = (id) => document.getElementById(id);
@@ -22,6 +24,12 @@
     premiumBadge: $("premiumBadge"),
     saveState: $("saveState"),
     toastHost: $("toastHost"),
+    optAccessLockPanel: $("optAccessLockPanel"),
+    optAccessLockMessage: $("optAccessLockMessage"),
+    optAccessLockTiming: $("optAccessLockTiming"),
+    optAccessStartTrial: $("optAccessStartTrial"),
+    optAccessManageBilling: $("optAccessManageBilling"),
+    optAccessRefresh: $("optAccessRefresh"),
 
     optLightEnabled: $("optLightEnabled"),
     optLightMode: $("optLightMode"),
@@ -231,6 +239,60 @@
     return out;
   }
 
+  function getAccessInfo() {
+    return state.app?.access || {
+      allowed: true,
+      locked: false,
+      state: "ACCESS_UNKNOWN",
+      reason: ""
+    };
+  }
+
+  function hasExtensionAccess() {
+    const access = getAccessInfo();
+    return Boolean(access.allowed) && !Boolean(access.locked);
+  }
+
+  function formatRemaining(ms) {
+    const totalSec = Math.max(0, Math.floor(Number(ms || 0) / 1000));
+    const days = Math.floor(totalSec / 86400);
+    const hours = Math.floor((totalSec % 86400) / 3600);
+    const mins = Math.floor((totalSec % 3600) / 60);
+    if (days > 0) return `${days}d ${hours}h`;
+    if (hours > 0) return `${hours}h ${mins}m`;
+    return `${Math.max(0, mins)}m`;
+  }
+
+  function humanAccessReason(reason) {
+    const key = String(reason || "").toLowerCase();
+    if (!key) return "Subscription inactive.";
+    if (key === "trial_missing") return "Trial not started.";
+    if (key === "trial_expired") return "Trial ended.";
+    if (key === "billing_failed") return "Billing failed.";
+    if (key === "subscription_inactive") return "Subscription inactive.";
+    if (key === "subscription_status_inactive") return "Subscription inactive.";
+    if (key === "no_license") return "No active license found.";
+    return key.replaceAll("_", " ");
+  }
+
+  function applyOptionsToolRegistry() {
+    if (state.optionsOrderApplied) return;
+    const layout = document.querySelector(".layout");
+    const registry = globalThis.HolmetaToolRegistry?.options;
+    if (!layout || !Array.isArray(registry) || !registry.length) return;
+
+    const footer = layout.querySelector(".statusbar");
+    registry.forEach((entry, index) => {
+      const node = document.getElementById(String(entry.id || ""));
+      if (!node) return;
+      const heading = node.querySelector("h2");
+      if (heading) heading.textContent = `${index + 1}) ${String(entry.title || "").trim()}`;
+      if (footer) layout.insertBefore(node, footer);
+      else layout.appendChild(node);
+    });
+    state.optionsOrderApplied = true;
+  }
+
   function linesToDomains(text) {
     return [...new Set(
       String(text || "")
@@ -312,6 +374,10 @@
     state.saveInFlight = false;
 
     if (!response.ok) {
+      if (response.state) {
+        state.app = response.state;
+        render();
+      }
       setStatus(`Save failed: ${response.error || "unknown"}`, true);
       return;
     }
@@ -472,9 +538,21 @@
   }
 
   function renderPremium() {
-    const premium = Boolean(state.app.license.premium);
-    refs.premiumBadge.textContent = premium ? "PREMIUM" : "FREE";
-    refs.premiumBadge.classList.toggle("premium", premium);
+    const access = getAccessInfo();
+    const entitlementState = String(state.app?.entitlement?.state || "");
+    const premium = hasExtensionAccess();
+    const trialActive = entitlementState === "TRIAL_ACTIVE";
+
+    if (access.locked) {
+      refs.premiumBadge.textContent = "LOCKED";
+      refs.premiumBadge.classList.remove("premium");
+    } else if (trialActive) {
+      refs.premiumBadge.textContent = "TRIAL";
+      refs.premiumBadge.classList.add("premium");
+    } else {
+      refs.premiumBadge.textContent = "ACTIVE";
+      refs.premiumBadge.classList.add("premium");
+    }
 
     document.querySelectorAll("[data-premium='true']").forEach((el) => {
       el.disabled = !premium;
@@ -482,6 +560,48 @@
       if (!premium) el.setAttribute("title", "Premium feature – upgrade at holmeta.com");
       else el.removeAttribute("title");
     });
+  }
+
+  function setOptionsPanelsHidden(hidden) {
+    const ids = (globalThis.HolmetaToolRegistry?.options || []).map((entry) => String(entry.id || ""));
+    ids.forEach((id) => {
+      if (!id) return;
+      const panel = document.getElementById(id);
+      if (!panel) return;
+      if (id === "optPanelAccess") {
+        panel.hidden = false;
+        return;
+      }
+      panel.hidden = Boolean(hidden);
+    });
+  }
+
+  function renderAccessGate() {
+    const lockPanel = refs.optAccessLockPanel;
+    if (!lockPanel || !state.app) return;
+
+    const access = getAccessInfo();
+    const locked = Boolean(access.locked);
+    lockPanel.hidden = !locked;
+    setOptionsPanelsHidden(locked);
+    if (!locked) return;
+
+    const entitlement = state.app?.entitlement || {};
+    const reason = humanAccessReason(access.reason || entitlement.reason);
+    const trialRemaining = Number(entitlement?.trial?.remainingMs || 0);
+    const trialEndedAt = Number(entitlement?.trial?.endsAt || 0);
+    const subStatus = String(entitlement?.subscription?.status || "inactive");
+
+    refs.optAccessLockMessage.textContent = `Holmeta access has ended. Reason: ${reason}.`;
+    if (trialRemaining > 0) {
+      refs.optAccessLockTiming.textContent = `Trial time remaining: ${formatRemaining(trialRemaining)}.`;
+      return;
+    }
+    if (trialEndedAt > 0) {
+      refs.optAccessLockTiming.textContent = `Trial ended at ${new Date(trialEndedAt).toLocaleString()} · subscription: ${subStatus}.`;
+      return;
+    }
+    refs.optAccessLockTiming.textContent = "Reactivate subscription, then refresh access.";
   }
 
   function renderStats() {
@@ -620,6 +740,7 @@
 
   function render() {
     if (!state.app) return;
+    applyOptionsToolRegistry();
     const s = state.app.settings;
     const light = getLightSettings();
     const reading = getReadingSettings();
@@ -640,6 +761,12 @@
       : (adaptive.excludedSites || {});
 
     renderPremium();
+    renderAccessGate();
+    if (!hasExtensionAccess()) {
+      setValue("optLicenseKey", "");
+      setStatus("Access locked. Reactivate subscription to continue.");
+      return;
+    }
 
     setChecked("optLightEnabled", light.enabled);
     setValue("optLightMode", light.mode);
@@ -799,7 +926,7 @@
   }
 
   async function hydrate() {
-    const response = await sendMessage({ type: "holmeta:get-state" });
+    const response = await sendMessage({ type: "holmeta:get-state", source: "options" });
     if (!response.ok) {
       setStatus(`Load failed: ${response.error || "unknown"}`, true);
       return;
@@ -1173,6 +1300,29 @@
   }
 
   function bindActions() {
+    refs.optAccessStartTrial?.addEventListener("click", () => {
+      chrome.tabs.create({ url: UPGRADE_URL });
+    });
+
+    refs.optAccessManageBilling?.addEventListener("click", () => {
+      chrome.tabs.create({ url: BILLING_URL });
+    });
+
+    refs.optAccessRefresh?.addEventListener("click", async () => {
+      refs.optAccessRefresh.disabled = true;
+      refs.optAccessRefresh.textContent = "Refreshing...";
+      const response = await sendMessage({ type: "holmeta:entitlement-refresh" });
+      refs.optAccessRefresh.disabled = false;
+      refs.optAccessRefresh.textContent = "Refresh Access";
+      if (!response?.ok) {
+        toast(`Refresh failed: ${response?.error || "unknown"}`);
+        return;
+      }
+      state.app = response.state;
+      render();
+      toast(hasExtensionAccess() ? "Access restored." : "Access still locked.");
+    });
+
     refs.activateLicense.addEventListener("click", async () => {
       const key = String(refs.optLicenseKey.value || "").trim();
       if (!key) {

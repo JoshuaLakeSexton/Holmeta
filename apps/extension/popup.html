@@ -19,7 +19,24 @@
         </div>
       </header>
 
-      <section class="panel compact quick-links" aria-label="Holmeta links">
+      <section id="accessLockPanel" class="panel core access-lock" hidden aria-live="polite">
+        <div class="section-head">
+          <h2>Access Locked</h2>
+          <span id="accessStateBadge" class="badge">LOCKED</span>
+        </div>
+        <p id="accessLockMessage" class="micro">Your Holmeta access is inactive.</p>
+        <p id="accessLockTiming" class="micro">Reactivate to continue using all tools.</p>
+        <div class="row actions-row">
+          <button id="accessStartTrial" class="primary" type="button">Start / Reactivate</button>
+          <button id="accessManageBilling" class="secondary" type="button">Manage Billing</button>
+        </div>
+        <div class="row actions-row">
+          <button id="accessRefresh" class="ghost" type="button">Refresh Access</button>
+          <button id="accessEnterLicense" class="ghost" type="button">Enter License</button>
+        </div>
+      </section>
+
+      <section id="commandLinksPanel" class="panel compact quick-links" aria-label="Holmeta links">
         <div class="section-head">
           <h2>0) Command Links</h2>
         </div>
@@ -1063,7 +1080,7 @@
         <ul id="weaverResults" class="result-list"></ul>
       </details>
 
-      <section class="panel compact">
+      <section id="hotkeysPanel" class="panel compact">
         <div class="section-head">
           <h2>14) Hotkeys</h2>
         </div>
@@ -1097,6 +1114,7 @@
       </div>
     </div>
 
+    <script src="ui/tool-registry.js"></script>
     <script src="popup.js"></script>
   </body>
 </html>

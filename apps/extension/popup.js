@@ -7,6 +7,7 @@
   const UPGRADE_URL = "https://www.holmeta.com/pricing";
   const WEBSITE_URL = "https://holmeta.com";
   const DASHBOARD_URL = "https://holmeta.com/dashboard";
+  const BILLING_URL = "https://holmeta.com/pricing";
   const FAVORITE_LIMIT = 20;
   const SCREEN_PRESETS = {
     desktop_hd: { width: 1366, height: 768, label: "Desktop HD" },
@@ -36,7 +37,8 @@
     screenshotRunning: false,
     translateInputDraft: "",
     translateOutputDraft: "",
-    translateLastEntry: null
+    translateLastEntry: null,
+    popupOrderApplied: false
   };
 
   const onboardingSteps = [
@@ -58,6 +60,14 @@
     modeBadge: document.getElementById("modeBadge"),
     saveState: document.getElementById("saveState"),
     toastHost: document.getElementById("toastHost"),
+    accessLockPanel: document.getElementById("accessLockPanel"),
+    accessStateBadge: document.getElementById("accessStateBadge"),
+    accessLockMessage: document.getElementById("accessLockMessage"),
+    accessLockTiming: document.getElementById("accessLockTiming"),
+    accessStartTrial: document.getElementById("accessStartTrial"),
+    accessManageBilling: document.getElementById("accessManageBilling"),
+    accessRefresh: document.getElementById("accessRefresh"),
+    accessEnterLicense: document.getElementById("accessEnterLicense"),
 
     lightEnabled: document.getElementById("lightEnabled"),
     lightMode: document.getElementById("lightMode"),
@@ -595,10 +605,80 @@
     return Boolean(state.currentHost && map[state.currentHost]);
   }
 
+  function getAccessInfo() {
+    const fallback = {
+      allowed: true,
+      locked: false,
+      state: "ACCESS_UNKNOWN",
+      reason: ""
+    };
+    return state.app?.access || fallback;
+  }
+
+  function hasExtensionAccess() {
+    const access = getAccessInfo();
+    return Boolean(access.allowed) && !Boolean(access.locked);
+  }
+
+  function formatRemaining(ms) {
+    const totalSec = Math.max(0, Math.floor(Number(ms || 0) / 1000));
+    const days = Math.floor(totalSec / 86400);
+    const hours = Math.floor((totalSec % 86400) / 3600);
+    const mins = Math.floor((totalSec % 3600) / 60);
+    if (days > 0) return `${days}d ${hours}h`;
+    if (hours > 0) return `${hours}h ${mins}m`;
+    return `${Math.max(0, mins)}m`;
+  }
+
+  function humanAccessReason(reason) {
+    const key = String(reason || "").toLowerCase();
+    if (!key) return "Subscription inactive.";
+    if (key === "trial_missing") return "Trial not started.";
+    if (key === "trial_expired") return "Trial ended.";
+    if (key === "billing_failed") return "Billing failed.";
+    if (key === "subscription_inactive") return "Subscription inactive.";
+    if (key === "subscription_status_inactive") return "Subscription inactive.";
+    if (key === "no_license") return "No active license found.";
+    return key.replaceAll("_", " ");
+  }
+
+  function applyPopupToolRegistry() {
+    if (state.popupOrderApplied) return;
+    const shell = document.getElementById("command-center");
+    const registry = globalThis.HolmetaToolRegistry?.popup;
+    if (!shell || !Array.isArray(registry) || !registry.length) return;
+
+    const footer = shell.querySelector(".statusbar");
+    registry.forEach((entry, index) => {
+      const node = document.getElementById(String(entry.id || ""));
+      if (!node) return;
+      const selector = entry.headingTag === "summary" ? "summary" : ".section-head h2, h2";
+      const titleNode = node.querySelector(selector);
+      if (titleNode) {
+        titleNode.textContent = `${index + 1}) ${String(entry.title || "").trim()}`;
+      }
+      if (footer) shell.insertBefore(node, footer);
+      else shell.appendChild(node);
+    });
+    state.popupOrderApplied = true;
+  }
+
   function renderPremium() {
-    const premium = Boolean(state.app?.license?.premium);
-    refs.modeBadge.textContent = premium ? "PREMIUM" : "FREE";
-    refs.modeBadge.classList.toggle("premium", premium);
+    const access = getAccessInfo();
+    const entitlementState = String(state.app?.entitlement?.state || "");
+    const premium = hasExtensionAccess();
+    const trialActive = entitlementState === "TRIAL_ACTIVE";
+
+    if (access.locked) {
+      refs.modeBadge.textContent = "LOCKED";
+      refs.modeBadge.classList.remove("premium");
+    } else if (trialActive) {
+      refs.modeBadge.textContent = "TRIAL";
+      refs.modeBadge.classList.add("premium");
+    } else {
+      refs.modeBadge.textContent = "ACTIVE";
+      refs.modeBadge.classList.add("premium");
+    }
 
     document.querySelectorAll("[data-premium='true']").forEach((node) => {
       node.disabled = !premium;
@@ -606,6 +686,47 @@
     });
 
     refs.premiumBanner.hidden = premium;
+  }
+
+  function setToolPanelsHidden(hidden) {
+    const ids = (globalThis.HolmetaToolRegistry?.popup || []).map((entry) => String(entry.id || ""));
+    ids.forEach((id) => {
+      if (!id) return;
+      const panel = document.getElementById(id);
+      if (!panel) return;
+      panel.hidden = Boolean(hidden);
+    });
+  }
+
+  function renderAccessGate() {
+    const lockPanel = refs.accessLockPanel;
+    if (!lockPanel || !state.app) return;
+
+    const access = getAccessInfo();
+    const locked = Boolean(access.locked);
+    lockPanel.hidden = !locked;
+    setToolPanelsHidden(locked);
+
+    if (!locked) return;
+
+    const entitlement = state.app?.entitlement || {};
+    const reason = humanAccessReason(access.reason || entitlement.reason);
+    const trialRemaining = Number(entitlement?.trial?.remainingMs || 0);
+    const trialEndedAt = Number(entitlement?.trial?.endsAt || 0);
+    const nextCheckAt = Number(entitlement?.nextCheckAt || 0);
+    const subStatus = String(entitlement?.subscription?.status || "inactive");
+
+    refs.accessStateBadge.textContent = String(access.state || "ACCESS_LOCKED").replaceAll("_", " ");
+    refs.accessLockMessage.textContent = `Holmeta access has ended. Reason: ${reason}.`;
+    if (trialRemaining > 0) {
+      refs.accessLockTiming.textContent = `Trial time remaining: ${formatRemaining(trialRemaining)}. Complete checkout to keep access uninterrupted.`;
+    } else if (trialEndedAt > 0) {
+      refs.accessLockTiming.textContent = `Trial ended at ${new Date(trialEndedAt).toLocaleString()}. Subscription status: ${subStatus}.`;
+    } else if (nextCheckAt > Date.now()) {
+      refs.accessLockTiming.textContent = `Access refresh scheduled at ${new Date(nextCheckAt).toLocaleString()}.`;
+    } else {
+      refs.accessLockTiming.textContent = "Reactivate subscription or refresh access to continue.";
+    }
   }
 
   function renderReadingTheme() {
@@ -1388,7 +1509,14 @@
 
   function render() {
     if (!state.app) return;
+    applyPopupToolRegistry();
     renderPremium();
+    renderAccessGate();
+    if (!hasExtensionAccess()) {
+      refs.onboarding.hidden = true;
+      setStatus("Access locked. Reactivate subscription to continue.");
+      return;
+    }
     renderFavorites();
     renderReadingTheme();
     renderLight();
@@ -1422,6 +1550,10 @@
     state.saveInFlight = false;
 
     if (!response.ok) {
+      if (response.state) {
+        state.app = response.state;
+        render();
+      }
       setStatus(`Save failed: ${response.error || "unknown"}`, true);
       return;
     }
@@ -1522,7 +1654,7 @@
 
   async function hydrate() {
     const [res, tab] = await Promise.all([
-      sendMessage({ type: "holmeta:get-state" }),
+      sendMessage({ type: "holmeta:get-state", source: "popup" }),
       queryCurrentTab()
     ]);
 
@@ -1542,6 +1674,11 @@
 
     state.hydrated = true;
     render();
+
+    if (!hasExtensionAccess()) {
+      refs.onboarding.hidden = true;
+      return;
+    }
 
     const localOnboarded = await readOnboardingCompletion();
     const onboarded = Boolean(state.app.meta?.onboarded) || localOnboarded;
@@ -1563,6 +1700,10 @@
 
   function openUpgrade() {
     chrome.tabs.create({ url: UPGRADE_URL });
+  }
+
+  function openBilling() {
+    chrome.tabs.create({ url: BILLING_URL });
   }
 
   function openExternal(url) {
@@ -3195,6 +3336,25 @@
 
     refs.collabSync.addEventListener("click", () => {
       toast("Collaborative Focus Sync is a premium roadmap feature in this local-first build.");
+    });
+
+    refs.accessStartTrial?.addEventListener("click", () => openUpgrade());
+    refs.accessManageBilling?.addEventListener("click", () => openBilling());
+    refs.accessEnterLicense?.addEventListener("click", () => chrome.runtime.openOptionsPage());
+    refs.accessRefresh?.addEventListener("click", async () => {
+      refs.accessRefresh.disabled = true;
+      refs.accessRefresh.textContent = "Refreshing...";
+      const response = await sendMessage({ type: "holmeta:entitlement-refresh" });
+      refs.accessRefresh.disabled = false;
+      refs.accessRefresh.textContent = "Refresh Access";
+      if (!response?.ok) {
+        toast(`Refresh failed: ${response?.error || "unknown"}`);
+        return;
+      }
+      state.app = response.state;
+      await refreshDiagnostics();
+      render();
+      toast(hasExtensionAccess() ? "Access restored." : "Access still locked.");
     });
 
     refs.upgradePremium.addEventListener("click", openUpgrade);

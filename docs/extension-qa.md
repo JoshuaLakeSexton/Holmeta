@@ -129,3 +129,25 @@
 - Save a phrase; confirm it appears under `Saved Phrases` in popup and persists across restart.
 - Confirm `Recent Translations` records new translations and `Clear History` removes entries.
 - Enable `Disable on this site`; verify translate actions return disabled state on that hostname.
+
+## 12) Entitlement / Trial / Lockout (Critical)
+- Fresh profile or cleared entitlement:
+  - Open popup first time.
+  - Confirm 3-day trial starts automatically (`TRIAL` badge visible).
+  - Confirm full feature access is available during trial.
+- During trial:
+  - Open options and confirm all numbered sections are available.
+  - Confirm premium-labeled controls are enabled during trial.
+- Simulate expired trial with no active subscription/license:
+  - Confirm popup shows **Access Locked** panel only.
+  - Confirm options show **Access Locked** panel + subscription access section only.
+  - Confirm `holmeta:update-settings` actions are blocked while locked.
+- Locked reactivation:
+  - Click `Start / Reactivate` and confirm pricing page opens.
+  - Click `Refresh Access` and confirm state refreshes from backend.
+  - Enter valid license in options and confirm access unlocks immediately.
+- Post-unlock:
+  - Confirm full popup/options UI returns.
+  - Confirm section numbering starts at `1)` with:
+    - `1) Light Filter Tool`
+    - `2) Day / Night Appearance`
