@@ -66,7 +66,18 @@
     "[data-testid*='search']",
     "[data-testid*='tweetButton']",
     "[data-testid*='SideNav']",
-    "[data-testid*='cellInnerDiv']"
+    "[data-testid*='cellInnerDiv']",
+    "[data-testid='reply']",
+    "[data-testid='retweet']",
+    "[data-testid='unretweet']",
+    "[data-testid='like']",
+    "[data-testid='unlike']",
+    "[data-testid='bookmark']",
+    "[data-testid='removeBookmark']",
+    "[data-testid='share']",
+    "[data-testid='tweetTextarea_0']",
+    "[data-testid='tweetButton']",
+    "[data-testid='primaryColumn'] [role='button']"
   ].join(",");
 
   const WRAPPER_SELECTOR = "div, span, label, strong, em, small, b, i";

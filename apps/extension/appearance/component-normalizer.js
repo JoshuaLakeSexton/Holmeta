@@ -48,8 +48,20 @@
     if (host === "x.com" || host.endsWith(".x.com") || host === "twitter.com" || host.endsWith(".twitter.com")) {
       const xTargets = document.querySelectorAll([
         "[data-testid='SearchBox_Search_Input']",
+        "[data-testid='tweetTextarea_0']",
         "[data-testid='tweetButtonInline']",
+        "[data-testid='tweetButton']",
         "[data-testid='SideNav_NewTweet_Button']",
+        "[data-testid='reply']",
+        "[data-testid='retweet']",
+        "[data-testid='unretweet']",
+        "[data-testid='like']",
+        "[data-testid='unlike']",
+        "[data-testid='bookmark']",
+        "[data-testid='removeBookmark']",
+        "[data-testid='share']",
+        "[data-testid='UserCell'] [role='button']",
+        "[data-testid='primaryColumn'] [role='button']",
         "[data-testid='placementTracking'] [role='button']",
         "[data-testid='cellInnerDiv'] [role='button']"
       ].join(","));
@@ -60,7 +72,12 @@
         target.setAttribute(ATTR.SURFACE, "1");
         target.setAttribute(
           ATTR.COMPONENT,
-          target.matches("[data-testid='SearchBox_Search_Input']") ? "input" : "button"
+          (
+            target.matches("[data-testid='SearchBox_Search_Input']")
+            || target.matches("[data-testid='tweetTextarea_0']")
+          )
+            ? "input"
+            : "button"
         );
         classifier.markOwned(target);
 

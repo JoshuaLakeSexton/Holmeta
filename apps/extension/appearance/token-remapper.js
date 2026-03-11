@@ -136,10 +136,34 @@ html[${ATTR.ACTIVE}='1'] :where(video, img, picture, canvas, iframe, embed, obje
 html[${ATTR.ACTIVE}='1'][${ATTR.SITE}='x'] :is(
   [data-testid='SearchBox_Search_Input'],
   [data-testid='SearchBox_Search_Input'] *,
+  [data-testid='tweetTextarea_0'],
+  [data-testid='tweetTextarea_0'] *,
   [data-testid='tweetButtonInline'],
   [data-testid='tweetButtonInline'] *,
+  [data-testid='tweetButton'],
+  [data-testid='tweetButton'] *,
   [data-testid='SideNav_NewTweet_Button'],
   [data-testid='SideNav_NewTweet_Button'] *,
+  [data-testid='reply'],
+  [data-testid='reply'] *,
+  [data-testid='retweet'],
+  [data-testid='retweet'] *,
+  [data-testid='unretweet'],
+  [data-testid='unretweet'] *,
+  [data-testid='like'],
+  [data-testid='like'] *,
+  [data-testid='unlike'],
+  [data-testid='unlike'] *,
+  [data-testid='bookmark'],
+  [data-testid='bookmark'] *,
+  [data-testid='removeBookmark'],
+  [data-testid='removeBookmark'] *,
+  [data-testid='share'],
+  [data-testid='share'] *,
+  [data-testid='UserCell'] [role='button'],
+  [data-testid='UserCell'] [role='button'] *,
+  [data-testid='primaryColumn'] [role='button'],
+  [data-testid='primaryColumn'] [role='button'] *,
   [data-testid='placementTracking'] [role='button'],
   [data-testid='placementTracking'] [role='button'] *
 ) {
@@ -149,17 +173,48 @@ html[${ATTR.ACTIVE}='1'][${ATTR.SITE}='x'] :is(
 
 html[${ATTR.ACTIVE}='1'][${ATTR.SITE}='x'] :is(
   [data-testid='SearchBox_Search_Input'],
+  [data-testid='tweetTextarea_0'],
   [data-testid='tweetButtonInline'],
+  [data-testid='tweetButton'],
   [data-testid='SideNav_NewTweet_Button'],
+  [data-testid='reply'],
+  [data-testid='retweet'],
+  [data-testid='unretweet'],
+  [data-testid='like'],
+  [data-testid='unlike'],
+  [data-testid='bookmark'],
+  [data-testid='removeBookmark'],
+  [data-testid='share'],
+  [data-testid='UserCell'] [role='button'],
+  [data-testid='primaryColumn'] [role='button'],
   [data-testid='placementTracking'] [role='button']
+) {
+  background-color: var(--holmeta-appearance-button-bg) !important;
+}
+
+html[${ATTR.ACTIVE}='1'][${ATTR.SITE}='x'] :is(
+  [data-testid='SearchBox_Search_Input'],
+  [data-testid='tweetTextarea_0']
 ) {
   background-color: var(--holmeta-appearance-input-bg) !important;
 }
 
 html[${ATTR.ACTIVE}='1'][${ATTR.SITE}='x'] :is(
   [data-testid='SearchBox_Search_Input'] *,
+  [data-testid='tweetTextarea_0'] *,
   [data-testid='tweetButtonInline'] *,
+  [data-testid='tweetButton'] *,
   [data-testid='SideNav_NewTweet_Button'] *,
+  [data-testid='reply'] *,
+  [data-testid='retweet'] *,
+  [data-testid='unretweet'] *,
+  [data-testid='like'] *,
+  [data-testid='unlike'] *,
+  [data-testid='bookmark'] *,
+  [data-testid='removeBookmark'] *,
+  [data-testid='share'] *,
+  [data-testid='UserCell'] [role='button'] *,
+  [data-testid='primaryColumn'] [role='button'] *,
   [data-testid='placementTracking'] [role='button'] *
 ) {
   background-color: transparent !important;
