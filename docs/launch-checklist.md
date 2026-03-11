@@ -1,6 +1,6 @@
 # Holmeta Launch Checklist
 
-Updated: March 10, 2026
+Updated: March 11, 2026
 
 ## Preflight
 
@@ -57,9 +57,16 @@ Set one:
 - [x] SOFT LAUNCH ONLY
 - [ ] NO-GO
 
-## Current Status Snapshot (March 10, 2026)
+## Current Status Snapshot (March 11, 2026)
 
-- Automated gates: passing (`lint`, `typecheck`, `build`, `test`, env check, extension validate, extension zip sync) at 2026-03-10 15:53 ET.
-- Runtime smoke automation: `npm run qa:extension-runtime` passes popup typing persistence, screenshot start, color picker start, and sound alert path via offscreen audio across GitHub, Stripe, YouTube, NYTimes, and Amazon.
-- Real non-dry-run e2e executed with production base and real checkout session id; blocked at `get-license` with `402 CHECKOUT_NOT_COMPLETE` until session payment is completed.
-- Remaining GO blockers: completed paid checkout + one-time reveal + license validation + extension premium unlock + cancel/past_due downgrade confirmation.
+- Automated gates: passing (`npm run lint`, `npm run typecheck`, `npm run build`, `npm test`, `npm run verify:netlify-env`, `npm run validate:extension`).
+- Runtime smoke automation: `npm run qa:extension-runtime` passes popup typing persistence, screenshot start, color picker start, light diagnostics, and health alert sound path across GitHub, Stripe, YouTube, NYTimes, and Amazon.
+- Paid-path endpoint health:
+  - `create-checkout-session`: pass (production URL returned).
+  - `get-license` server runtime regression (Prisma binary target mismatch) fixed in code (`rhel-openssl-3.0.x` added in Prisma client generation).
+  - latest non-dry run still blocks at `get-license` with `402 CHECKOUT_NOT_COMPLETE` for newly created, unpaid sessions (expected until checkout is completed).
+- Remaining GO blockers:
+  - complete one real paid checkout to generate a completed `cs_...` session.
+  - verify one-time reveal returns real `HOLMETA-...` key.
+  - verify `validate-license` success path with real key.
+  - verify cancel/past_due downgrade path changes entitlement to locked on next check.
