@@ -3,12 +3,18 @@
 import { Button } from "@/components/holmeta/Button";
 import { FAQItem } from "@/components/holmeta/FAQItem";
 import { FeatureCard } from "@/components/holmeta/FeatureCard";
-import { LocaleSwitcher } from "@/components/holmeta/LocaleSwitcher";
 import { Panel } from "@/components/holmeta/Panel";
 import { pathWithLocale, type SupportedLocale } from "@/lib/i18n/config";
 import { getMessages, listAt, t, type MessageTree } from "@/lib/i18n/messages";
 
 const DEMO_VIDEO_PATH = "/videos/holmeta-demo.mp4";
+const NAV_LOCALES: Array<{ code: SupportedLocale; label: string }> = [
+  { code: "en", label: "English" },
+  { code: "ja", label: "日本語" },
+  { code: "ko", label: "한국어" },
+  { code: "zh-cn", label: "简体中文" },
+  { code: "zh-tw", label: "繁體中文" }
+];
 
 type HomePageProps = {
   locale?: SupportedLocale;
@@ -73,14 +79,27 @@ export function HomePageContent({ locale = "en" }: HomePageProps) {
             <a href={localizedHref(locale, "/faq")}>{t(messages, "home.nav.faq", "FAQ")}</a>
           </nav>
           <div className="hm-nav-actions">
-            <div className="hm-nav-locale-inline" aria-label={t(messages, "language.label", "Language")}>
-              <span className="hm-nav-locale-label">{t(messages, "language.label", "Language")}</span>
-              <LocaleSwitcher compact />
-            </div>
+            <details className="hm-lang-menu">
+              <summary className="hm-lang-menu-trigger" aria-label={t(messages, "language.switcherAria", "Switch language")}>
+                <span aria-hidden="true">☰</span>
+              </summary>
+              <div className="hm-lang-menu-list" role="menu" aria-label={t(messages, "language.label", "Language")}>
+                {NAV_LOCALES.map((entry) => (
+                  <a
+                    key={entry.code}
+                    href={pathWithLocale(entry.code, "/")}
+                    className={`hm-lang-menu-item ${locale === entry.code ? "is-active" : ""}`.trim()}
+                    role="menuitem"
+                    lang={entry.code}
+                  >
+                    {entry.label}
+                  </a>
+                ))}
+              </div>
+            </details>
             <Button href={localizedHref(locale, "/dashboard/subscribe")} variant="primary">
               {t(messages, "common.trialCta", "Start 3-Day Trial")}
             </Button>
-            <Button href="#demo">{t(messages, "common.watchDemo", "Watch 30-Sec Demo")}</Button>
           </div>
         </div>
       </Panel>
