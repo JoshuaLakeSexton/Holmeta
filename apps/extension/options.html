@@ -142,7 +142,103 @@
       </section>
 
       <section class="panel">
-        <h2>2) Site Blocker Tool</h2>
+        <h2>2) Dark / Light Theme</h2>
+        <p class="muted">Simple page reading theme. Independent from Light Filters and Adaptive Site Theme.</p>
+        <div class="grid cols-4">
+          <label class="switch-row"><input id="optReadingEnabled" type="checkbox" />Enabled</label>
+          <label>Mode
+            <select id="optReadingMode">
+              <option value="dark">Night / Dark</option>
+              <option value="light">Day / Light</option>
+            </select>
+          </label>
+          <label>Preset
+            <select id="optReadingPreset">
+              <option value="soft_black">Soft Black</option>
+              <option value="dim_slate">Dim Slate</option>
+              <option value="gentle_night">Gentle Night</option>
+              <option value="soft_paper">Soft Paper</option>
+              <option value="neutral_light">Neutral Light</option>
+              <option value="warm_page">Warm Page</option>
+            </select>
+          </label>
+          <label>Intensity
+            <input id="optReadingIntensity" type="range" min="0" max="100" step="1" />
+          </label>
+          <label class="switch-row"><input id="optReadingThisSiteEnabled" type="checkbox" />This site override</label>
+          <label class="switch-row"><input id="optReadingExcludeSite" type="checkbox" />Exclude this site</label>
+          <p id="optReadingHostStatus" class="muted">Active host: unavailable</p>
+        </div>
+
+        <label>Excluded hosts (one per line)
+          <textarea id="optReadingExclusions" rows="4" placeholder="stripe.com"></textarea>
+        </label>
+
+        <label>Per-site profiles JSON (advanced)
+          <textarea id="optReadingSiteProfiles" rows="6" placeholder='{"github.com":{"enabled":true,"mode":"dark","preset":"soft_black","intensity":44}}'></textarea>
+        </label>
+      </section>
+
+      <section class="panel">
+        <h2>3) Adaptive Site Theme</h2>
+        <p class="muted">Advanced site transformation engine. Independent from Reading Theme and Light Filters.</p>
+        <div class="grid cols-4">
+          <label class="switch-row"><input id="optAdaptiveEnabled" type="checkbox" />Enabled</label>
+          <label>Mode
+            <select id="optAdaptiveMode">
+              <option value="smart_dark">Smart Dark</option>
+              <option value="smart_light">Smart Light</option>
+              <option value="minimal_dark">Minimal Dark</option>
+              <option value="minimal_light">Minimal Light</option>
+              <option value="code_focus_dark">Code Focus Dark</option>
+              <option value="soft_contrast">Soft Contrast</option>
+            </select>
+          </label>
+          <label>Preset
+            <select id="optAdaptivePreset">
+              <option value="balanced">Balanced</option>
+              <option value="comfort">Comfort</option>
+              <option value="clarity">Clarity</option>
+            </select>
+          </label>
+          <label>Intensity
+            <input id="optAdaptiveIntensity" type="range" min="0" max="100" step="1" />
+          </label>
+          <label>Strategy
+            <select id="optAdaptiveStrategy">
+              <option value="auto">Auto</option>
+              <option value="css_variables">CSS Variables</option>
+              <option value="semantic_recolor">Semantic Recolor</option>
+              <option value="minimal_surface">Minimal Surface</option>
+              <option value="compatibility">Compatibility</option>
+              <option value="app_safe">App-safe</option>
+            </select>
+          </label>
+          <label>Compatibility
+            <select id="optAdaptiveCompatibility">
+              <option value="normal">Normal</option>
+              <option value="minimal">Minimal</option>
+              <option value="app-safe">App-safe</option>
+              <option value="media-safe">Media-safe</option>
+              <option value="code-safe">Code-safe</option>
+            </select>
+          </label>
+          <label class="switch-row"><input id="optAdaptiveThisSiteEnabled" type="checkbox" />This site override</label>
+          <label class="switch-row"><input id="optAdaptiveExcludeSite" type="checkbox" />Exclude this site</label>
+          <p id="optAdaptiveHostStatus" class="muted">Active host: unavailable</p>
+        </div>
+
+        <label>Excluded hosts (one per line)
+          <textarea id="optAdaptiveExclusions" rows="4" placeholder="youtube.com"></textarea>
+        </label>
+
+        <label>Per-site profiles JSON (advanced)
+          <textarea id="optAdaptiveSiteProfiles" rows="6" placeholder='{"github.com":{"enabled":true,"mode":"code_focus_dark","preset":"clarity","strategy":"app_safe","compatibilityMode":"code-safe","intensity":52}}'></textarea>
+        </label>
+      </section>
+
+      <section class="panel">
+        <h2>4) Site Blocker Tool</h2>
         <div class="grid cols-3">
           <label class="switch-row"><input id="optBlockerEnabled" type="checkbox" />Enabled</label>
           <label class="switch-row"><input id="optNuclearMode" type="checkbox" />Nuclear Mode</label>
@@ -199,7 +295,7 @@
       </section>
 
       <section class="panel">
-        <h2>3) Secure Tunnel</h2>
+        <h2>5) Secure Tunnel</h2>
         <p class="muted">Browser-only proxy tunnel for privacy and geo-routing. No full-device VPN behavior.</p>
         <div class="grid cols-4">
           <label class="switch-row"><input id="optTunnelEnabled" type="checkbox" />Enabled</label>
@@ -259,7 +355,7 @@
       </section>
 
       <section class="panel">
-        <h2>4) Health Alert Popups</h2>
+        <h2>6) Health Alert Popups</h2>
         <div class="grid cols-4">
           <label class="switch-row"><input id="optAlertsEnabled" type="checkbox" />Enabled</label>
           <label>Frequency
@@ -349,7 +445,7 @@
       </section>
 
       <section class="panel">
-        <h2>5) Site Insight Popup</h2>
+        <h2>7) Site Insight Popup</h2>
         <p class="muted">On-page insight card shown on navigation complete. Local heuristics only.</p>
         <div class="grid cols-4">
           <label class="switch-row"><input id="optSiteInsightEnabled" type="checkbox" />Enabled</label>
@@ -393,7 +489,7 @@
       </section>
 
       <section class="panel">
-        <h2>6) Deep Work Mode</h2>
+        <h2>8) Deep Work Mode</h2>
         <div class="grid cols-3">
           <label>Focus Minutes <input id="optFocusMinutes" type="number" min="10" max="180" step="1" /></label>
           <label>Break Minutes <input id="optBreakMinutes" type="number" min="3" max="45" step="1" /></label>
@@ -403,7 +499,7 @@
       </section>
 
       <section class="panel">
-        <h2>7) Premium + Advanced</h2>
+        <h2>9) Premium + Advanced</h2>
         <p class="muted">Advanced modules are premium-gated in v3.0 local build.</p>
         <div class="grid cols-3">
           <label>License Key
@@ -423,7 +519,7 @@
       </section>
 
       <section class="panel">
-        <h2>8) Local Dashboard</h2>
+        <h2>10) Local Dashboard</h2>
         <div class="stats-grid">
           <div class="stat"><span>Focus minutes today</span><strong id="statFocus">0</strong></div>
           <div class="stat"><span>Alerts fired today</span><strong id="statAlerts">0</strong></div>
@@ -434,7 +530,7 @@
       </section>
 
       <section class="panel">
-        <h2>9) Data + Debug</h2>
+        <h2>11) Data + Debug</h2>
         <div class="grid cols-3">
           <label class="switch-row"><input id="optDebug" type="checkbox" />Debug Mode</label>
           <button id="exportSettings" class="secondary" type="button">Export JSON</button>

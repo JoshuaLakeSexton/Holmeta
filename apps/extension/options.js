@@ -54,6 +54,26 @@
     resetProfileHost: $("resetProfileHost"),
     siteProfileList: $("siteProfileList"),
     optSiteProfiles: $("optSiteProfiles"),
+    optReadingEnabled: $("optReadingEnabled"),
+    optReadingMode: $("optReadingMode"),
+    optReadingPreset: $("optReadingPreset"),
+    optReadingIntensity: $("optReadingIntensity"),
+    optReadingThisSiteEnabled: $("optReadingThisSiteEnabled"),
+    optReadingExcludeSite: $("optReadingExcludeSite"),
+    optReadingHostStatus: $("optReadingHostStatus"),
+    optReadingExclusions: $("optReadingExclusions"),
+    optReadingSiteProfiles: $("optReadingSiteProfiles"),
+    optAdaptiveEnabled: $("optAdaptiveEnabled"),
+    optAdaptiveMode: $("optAdaptiveMode"),
+    optAdaptivePreset: $("optAdaptivePreset"),
+    optAdaptiveIntensity: $("optAdaptiveIntensity"),
+    optAdaptiveStrategy: $("optAdaptiveStrategy"),
+    optAdaptiveCompatibility: $("optAdaptiveCompatibility"),
+    optAdaptiveThisSiteEnabled: $("optAdaptiveThisSiteEnabled"),
+    optAdaptiveExcludeSite: $("optAdaptiveExcludeSite"),
+    optAdaptiveHostStatus: $("optAdaptiveHostStatus"),
+    optAdaptiveExclusions: $("optAdaptiveExclusions"),
+    optAdaptiveSiteProfiles: $("optAdaptiveSiteProfiles"),
 
     diagSummary: $("diagSummary"),
     diagRefresh: $("diagRefresh"),
@@ -308,6 +328,21 @@
     }
   }
 
+  function getLightSettings() {
+    const settings = state.app?.settings || {};
+    return settings.lightFilter || settings.light || {};
+  }
+
+  function getReadingSettings() {
+    const settings = state.app?.settings || {};
+    return settings.darkLightTheme || settings.readingTheme || {};
+  }
+
+  function getAdaptiveSettings() {
+    const settings = state.app?.settings || {};
+    return settings.adaptiveSiteTheme || {};
+  }
+
   async function getActiveHost() {
     const tab = await pickInspectableTab();
     state.activeHost = normalizeHost(tab?.url || "");
@@ -325,6 +360,35 @@
       ? tabs.find((tab) => /^https?:/i.test(String(tab?.url || "")))
       : null;
     return candidate || null;
+  }
+
+  function getCurrentHostOrToast() {
+    const host = String(state.activeHost || "").trim().toLowerCase();
+    if (!host) {
+      toast("No active website detected.");
+      return "";
+    }
+    return host;
+  }
+
+  function buildReadingSiteOverride(settings) {
+    return {
+      enabled: true,
+      mode: String(settings.mode || "dark"),
+      preset: String(settings.preset || "soft_black"),
+      intensity: Number(settings.intensity || 44)
+    };
+  }
+
+  function buildAdaptiveSiteOverride(settings) {
+    return {
+      enabled: true,
+      mode: String(settings.mode || "smart_dark"),
+      preset: String(settings.preset || "balanced"),
+      strategy: String(settings.strategy || "auto"),
+      compatibilityMode: String(settings.compatibilityMode || "normal"),
+      intensity: Number(settings.intensity || 52)
+    };
   }
 
   function renderPremium() {
@@ -477,35 +541,82 @@
   function render() {
     if (!state.app) return;
     const s = state.app.settings;
+    const light = getLightSettings();
+    const reading = getReadingSettings();
+    const adaptive = getAdaptiveSettings();
+    const lightSiteProfiles = light.perSiteOverrides || light.siteProfiles || {};
+    const lightExcludedHosts = Array.isArray(light.excludedHosts)
+      ? light.excludedHosts
+      : Object.entries(light.excludedSites || {})
+          .filter(([, enabled]) => Boolean(enabled))
+          .map(([host]) => host);
+    const readingSiteProfiles = reading.perSiteOverrides || reading.siteProfiles || {};
+    const readingExcludedMap = Array.isArray(reading.excludedHosts)
+      ? Object.fromEntries(reading.excludedHosts.map((host) => [normalizeHost(host), true]).filter(([host]) => Boolean(host)))
+      : (reading.excludedSites || {});
+    const adaptiveSiteProfiles = adaptive.perSiteOverrides || adaptive.siteProfiles || {};
+    const adaptiveExcludedMap = Array.isArray(adaptive.excludedHosts)
+      ? Object.fromEntries(adaptive.excludedHosts.map((host) => [normalizeHost(host), true]).filter(([host]) => Boolean(host)))
+      : (adaptive.excludedSites || {});
 
     renderPremium();
 
-    setChecked("optLightEnabled", s.light.enabled);
-    setValue("optLightMode", s.light.mode);
-    setValue("optLightSpectrumPreset", s.light.spectrumPreset);
-    setValue("optLightIntensity", s.light.intensity);
-    setValue("optLightDim", s.light.dim);
-    setValue("optLightBrightness", s.light.brightness);
-    setValue("optLightContrastSoft", s.light.contrastSoft);
-    setValue("optLightSaturation", s.light.saturation);
-    setValue("optLightBlueCut", s.light.blueCut);
-    setValue("optLightTintRed", s.light.tintRed);
-    setValue("optLightTintGreen", s.light.tintGreen);
-    setValue("optLightTintBlue", s.light.tintBlue);
-    setChecked("optReduceWhites", s.light.reduceWhites);
-    setChecked("optVideoSafe", s.light.videoSafe);
-    setChecked("optSpotlightEnabled", s.light.spotlightEnabled);
-    setChecked("optTherapyMode", s.light.therapyMode);
-    setValue("optTherapyMinutes", s.light.therapyMinutes);
-    setValue("optTherapyCadence", s.light.therapyCadence);
-    setChecked("optLightScheduleEnabled", s.light.schedule.enabled);
-    setChecked("optUseSunset", s.light.schedule.useSunset);
-    setValue("optLightStart", s.light.schedule.start);
-    setValue("optLightEnd", s.light.schedule.end);
-    setValue("optRampMinutes", s.light.schedule.rampMinutes);
-    setValue("optQuickSchedule", s.light.schedule.quickPreset || "custom");
-    setValue("optLightExclusions", domainsToLines(s.light.excludedHosts));
-    setValue("optSiteProfiles", JSON.stringify(s.light.siteProfiles || {}, null, 2));
+    setChecked("optLightEnabled", light.enabled);
+    setValue("optLightMode", light.mode);
+    setValue("optLightSpectrumPreset", light.spectrumPreset);
+    setValue("optLightIntensity", light.intensity);
+    setValue("optLightDim", light.dim);
+    setValue("optLightBrightness", light.brightness);
+    setValue("optLightContrastSoft", light.contrastSoft);
+    setValue("optLightSaturation", light.saturation);
+    setValue("optLightBlueCut", light.blueCut);
+    setValue("optLightTintRed", light.tintRed);
+    setValue("optLightTintGreen", light.tintGreen);
+    setValue("optLightTintBlue", light.tintBlue);
+    setChecked("optReduceWhites", light.reduceWhites);
+    setChecked("optVideoSafe", light.videoSafe);
+    setChecked("optSpotlightEnabled", light.spotlightEnabled);
+    setChecked("optTherapyMode", light.therapyMode);
+    setValue("optTherapyMinutes", light.therapyDuration ?? light.therapyMinutes ?? 3);
+    setValue("optTherapyCadence", light.therapyCadence);
+    setChecked("optLightScheduleEnabled", light.schedule?.enabled);
+    setChecked("optUseSunset", light.schedule?.useSunset);
+    setValue("optLightStart", light.schedule?.start || "20:00");
+    setValue("optLightEnd", light.schedule?.end || "06:00");
+    setValue("optRampMinutes", light.schedule?.rampMinutes ?? 45);
+    setValue("optQuickSchedule", light.schedule?.quickPreset || "custom");
+    setValue("optLightExclusions", domainsToLines(lightExcludedHosts));
+    setValue("optSiteProfiles", JSON.stringify(lightSiteProfiles || {}, null, 2));
+
+    setChecked("optReadingEnabled", reading.enabled);
+    setValue("optReadingMode", reading.mode || "dark");
+    setValue("optReadingPreset", reading.preset || "soft_black");
+    setValue("optReadingIntensity", reading.intensity ?? 44);
+    setValue("optReadingExclusions", hostMapToLines(readingExcludedMap));
+    setValue("optReadingSiteProfiles", JSON.stringify(readingSiteProfiles || {}, null, 2));
+    setChecked("optReadingThisSiteEnabled", Boolean(state.activeHost && readingSiteProfiles[state.activeHost]));
+    setChecked("optReadingExcludeSite", Boolean(state.activeHost && readingExcludedMap[state.activeHost]));
+    if (refs.optReadingHostStatus) {
+      refs.optReadingHostStatus.textContent = state.activeHost
+        ? `Active host: ${state.activeHost}`
+        : "Active host: unavailable";
+    }
+
+    setChecked("optAdaptiveEnabled", adaptive.enabled);
+    setValue("optAdaptiveMode", adaptive.mode || "smart_dark");
+    setValue("optAdaptivePreset", adaptive.preset || "balanced");
+    setValue("optAdaptiveIntensity", adaptive.intensity ?? 52);
+    setValue("optAdaptiveStrategy", adaptive.strategy || "auto");
+    setValue("optAdaptiveCompatibility", adaptive.compatibilityMode || "normal");
+    setValue("optAdaptiveExclusions", hostMapToLines(adaptiveExcludedMap));
+    setValue("optAdaptiveSiteProfiles", JSON.stringify(adaptiveSiteProfiles || {}, null, 2));
+    setChecked("optAdaptiveThisSiteEnabled", Boolean(state.activeHost && adaptiveSiteProfiles[state.activeHost]));
+    setChecked("optAdaptiveExcludeSite", Boolean(state.activeHost && adaptiveExcludedMap[state.activeHost]));
+    if (refs.optAdaptiveHostStatus) {
+      refs.optAdaptiveHostStatus.textContent = state.activeHost
+        ? `Active host: ${state.activeHost}`
+        : "Active host: unavailable";
+    }
 
     setChecked("optBlockerEnabled", s.blocker.enabled);
     setChecked("optNuclearMode", s.blocker.nuclear);
@@ -650,6 +761,36 @@
     bindInput("optRampMinutes", (el) => queuePatch({ light: { schedule: { rampMinutes: Number(el.value || 45) } } }));
     bindSelect("optQuickSchedule", (el) => queuePatch({ light: { schedule: { quickPreset: el.value } } }));
     bindInput("optLightExclusions", (el) => queuePatch({ light: { excludedHosts: linesToDomains(el.value) } }));
+
+    bindCheck("optReadingEnabled", (el) => queuePatch({ readingTheme: { enabled: el.checked } }));
+    bindSelect("optReadingMode", (el) => queuePatch({ readingTheme: { mode: String(el.value || "dark") } }));
+    bindSelect("optReadingPreset", (el) => queuePatch({ readingTheme: { preset: String(el.value || "soft_black") } }));
+    bindInput("optReadingIntensity", (el) => queuePatch({ readingTheme: { intensity: Number(el.value || 44) } }));
+    bindInput("optReadingExclusions", (el) => queuePatch({ readingTheme: { excludedSites: linesToHostMap(el.value) } }));
+    bindInput("optReadingSiteProfiles", (el) => {
+      try {
+        const parsed = JSON.parse(el.value || "{}");
+        queuePatch({ readingTheme: { perSiteOverrides: parsed } });
+      } catch {
+        setStatus("Reading profiles JSON invalid", true);
+      }
+    });
+
+    bindCheck("optAdaptiveEnabled", (el) => queuePatch({ adaptiveSiteTheme: { enabled: el.checked } }));
+    bindSelect("optAdaptiveMode", (el) => queuePatch({ adaptiveSiteTheme: { mode: String(el.value || "smart_dark") } }));
+    bindSelect("optAdaptivePreset", (el) => queuePatch({ adaptiveSiteTheme: { preset: String(el.value || "balanced") } }));
+    bindInput("optAdaptiveIntensity", (el) => queuePatch({ adaptiveSiteTheme: { intensity: Number(el.value || 52) } }));
+    bindSelect("optAdaptiveStrategy", (el) => queuePatch({ adaptiveSiteTheme: { strategy: String(el.value || "auto") } }));
+    bindSelect("optAdaptiveCompatibility", (el) => queuePatch({ adaptiveSiteTheme: { compatibilityMode: String(el.value || "normal") } }));
+    bindInput("optAdaptiveExclusions", (el) => queuePatch({ adaptiveSiteTheme: { excludedSites: linesToHostMap(el.value) } }));
+    bindInput("optAdaptiveSiteProfiles", (el) => {
+      try {
+        const parsed = JSON.parse(el.value || "{}");
+        queuePatch({ adaptiveSiteTheme: { perSiteOverrides: parsed } });
+      } catch {
+        setStatus("Adaptive profiles JSON invalid", true);
+      }
+    });
 
     bindInput("optSiteProfiles", (el) => {
       try {
@@ -1037,12 +1178,111 @@
         toast("No active website detected.");
         return;
       }
-      const next = { ...(state.app.settings.light.siteProfiles || {}) };
-      delete next[host];
-      const excludes = new Set(state.app.settings.light.excludedHosts || []);
-      excludes.delete(host);
-      queuePatch({ light: { siteProfiles: next, excludedHosts: [...excludes] } });
-      toast(`Reset profile + exclusion for ${host}`);
+      const light = getLightSettings();
+      const reading = getReadingSettings();
+      const adaptive = getAdaptiveSettings();
+
+      const nextLightProfiles = { ...((light.perSiteOverrides || light.siteProfiles || {})) };
+      delete nextLightProfiles[host];
+      const nextLightExcluded = {
+        ...(Array.isArray(light.excludedHosts)
+          ? Object.fromEntries(light.excludedHosts.map((row) => [normalizeHost(row), true]).filter(([rowHost]) => Boolean(rowHost)))
+          : (light.excludedSites || {}))
+      };
+      delete nextLightExcluded[host];
+
+      const nextReadingProfiles = { ...((reading.perSiteOverrides || reading.siteProfiles || {})) };
+      delete nextReadingProfiles[host];
+      const nextReadingExcluded = {
+        ...(Array.isArray(reading.excludedHosts)
+          ? Object.fromEntries(reading.excludedHosts.map((row) => [normalizeHost(row), true]).filter(([rowHost]) => Boolean(rowHost)))
+          : (reading.excludedSites || {}))
+      };
+      delete nextReadingExcluded[host];
+
+      const nextAdaptiveProfiles = { ...((adaptive.perSiteOverrides || adaptive.siteProfiles || {})) };
+      delete nextAdaptiveProfiles[host];
+      const nextAdaptiveExcluded = {
+        ...(Array.isArray(adaptive.excludedHosts)
+          ? Object.fromEntries(adaptive.excludedHosts.map((row) => [normalizeHost(row), true]).filter(([rowHost]) => Boolean(rowHost)))
+          : (adaptive.excludedSites || {}))
+      };
+      delete nextAdaptiveExcluded[host];
+
+      queuePatch({
+        lightFilter: { perSiteOverrides: nextLightProfiles, excludedSites: nextLightExcluded },
+        readingTheme: { perSiteOverrides: nextReadingProfiles, excludedSites: nextReadingExcluded },
+        adaptiveSiteTheme: { perSiteOverrides: nextAdaptiveProfiles, excludedSites: nextAdaptiveExcluded }
+      });
+      toast(`Reset overrides + exclusions for ${host}`);
+    });
+
+    refs.optReadingThisSiteEnabled?.addEventListener("change", (event) => {
+      const host = getCurrentHostOrToast();
+      if (!host) {
+        event.target.checked = false;
+        return;
+      }
+      const checked = Boolean(event.target.checked);
+      const settings = getReadingSettings();
+      const map = { ...((settings.perSiteOverrides || settings.siteProfiles || {})) };
+      if (checked) map[host] = buildReadingSiteOverride(settings);
+      else delete map[host];
+      queuePatch({ readingTheme: { perSiteOverrides: map } });
+      toast(checked ? `Reading override enabled for ${host}` : `Reading override removed for ${host}`);
+    });
+
+    refs.optReadingExcludeSite?.addEventListener("change", (event) => {
+      const host = getCurrentHostOrToast();
+      if (!host) {
+        event.target.checked = false;
+        return;
+      }
+      const checked = Boolean(event.target.checked);
+      const settings = getReadingSettings();
+      const map = {
+        ...(Array.isArray(settings.excludedHosts)
+          ? Object.fromEntries(settings.excludedHosts.map((row) => [normalizeHost(row), true]).filter(([rowHost]) => Boolean(rowHost)))
+          : (settings.excludedSites || {}))
+      };
+      if (checked) map[host] = true;
+      else delete map[host];
+      queuePatch({ readingTheme: { excludedSites: map } });
+      toast(checked ? `Reading excluded for ${host}` : `Reading exclusion removed for ${host}`);
+    });
+
+    refs.optAdaptiveThisSiteEnabled?.addEventListener("change", (event) => {
+      const host = getCurrentHostOrToast();
+      if (!host) {
+        event.target.checked = false;
+        return;
+      }
+      const checked = Boolean(event.target.checked);
+      const settings = getAdaptiveSettings();
+      const map = { ...((settings.perSiteOverrides || settings.siteProfiles || {})) };
+      if (checked) map[host] = buildAdaptiveSiteOverride(settings);
+      else delete map[host];
+      queuePatch({ adaptiveSiteTheme: { perSiteOverrides: map } });
+      toast(checked ? `Adaptive override enabled for ${host}` : `Adaptive override removed for ${host}`);
+    });
+
+    refs.optAdaptiveExcludeSite?.addEventListener("change", (event) => {
+      const host = getCurrentHostOrToast();
+      if (!host) {
+        event.target.checked = false;
+        return;
+      }
+      const checked = Boolean(event.target.checked);
+      const settings = getAdaptiveSettings();
+      const map = {
+        ...(Array.isArray(settings.excludedHosts)
+          ? Object.fromEntries(settings.excludedHosts.map((row) => [normalizeHost(row), true]).filter(([rowHost]) => Boolean(rowHost)))
+          : (settings.excludedSites || {}))
+      };
+      if (checked) map[host] = true;
+      else delete map[host];
+      queuePatch({ adaptiveSiteTheme: { excludedSites: map } });
+      toast(checked ? `Adaptive excluded for ${host}` : `Adaptive exclusion removed for ${host}`);
     });
 
     refs.resetProfileHost.addEventListener("click", async () => {
