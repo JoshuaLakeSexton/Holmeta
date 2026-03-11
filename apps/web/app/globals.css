@@ -411,7 +411,7 @@ html {
 
 .hm-top-nav {
   display: grid;
-  grid-template-columns: auto 1fr auto;
+  grid-template-columns: auto minmax(0, 1fr) auto;
   gap: var(--s-4);
   align-items: center;
 }
@@ -428,6 +428,7 @@ html {
   flex-wrap: nowrap;
   gap: var(--s-1);
   align-items: center;
+  min-width: 0;
   font-family: var(--ff-mono);
   font-size: var(--fs-1);
   text-transform: uppercase;
@@ -464,14 +465,14 @@ html {
   gap: var(--s-2);
   justify-content: flex-end;
   align-items: center;
-  min-width: 0;
+  flex: 0 0 auto;
 }
 
-.hm-nav-locale-block {
+.hm-nav-locale-inline {
   display: inline-flex;
   align-items: center;
   gap: var(--s-1);
-  min-width: 0;
+  flex: 0 0 auto;
 }
 
 .hm-nav-locale-label {
@@ -483,34 +484,8 @@ html {
   white-space: nowrap;
 }
 
-.hm-nav-lang-pills {
-  display: flex;
-  flex-wrap: nowrap;
-  gap: 6px;
-  align-items: center;
-  min-width: 0;
-}
-
-.hm-lang-pill {
-  border: 1px solid var(--c-border);
-  min-height: 30px;
-  padding: 0 10px;
-  display: inline-flex;
-  align-items: center;
-  font-size: 11px;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  font-family: var(--ff-mono);
-  background: rgba(20, 17, 15, 0.72);
-}
-
-.hm-lang-pill:hover {
-  border-color: var(--c-warn);
-}
-
-.hm-lang-pill.is-active {
-  border-color: var(--c-accent);
-  background: rgba(196, 32, 33, 0.14);
+.hm-nav-actions .hm-btn {
+  flex: 0 0 auto;
 }
 
 .hm-locale-switch {
@@ -548,6 +523,7 @@ html {
 
 .hm-locale-switch.is-compact select {
   font-size: 11px;
+  min-width: 68px;
 }
 
 .hm-section {
@@ -714,7 +690,7 @@ html {
     flex-wrap: wrap;
   }
 
-  .hm-nav-locale-block {
+  .hm-nav-locale-inline {
     flex-wrap: wrap;
   }
 

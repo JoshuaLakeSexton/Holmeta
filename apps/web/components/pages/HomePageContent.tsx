@@ -9,13 +9,6 @@ import { pathWithLocale, type SupportedLocale } from "@/lib/i18n/config";
 import { getMessages, listAt, t, type MessageTree } from "@/lib/i18n/messages";
 
 const DEMO_VIDEO_PATH = "/videos/holmeta-demo.mp4";
-const NAV_LOCALES: Array<{ code: SupportedLocale; label: string }> = [
-  { code: "en", label: "EN" },
-  { code: "ja", label: "日本語" },
-  { code: "ko", label: "한국어" },
-  { code: "zh-cn", label: "简中" },
-  { code: "zh-tw", label: "繁中" }
-];
 
 type HomePageProps = {
   locale?: SupportedLocale;
@@ -80,20 +73,8 @@ export function HomePageContent({ locale = "en" }: HomePageProps) {
             <a href={localizedHref(locale, "/faq")}>{t(messages, "home.nav.faq", "FAQ")}</a>
           </nav>
           <div className="hm-nav-actions">
-            <div className="hm-nav-locale-block" aria-label={t(messages, "language.label", "Language")}>
+            <div className="hm-nav-locale-inline" aria-label={t(messages, "language.label", "Language")}>
               <span className="hm-nav-locale-label">{t(messages, "language.label", "Language")}</span>
-              <div className="hm-nav-lang-pills" aria-label="Language quick links">
-                {NAV_LOCALES.map((entry) => (
-                  <a
-                    key={entry.code}
-                    href={pathWithLocale(entry.code, "/")}
-                    className={`hm-lang-pill ${locale === entry.code ? "is-active" : ""}`.trim()}
-                    lang={entry.code}
-                  >
-                    {entry.label}
-                  </a>
-                ))}
-              </div>
               <LocaleSwitcher compact />
             </div>
             <Button href={localizedHref(locale, "/dashboard/subscribe")} variant="primary">
