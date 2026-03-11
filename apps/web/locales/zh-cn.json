@@ -1,0 +1,74 @@
+{
+  "meta": {
+    "title": "HOLMETA",
+    "description": "Holmeta 帮助长时间用屏用户减轻眼疲劳并保持专注。"
+  },
+  "language": {
+    "label": "语言",
+    "switcherAria": "切换语言"
+  },
+  "common": {
+    "trialCta": "开始 3 天试用",
+    "watchDemo": "观看 30 秒演示",
+    "seeHowItWorks": "查看工作方式",
+    "readPrivacy": "隐私",
+    "readTerms": "条款",
+    "back": "返回",
+    "home": "首页"
+  },
+  "home": {
+    "title": "保护眼睛，保持专注。",
+    "subtitle": "Holmeta 是面向长时间使用屏幕人群的浏览器扩展。通过光线过滤、深度专注计时与温和提醒，降低视觉疲劳。",
+    "supportLine": "仅浏览器内运行。隐私优先。可随时取消。",
+    "nav": {
+      "features": "功能",
+      "howItWorks": "工作方式",
+      "privacy": "隐私",
+      "pricing": "价格",
+      "faq": "常见问题"
+    },
+    "why": { "title": "为什么用户会持续使用 Holmeta" },
+    "how": { "title": "Holmeta 如何工作" },
+    "pricing": { "title": "简单定价" },
+    "privacy": { "title": "专为浏览器场景打造" },
+    "faq": { "title": "常见问题" }
+  },
+  "pricingPage": {
+    "subtitle": "语言本地化，计费逻辑一致，升级路径清晰。",
+    "monthlyLabel": "月付",
+    "yearlyLabel": "年付",
+    "perMonth": "月",
+    "perYear": "年",
+    "yearlyNote": "年费方案可在结账页选择。",
+    "openCheckout": "打开结账",
+    "footer": "显示币种可能会本地化，最终扣费金额以 Stripe Checkout 为准。"
+  },
+  "dashboard": {
+    "title": "开始 3 天试用"
+  },
+  "subscribe": {
+    "title": "选择方案并继续结账"
+  },
+  "billingSuccess": {
+    "title": "您的 Holmeta 许可证密钥",
+    "reveal": "显示许可证",
+    "manage": "管理订阅",
+    "download": "下载扩展"
+  },
+  "download": {
+    "title": "下载 Holmeta 扩展",
+    "downloadButton": "下载扩展"
+  },
+  "billingHelp": {
+    "title": "许可证、取消与退款"
+  },
+  "privacyPage": {
+    "title": "Holmeta 隐私政策"
+  },
+  "termsPage": {
+    "title": "Holmeta 使用条款"
+  },
+  "statusPage": {
+    "title": "Holmeta 发布状态"
+  }
+}

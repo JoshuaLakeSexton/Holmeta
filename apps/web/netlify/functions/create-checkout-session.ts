@@ -5,15 +5,21 @@ import { corsPreflight, json, methodNotAllowed, parseJsonBody, requestId } from 
 import { reportServerEvent } from "./_lib/monitor";
 import { requireEnvVars } from "./_lib/env";
 import {
+  currencyForMarket,
   normalizedPlan,
+  resolveMarketFromSignals,
   resolvePriceIdForPlan,
   type PlanKey,
+  type MarketKey,
   requiredPriceEnvForPlan
 } from "./_lib/plans";
 
 interface CheckoutBody {
   planKey?: string | null;
   installId?: string | null;
+  locale?: string | null;
+  country?: string | null;
+  currency?: string | null;
 }
 
 function trialDaysFromEnv(): number {
@@ -32,6 +38,22 @@ function requiredEnv(name: string): string | null {
 
 function normalizeBaseUrl(raw: string): string {
   return raw.replace(/\/$/, "");
+}
+
+function normalizeSiteLocale(input?: string | null): "en" | "ja" | "ko" | "zh-cn" | "zh-tw" {
+  const value = String(input || "").trim().toLowerCase();
+  if (value.startsWith("ja")) return "ja";
+  if (value.startsWith("ko")) return "ko";
+  if (value.startsWith("zh-cn") || value.startsWith("zh-hans")) return "zh-cn";
+  if (value.startsWith("zh-tw") || value.startsWith("zh-hant")) return "zh-tw";
+  return "en";
+}
+
+function stripeCheckoutLocale(siteLocale: string): Stripe.Checkout.SessionCreateParams.Locale {
+  if (siteLocale === "ja") return "ja";
+  if (siteLocale === "ko") return "ko";
+  if (siteLocale === "zh-cn" || siteLocale === "zh-tw") return "zh";
+  return "en";
 }
 
 function resolveRequestedPlan(body: CheckoutBody): PlanKey | null {
@@ -91,11 +113,19 @@ export const handler: Handler = async (event) => {
       code: "PLAN_KEY_INVALID"
     });
   }
-  const resolvedPriceId = resolvePriceIdForPlan(planKey);
+  const siteLocale = normalizeSiteLocale(body.locale);
+  const marketKey: MarketKey = resolveMarketFromSignals({
+    locale: body.locale,
+    country: body.country,
+    currency: body.currency
+  });
+  const targetCurrency = String(body.currency || "").trim().toLowerCase() || currencyForMarket(marketKey);
+  const resolvedPriceId = resolvePriceIdForPlan(planKey, marketKey);
   if (!resolvedPriceId) {
-    const requiredName = requiredPriceEnvForPlan(planKey);
+    const requiredName = requiredPriceEnvForPlan(planKey, marketKey);
     await reportServerEvent("error", "checkout_missing_price_mapping", {
       planKey,
+      marketKey,
       requiredName,
       requestId: rid
     });
@@ -120,6 +150,8 @@ export const handler: Handler = async (event) => {
   const baseUrl = normalizeBaseUrl(publicBaseUrl);
   const trialDays = trialDaysFromEnv();
   const installId = String(body.installId || "").trim();
+  const localizedBase = `${baseUrl}/${siteLocale}`;
+  const checkoutLocale = stripeCheckoutLocale(siteLocale);
 
   const stripe = new Stripe(stripeKey, {
     apiVersion: "2025-02-24.acacia"
@@ -128,6 +160,7 @@ export const handler: Handler = async (event) => {
   try {
     const session = await stripe.checkout.sessions.create({
       mode: "subscription",
+      locale: checkoutLocale,
       payment_method_collection: "always",
       allow_promotion_codes: true,
       line_items: [
@@ -140,15 +173,21 @@ export const handler: Handler = async (event) => {
         trial_period_days: trialDays,
         metadata: {
           plan_key: planKey,
-          install_id: installId
+          install_id: installId,
+          locale: siteLocale,
+          market_key: marketKey,
+          requested_currency: targetCurrency
         }
       },
       metadata: {
         plan_key: planKey,
-        install_id: installId
+        install_id: installId,
+        locale: siteLocale,
+        market_key: marketKey,
+        requested_currency: targetCurrency
       },
-      success_url: `${baseUrl}/billing/success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${baseUrl}/billing/cancel`
+      success_url: `${localizedBase}/billing/success?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${localizedBase}/billing/cancel`
     });
 
     if (!session.url) {
@@ -164,6 +203,10 @@ export const handler: Handler = async (event) => {
 
     await reportServerEvent("info", "checkout_session_created", {
       planKey,
+      marketKey,
+      locale: siteLocale,
+      checkoutLocale,
+      requestedCurrency: targetCurrency,
       trialDays,
       requestId: rid
     });

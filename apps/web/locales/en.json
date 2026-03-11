@@ -1,0 +1,317 @@
+{
+  "meta": {
+    "title": "HOLMETA",
+    "description": "Holmeta helps heavy screen users reduce eye strain and keep focus."
+  },
+  "language": {
+    "label": "Language",
+    "switcherAria": "Switch language"
+  },
+  "common": {
+    "brand": "HOLMETA",
+    "trialCta": "Start 3-Day Trial",
+    "watchDemo": "Watch 30-Sec Demo",
+    "seeHowItWorks": "See How It Works",
+    "readPrivacy": "Read Privacy",
+    "readTerms": "Read Terms",
+    "back": "Back",
+    "home": "Home",
+    "contactEmail": "reach@holmeta.com"
+  },
+  "home": {
+    "nav": {
+      "features": "Features",
+      "howItWorks": "How it Works",
+      "privacy": "Privacy",
+      "pricing": "Pricing",
+      "faq": "FAQ"
+    },
+    "kicker": "MISSION BRIEFING",
+    "title": "Protect your eyes. Keep your focus.",
+    "subtitle": "Holmeta is a browser extension for people who spend hours on screens. Use light filters, deep work sessions, and gentle reminders to reduce strain and stay on task.",
+    "supportLine": "Browser-only. Privacy-first. Cancel anytime.",
+    "proof": [
+      "One-click Red Mode",
+      "Deep Work Timer",
+      "Break Reminders That Don’t Nag"
+    ],
+    "demo": {
+      "kicker": "30-SECOND DEMO",
+      "summary": "See filter toggle, focus timer, and reminder prompts in one quick walkthrough."
+    },
+    "trust": {
+      "kicker": "BUILT FOR PEOPLE WHO LIVE IN TABS",
+      "items": ["Browser-only controls", "Local-first defaults", "No ad-driven business model"]
+    },
+    "why": {
+      "kicker": "WHY HOLMETA",
+      "title": "Why people keep Holmeta open",
+      "items": [
+        { "title": "Reduce eye strain", "body": "Switch on browser light filters that make late work easier on your eyes." },
+        { "title": "Stay in deep work", "body": "Run focus sessions that reduce interruptions and help you keep momentum." },
+        { "title": "Remember to reset", "body": "Get subtle reminders for breaks, blinking, posture, and hydration." }
+      ]
+    },
+    "how": {
+      "kicker": "HOW IT WORKS",
+      "title": "How Holmeta works",
+      "steps": [
+        "Start your 3-day trial",
+        "Download the extension",
+        "Turn on filters, focus mode, and reminders in under a minute"
+      ],
+      "body": "No complicated setup. No account maze. Just install, activate, and go."
+    },
+    "pricing": {
+      "kicker": "PRICING",
+      "title": "Simple pricing",
+      "planTitle": "HOLMETA PREMIUM — $2/MONTH",
+      "bullets": [
+        "Red light + dim + contrast filters",
+        "Focus timer and deep work mode",
+        "Break, blink, posture, and hydration reminders",
+        "Per-site presets",
+        "3-day trial, cancel anytime"
+      ],
+      "foot": "No ads. No data-selling business model. Just a focused utility that helps you work better."
+    },
+    "privacy": {
+      "kicker": "PRIVACY",
+      "title": "Built to stay in your browser",
+      "body": "Holmeta runs where you work: inside the browser. Sensitive controls stay local. Billing only unlocks premium features.",
+      "bullets": [
+        "Local-first by default",
+        "Browser-only by design",
+        "Cancel anytime",
+        "No ad-driven business model"
+      ]
+    },
+    "faq": {
+      "kicker": "FAQ",
+      "title": "Common Questions",
+      "items": [
+        {
+          "q": "Why is Holmeta paid?",
+          "a": "Holmeta is a focused utility with ongoing updates, privacy-first local controls, and no ad-based business model. At $2/month, it’s designed to be a small tool that makes your browser easier on your eyes and attention."
+        },
+        {
+          "q": "Does Holmeta work system-wide?",
+          "a": "Holmeta v1 is browser-only by design."
+        },
+        {
+          "q": "What happens during the trial?",
+          "a": "You get access to Premium features for 3 days. Cancel anytime."
+        },
+        {
+          "q": "What data do you store?",
+          "a": "Billing and license records needed to unlock Premium. Core browsing controls run locally in your extension."
+        },
+        {
+          "q": "Which browsers are supported?",
+          "a": "Chromium browsers now. Expand support later as store distribution grows."
+        }
+      ]
+    },
+    "footer": {
+      "status": "Status / Changelog",
+      "privacy": "Privacy",
+      "terms": "Terms",
+      "contact": "Contact"
+    }
+  },
+  "pricingPage": {
+    "subtitle": "Localized language. Consistent billing logic. Clear upgrade path.",
+    "monthlyLabel": "MONTHLY",
+    "yearlyLabel": "YEARLY",
+    "perMonth": "month",
+    "perYear": "year",
+    "yearlyNote": "Yearly billing available in checkout.",
+    "openCheckout": "Open Checkout",
+    "footer": "Displayed currency may be localized. Final charge is shown in Stripe Checkout before confirmation."
+  },
+  "dashboard": {
+    "kicker": "TRIAL CHECKOUT",
+    "title": "start your 3-day trial",
+    "body": "Keep your flow simple: checkout first, reveal your license on success, then download and activate the extension.",
+    "statusReady": "STATUS: READY TO START 3-DAY TRIAL",
+    "statusCreating": "STATUS: CREATING CHECKOUT SESSION",
+    "statusFailed": "STATUS: CHECKOUT FAILED ({message})",
+    "selectPlan": "Select Plan",
+    "afterCheckout": "After Checkout",
+    "steps": [
+      "Open /billing/success with your checkout session id.",
+      "Reveal and copy your one-time license key.",
+      "Download extension and activate premium with your key."
+    ],
+    "plans": {
+      "monthly_a": { "title": "HOLMETA PREMIUM", "detail": "$2/mo · 3-day trial" },
+      "yearly": { "title": "HOLMETA YEARLY", "detail": "Yearly billing" }
+    }
+  },
+  "subscribe": {
+    "kicker": "START 3-DAY TRIAL",
+    "title": "pick your plan and continue to checkout",
+    "body": "Trial starts in Stripe Checkout. After payment, you land on Billing Success to reveal license and download.",
+    "statusReady": "STATUS: READY TO START 3-DAY TRIAL",
+    "statusOpening": "STATUS: OPENING {plan} CHECKOUT",
+    "statusFailed": "STATUS: CHECKOUT FAILED ({message})",
+    "alreadyCheckedOut": "I ALREADY CHECKED OUT",
+    "plans": {
+      "monthly_a": { "label": "HOLMETA PREMIUM", "detail": "$2/mo", "note": "Includes 3-day trial" },
+      "yearly": { "label": "HOLMETA YEARLY", "detail": "Yearly billing", "note": "Best for daily users" }
+    },
+    "creating": "CREATING SESSION…",
+    "startTrial": "START 3-DAY TRIAL"
+  },
+  "billingSuccess": {
+    "kicker": "CHECKOUT SUCCESS",
+    "title": "your holmeta license key",
+    "body": "Save this key now. You need it to activate Premium inside the extension.",
+    "statusReady": "STATUS: READY",
+    "statusSessionRequired": "STATUS: SESSION ID REQUIRED",
+    "statusFetching": "STATUS: FETCHING LICENSE KEY",
+    "statusAlreadyRevealed": "STATUS: LICENSE ALREADY REVEALED FOR THIS SESSION",
+    "statusLicenseReady": "STATUS: LICENSE READY",
+    "statusLicenseFailed": "STATUS: LICENSE FETCH FAILED ({message})",
+    "statusLicenseCopied": "STATUS: LICENSE COPIED",
+    "statusCopyFailed": "STATUS: COPY FAILED",
+    "statusOpeningPortal": "STATUS: OPENING BILLING PORTAL",
+    "statusPortalFailed": "STATUS: PORTAL FAILED ({message})",
+    "statusVerifyingDownload": "STATUS: VERIFYING DOWNLOAD ACCESS",
+    "statusDownloadStarted": "STATUS: DOWNLOAD STARTED",
+    "statusDownloadFailed": "STATUS: DOWNLOAD FAILED ({message})",
+    "sessionLabel": "CHECKOUT SESSION ID",
+    "licenseBox": "LICENSE KEY",
+    "notRevealed": "NOT REVEALED YET",
+    "reveal": "Reveal License",
+    "manage": "Manage Billing",
+    "help": "Refund / Cancel Help",
+    "copy": "Copy License",
+    "download": "Download Extension",
+    "openDownload": "Open Download Page",
+    "activateTitle": "Activate in Under a Minute",
+    "activateSteps": [
+      "Download and load the extension in your browser.",
+      "Open extension popup and go to Premium unlock.",
+      "Paste license key and click Activate.",
+      "Keep this page bookmarked for billing and cancellation access."
+    ]
+  },
+  "download": {
+    "kicker": "DOWNLOAD AFTER TRIAL",
+    "title": "download holmeta extension",
+    "flowKicker": "FLOW",
+    "flowTitle": "Start trial → checkout success → download",
+    "flowBody": "If you have not started checkout yet, begin your 3-day trial first. If you already paid, use your session id or license key below.",
+    "storesKicker": "BROWSER STORES",
+    "protectedKicker": "PROTECTED ZIP DOWNLOAD",
+    "manualKicker": "MANUAL INSTALL (CHROMIUM)",
+    "manualBody": "After download: extract zip → open chrome://extensions → enable Developer mode → Load unpacked → select extracted folder containing manifest.json.",
+    "detected": "Detected browser",
+    "recommended": "Recommended store",
+    "statusEnter": "STATUS: ENTER SESSION ID OR LICENSE TO DOWNLOAD",
+    "statusNeedInput": "STATUS: ENTER CHECKOUT SESSION ID OR LICENSE KEY",
+    "statusVerifying": "STATUS: VERIFYING TRIAL OR SUBSCRIPTION",
+    "statusNoEntitlement": "STATUS: NO ACTIVE TRIAL OR SUBSCRIPTION FOUND",
+    "statusDownloadFailed": "STATUS: DOWNLOAD FAILED ({message})",
+    "statusEmpty": "STATUS: EMPTY DOWNLOAD RESPONSE",
+    "statusStarted": "STATUS: DOWNLOAD STARTED",
+    "notDetected": "Not detected",
+    "chooseBrowser": "Choose your browser",
+    "storeChromium": "Chrome / Edge",
+    "storeFirefox": "Firefox",
+    "storeSafari": "Safari",
+    "installStore": "Install from Store",
+    "storeMissing": "Store Link Not Configured",
+    "downloadButton": "Download Extension",
+    "downloadVerifying": "Verifying…",
+    "sessionLabel": "CHECKOUT SESSION ID",
+    "licenseLabel": "LICENSE KEY (ALTERNATE)"
+  },
+  "billingHelp": {
+    "kicker": "BILLING SUPPORT",
+    "title": "license, cancellation, and refunds",
+    "body": "Need help after checkout? Use this page to recover your license key, cancel in Stripe, or request a refund review.",
+    "quickActions": "Quick Actions",
+    "recover": "Recover License Key",
+    "readTerms": "Read Billing Terms",
+    "cancelTitle": "How to Cancel",
+    "cancelSteps": [
+      "Open /billing/success with your checkout session_id.",
+      "Click Manage Billing to open the Stripe billing portal.",
+      "In Stripe, select Cancel subscription."
+    ],
+    "refundTitle": "Refund Requests",
+    "refundBody": "Refunds are handled case-by-case. Include your checkout session id and reason so support can review quickly.",
+    "contactLabel": "Contact",
+    "subjectLabel": "Subject",
+    "subject": "HOLMETA REFUND REQUEST",
+    "includeLabel": "Include",
+    "includeBody": "session id, purchase date, and a brief issue summary"
+  },
+  "billingCancel": {
+    "kicker": "CHECKOUT CANCELLED",
+    "title": "no charge was made",
+    "body": "When you are ready, restart checkout and begin your 3-day trial.",
+    "help": "Billing Help"
+  },
+  "privacyPage": {
+    "kicker": "PRIVACY POLICY",
+    "title": "Holmeta Privacy Posture",
+    "effective": "Effective date: March 2, 2026",
+    "storeTitle": "What We Store",
+    "store": [
+      "Extension settings and reminder logs are stored locally in your browser by default.",
+      "Stripe billing records and license hashes are stored server-side for subscriptions and unlock checks.",
+      "Entitlement state (trialing/active/inactive) is stored to unlock paid features."
+    ],
+    "notStoreTitle": "What We Do Not Store",
+    "notStore": [
+      "No keylogging.",
+      "No sale of personal data.",
+      "No page-content harvesting for ad analytics."
+    ],
+    "processingTitle": "Permissions and Processing",
+    "processing": [
+      "Screen filters and reminder overlays run in-browser.",
+      "Camera access is optional and requested only if webcam posture mode is enabled.",
+      "Billing, download gating, and license checks are processed through secure server functions."
+    ],
+    "contact": "Contact",
+    "openTerms": "Open Terms"
+  },
+  "termsPage": {
+    "kicker": "TERMS OF USE",
+    "title": "Holmeta Terms",
+    "effective": "Effective date: March 2, 2026",
+    "scopeTitle": "Service Scope",
+    "scope": [
+      "Holmeta provides browser-based wellness and focus tooling.",
+      "Holmeta is not medical advice, diagnosis, or treatment.",
+      "Some features require an active subscription."
+    ],
+    "billingTitle": "Billing and Trials",
+    "billing": [
+      "Premium pricing is $2 per month.",
+      "Yearly billing is also available where offered on the subscribe page.",
+      "Trial terms are shown in Stripe Checkout.",
+      "You can manage, cancel, or request refund review from billing support and Stripe portal."
+    ],
+    "acceptableTitle": "Acceptable Use",
+    "acceptable": [
+      "Do not use the service for unlawful activity.",
+      "Do not attempt to abuse billing, license, or entitlement systems.",
+      "Use at your own discretion in accordance with browser and platform policies."
+    ],
+    "contact": "Contact",
+    "openPrivacy": "Open Privacy"
+  },
+  "statusPage": {
+    "kicker": "SYSTEM STATUS",
+    "title": "Holmeta Release Status",
+    "operational": "STATUS: OPERATIONAL",
+    "monitoring": "MONITORING: ENABLED (FUNCTION LOGS + CLIENT ERROR INGEST)",
+    "updated": "Last updated: March 10, 2026",
+    "recent": "Recent Changelog"
+  }
+}

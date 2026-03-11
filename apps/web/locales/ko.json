@@ -1,0 +1,75 @@
+{
+  "meta": {
+    "title": "HOLMETA",
+    "description": "Holmeta는 장시간 화면을 보는 사용자의 눈 피로를 줄이고 집중을 지켜줍니다."
+  },
+  "language": {
+    "label": "언어",
+    "switcherAria": "언어 전환"
+  },
+  "common": {
+    "trialCta": "3일 체험 시작",
+    "watchDemo": "30초 데모 보기",
+    "seeHowItWorks": "작동 방식 보기",
+    "readPrivacy": "개인정보",
+    "readTerms": "이용약관",
+    "back": "뒤로",
+    "home": "홈"
+  },
+  "home": {
+    "title": "눈을 보호하고, 집중을 유지하세요.",
+    "subtitle": "Holmeta는 장시간 스크린 사용자를 위한 브라우저 확장입니다. 라이트 필터, 집중 세션, 부드러운 알림으로 피로를 줄여줍니다.",
+    "supportLine": "브라우저 전용. 개인정보 우선. 언제든 해지 가능.",
+    "nav": {
+      "features": "기능",
+      "howItWorks": "작동 방식",
+      "privacy": "개인정보",
+      "pricing": "요금",
+      "faq": "FAQ"
+    },
+    "why": { "title": "사용자가 Holmeta를 계속 쓰는 이유" },
+    "how": { "title": "Holmeta 사용 방법" },
+    "pricing": { "title": "간단한 요금" },
+    "privacy": { "title": "브라우저 안에서 동작" },
+    "faq": { "title": "자주 묻는 질문" }
+  },
+  "pricingPage": {
+    "subtitle": "언어는 현지화하고, 결제 로직은 일관되게 유지합니다.",
+    "monthlyLabel": "월간",
+    "yearlyLabel": "연간",
+    "perMonth": "월",
+    "perYear": "년",
+    "yearlyNote": "연간 요금제는 결제 화면에서 선택할 수 있습니다.",
+    "openCheckout": "결제 열기",
+    "footer": "표시 통화는 현지화될 수 있으며, 최종 결제 금액은 Stripe Checkout에서 확인됩니다."
+  },
+  "dashboard": {
+    "title": "3일 체험 시작",
+    "statusReady": "상태: 체험 시작 준비 완료"
+  },
+  "subscribe": {
+    "title": "요금제를 선택하고 결제를 진행하세요"
+  },
+  "billingSuccess": {
+    "title": "Holmeta 라이선스 키",
+    "reveal": "라이선스 확인",
+    "manage": "결제 관리",
+    "download": "확장 프로그램 다운로드"
+  },
+  "download": {
+    "title": "Holmeta 확장 프로그램 다운로드",
+    "downloadButton": "확장 프로그램 다운로드"
+  },
+  "billingHelp": {
+    "title": "라이선스, 해지, 환불"
+  },
+  "privacyPage": {
+    "title": "Holmeta 개인정보 처리방침"
+  },
+  "termsPage": {
+    "title": "Holmeta 이용약관"
+  },
+  "statusPage": {
+    "title": "Holmeta 출시 상태"
+  }
+}

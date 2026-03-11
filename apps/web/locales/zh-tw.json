@@ -1,0 +1,74 @@
+{
+  "meta": {
+    "title": "HOLMETA",
+    "description": "Holmeta 幫助長時間使用螢幕的使用者降低眼睛負擔並維持專注。"
+  },
+  "language": {
+    "label": "語言",
+    "switcherAria": "切換語言"
+  },
+  "common": {
+    "trialCta": "開始 3 天試用",
+    "watchDemo": "觀看 30 秒示範",
+    "seeHowItWorks": "查看運作方式",
+    "readPrivacy": "隱私",
+    "readTerms": "條款",
+    "back": "返回",
+    "home": "首頁"
+  },
+  "home": {
+    "title": "保護眼睛，維持專注。",
+    "subtitle": "Holmeta 是為長時間使用螢幕的人打造的瀏覽器擴充功能。透過濾光、專注計時與溫和提醒降低視覺疲勞。",
+    "supportLine": "僅在瀏覽器運行。隱私優先。可隨時取消。",
+    "nav": {
+      "features": "功能",
+      "howItWorks": "運作方式",
+      "privacy": "隱私",
+      "pricing": "價格",
+      "faq": "常見問題"
+    },
+    "why": { "title": "為何使用者持續開著 Holmeta" },
+    "how": { "title": "Holmeta 如何運作" },
+    "pricing": { "title": "簡單定價" },
+    "privacy": { "title": "專為瀏覽器工作流程設計" },
+    "faq": { "title": "常見問題" }
+  },
+  "pricingPage": {
+    "subtitle": "語言在地化、計費邏輯一致、升級流程清楚。",
+    "monthlyLabel": "月付",
+    "yearlyLabel": "年付",
+    "perMonth": "月",
+    "perYear": "年",
+    "yearlyNote": "年費方案可在結帳頁選擇。",
+    "openCheckout": "前往結帳",
+    "footer": "顯示幣別可能為在地化，最終扣款金額以 Stripe Checkout 顯示為準。"
+  },
+  "dashboard": {
+    "title": "開始 3 天試用"
+  },
+  "subscribe": {
+    "title": "選擇方案並前往結帳"
+  },
+  "billingSuccess": {
+    "title": "您的 Holmeta 授權金鑰",
+    "reveal": "顯示授權",
+    "manage": "管理訂閱",
+    "download": "下載擴充功能"
+  },
+  "download": {
+    "title": "下載 Holmeta 擴充功能",
+    "downloadButton": "下載擴充功能"
+  },
+  "billingHelp": {
+    "title": "授權、取消與退款"
+  },
+  "privacyPage": {
+    "title": "Holmeta 隱私政策"
+  },
+  "termsPage": {
+    "title": "Holmeta 使用條款"
+  },
+  "statusPage": {
+    "title": "Holmeta 發布狀態"
+  }
+}

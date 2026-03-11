@@ -1,0 +1,82 @@
+{
+  "meta": {
+    "title": "HOLMETA",
+    "description": "Holmeta は長時間画面を見るユーザーの目の負担を減らし、集中を維持します。"
+  },
+  "language": {
+    "label": "言語",
+    "switcherAria": "言語を切り替え"
+  },
+  "common": {
+    "trialCta": "3日間トライアルを開始",
+    "watchDemo": "30秒デモを見る",
+    "seeHowItWorks": "使い方を見る",
+    "readPrivacy": "プライバシー",
+    "readTerms": "利用規約",
+    "back": "戻る",
+    "home": "ホーム"
+  },
+  "home": {
+    "title": "目を守り、集中を保つ。",
+    "subtitle": "Holmeta は長時間スクリーンを使う人向けのブラウザ拡張です。ライトフィルター、集中セッション、やさしいリマインダーで負担を減らします。",
+    "supportLine": "ブラウザ内で完結。プライバシー重視。いつでも解約可能。",
+    "nav": {
+      "features": "機能",
+      "howItWorks": "使い方",
+      "privacy": "プライバシー",
+      "pricing": "料金",
+      "faq": "FAQ"
+    },
+    "why": { "title": "Holmeta を使い続ける理由" },
+    "how": { "title": "Holmeta の使い方" },
+    "pricing": { "title": "シンプルな料金" },
+    "privacy": { "title": "ブラウザ内で完結する設計" },
+    "faq": { "title": "よくある質問" }
+  },
+  "pricingPage": {
+    "subtitle": "言語はローカライズ。課金ロジックは一貫。アップグレード導線は明確。",
+    "monthlyLabel": "月額",
+    "yearlyLabel": "年額",
+    "perMonth": "月",
+    "perYear": "年",
+    "yearlyNote": "年額プランはチェックアウトで選択できます。",
+    "openCheckout": "チェックアウトへ",
+    "footer": "表示価格はローカライズされる場合があります。最終請求額は Stripe Checkout で確認できます。"
+  },
+  "dashboard": {
+    "title": "3日間トライアルを開始",
+    "statusReady": "ステータス: トライアル準備完了",
+    "statusCreating": "ステータス: チェックアウトセッション作成中"
+  },
+  "subscribe": {
+    "title": "プランを選択してチェックアウトへ",
+    "statusReady": "ステータス: トライアル準備完了",
+    "statusOpening": "ステータス: {plan} のチェックアウトを開いています"
+  },
+  "billingSuccess": {
+    "title": "Holmeta ライセンスキー",
+    "reveal": "ライセンスを表示",
+    "manage": "請求を管理",
+    "download": "拡張機能をダウンロード"
+  },
+  "download": {
+    "title": "Holmeta 拡張機能をダウンロード",
+    "downloadButton": "拡張機能をダウンロード",
+    "downloadVerifying": "確認中…"
+  },
+  "billingHelp": {
+    "title": "ライセンス・解約・返金"
+  },
+  "billingCancel": {
+    "title": "決済は完了していません"
+  },
+  "privacyPage": {
+    "title": "Holmeta プライバシーポリシー"
+  },
+  "termsPage": {
+    "title": "Holmeta 利用規約"
+  },
+  "statusPage": {
+    "title": "Holmeta リリース状況"
+  }
+}
