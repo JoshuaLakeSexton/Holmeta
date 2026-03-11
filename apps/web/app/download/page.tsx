@@ -1,5 +1,5 @@
-import { DownloadPageContent } from "@/components/pages/DownloadPageContent";
+import { redirectToLocalizedPath } from "@/lib/i18n/server-locale";
 
-export default function DownloadPage() {
-  return <DownloadPageContent locale="en" />;
+export default async function DownloadPage() {
+  await redirectToLocalizedPath("/download");
 }

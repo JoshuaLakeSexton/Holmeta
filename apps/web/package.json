@@ -8,11 +8,12 @@
     "prisma:dbpush": "prisma db push --schema prisma/schema.prisma",
     "css:guard": "node ../../scripts/check-css-integrity.mjs",
     "check:locales": "node ../../scripts/check-web-locales.mjs",
+    "check:ui-copy": "node ../../scripts/check-web-hardcoded-ui.mjs",
     "prebuild": "npm run css:guard",
     "build": "npm run prisma:generate && next build",
     "start": "next start",
     "typecheck": "rm -f tsconfig.tsbuildinfo .next/cache/.tsbuildinfo && npm run prisma:generate && next typegen && tsc -p tsconfig.json --noEmit",
-    "lint": "npm run check:locales",
+    "lint": "npm run check:locales && npm run check:ui-copy",
     "test": "vitest run"
   },
   "dependencies": {

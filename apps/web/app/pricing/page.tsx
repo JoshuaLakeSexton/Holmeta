@@ -1,5 +1,5 @@
-import { PricingPageContent } from "@/components/pages/PricingPageContent";
+import { redirectToLocalizedPath } from "@/lib/i18n/server-locale";
 
-export default function PricingPage() {
-  return <PricingPageContent locale="en" />;
+export default async function PricingPage() {
+  await redirectToLocalizedPath("/pricing");
 }

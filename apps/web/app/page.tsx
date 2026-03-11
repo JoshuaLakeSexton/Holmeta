@@ -1,5 +1,5 @@
-import { HomePageContent } from "@/components/pages/HomePageContent";
+import { redirectToLocalizedPath } from "@/lib/i18n/server-locale";
 
-export default function HomePage() {
-  return <HomePageContent locale="en" />;
+export default async function HomePage() {
+  await redirectToLocalizedPath("/");
 }

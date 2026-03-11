@@ -1,5 +1,5 @@
-import { BillingCancelPageContent } from "@/components/pages/BillingCancelPageContent";
+import { redirectToLocalizedPath } from "@/lib/i18n/server-locale";
 
-export default function BillingCancelPage() {
-  return <BillingCancelPageContent locale="en" />;
+export default async function BillingCancelPage() {
+  await redirectToLocalizedPath("/billing/cancel");
 }

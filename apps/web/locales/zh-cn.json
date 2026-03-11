@@ -139,7 +139,8 @@
       "demoPreview": "Holmeta 演示预览",
       "proofStrip": "校样条",
       "trustMarkers": "信任标记",
-      "footerLinks": "页脚链接"
+      "footerLinks": "页脚链接",
+      "premiumCard": "Holmeta 高级版定价卡片"
     }
   },
   "pricingPage": {
@@ -150,7 +151,11 @@
     "perYear": "年",
     "yearlyNote": "年费方案可在结账页选择。",
     "openCheckout": "打开结账",
-    "footer": "显示币种可能会本地化，最终扣费金额以 Stripe Checkout 为准。"
+    "footer": "显示币种可能会本地化，最终扣费金额以 Stripe Checkout 为准。",
+    "aria": {
+      "premiumCard": "Holmeta 高级版定价卡片",
+      "yearlyCard": "Holmeta 年付定价卡片"
+    }
   },
   "dashboard": {
     "title": "开始 3 天试用",

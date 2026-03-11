@@ -48,7 +48,7 @@ export function PricingPageContent({ locale = "en" }: PricingPageProps) {
       </Panel>
 
       <Panel>
-        <article className="hm-pricing-card" aria-label="Holmeta Premium pricing">
+        <article className="hm-pricing-card" aria-label={t(messages, "pricingPage.aria.premiumCard", "Holmeta Premium pricing")}>
           <p className="hm-plan-kicker">{t(messages, "pricingPage.monthlyLabel", "MONTHLY")}</p>
           <h2 className="hm-subtitle">{monthlyLabel} / {t(messages, "pricingPage.perMonth", "month")}</h2>
           <ul className="hm-list">
@@ -69,7 +69,7 @@ export function PricingPageContent({ locale = "en" }: PricingPageProps) {
           </div>
         </article>
 
-        <article className="hm-pricing-card" aria-label="Holmeta Yearly pricing">
+        <article className="hm-pricing-card" aria-label={t(messages, "pricingPage.aria.yearlyCard", "Holmeta Yearly pricing")}>
           <p className="hm-plan-kicker">{t(messages, "pricingPage.yearlyLabel", "YEARLY")}</p>
           <h2 className="hm-subtitle">{yearlyLabel} / {t(messages, "pricingPage.perYear", "year")}</h2>
           <p className="hm-meta">{t(messages, "pricingPage.yearlyNote", "Yearly billing available in checkout.")}</p>

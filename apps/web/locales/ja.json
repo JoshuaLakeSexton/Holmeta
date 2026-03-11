@@ -139,7 +139,8 @@
       "demoPreview": "Holmeta デモ プレビュー",
       "proofStrip": "プルーフストリップ",
       "trustMarkers": "トラストマーカー",
-      "footerLinks": "フッターリンク"
+      "footerLinks": "フッターリンク",
+      "premiumCard": "Holmeta プレミアム料金"
     }
   },
   "pricingPage": {
@@ -150,7 +151,11 @@
     "perYear": "年",
     "yearlyNote": "年額プランはチェックアウトで選択できます。",
     "openCheckout": "チェックアウトへ",
-    "footer": "表示価格はローカライズされる場合があります。最終請求額は Stripe Checkout で確認できます。"
+    "footer": "表示価格はローカライズされる場合があります。最終請求額は Stripe Checkout で確認できます。",
+    "aria": {
+      "premiumCard": "Holmeta プレミアム料金",
+      "yearlyCard": "Holmeta 年額料金"
+    }
   },
   "dashboard": {
     "title": "3日間トライアルを開始",

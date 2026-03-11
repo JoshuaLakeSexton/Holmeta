@@ -1,5 +1,5 @@
-import { StatusPageContent } from "@/components/pages/StatusPageContent";
+import { redirectToLocalizedPath } from "@/lib/i18n/server-locale";
 
-export default function StatusPage() {
-  return <StatusPageContent locale="en" />;
+export default async function StatusPage() {
+  await redirectToLocalizedPath("/status");
 }

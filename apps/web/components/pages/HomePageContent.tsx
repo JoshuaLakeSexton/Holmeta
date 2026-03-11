@@ -203,7 +203,7 @@ export function HomePageContent({ locale = "en" }: HomePageProps) {
             {t(messages, "home.pricing.title", "Simple pricing")}
           </h2>
 
-          <article className="hm-pricing-card" aria-label="Holmeta Premium pricing">
+          <article className="hm-pricing-card" aria-label={t(messages, "home.aria.premiumCard", "Holmeta Premium pricing")}>
             <p className="hm-meta">{t(messages, "home.pricing.planTitle", "HOLMETA PREMIUM — $2/MONTH")}</p>
             <ul className="hm-list">
               {pricingBullets.map((item) => (

@@ -139,7 +139,8 @@
       "demoPreview": "Holmeta demo preview",
       "proofStrip": "Proof strip",
       "trustMarkers": "Trust markers",
-      "footerLinks": "Footer links"
+      "footerLinks": "Footer links",
+      "premiumCard": "Holmeta Premium pricing"
     }
   },
   "pricingPage": {
@@ -150,7 +151,11 @@
     "perYear": "year",
     "yearlyNote": "Yearly billing available in checkout.",
     "openCheckout": "Open Checkout",
-    "footer": "Displayed currency may be localized. Final charge is shown in Stripe Checkout before confirmation."
+    "footer": "Displayed currency may be localized. Final charge is shown in Stripe Checkout before confirmation.",
+    "aria": {
+      "premiumCard": "Holmeta Premium pricing",
+      "yearlyCard": "Holmeta Yearly pricing"
+    }
   },
   "dashboard": {
     "kicker": "TRIAL CHECKOUT",

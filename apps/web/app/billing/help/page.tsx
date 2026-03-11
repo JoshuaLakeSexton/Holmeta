@@ -1,5 +1,5 @@
-import { BillingHelpPageContent } from "@/components/pages/BillingHelpPageContent";
+import { redirectToLocalizedPath } from "@/lib/i18n/server-locale";
 
-export default function BillingHelpPage() {
-  return <BillingHelpPageContent locale="en" />;
+export default async function BillingHelpPage() {
+  await redirectToLocalizedPath("/billing/help");
 }

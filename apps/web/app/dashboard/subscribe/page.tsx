@@ -1,5 +1,5 @@
-import { DashboardSubscribePageContent } from "@/components/pages/DashboardSubscribePageContent";
+import { redirectToLocalizedPath } from "@/lib/i18n/server-locale";
 
-export default function DashboardSubscribePage() {
-  return <DashboardSubscribePageContent locale="en" />;
+export default async function DashboardSubscribePage() {
+  await redirectToLocalizedPath("/dashboard/subscribe");
 }

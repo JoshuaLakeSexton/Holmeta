@@ -1,5 +1,5 @@
-import { BillingSuccessPageContent } from "@/components/pages/BillingSuccessPageContent";
+import { redirectToLocalizedPath } from "@/lib/i18n/server-locale";
 
-export default function BillingSuccessPage() {
-  return <BillingSuccessPageContent locale="en" />;
+export default async function BillingSuccessPage() {
+  await redirectToLocalizedPath("/billing/success");
 }

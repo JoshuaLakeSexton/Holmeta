@@ -1,5 +1,5 @@
-import { DashboardPageContent } from "@/components/pages/DashboardPageContent";
+import { redirectToLocalizedPath } from "@/lib/i18n/server-locale";
 
-export default function DashboardPage() {
-  return <DashboardPageContent locale="en" />;
+export default async function DashboardPage() {
+  await redirectToLocalizedPath("/dashboard");
 }

@@ -1,5 +1,5 @@
-import { TermsPageContent } from "@/components/pages/TermsPageContent";
+import { redirectToLocalizedPath } from "@/lib/i18n/server-locale";
 
-export default function TermsPage() {
-  return <TermsPageContent locale="en" />;
+export default async function TermsPage() {
+  await redirectToLocalizedPath("/terms");
 }

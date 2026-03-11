@@ -1,5 +1,5 @@
-import { PrivacyPageContent } from "@/components/pages/PrivacyPageContent";
+import { redirectToLocalizedPath } from "@/lib/i18n/server-locale";
 
-export default function PrivacyPage() {
-  return <PrivacyPageContent locale="en" />;
+export default async function PrivacyPage() {
+  await redirectToLocalizedPath("/privacy");
 }

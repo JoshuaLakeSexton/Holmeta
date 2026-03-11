@@ -139,7 +139,8 @@
       "demoPreview": "Holmeta 데모 미리보기",
       "proofStrip": "프루프 스트립",
       "trustMarkers": "신뢰 표시",
-      "footerLinks": "바닥글 링크"
+      "footerLinks": "바닥글 링크",
+      "premiumCard": "Holmeta 프리미엄 요금 카드"
     }
   },
   "pricingPage": {
@@ -150,7 +151,11 @@
     "perYear": "년",
     "yearlyNote": "연간 요금제는 결제 화면에서 선택할 수 있습니다.",
     "openCheckout": "결제 열기",
-    "footer": "표시 통화는 현지화될 수 있으며, 최종 결제 금액은 Stripe Checkout에서 확인됩니다."
+    "footer": "표시 통화는 현지화될 수 있으며, 최종 결제 금액은 Stripe Checkout에서 확인됩니다.",
+    "aria": {
+      "premiumCard": "Holmeta 프리미엄 요금 카드",
+      "yearlyCard": "Holmeta 연간 요금 카드"
+    }
   },
   "dashboard": {
     "title": "3일 체험 시작",

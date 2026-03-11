@@ -1,5 +1,5 @@
-import { FAQPageContent } from "@/components/pages/FAQPageContent";
+import { redirectToLocalizedPath } from "@/lib/i18n/server-locale";
 
-export default function FAQPage() {
-  return <FAQPageContent locale="en" />;
+export default async function FAQPage() {
+  await redirectToLocalizedPath("/faq");
 }
