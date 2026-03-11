@@ -490,9 +490,13 @@
         color: var(--holmeta-reading-fg) !important;
       }
 
+      html.holmeta-reading-theme.holmeta-reading-minimal:not(.holmeta-adaptive-active) {
+        background-color: var(--holmeta-reading-bg) !important;
+      }
+
       html.holmeta-reading-theme.holmeta-reading-minimal:not(.holmeta-adaptive-active) :where(body) {
-        background-color: transparent !important;
-        color: inherit !important;
+        background-color: var(--holmeta-reading-bg) !important;
+        color: var(--holmeta-reading-fg) !important;
       }
 
       :root.holmeta-adaptive-active {
@@ -1596,6 +1600,7 @@
       lightEnabled = false,
       readingEnabled = false,
       adaptiveEnabled = false,
+      readingProfile = {},
       lightProfile = {},
       adaptiveProfile = {}
     } = input;
@@ -1634,7 +1639,11 @@
     }
 
     if (dashboardLike) {
-      clampOverlayMax = Math.min(clampOverlayMax, 0.24);
+      const readingMode = String(readingProfile.mode || "dark");
+      const dashboardCap = readingEnabled && readingMode === "dark" && !adaptiveEnabled
+        ? 0.48
+        : 0.24;
+      clampOverlayMax = Math.min(clampOverlayMax, dashboardCap);
       adaptiveWeight = 0.86;
       if (!clampReason) clampReason = "dashboard-safe";
     }
@@ -1803,14 +1812,22 @@
       pageFilter = readingTheme.filter || "none";
 
       if (readingMinimal) {
-        overlayOpacity = clamp(
-          overlayOpacity,
-          0,
-          readingTheme.mode === "dark" ? 0.38 : 0.16
-        );
-        pageFilter = readingTheme.mode === "dark"
-          ? "brightness(0.82) contrast(1.08) saturate(0.92)"
-          : "brightness(1.08) contrast(1.05) saturate(0.99)";
+        if (readingTheme.mode === "dark") {
+          const darkFloor = String(readingTheme.variant || "").endsWith("_black") ? 0.44 : 0.38;
+          overlayOpacity = clamp(
+            Math.max(overlayOpacity, darkFloor),
+            0,
+            0.52
+          );
+          pageFilter = "brightness(0.68) contrast(1.12) saturate(0.88)";
+        } else {
+          overlayOpacity = clamp(
+            Math.max(overlayOpacity, 0.10),
+            0,
+            0.18
+          );
+          pageFilter = "brightness(1.08) contrast(1.05) saturate(0.99)";
+        }
         safeFallback = true;
         clampReason = "iframe-safe";
       }
