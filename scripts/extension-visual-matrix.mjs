@@ -30,8 +30,24 @@ const scenarios = [
   {
     key: "appearance_dark",
     patch: {
-      readingTheme: { enabled: true, appearance: "dark", scheduleMode: "custom", schedule: { enabled: false, useSunset: false, start: "20:00", end: "06:00" } },
-      darkLightTheme: { enabled: true, appearance: "dark", scheduleMode: "custom", schedule: { enabled: false, useSunset: false, start: "20:00", end: "06:00" } },
+      readingTheme: {
+        enabled: true,
+        appearance: "dark",
+        darkVariant: "black",
+        lightVariant: "white",
+        preset: "black",
+        scheduleMode: "custom",
+        schedule: { enabled: false, useSunset: false, start: "20:00", end: "06:00" }
+      },
+      darkLightTheme: {
+        enabled: true,
+        appearance: "dark",
+        darkVariant: "black",
+        lightVariant: "white",
+        preset: "black",
+        scheduleMode: "custom",
+        schedule: { enabled: false, useSunset: false, start: "20:00", end: "06:00" }
+      },
       lightFilter: { enabled: false },
       adaptiveSiteTheme: { enabled: false }
     }
@@ -39,8 +55,24 @@ const scenarios = [
   {
     key: "appearance_light",
     patch: {
-      readingTheme: { enabled: true, appearance: "light", scheduleMode: "custom", schedule: { enabled: false, useSunset: false, start: "20:00", end: "06:00" } },
-      darkLightTheme: { enabled: true, appearance: "light", scheduleMode: "custom", schedule: { enabled: false, useSunset: false, start: "20:00", end: "06:00" } },
+      readingTheme: {
+        enabled: true,
+        appearance: "light",
+        darkVariant: "black",
+        lightVariant: "white",
+        preset: "white",
+        scheduleMode: "custom",
+        schedule: { enabled: false, useSunset: false, start: "20:00", end: "06:00" }
+      },
+      darkLightTheme: {
+        enabled: true,
+        appearance: "light",
+        darkVariant: "black",
+        lightVariant: "white",
+        preset: "white",
+        scheduleMode: "custom",
+        schedule: { enabled: false, useSunset: false, start: "20:00", end: "06:00" }
+      },
       lightFilter: { enabled: false },
       adaptiveSiteTheme: { enabled: false }
     }
