@@ -1,6 +1,6 @@
 [build]
   base = "apps/web"
-  command = "cd ../.. && npm ci && npm run db:migrate && npm run build:extension:zip && npm -w @holmeta/web run build"
+  command = "cd ../.. && npm ci && npm run build:extension:zip && npm -w @holmeta/web run build"
   publish = ".next"
   functions = "netlify/functions"
 
