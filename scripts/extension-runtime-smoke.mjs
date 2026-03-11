@@ -88,7 +88,19 @@ async function injectContentScripts(controllerPage, tabId) {
       chrome.scripting.executeScript(
         {
           target: { tabId: id },
-          files: ["light/engine.js", "content.js"]
+          files: [
+            "appearance/appearance-state.js",
+            "appearance/theme-detector.js",
+            "appearance/media-guard.js",
+            "appearance/ui-surface-classifier.js",
+            "appearance/component-normalizer.js",
+            "appearance/dynamic-node-processor.js",
+            "appearance/site-compatibility.js",
+            "appearance/token-remapper.js",
+            "appearance/appearance-engine.js",
+            "light/engine.js",
+            "content.js"
+          ]
         },
         () => {
           const runtimeErr = chrome.runtime.lastError;
@@ -108,7 +120,7 @@ async function ensureTabReceiver(controllerPage, tabId) {
     return { ok: false, error: "invalid_tab" };
   }
   const ping = await tabMessage(controllerPage, tabId, { type: "holmeta:ping" }, { frameId: 0 });
-  if (ping.ok && ping.response?.ok) return { ok: true };
+  if (ping.ok && ping.response?.ok && ping.response?.appearanceEngine !== false) return { ok: true };
   if (ping.ok && ping.response?.ok === false && !isMissingReceiverError(ping.response?.error)) {
     return { ok: true };
   }

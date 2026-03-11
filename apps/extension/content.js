@@ -3813,7 +3813,11 @@
     const type = String(message?.type || "");
 
     if (type === "holmeta:ping") {
-      sendResponse({ ok: true, ready: true });
+      sendResponse({
+        ok: true,
+        ready: true,
+        appearanceEngine: Boolean(globalThis.HolmetaAppearanceEngine?.apply)
+      });
       return false;
     }
 

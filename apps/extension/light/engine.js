@@ -431,14 +431,6 @@
     style.textContent = `
       :root.holmeta-light-active {
         --holmeta-light-filter: none;
-        --holmeta-reading-bg: #090b0f;
-        --holmeta-reading-surface: #111620;
-        --holmeta-reading-fg: #f2f6ff;
-        --holmeta-reading-muted: #c8d2e0;
-        --holmeta-reading-link: #ffb300;
-        --holmeta-reading-border: rgba(243, 243, 244, 0.24);
-        --holmeta-reading-control-bg: #171b24;
-        --holmeta-reading-media-filter: none;
       }
 
       :root.holmeta-reading-dark {
@@ -447,56 +439,6 @@
 
       :root.holmeta-reading-light {
         color-scheme: light !important;
-      }
-
-      html.holmeta-reading-theme:not(.holmeta-adaptive-active):not(.holmeta-reading-minimal) :where(body, main, article, section, aside, nav, header, footer, dialog, form, table, thead, tbody, tr, th, td, pre, blockquote, fieldset, [role='region'], [role='main'], [role='navigation'], [role='dialog'], div, ul, ol, li, dl, dt, dd, figure, figcaption, details, summary) {
-        background-color: var(--holmeta-reading-surface) !important;
-        border-color: var(--holmeta-reading-border) !important;
-        color: var(--holmeta-reading-fg) !important;
-      }
-
-      html.holmeta-reading-theme:not(.holmeta-adaptive-active):not(.holmeta-reading-minimal) :where(body) {
-        background-color: var(--holmeta-reading-bg) !important;
-        color: var(--holmeta-reading-fg) !important;
-      }
-
-      html.holmeta-reading-theme:not(.holmeta-adaptive-active):not(.holmeta-reading-minimal) :where(p, span, li, dt, dd, label, small, strong, em, h1, h2, h3, h4, h5, h6) {
-        color: var(--holmeta-reading-fg) !important;
-      }
-
-      html.holmeta-reading-theme:not(.holmeta-adaptive-active):not(.holmeta-reading-minimal) :where(a, a:visited) {
-        color: var(--holmeta-reading-link) !important;
-      }
-
-      html.holmeta-reading-theme:not(.holmeta-adaptive-active):not(.holmeta-reading-minimal) :where(*):not(img):not(video):not(picture):not(canvas):not(svg):not(path):not(iframe):not(source):not(track):not(use) {
-        color: var(--holmeta-reading-fg) !important;
-      }
-
-      html.holmeta-reading-theme:not(.holmeta-adaptive-active):not(.holmeta-reading-minimal) :where(*):not(img):not(video):not(picture):not(canvas):not(svg):not(path):not(iframe):not(source):not(track):not(use) {
-        border-color: var(--holmeta-reading-border) !important;
-      }
-
-      html.holmeta-reading-theme:not(.holmeta-adaptive-active):not(.holmeta-reading-minimal) :where(a, a:visited) {
-        color: var(--holmeta-reading-link) !important;
-      }
-
-      html.holmeta-reading-theme:not(.holmeta-adaptive-active):not(.holmeta-reading-minimal) :where(input, textarea, select, button, [role='button']) {
-        background-color: var(--holmeta-reading-control-bg) !important;
-        color: var(--holmeta-reading-fg) !important;
-        border-color: var(--holmeta-reading-border) !important;
-      }
-
-      html.holmeta-reading-theme:not(.holmeta-adaptive-active):not(.holmeta-reading-minimal) :where(code, pre, kbd, samp) {
-        color: var(--holmeta-reading-fg) !important;
-      }
-
-      html.holmeta-reading-theme.holmeta-reading-minimal:not(.holmeta-adaptive-active) {
-        background-color: var(--holmeta-reading-bg) !important;
-      }
-
-      html.holmeta-reading-theme.holmeta-reading-minimal:not(.holmeta-adaptive-active) :where(body) {
-        background-color: var(--holmeta-reading-bg) !important;
-        color: var(--holmeta-reading-fg) !important;
       }
 
       :root.holmeta-adaptive-active {
@@ -549,11 +491,6 @@
 
       html.holmeta-light-active {
         filter: var(--holmeta-light-filter) !important;
-      }
-
-      html.holmeta-reading-theme :where(img, video, picture, canvas, svg, iframe) {
-        filter: var(--holmeta-reading-media-filter, none) !important;
-        mix-blend-mode: normal !important;
       }
 
       #${IDS.OVERLAY} {
@@ -683,6 +620,7 @@
 
   function clear() {
     updateSystemAppearanceListener(false);
+    globalThis.HolmetaAppearanceEngine?.clear?.();
     document.documentElement.classList.remove("holmeta-light-active");
     document.documentElement.classList.remove("holmeta-reading-theme");
     document.documentElement.classList.remove("holmeta-reading-dark");
@@ -1383,34 +1321,6 @@
         alreadyDark ? 0.04 : 0.14,
         alreadyDark ? 0.24 : 0.46
       );
-      const filter = (() => {
-        if (darkVariant === "brown" || darkVariant === "sepia") {
-          return alreadyDark
-            ? "brightness(0.995) contrast(1.05) sepia(0.08) saturate(0.96)"
-            : "brightness(0.982) contrast(1.12) sepia(0.16) saturate(0.90)";
-        }
-        if (darkVariant === "grey") {
-          return alreadyDark
-            ? "brightness(0.996) contrast(1.04) saturate(0.95)"
-            : "brightness(0.984) contrast(1.10) saturate(0.88)";
-        }
-        if (darkVariant === "teal" || darkVariant === "forest_green") {
-          return alreadyDark
-            ? "brightness(0.996) contrast(1.04) saturate(0.96)"
-            : "brightness(0.984) contrast(1.10) saturate(0.92)";
-        }
-        if (darkVariant === "purple") {
-          return alreadyDark
-            ? "brightness(0.996) contrast(1.04) saturate(0.95)"
-            : "brightness(0.983) contrast(1.11) saturate(0.91)";
-        }
-        return alreadyDark
-          ? "brightness(0.995) contrast(1.05) saturate(0.95)"
-          : "brightness(0.978) contrast(1.13) saturate(0.88)";
-      })();
-      const mediaFilter = darkVariant === "black"
-        ? "brightness(0.90) saturate(0.92) contrast(1.02)"
-        : "brightness(0.92) saturate(0.95) contrast(1.01)";
 
       return {
         mode,
@@ -1419,8 +1329,8 @@
         overlayBg: palette.overlayBg,
         overlayOpacity,
         maxOverlayOpacity: alreadyDark ? 0.24 : 0.46,
-        filter,
-        mediaFilter,
+        filter: "none",
+        mediaFilter: "none",
         bg: palette.bg,
         surface: palette.surface,
         fg: palette.fg,
@@ -1501,28 +1411,6 @@
       alreadyDark ? 0.02 : 0.07,
       alreadyDark ? 0.14 : 0.28
     );
-    const filter = (() => {
-      if (lightVariant === "warm" || lightVariant === "light_brown") {
-        return alreadyDark
-          ? "brightness(1.02) contrast(1.02) sepia(0.05)"
-          : "brightness(1.035) contrast(1.05) sepia(0.12) saturate(0.95)";
-      }
-      if (lightVariant === "off_white") {
-        return alreadyDark
-          ? "brightness(1.015) contrast(1.02) saturate(0.98)"
-          : "brightness(1.025) contrast(1.04) saturate(0.96)";
-      }
-      if (lightVariant === "soft_green" || lightVariant === "baby_blue") {
-        return alreadyDark
-          ? "brightness(1.015) contrast(1.02) saturate(0.99)"
-          : "brightness(1.03) contrast(1.04) saturate(0.98)";
-      }
-      return alreadyDark
-        ? "brightness(1.015) contrast(1.02) saturate(0.99)"
-        : "brightness(1.035) contrast(1.05) saturate(0.96)";
-    })();
-    const mediaFilter = "none";
-
     return {
       mode,
       appearance,
@@ -1530,8 +1418,8 @@
       overlayBg: palette.overlayBg,
       overlayOpacity,
       maxOverlayOpacity: alreadyDark ? 0.14 : 0.28,
-      filter,
-      mediaFilter,
+      filter: "none",
+      mediaFilter: "none",
       bg: palette.bg,
       surface: palette.surface,
       fg: palette.fg,
@@ -1781,11 +1669,6 @@
     const readingTheme = readingThemeEnabled
       ? readingThemeForProfile(readingProfile, pageTone)
       : { mode: "off", variant: "off", overlayBg: style.overlayBg, overlayOpacity: 0, maxOverlayOpacity: 0.62, filter: "none" };
-    const readingMinimal = Boolean(
-      readingThemeEnabled
-      && !adaptiveEnabled
-      && siteType === "dashboard_app"
-    );
     const adaptiveTheme = adaptiveEnabled
       ? adaptiveThemeForProfile(adaptiveProfile, pageTone, siteType)
       : null;
@@ -1809,28 +1692,6 @@
     if (readingThemeEnabled) {
       overlayBg = readingTheme.overlayBg || overlayBg;
       overlayOpacity = (readingTheme.overlayOpacity || 0) * resolved.readingWeight;
-      pageFilter = readingTheme.filter || "none";
-
-      if (readingMinimal) {
-        if (readingTheme.mode === "dark") {
-          const darkFloor = String(readingTheme.variant || "").endsWith("_black") ? 0.44 : 0.38;
-          overlayOpacity = clamp(
-            Math.max(overlayOpacity, darkFloor),
-            0,
-            0.52
-          );
-          pageFilter = "brightness(0.68) contrast(1.12) saturate(0.88)";
-        } else {
-          overlayOpacity = clamp(
-            Math.max(overlayOpacity, 0.10),
-            0,
-            0.18
-          );
-          pageFilter = "brightness(1.08) contrast(1.05) saturate(0.99)";
-        }
-        safeFallback = true;
-        clampReason = "iframe-safe";
-      }
 
       if (filterEnabled) {
         const supplemental = supplementalReadingAdjustment(profile, pageTone);
@@ -1881,31 +1742,33 @@
       clampReason = resolved.clampReason || clampReason || "resolver-clamp";
     }
 
-    document.documentElement.classList.toggle("holmeta-light-active", filterEnabled || readingThemeEnabled || adaptiveEnabled);
+    let appearanceDiagnostics = null;
+    if (readingThemeEnabled && resolved.readingWeight > 0.05 && globalThis.HolmetaAppearanceEngine?.apply) {
+      try {
+        appearanceDiagnostics = globalThis.HolmetaAppearanceEngine.apply({
+          enabled: true,
+          appearance: readingTheme.appearance,
+          mode: readingTheme.mode,
+          darkVariant: readingProfile.darkVariant,
+          lightVariant: readingProfile.lightVariant,
+          intensity: readingProfile.intensity,
+          scheduleMode: readingProfile.scheduleMode,
+          schedule: readingProfile.schedule
+        }, { debug: debugEnabled });
+      } catch {
+        safeFallback = true;
+        clampReason = clampReason || "appearance_apply_failed";
+      }
+    } else {
+      globalThis.HolmetaAppearanceEngine?.clear?.();
+    }
+
+    document.documentElement.classList.toggle("holmeta-light-active", filterEnabled || adaptiveEnabled);
     document.documentElement.classList.toggle("holmeta-reading-theme", readingThemeEnabled);
-    document.documentElement.classList.toggle("holmeta-reading-minimal", readingThemeEnabled && readingMinimal);
+    document.documentElement.classList.remove("holmeta-reading-minimal");
     document.documentElement.classList.toggle("holmeta-reading-dark", readingThemeEnabled && readingTheme.mode === "dark");
     document.documentElement.classList.toggle("holmeta-reading-light", readingThemeEnabled && readingTheme.mode === "light");
     document.documentElement.style.setProperty("--holmeta-light-filter", pageFilter);
-    if (readingThemeEnabled) {
-      document.documentElement.style.setProperty("--holmeta-reading-bg", String(readingTheme.bg || "#0b0f14"));
-      document.documentElement.style.setProperty("--holmeta-reading-surface", String(readingTheme.surface || "#121a22"));
-      document.documentElement.style.setProperty("--holmeta-reading-fg", String(readingTheme.fg || "#f2f6ff"));
-      document.documentElement.style.setProperty("--holmeta-reading-muted", String(readingTheme.muted || "#c8d2e0"));
-      document.documentElement.style.setProperty("--holmeta-reading-link", String(readingTheme.link || "#ffb300"));
-      document.documentElement.style.setProperty("--holmeta-reading-border", String(readingTheme.border || "rgba(243, 243, 244, 0.24)"));
-      document.documentElement.style.setProperty("--holmeta-reading-control-bg", String(readingTheme.controlBg || "#171b24"));
-      document.documentElement.style.setProperty("--holmeta-reading-media-filter", String(readingTheme.mediaFilter || "none"));
-    } else {
-      document.documentElement.style.removeProperty("--holmeta-reading-bg");
-      document.documentElement.style.removeProperty("--holmeta-reading-surface");
-      document.documentElement.style.removeProperty("--holmeta-reading-fg");
-      document.documentElement.style.removeProperty("--holmeta-reading-muted");
-      document.documentElement.style.removeProperty("--holmeta-reading-link");
-      document.documentElement.style.removeProperty("--holmeta-reading-border");
-      document.documentElement.style.removeProperty("--holmeta-reading-control-bg");
-      document.documentElement.style.removeProperty("--holmeta-reading-media-filter");
-    }
 
     overlay.style.setProperty("--holmeta-overlay-bg", overlayBg);
     overlay.style.setProperty("--holmeta-overlay-opacity", String(overlayOpacity));
@@ -1950,6 +1813,7 @@
       : strategy;
     state.diagnostics.readingMode = readingTheme.mode;
     state.diagnostics.readingVariant = readingTheme.variant;
+    state.diagnostics.readingAppearance = appearanceDiagnostics || null;
     state.diagnostics.pageTone = pageTone.tone;
     state.diagnostics.pageLuminance = pageTone.luminance;
     state.diagnostics.safeFallback = safeFallback;

@@ -36,6 +36,15 @@ const requiredFiles = [
   "content.js",
   "popup.js",
   "options.js",
+  "appearance/appearance-state.js",
+  "appearance/theme-detector.js",
+  "appearance/media-guard.js",
+  "appearance/ui-surface-classifier.js",
+  "appearance/component-normalizer.js",
+  "appearance/dynamic-node-processor.js",
+  "appearance/site-compatibility.js",
+  "appearance/token-remapper.js",
+  "appearance/appearance-engine.js",
   "light/engine.js"
 ];
 
@@ -64,6 +73,15 @@ const jsFilesToCheck = [
   "options.js",
   "offscreen.js",
   "blocked.js",
+  "appearance/appearance-state.js",
+  "appearance/theme-detector.js",
+  "appearance/media-guard.js",
+  "appearance/ui-surface-classifier.js",
+  "appearance/component-normalizer.js",
+  "appearance/dynamic-node-processor.js",
+  "appearance/site-compatibility.js",
+  "appearance/token-remapper.js",
+  "appearance/appearance-engine.js",
   "light/engine.js"
 ];
 
