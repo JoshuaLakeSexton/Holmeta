@@ -7,7 +7,7 @@ import { FAQItem } from "@/components/holmeta/FAQItem";
 import { FeatureCard } from "@/components/holmeta/FeatureCard";
 import { Panel } from "@/components/holmeta/Panel";
 
-const DEMO_VIDEO_URL = process.env.NEXT_PUBLIC_DEMO_VIDEO_URL || "";
+const DEMO_VIDEO_URL = process.env.NEXT_PUBLIC_DEMO_VIDEO_URL || "/videos/holmeta-demo.mp4";
 
 const whyHolmeta = [
   {
@@ -88,13 +88,15 @@ export default function HomePage() {
               {DEMO_VIDEO_URL ? (
                 <video
                   className="hm-demo-video"
-                  src={DEMO_VIDEO_URL}
                   autoPlay
                   loop
                   muted
                   playsInline
                   controls
-                />
+                >
+                  <source src={DEMO_VIDEO_URL} type="video/mp4" />
+                  Your browser does not support the demo video.
+                </video>
               ) : (
                 <div className="hm-demo-placeholder" role="status" aria-live="polite">
                   <strong>Demo coming live</strong>
