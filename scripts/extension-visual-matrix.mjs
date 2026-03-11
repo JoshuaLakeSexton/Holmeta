@@ -49,6 +49,7 @@ const scenarios = [
     key: "light_filter_warm",
     patch: {
       readingTheme: { enabled: false },
+      darkLightTheme: { enabled: false },
       lightFilter: {
         enabled: true,
         mode: "warm",
@@ -62,6 +63,7 @@ const scenarios = [
     key: "adaptive_smart_dark",
     patch: {
       readingTheme: { enabled: false },
+      darkLightTheme: { enabled: false },
       lightFilter: { enabled: false },
       adaptiveSiteTheme: {
         enabled: true,

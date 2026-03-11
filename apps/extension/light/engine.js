@@ -380,23 +380,27 @@
     const bodyText = String(document.body?.innerText || "").slice(0, 4000).toLowerCase();
     const full = `${host} ${location.pathname || ""} ${title} ${bodyText}`;
     const hasCode = document.querySelectorAll("pre,code,.highlight,.token").length > 5;
-    const hasManyInputs = document.querySelectorAll("input,select,textarea,button,[role='button']").length > 20;
-    const hasSidebar = Boolean(document.querySelector("aside,.sidebar,[data-testid*='sidebar']"));
+    const hasManyInputs = document.querySelectorAll("input,select,textarea,button,[role='button']").length > 45;
+    const hasSidebar = Boolean(document.querySelector("aside,.sidebar,[data-testid*='sidebar'],[class*='Sidebar'],[class*='side-nav']"));
+    const appKeyword = /dashboard|admin|workspace|console|jira|notion|linear|figma|stripe|airtable|asana|trello/.test(full);
+    const commerceLike = /shop|cart|checkout|product|buy now|add to cart|ecommerce|store|amazon|ebay/.test(full);
+    const articleLike = /news|article|blog|press|times|post/.test(full) || document.querySelectorAll("article,time").length > 0;
+    const mediaLike = /youtube|vimeo|twitch|netflix|primevideo/.test(full) || media.mediaCount >= 2;
 
     if (/github\.com|gitlab\.com|bitbucket\.org|stack(?:over|under)flow|developer|docs/.test(full) || hasCode) {
       return "docs_code";
     }
-    if (/dashboard|admin|workspace|console|jira|notion|linear|figma/.test(full) || (hasManyInputs && hasSidebar)) {
-      return "dashboard_app";
-    }
-    if (/youtube|vimeo|twitch|netflix|primevideo/.test(full) || media.mediaCount >= 2) {
+    if (mediaLike) {
       return "media";
     }
-    if (/news|article|blog|press|times|post/.test(full) || document.querySelectorAll("article,time").length > 0) {
+    if (articleLike) {
       return "article";
     }
-    if (/shop|cart|checkout|product|buy now|add to cart|ecommerce|store/.test(full)) {
+    if (commerceLike) {
       return "ecommerce";
+    }
+    if (appKeyword || (hasManyInputs && hasSidebar && !articleLike && !commerceLike && !mediaLike)) {
+      return "dashboard_app";
     }
     return "general";
   }
@@ -445,45 +449,50 @@
         color-scheme: light !important;
       }
 
-      html.holmeta-reading-theme:not(.holmeta-adaptive-active) :where(body, main, article, section, aside, nav, header, footer, dialog, form, table, thead, tbody, tr, th, td, pre, blockquote, fieldset, [role='region'], [role='main'], [role='navigation'], [role='dialog'], div, ul, ol, li, dl, dt, dd, figure, figcaption, details, summary) {
+      html.holmeta-reading-theme:not(.holmeta-adaptive-active):not(.holmeta-reading-minimal) :where(body, main, article, section, aside, nav, header, footer, dialog, form, table, thead, tbody, tr, th, td, pre, blockquote, fieldset, [role='region'], [role='main'], [role='navigation'], [role='dialog'], div, ul, ol, li, dl, dt, dd, figure, figcaption, details, summary) {
         background-color: var(--holmeta-reading-surface) !important;
         border-color: var(--holmeta-reading-border) !important;
         color: var(--holmeta-reading-fg) !important;
       }
 
-      html.holmeta-reading-theme:not(.holmeta-adaptive-active) :where(body) {
+      html.holmeta-reading-theme:not(.holmeta-adaptive-active):not(.holmeta-reading-minimal) :where(body) {
         background-color: var(--holmeta-reading-bg) !important;
         color: var(--holmeta-reading-fg) !important;
       }
 
-      html.holmeta-reading-theme:not(.holmeta-adaptive-active) :where(p, span, li, dt, dd, label, small, strong, em, h1, h2, h3, h4, h5, h6) {
+      html.holmeta-reading-theme:not(.holmeta-adaptive-active):not(.holmeta-reading-minimal) :where(p, span, li, dt, dd, label, small, strong, em, h1, h2, h3, h4, h5, h6) {
         color: var(--holmeta-reading-fg) !important;
       }
 
-      html.holmeta-reading-theme:not(.holmeta-adaptive-active) :where(a, a:visited) {
+      html.holmeta-reading-theme:not(.holmeta-adaptive-active):not(.holmeta-reading-minimal) :where(a, a:visited) {
         color: var(--holmeta-reading-link) !important;
       }
 
-      html.holmeta-reading-theme:not(.holmeta-adaptive-active) :where(*):not(img):not(video):not(picture):not(canvas):not(svg):not(path):not(iframe):not(source):not(track):not(use) {
+      html.holmeta-reading-theme:not(.holmeta-adaptive-active):not(.holmeta-reading-minimal) :where(*):not(img):not(video):not(picture):not(canvas):not(svg):not(path):not(iframe):not(source):not(track):not(use) {
         color: var(--holmeta-reading-fg) !important;
       }
 
-      html.holmeta-reading-theme:not(.holmeta-adaptive-active) :where(*):not(img):not(video):not(picture):not(canvas):not(svg):not(path):not(iframe):not(source):not(track):not(use) {
+      html.holmeta-reading-theme:not(.holmeta-adaptive-active):not(.holmeta-reading-minimal) :where(*):not(img):not(video):not(picture):not(canvas):not(svg):not(path):not(iframe):not(source):not(track):not(use) {
         border-color: var(--holmeta-reading-border) !important;
       }
 
-      html.holmeta-reading-theme:not(.holmeta-adaptive-active) :where(a, a:visited) {
+      html.holmeta-reading-theme:not(.holmeta-adaptive-active):not(.holmeta-reading-minimal) :where(a, a:visited) {
         color: var(--holmeta-reading-link) !important;
       }
 
-      html.holmeta-reading-theme:not(.holmeta-adaptive-active) :where(input, textarea, select, button, [role='button']) {
+      html.holmeta-reading-theme:not(.holmeta-adaptive-active):not(.holmeta-reading-minimal) :where(input, textarea, select, button, [role='button']) {
         background-color: var(--holmeta-reading-control-bg) !important;
         color: var(--holmeta-reading-fg) !important;
         border-color: var(--holmeta-reading-border) !important;
       }
 
-      html.holmeta-reading-theme:not(.holmeta-adaptive-active) :where(code, pre, kbd, samp) {
+      html.holmeta-reading-theme:not(.holmeta-adaptive-active):not(.holmeta-reading-minimal) :where(code, pre, kbd, samp) {
         color: var(--holmeta-reading-fg) !important;
+      }
+
+      html.holmeta-reading-theme.holmeta-reading-minimal:not(.holmeta-adaptive-active) :where(body) {
+        background-color: transparent !important;
+        color: inherit !important;
       }
 
       :root.holmeta-adaptive-active {
@@ -674,6 +683,7 @@
     document.documentElement.classList.remove("holmeta-reading-theme");
     document.documentElement.classList.remove("holmeta-reading-dark");
     document.documentElement.classList.remove("holmeta-reading-light");
+    document.documentElement.classList.remove("holmeta-reading-minimal");
     document.documentElement.classList.remove("holmeta-adaptive-active");
     document.documentElement.classList.remove("holmeta-adaptive-light");
     document.documentElement.style.removeProperty("--holmeta-light-filter");
@@ -1762,6 +1772,11 @@
     const readingTheme = readingThemeEnabled
       ? readingThemeForProfile(readingProfile, pageTone)
       : { mode: "off", variant: "off", overlayBg: style.overlayBg, overlayOpacity: 0, maxOverlayOpacity: 0.62, filter: "none" };
+    const readingMinimal = Boolean(
+      readingThemeEnabled
+      && !adaptiveEnabled
+      && siteType === "dashboard_app"
+    );
     const adaptiveTheme = adaptiveEnabled
       ? adaptiveThemeForProfile(adaptiveProfile, pageTone, siteType)
       : null;
@@ -1786,6 +1801,19 @@
       overlayBg = readingTheme.overlayBg || overlayBg;
       overlayOpacity = (readingTheme.overlayOpacity || 0) * resolved.readingWeight;
       pageFilter = readingTheme.filter || "none";
+
+      if (readingMinimal) {
+        overlayOpacity = clamp(
+          overlayOpacity,
+          0,
+          readingTheme.mode === "dark" ? 0.38 : 0.16
+        );
+        pageFilter = readingTheme.mode === "dark"
+          ? "brightness(0.82) contrast(1.08) saturate(0.92)"
+          : "brightness(1.08) contrast(1.05) saturate(0.99)";
+        safeFallback = true;
+        clampReason = "iframe-safe";
+      }
 
       if (filterEnabled) {
         const supplemental = supplementalReadingAdjustment(profile, pageTone);
@@ -1838,6 +1866,7 @@
 
     document.documentElement.classList.toggle("holmeta-light-active", filterEnabled || readingThemeEnabled || adaptiveEnabled);
     document.documentElement.classList.toggle("holmeta-reading-theme", readingThemeEnabled);
+    document.documentElement.classList.toggle("holmeta-reading-minimal", readingThemeEnabled && readingMinimal);
     document.documentElement.classList.toggle("holmeta-reading-dark", readingThemeEnabled && readingTheme.mode === "dark");
     document.documentElement.classList.toggle("holmeta-reading-light", readingThemeEnabled && readingTheme.mode === "light");
     document.documentElement.style.setProperty("--holmeta-light-filter", pageFilter);
