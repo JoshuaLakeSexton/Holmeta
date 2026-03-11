@@ -57,6 +57,21 @@ const LIGHT_FILTER_SPECTRUM_PRESETS = [
 ];
 
 const READING_THEME_PRESETS = [
+  "coal",
+  "black",
+  "brown",
+  "grey",
+  "sepia",
+  "teal",
+  "purple",
+  "forest_green",
+  "white",
+  "warm",
+  "off_white",
+  "soft_green",
+  "baby_blue",
+  "light_brown",
+  // Legacy values retained for migration compatibility.
   "soft_black",
   "dim_slate",
   "gentle_night",
@@ -605,16 +620,20 @@ function createDefaultReadingThemeSettings() {
   return {
     enabled: false,
     appearance: "auto", // light | dark | auto
-    scheduleMode: "sunset", // sunset | custom
+    darkVariant: "coal", // coal | black | brown | grey | sepia | teal | purple | forest_green
+    darkThemeVariant: "black",
+    lightVariant: "white", // white | warm | off_white | soft_green | baby_blue | light_brown
+    lightThemeVariant: "white",
+    scheduleMode: "system", // system | sunset | custom
     schedule: {
       enabled: true,
-      useSunset: true,
+      useSunset: false,
       start: "20:00",
       end: "06:00"
     },
     // Legacy compatibility fields retained for migration paths.
     mode: "dark",
-    preset: "soft_black",
+    preset: "coal",
     intensity: 44,
     perSiteOverrides: {},
     excludedSites: {}
@@ -692,13 +711,51 @@ function normalizeExcludedSiteMap(rawMap) {
 
 function readingPresetFromLegacy(mode, darkVariant, lightVariant) {
   if (mode === "light") {
-    if (lightVariant === "gray") return "soft_paper";
-    if (lightVariant === "warm") return "warm_page";
-    return "neutral_light";
+    if (lightVariant === "gray") return "off_white";
+    if (lightVariant === "warm") return "warm";
+    return "white";
   }
-  if (darkVariant === "gray") return "dim_slate";
-  if (darkVariant === "brown") return "gentle_night";
-  return "soft_black";
+  if (darkVariant === "gray") return "grey";
+  if (darkVariant === "brown") return "brown";
+  return "black";
+}
+
+function normalizeReadingDarkVariant(value, fallback = "coal") {
+  const raw = String(value || "").trim().toLowerCase();
+  if (raw === "gray") return "grey";
+  if (raw === "dim_slate") return "grey";
+  if (raw === "gentle_night") return "brown";
+  if (raw === "soft_black") return "coal";
+  if (["coal", "black", "brown", "grey", "sepia", "teal", "purple", "forest_green"].includes(raw)) return raw;
+  return fallback;
+}
+
+function normalizeReadingLightVariant(value, fallback = "white") {
+  const raw = String(value || "").trim().toLowerCase();
+  if (raw === "gray") return "off_white";
+  if (raw === "soft_paper") return "off_white";
+  if (raw === "warm_page") return "warm";
+  if (raw === "neutral_light") return "white";
+  if (["white", "warm", "off_white", "soft_green", "baby_blue", "light_brown"].includes(raw)) return raw;
+  return fallback;
+}
+
+function darkVariantFromPreset(preset, fallback = "coal") {
+  const key = String(preset || "").trim().toLowerCase();
+  if (["coal", "black", "brown", "grey", "sepia", "teal", "purple", "forest_green"].includes(key)) return key;
+  if (key === "soft_black") return "coal";
+  if (key === "dim_slate") return "grey";
+  if (key === "gentle_night") return "brown";
+  return normalizeReadingDarkVariant(fallback, "coal");
+}
+
+function lightVariantFromPreset(preset, fallback = "white") {
+  const key = String(preset || "").trim().toLowerCase();
+  if (["white", "warm", "off_white", "soft_green", "baby_blue", "light_brown"].includes(key)) return key;
+  if (key === "warm_page") return "warm";
+  if (key === "soft_paper") return "off_white";
+  if (key === "neutral_light") return "white";
+  return normalizeReadingLightVariant(fallback, "white");
 }
 
 function normalizeReadingAppearance(value, fallback = "auto") {
@@ -707,9 +764,10 @@ function normalizeReadingAppearance(value, fallback = "auto") {
   return fallback;
 }
 
-function normalizeReadingScheduleMode(value, fallback = "sunset") {
+function normalizeReadingScheduleMode(value, fallback = "system") {
   const raw = String(value || "").trim().toLowerCase();
-  return raw === "custom" ? "custom" : fallback;
+  if (raw === "system" || raw === "sunset" || raw === "custom") return raw;
+  return fallback;
 }
 
 function resolveReadingModeFromAppearance(appearance, schedule) {
@@ -733,8 +791,8 @@ function normalizeReadingThemeSettings(rawSettings, fallback, legacyLight = {}) 
     normalizeReadingAppearance(base.appearance, "auto")
   );
   const scheduleMode = normalizeReadingScheduleMode(
-    raw.scheduleMode || (raw.schedule?.useSunset ? "sunset" : "") || (base.scheduleMode || "sunset"),
-    "sunset"
+    raw.scheduleMode || (raw.schedule?.useSunset ? "sunset" : "") || (base.scheduleMode || "system"),
+    "system"
   );
   const scheduleRaw = {
     ...(base.schedule || {}),
@@ -747,10 +805,18 @@ function normalizeReadingThemeSettings(rawSettings, fallback, legacyLight = {}) 
     end: normalizeTime(scheduleRaw.end, "06:00")
   };
   const mode = resolveReadingModeFromAppearance(appearance, schedule);
+  const darkVariant = normalizeReadingDarkVariant(
+    raw.darkVariant || raw.darkThemeVariant,
+    darkVariantFromPreset(raw.preset || base.preset, base.darkVariant || legacyLight.darkThemeVariant || "coal")
+  );
+  const lightVariant = normalizeReadingLightVariant(
+    raw.lightVariant || raw.lightThemeVariant,
+    lightVariantFromPreset(raw.preset || base.preset, base.lightVariant || legacyLight.lightThemeVariant || "white")
+  );
   const presetRaw = String(raw.preset || "");
   const preset = READING_THEME_PRESETS.includes(presetRaw)
     ? presetRaw
-    : readingPresetFromLegacy(mode, String(legacyLight.darkThemeVariant || ""), String(legacyLight.lightThemeVariant || ""));
+    : readingPresetFromLegacy(mode, darkVariant, lightVariant);
   const enabled = Boolean(raw.enabled ?? legacyLight.readingModeEnabled ?? base.enabled);
   const intensity = Math.round(clamp(raw.intensity ?? legacyLight.intensity ?? base.intensity, 0, 100));
   const siteOverridesRaw = raw.perSiteOverrides || raw.siteProfiles || {};
@@ -780,15 +846,27 @@ function normalizeReadingThemeSettings(rawSettings, fallback, legacyLight = {}) 
       end: normalizeTime(rowScheduleRaw.end, schedule.end)
     };
     const rowMode = resolveReadingModeFromAppearance(rowAppearance, rowSchedule);
+    const rowDarkVariant = normalizeReadingDarkVariant(
+      row.darkVariant || row.darkThemeVariant,
+      darkVariantFromPreset(row.preset || preset, darkVariant)
+    );
+    const rowLightVariant = normalizeReadingLightVariant(
+      row.lightVariant || row.lightThemeVariant,
+      lightVariantFromPreset(row.preset || preset, lightVariant)
+    );
     normalizedOverrides[host] = {
       enabled: Boolean(row.enabled ?? true),
       appearance: rowAppearance,
+      darkVariant: rowDarkVariant,
+      darkThemeVariant: rowDarkVariant,
+      lightVariant: rowLightVariant,
+      lightThemeVariant: rowLightVariant,
       scheduleMode: rowScheduleMode,
       schedule: rowSchedule,
       mode: rowMode,
       preset: READING_THEME_PRESETS.includes(String(row.preset || ""))
         ? String(row.preset)
-        : readingPresetFromLegacy(rowMode, String(row.darkThemeVariant || legacyLight.darkThemeVariant || ""), String(row.lightThemeVariant || legacyLight.lightThemeVariant || "")),
+        : readingPresetFromLegacy(rowMode, rowDarkVariant, rowLightVariant),
       intensity: Math.round(clamp(row.intensity ?? intensity, 0, 100))
     };
   }
@@ -798,6 +876,10 @@ function normalizeReadingThemeSettings(rawSettings, fallback, legacyLight = {}) 
     ...raw,
     enabled,
     appearance,
+    darkVariant,
+    darkThemeVariant: darkVariant,
+    lightVariant,
+    lightThemeVariant: lightVariant,
     scheduleMode,
     schedule,
     mode,
@@ -968,11 +1050,34 @@ function readingThemeToLegacyVariants(reading = {}) {
     reading.appearance || reading.mode || "dark",
     reading.schedule || {}
   );
+  const explicitDark = normalizeReadingDarkVariant(
+    reading.darkVariant || reading.darkThemeVariant,
+    ""
+  );
+  const explicitLight = normalizeReadingLightVariant(
+    reading.lightVariant || reading.lightThemeVariant,
+    ""
+  );
+  if (explicitDark && explicitLight) {
+    const darkThemeVariant = ["brown", "sepia"].includes(explicitDark)
+      ? "brown"
+      : (explicitDark === "grey" ? "gray" : "black");
+    const lightThemeVariant = explicitLight === "off_white"
+      ? "gray"
+      : (["warm", "light_brown", "soft_green", "baby_blue"].includes(explicitLight) ? "warm" : "white");
+    return { darkThemeVariant, lightThemeVariant };
+  }
   const preset = String(reading.preset || "");
   if (mode === "dark") {
+    if (preset === "grey") return { darkThemeVariant: "gray", lightThemeVariant: "white" };
+    if (preset === "brown" || preset === "sepia") return { darkThemeVariant: "brown", lightThemeVariant: "white" };
     if (preset === "dim_slate") return { darkThemeVariant: "gray", lightThemeVariant: "white" };
     if (preset === "gentle_night") return { darkThemeVariant: "brown", lightThemeVariant: "white" };
     return { darkThemeVariant: "black", lightThemeVariant: "white" };
+  }
+  if (preset === "off_white") return { darkThemeVariant: "black", lightThemeVariant: "gray" };
+  if (preset === "light_brown" || preset === "soft_green" || preset === "baby_blue") {
+    return { darkThemeVariant: "black", lightThemeVariant: "warm" };
   }
   if (preset === "soft_paper") return { darkThemeVariant: "black", lightThemeVariant: "gray" };
   if (preset === "warm_page") return { darkThemeVariant: "black", lightThemeVariant: "warm" };
@@ -1110,6 +1215,8 @@ function legacyLightPatchToSeparated(lightPatch) {
     Object.prototype.hasOwnProperty.call(raw, "lightThemeVariant") ||
     Object.prototype.hasOwnProperty.call(raw, "readingMode")
   ) {
+    readingTheme.darkVariant = normalizeReadingDarkVariant(String(raw.darkThemeVariant || ""), "coal");
+    readingTheme.lightVariant = normalizeReadingLightVariant(String(raw.lightThemeVariant || ""), "white");
     readingTheme.preset = readingPresetFromLegacy(mode, String(raw.darkThemeVariant || ""), String(raw.lightThemeVariant || ""));
   }
   if (Object.prototype.hasOwnProperty.call(raw, "intensity")) {
@@ -1150,6 +1257,8 @@ function legacyLightPatchToSeparated(lightPatch) {
       readingOverrides[host] = {
         enabled: Boolean(profile.readingModeEnabled ?? true),
         mode: rowMode,
+        darkVariant: normalizeReadingDarkVariant(String(profile.darkThemeVariant || raw.darkThemeVariant || ""), "coal"),
+        lightVariant: normalizeReadingLightVariant(String(profile.lightThemeVariant || raw.lightThemeVariant || ""), "white"),
         preset: readingPresetFromLegacy(rowMode, String(profile.darkThemeVariant || raw.darkThemeVariant || ""), String(profile.lightThemeVariant || raw.lightThemeVariant || "")),
         intensity: Number(profile.intensity ?? raw.intensity ?? 45)
       };
@@ -4730,6 +4839,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       state.settings.readingTheme.perSiteOverrides[host] = {
         enabled: true,
         appearance: state.settings.readingTheme.appearance,
+        darkVariant: state.settings.readingTheme.darkVariant,
+        lightVariant: state.settings.readingTheme.lightVariant,
         scheduleMode: state.settings.readingTheme.scheduleMode,
         schedule: {
           ...(state.settings.readingTheme.schedule || {})

@@ -59,6 +59,48 @@
     "code-safe"
   ]);
 
+  const READING_DARK_VARIANTS = new Set([
+    "coal",
+    "black",
+    "brown",
+    "grey",
+    "sepia",
+    "teal",
+    "purple",
+    "forest_green"
+  ]);
+  const READING_LIGHT_VARIANTS = new Set([
+    "white",
+    "warm",
+    "off_white",
+    "soft_green",
+    "baby_blue",
+    "light_brown"
+  ]);
+  const READING_PRESETS = new Set([
+    "coal",
+    "black",
+    "brown",
+    "grey",
+    "sepia",
+    "teal",
+    "purple",
+    "forest_green",
+    "white",
+    "warm",
+    "off_white",
+    "soft_green",
+    "baby_blue",
+    "light_brown",
+    // Legacy values retained for migration compatibility.
+    "soft_black",
+    "dim_slate",
+    "gentle_night",
+    "soft_paper",
+    "neutral_light",
+    "warm_page"
+  ]);
+
   const SPECTRUM_PRESETS = {
     balanced: { r: 255, g: 172, b: 92 },
     amber_590: { r: 255, g: 168, b: 56 },
@@ -100,6 +142,9 @@
     },
     spotlightPoint: null,
     enabled: false,
+    lastPayload: null,
+    systemSchemeMql: null,
+    systemSchemeListener: null,
     pageToneCache: {
       href: "",
       ts: 0,
@@ -382,13 +427,14 @@
     style.textContent = `
       :root.holmeta-light-active {
         --holmeta-light-filter: none;
-        --holmeta-reading-bg: #111111;
-        --holmeta-reading-surface: #181818;
-        --holmeta-reading-fg: #f3f3f4;
-        --holmeta-reading-muted: #d9c5b2;
+        --holmeta-reading-bg: #090b0f;
+        --holmeta-reading-surface: #111620;
+        --holmeta-reading-fg: #f2f6ff;
+        --holmeta-reading-muted: #c8d2e0;
         --holmeta-reading-link: #ffb300;
         --holmeta-reading-border: rgba(243, 243, 244, 0.24);
-        --holmeta-reading-control-bg: #1c1c1c;
+        --holmeta-reading-control-bg: #171b24;
+        --holmeta-reading-media-filter: none;
       }
 
       :root.holmeta-reading-dark {
@@ -397,6 +443,47 @@
 
       :root.holmeta-reading-light {
         color-scheme: light !important;
+      }
+
+      html.holmeta-reading-theme:not(.holmeta-adaptive-active) :where(body, main, article, section, aside, nav, header, footer, dialog, form, table, thead, tbody, tr, th, td, pre, blockquote, fieldset, [role='region'], [role='main'], [role='navigation'], [role='dialog'], div, ul, ol, li, dl, dt, dd, figure, figcaption, details, summary) {
+        background-color: var(--holmeta-reading-surface) !important;
+        border-color: var(--holmeta-reading-border) !important;
+        color: var(--holmeta-reading-fg) !important;
+      }
+
+      html.holmeta-reading-theme:not(.holmeta-adaptive-active) :where(body) {
+        background-color: var(--holmeta-reading-bg) !important;
+        color: var(--holmeta-reading-fg) !important;
+      }
+
+      html.holmeta-reading-theme:not(.holmeta-adaptive-active) :where(p, span, li, dt, dd, label, small, strong, em, h1, h2, h3, h4, h5, h6) {
+        color: var(--holmeta-reading-fg) !important;
+      }
+
+      html.holmeta-reading-theme:not(.holmeta-adaptive-active) :where(a, a:visited) {
+        color: var(--holmeta-reading-link) !important;
+      }
+
+      html.holmeta-reading-theme:not(.holmeta-adaptive-active) :where(*):not(img):not(video):not(picture):not(canvas):not(svg):not(path):not(iframe):not(source):not(track):not(use) {
+        color: var(--holmeta-reading-fg) !important;
+      }
+
+      html.holmeta-reading-theme:not(.holmeta-adaptive-active) :where(*):not(img):not(video):not(picture):not(canvas):not(svg):not(path):not(iframe):not(source):not(track):not(use) {
+        border-color: var(--holmeta-reading-border) !important;
+      }
+
+      html.holmeta-reading-theme:not(.holmeta-adaptive-active) :where(a, a:visited) {
+        color: var(--holmeta-reading-link) !important;
+      }
+
+      html.holmeta-reading-theme:not(.holmeta-adaptive-active) :where(input, textarea, select, button, [role='button']) {
+        background-color: var(--holmeta-reading-control-bg) !important;
+        color: var(--holmeta-reading-fg) !important;
+        border-color: var(--holmeta-reading-border) !important;
+      }
+
+      html.holmeta-reading-theme:not(.holmeta-adaptive-active) :where(code, pre, kbd, samp) {
+        color: var(--holmeta-reading-fg) !important;
       }
 
       :root.holmeta-adaptive-active {
@@ -452,7 +539,7 @@
       }
 
       html.holmeta-reading-theme :where(img, video, picture, canvas, svg, iframe) {
-        filter: none !important;
+        filter: var(--holmeta-reading-media-filter, none) !important;
         mix-blend-mode: normal !important;
       }
 
@@ -544,7 +631,45 @@
     return node;
   }
 
+  function updateSystemAppearanceListener(enable) {
+    const shouldEnable = Boolean(enable && typeof window.matchMedia === "function");
+    if (!shouldEnable) {
+      if (state.systemSchemeMql && state.systemSchemeListener) {
+        try {
+          state.systemSchemeMql.removeEventListener("change", state.systemSchemeListener);
+        } catch {
+          try {
+            state.systemSchemeMql.removeListener(state.systemSchemeListener);
+          } catch {
+            // ignore
+          }
+        }
+      }
+      state.systemSchemeMql = null;
+      state.systemSchemeListener = null;
+      return;
+    }
+
+    if (state.systemSchemeMql && state.systemSchemeListener) return;
+
+    state.systemSchemeMql = window.matchMedia("(prefers-color-scheme: dark)");
+    state.systemSchemeListener = () => {
+      if (!state.lastPayload) return;
+      try {
+        apply(state.lastPayload);
+      } catch {
+        // ignore reapply failures from media events
+      }
+    };
+    try {
+      state.systemSchemeMql.addEventListener("change", state.systemSchemeListener);
+    } catch {
+      state.systemSchemeMql.addListener(state.systemSchemeListener);
+    }
+  }
+
   function clear() {
+    updateSystemAppearanceListener(false);
     document.documentElement.classList.remove("holmeta-light-active");
     document.documentElement.classList.remove("holmeta-reading-theme");
     document.documentElement.classList.remove("holmeta-reading-dark");
@@ -552,6 +677,14 @@
     document.documentElement.classList.remove("holmeta-adaptive-active");
     document.documentElement.classList.remove("holmeta-adaptive-light");
     document.documentElement.style.removeProperty("--holmeta-light-filter");
+    document.documentElement.style.removeProperty("--holmeta-reading-bg");
+    document.documentElement.style.removeProperty("--holmeta-reading-surface");
+    document.documentElement.style.removeProperty("--holmeta-reading-fg");
+    document.documentElement.style.removeProperty("--holmeta-reading-muted");
+    document.documentElement.style.removeProperty("--holmeta-reading-link");
+    document.documentElement.style.removeProperty("--holmeta-reading-border");
+    document.documentElement.style.removeProperty("--holmeta-reading-control-bg");
+    document.documentElement.style.removeProperty("--holmeta-reading-media-filter");
     document.documentElement.style.removeProperty("--holmeta-adaptive-bg");
     document.documentElement.style.removeProperty("--holmeta-adaptive-surface");
     document.documentElement.style.removeProperty("--holmeta-adaptive-fg");
@@ -676,19 +809,63 @@
     return globalProfile;
   }
 
+  function normalizeReadingDarkVariant(value, fallback = "coal") {
+    const raw = String(value || "").trim().toLowerCase();
+    if (raw === "gray") return "grey";
+    if (raw === "dim_slate") return "grey";
+    if (raw === "gentle_night") return "brown";
+    if (raw === "soft_black") return "coal";
+    return READING_DARK_VARIANTS.has(raw) ? raw : fallback;
+  }
+
+  function normalizeReadingLightVariant(value, fallback = "white") {
+    const raw = String(value || "").trim().toLowerCase();
+    if (raw === "gray") return "off_white";
+    if (raw === "soft_paper") return "off_white";
+    if (raw === "warm_page") return "warm";
+    if (raw === "neutral_light") return "white";
+    return READING_LIGHT_VARIANTS.has(raw) ? raw : fallback;
+  }
+
+  function darkVariantFromPreset(preset, fallback = "coal") {
+    const key = String(preset || "").trim().toLowerCase();
+    if (READING_DARK_VARIANTS.has(key)) return key;
+    if (key === "soft_black") return "coal";
+    if (key === "dim_slate") return "grey";
+    if (key === "gentle_night") return "brown";
+    return normalizeReadingDarkVariant(fallback, "coal");
+  }
+
+  function lightVariantFromPreset(preset, fallback = "white") {
+    const key = String(preset || "").trim().toLowerCase();
+    if (READING_LIGHT_VARIANTS.has(key)) return key;
+    if (key === "warm_page") return "warm";
+    if (key === "soft_paper") return "off_white";
+    if (key === "neutral_light") return "white";
+    return normalizeReadingLightVariant(fallback, "white");
+  }
+
+  function presetFromVariants(mode, darkVariant, lightVariant) {
+    return mode === "light" ? lightVariant : darkVariant;
+  }
+
   function createDefaultReadingProfile() {
     return {
       enabled: false,
       appearance: "auto", // light | dark | auto
-      scheduleMode: "sunset", // sunset | custom
+      darkVariant: "coal", // coal | black | brown | grey | sepia | teal | purple | forest_green
+      darkThemeVariant: "black",
+      lightVariant: "white", // white | warm | off_white | soft_green | baby_blue | light_brown
+      lightThemeVariant: "white",
+      scheduleMode: "system", // system | sunset | custom
       schedule: {
         enabled: true,
-        useSunset: true,
+        useSunset: false,
         start: "20:00",
         end: "06:00"
       },
       mode: "dark", // legacy compatibility
-      preset: "soft_black", // legacy compatibility
+      preset: "coal", // legacy compatibility
       intensity: 44
     };
   }
@@ -703,9 +880,10 @@
     const appearance = ["light", "dark", "auto"].includes(appearanceRaw)
       ? appearanceRaw
       : "auto";
-    const scheduleMode = String(raw.scheduleMode || (raw.schedule?.useSunset ? "sunset" : "") || base.scheduleMode || "sunset") === "custom"
-      ? "custom"
-      : "sunset";
+    const scheduleModeRaw = String(raw.scheduleMode || (raw.schedule?.useSunset ? "sunset" : "") || base.scheduleMode || "system").toLowerCase();
+    const scheduleMode = ["system", "sunset", "custom"].includes(scheduleModeRaw)
+      ? scheduleModeRaw
+      : "system";
     const scheduleRaw = {
       ...(base.schedule || {}),
       ...(raw.schedule && typeof raw.schedule === "object" ? raw.schedule : {})
@@ -717,23 +895,33 @@
       end: /^([01]\d|2[0-3]):([0-5]\d)$/.test(String(scheduleRaw.end || "")) ? String(scheduleRaw.end) : "06:00"
     };
     const mode = appearance === "auto"
-      ? (inRange(schedule.start, schedule.end, new Date()) ? "dark" : "light")
+      ? (
+        scheduleMode === "system"
+          ? (window.matchMedia?.("(prefers-color-scheme: dark)")?.matches ? "dark" : "light")
+          : (inRange(schedule.start, schedule.end, new Date()) ? "dark" : "light")
+      )
       : appearance;
-    const preset = [
-      "soft_black",
-      "dim_slate",
-      "gentle_night",
-      "soft_paper",
-      "neutral_light",
-      "warm_page"
-    ].includes(String(raw.preset || ""))
-      ? String(raw.preset)
-      : String(base.preset || "soft_black");
+    const darkVariant = normalizeReadingDarkVariant(
+      raw.darkVariant || raw.darkThemeVariant,
+      darkVariantFromPreset(raw.preset || base.preset, base.darkVariant || "coal")
+    );
+    const lightVariant = normalizeReadingLightVariant(
+      raw.lightVariant || raw.lightThemeVariant,
+      lightVariantFromPreset(raw.preset || base.preset, base.lightVariant || "white")
+    );
+    const rawPreset = String(raw.preset || "");
+    const preset = READING_PRESETS.has(rawPreset)
+      ? rawPreset
+      : presetFromVariants(mode, darkVariant, lightVariant);
     return {
       ...base,
       ...raw,
       enabled: Boolean(raw.enabled ?? base.enabled),
       appearance,
+      darkVariant,
+      darkThemeVariant: darkVariant,
+      lightVariant,
+      lightThemeVariant: lightVariant,
       scheduleMode,
       schedule,
       mode,
@@ -1056,33 +1244,287 @@
     const schedule = profile.schedule && typeof profile.schedule === "object"
       ? profile.schedule
       : { start: "20:00", end: "06:00", enabled: appearance === "auto" };
+    const scheduleModeRaw = String(profile.scheduleMode || (schedule.useSunset ? "sunset" : "system")).toLowerCase();
+    const scheduleMode = ["system", "sunset", "custom"].includes(scheduleModeRaw)
+      ? scheduleModeRaw
+      : "system";
     const mode = appearance === "auto"
-      ? (inRange(String(schedule.start || "20:00"), String(schedule.end || "06:00"), new Date()) ? "dark" : "light")
+      ? (
+        scheduleMode === "system"
+          ? (window.matchMedia?.("(prefers-color-scheme: dark)")?.matches ? "dark" : "light")
+          : (inRange(String(schedule.start || "20:00"), String(schedule.end || "06:00"), new Date()) ? "dark" : "light")
+      )
       : (appearance === "light" ? "light" : "dark");
     const tone = pageTone.tone || "mixed";
     const alreadyDark = tone === "dark";
     const intensityFactor = clamp(profile.intensity ?? 44, 0, 100) / 100;
+    const darkVariant = normalizeReadingDarkVariant(
+      profile.darkVariant || profile.darkThemeVariant,
+      darkVariantFromPreset(profile.preset, "coal")
+    );
+    const lightVariant = normalizeReadingLightVariant(
+      profile.lightVariant || profile.lightThemeVariant,
+      lightVariantFromPreset(profile.preset, "white")
+    );
 
     if (mode === "dark") {
+      const DARK_PALETTES = {
+        coal: {
+          bg: "#121212",
+          surface: "#1a1a1a",
+          fg: "#E0E0E0",
+          muted: "#bdbdbd",
+          link: "#8fa1bf",
+          border: "rgba(224, 224, 224, 0.26)",
+          controlBg: "#202020",
+          overlayBg: "rgba(8, 8, 8, 1)"
+        },
+        black: {
+          bg: "#000000",
+          surface: "#080808",
+          fg: "#BDBDBD",
+          muted: "#a5a5a5",
+          link: "#90CAF9",
+          border: "rgba(189, 189, 189, 0.24)",
+          controlBg: "#111111",
+          overlayBg: "rgba(0, 0, 0, 1)"
+        },
+        brown: {
+          bg: "#3E2723",
+          surface: "#4a302b",
+          fg: "#FFF8E1",
+          muted: "#e6d7b9",
+          link: "#D7CCC8",
+          border: "rgba(255, 248, 225, 0.26)",
+          controlBg: "#5b3f39",
+          overlayBg: "rgba(42, 24, 20, 1)"
+        },
+        grey: {
+          bg: "#424242",
+          surface: "#4e4e4e",
+          fg: "#FFFFFF",
+          muted: "#f3f3f3",
+          link: "#B3E5FC",
+          border: "rgba(255, 255, 255, 0.28)",
+          controlBg: "#5b5b5b",
+          overlayBg: "rgba(28, 28, 28, 1)"
+        },
+        sepia: {
+          bg: "#5C3317",
+          surface: "#694022",
+          fg: "#F4EBD0",
+          muted: "#e3d8b7",
+          link: "#D7B27A",
+          border: "rgba(244, 235, 208, 0.26)",
+          controlBg: "#7a4f2f",
+          overlayBg: "rgba(54, 28, 12, 1)"
+        },
+        teal: {
+          bg: "#004D40",
+          surface: "#00695c",
+          fg: "#E0F2F1",
+          muted: "#c4e8e5",
+          link: "#80CBC4",
+          border: "rgba(224, 242, 241, 0.26)",
+          controlBg: "#00796b",
+          overlayBg: "rgba(0, 56, 48, 1)"
+        },
+        purple: {
+          bg: "#311B92",
+          surface: "#4527A0",
+          fg: "#E1BEE7",
+          muted: "#d8b3de",
+          link: "#B39DDB",
+          border: "rgba(225, 190, 231, 0.28)",
+          controlBg: "#512DA8",
+          overlayBg: "rgba(37, 18, 104, 1)"
+        },
+        forest_green: {
+          bg: "#1B5E20",
+          surface: "#2e7d32",
+          fg: "#E8F5E9",
+          muted: "#d6ecd7",
+          link: "#A5D6A7",
+          border: "rgba(232, 245, 233, 0.26)",
+          controlBg: "#388E3C",
+          overlayBg: "rgba(20, 70, 24, 1)"
+        }
+      };
+      const palette = DARK_PALETTES[darkVariant] || DARK_PALETTES.coal;
+      const variantBoostMap = {
+        coal: 0.07,
+        black: 0.10,
+        brown: 0.07,
+        grey: 0.06,
+        sepia: 0.06,
+        teal: 0.06,
+        purple: 0.06,
+        forest_green: 0.06
+      };
+      const variantBoost = variantBoostMap[darkVariant] ?? 0.06;
+      const overlayOpacity = clamp(
+        (alreadyDark ? 0.05 : 0.19)
+          + (intensityFactor * 0.14)
+          + variantBoost,
+        alreadyDark ? 0.04 : 0.14,
+        alreadyDark ? 0.24 : 0.46
+      );
+      const filter = (() => {
+        if (darkVariant === "brown" || darkVariant === "sepia") {
+          return alreadyDark
+            ? "brightness(0.995) contrast(1.05) sepia(0.08) saturate(0.96)"
+            : "brightness(0.982) contrast(1.12) sepia(0.16) saturate(0.90)";
+        }
+        if (darkVariant === "grey") {
+          return alreadyDark
+            ? "brightness(0.996) contrast(1.04) saturate(0.95)"
+            : "brightness(0.984) contrast(1.10) saturate(0.88)";
+        }
+        if (darkVariant === "teal" || darkVariant === "forest_green") {
+          return alreadyDark
+            ? "brightness(0.996) contrast(1.04) saturate(0.96)"
+            : "brightness(0.984) contrast(1.10) saturate(0.92)";
+        }
+        if (darkVariant === "purple") {
+          return alreadyDark
+            ? "brightness(0.996) contrast(1.04) saturate(0.95)"
+            : "brightness(0.983) contrast(1.11) saturate(0.91)";
+        }
+        return alreadyDark
+          ? "brightness(0.995) contrast(1.05) saturate(0.95)"
+          : "brightness(0.978) contrast(1.13) saturate(0.88)";
+      })();
+      const mediaFilter = darkVariant === "black"
+        ? "brightness(0.90) saturate(0.92) contrast(1.02)"
+        : "brightness(0.92) saturate(0.95) contrast(1.01)";
+
       return {
         mode,
         appearance,
-        variant: "appearance_dark",
-        overlayBg: "rgba(10, 12, 15, 1)",
-        overlayOpacity: clamp((alreadyDark ? 0.05 : 0.17) + (intensityFactor * 0.08), 0.03, 0.30),
-        maxOverlayOpacity: alreadyDark ? 0.18 : 0.34,
-        filter: alreadyDark ? "brightness(0.995) contrast(1.01)" : "brightness(0.985) contrast(1.04)"
+        variant: `appearance_dark_${darkVariant}`,
+        overlayBg: palette.overlayBg,
+        overlayOpacity,
+        maxOverlayOpacity: alreadyDark ? 0.24 : 0.46,
+        filter,
+        mediaFilter,
+        bg: palette.bg,
+        surface: palette.surface,
+        fg: palette.fg,
+        muted: palette.muted,
+        link: palette.link,
+        border: palette.border,
+        controlBg: palette.controlBg
       };
     }
+
+    const LIGHT_PALETTES = {
+      white: {
+        bg: "#FFFFFF",
+        surface: "#FFFFFF",
+        fg: "#000000",
+        muted: "#202020",
+        link: "#2196F3",
+        border: "rgba(0, 0, 0, 0.24)",
+        controlBg: "#ffffff",
+        overlayBg: "rgba(255, 255, 255, 1)"
+      },
+      warm: {
+        bg: "#FFFDE7",
+        surface: "#FFF9D6",
+        fg: "#3E2723",
+        muted: "#5a3e38",
+        link: "#FFB300",
+        border: "rgba(62, 39, 35, 0.24)",
+        controlBg: "#fff7c6",
+        overlayBg: "rgba(255, 245, 198, 1)"
+      },
+      off_white: {
+        bg: "#FAFAFA",
+        surface: "#F2F2F2",
+        fg: "#212121",
+        muted: "#424242",
+        link: "#616161",
+        border: "rgba(33, 33, 33, 0.20)",
+        controlBg: "#f6f6f6",
+        overlayBg: "rgba(250, 250, 250, 1)"
+      },
+      soft_green: {
+        bg: "#E8F5E9",
+        surface: "#DBEEDC",
+        fg: "#1B5E20",
+        muted: "#2f6e35",
+        link: "#66BB6A",
+        border: "rgba(27, 94, 32, 0.22)",
+        controlBg: "#f1faf2",
+        overlayBg: "rgba(232, 245, 233, 1)"
+      },
+      baby_blue: {
+        bg: "#E3F2FD",
+        surface: "#d7ecfb",
+        fg: "#0D47A1",
+        muted: "#1c5ab8",
+        link: "#42A5F5",
+        border: "rgba(13, 71, 161, 0.24)",
+        controlBg: "#f2f8fe",
+        overlayBg: "rgba(227, 242, 253, 1)"
+      },
+      light_brown: {
+        bg: "#D7CCC8",
+        surface: "#d0c2bd",
+        fg: "#4E342E",
+        muted: "#6a4f48",
+        link: "#A1887F",
+        border: "rgba(78, 52, 46, 0.24)",
+        controlBg: "#e4d9d5",
+        overlayBg: "rgba(215, 204, 200, 1)"
+      }
+    };
+    const palette = LIGHT_PALETTES[lightVariant] || LIGHT_PALETTES.white;
+    const overlayOpacity = clamp(
+      (alreadyDark ? 0.04 : 0.11)
+        + (intensityFactor * 0.09)
+        + (lightVariant === "white" ? 0.03 : 0.02),
+      alreadyDark ? 0.02 : 0.07,
+      alreadyDark ? 0.14 : 0.28
+    );
+    const filter = (() => {
+      if (lightVariant === "warm" || lightVariant === "light_brown") {
+        return alreadyDark
+          ? "brightness(1.02) contrast(1.02) sepia(0.05)"
+          : "brightness(1.035) contrast(1.05) sepia(0.12) saturate(0.95)";
+      }
+      if (lightVariant === "off_white") {
+        return alreadyDark
+          ? "brightness(1.015) contrast(1.02) saturate(0.98)"
+          : "brightness(1.025) contrast(1.04) saturate(0.96)";
+      }
+      if (lightVariant === "soft_green" || lightVariant === "baby_blue") {
+        return alreadyDark
+          ? "brightness(1.015) contrast(1.02) saturate(0.99)"
+          : "brightness(1.03) contrast(1.04) saturate(0.98)";
+      }
+      return alreadyDark
+        ? "brightness(1.015) contrast(1.02) saturate(0.99)"
+        : "brightness(1.035) contrast(1.05) saturate(0.96)";
+    })();
+    const mediaFilter = "none";
 
     return {
       mode,
       appearance,
-      variant: "appearance_light",
-      overlayBg: "rgba(247, 243, 232, 1)",
-      overlayOpacity: clamp((alreadyDark ? 0.03 : 0.06) + (intensityFactor * 0.06), 0.02, 0.14),
-      maxOverlayOpacity: alreadyDark ? 0.10 : 0.20,
-      filter: alreadyDark ? "brightness(1.01) contrast(1.0)" : "brightness(1.005) contrast(1.0)"
+      variant: `appearance_light_${lightVariant}`,
+      overlayBg: palette.overlayBg,
+      overlayOpacity,
+      maxOverlayOpacity: alreadyDark ? 0.14 : 0.28,
+      filter,
+      mediaFilter,
+      bg: palette.bg,
+      surface: palette.surface,
+      fg: palette.fg,
+      muted: palette.muted,
+      link: palette.link,
+      border: palette.border,
+      controlBg: palette.controlBg
     };
   }
 
@@ -1234,6 +1676,7 @@
   }
 
   function apply(payload = {}) {
+    state.lastPayload = payload;
     const settings = payload.settings || {};
     const legacyLight = settings.light || {};
     const lightSettings = settings.lightFilter || legacyLight || {};
@@ -1250,9 +1693,15 @@
         end: String(legacyLight.schedule?.end || "06:00")
       },
       mode: legacyLight.readingMode === "light" ? "light" : "dark",
+      darkVariant: ["black", "brown", "gray", "grey", "coal", "sepia", "teal", "purple", "forest_green"].includes(String(legacyLight.darkThemeVariant || ""))
+        ? normalizeReadingDarkVariant(String(legacyLight.darkThemeVariant || ""), "coal")
+        : "coal",
+      lightVariant: ["white", "warm", "gray", "off_white", "soft_green", "baby_blue", "light_brown"].includes(String(legacyLight.lightThemeVariant || ""))
+        ? normalizeReadingLightVariant(String(legacyLight.lightThemeVariant || ""), "white")
+        : "white",
       preset: legacyLight.readingMode === "light"
-        ? (legacyLight.lightThemeVariant === "gray" ? "soft_paper" : legacyLight.lightThemeVariant === "warm" ? "warm_page" : "neutral_light")
-        : (legacyLight.darkThemeVariant === "gray" ? "dim_slate" : legacyLight.darkThemeVariant === "brown" ? "gentle_night" : "soft_black"),
+        ? (legacyLight.lightThemeVariant === "gray" ? "off_white" : legacyLight.lightThemeVariant === "warm" ? "warm" : "white")
+        : (legacyLight.darkThemeVariant === "gray" ? "grey" : legacyLight.darkThemeVariant === "brown" ? "brown" : "coal"),
       intensity: Number(legacyLight.intensity || 44),
       perSiteOverrides: legacyLight.siteProfiles || {},
       excludedSites: Array.isArray(legacyLight.excludedHosts)
@@ -1289,6 +1738,12 @@
     const filterEnabled = Boolean(baseEnabled && runtimeEnabled && !filterExcluded);
     const readingThemeEnabled = Boolean(readingProfile.enabled && !readingExcluded);
     const adaptiveEnabled = Boolean(adaptiveProfile.enabled && !adaptiveExcluded);
+
+    updateSystemAppearanceListener(
+      readingThemeEnabled
+      && String(readingProfile.appearance || "") === "auto"
+      && String(readingProfile.scheduleMode || "") === "system"
+    );
 
     if ((!filterEnabled && !readingThemeEnabled && !adaptiveEnabled) || excluded) {
       clear();
@@ -1370,8 +1825,8 @@
       safeFallback = true;
       clampReason = "already-dark";
     }
-    if (pageTone.tone === "light" && readingThemeEnabled && readingProfile.mode === "light" && overlayOpacity > 0.20) {
-      overlayOpacity = 0.20;
+    if (pageTone.tone === "light" && readingThemeEnabled && readingTheme.mode === "light" && overlayOpacity > 0.24) {
+      overlayOpacity = 0.24;
       safeFallback = true;
       clampReason = "light-reading-cap";
     }
@@ -1386,6 +1841,25 @@
     document.documentElement.classList.toggle("holmeta-reading-dark", readingThemeEnabled && readingTheme.mode === "dark");
     document.documentElement.classList.toggle("holmeta-reading-light", readingThemeEnabled && readingTheme.mode === "light");
     document.documentElement.style.setProperty("--holmeta-light-filter", pageFilter);
+    if (readingThemeEnabled) {
+      document.documentElement.style.setProperty("--holmeta-reading-bg", String(readingTheme.bg || "#0b0f14"));
+      document.documentElement.style.setProperty("--holmeta-reading-surface", String(readingTheme.surface || "#121a22"));
+      document.documentElement.style.setProperty("--holmeta-reading-fg", String(readingTheme.fg || "#f2f6ff"));
+      document.documentElement.style.setProperty("--holmeta-reading-muted", String(readingTheme.muted || "#c8d2e0"));
+      document.documentElement.style.setProperty("--holmeta-reading-link", String(readingTheme.link || "#ffb300"));
+      document.documentElement.style.setProperty("--holmeta-reading-border", String(readingTheme.border || "rgba(243, 243, 244, 0.24)"));
+      document.documentElement.style.setProperty("--holmeta-reading-control-bg", String(readingTheme.controlBg || "#171b24"));
+      document.documentElement.style.setProperty("--holmeta-reading-media-filter", String(readingTheme.mediaFilter || "none"));
+    } else {
+      document.documentElement.style.removeProperty("--holmeta-reading-bg");
+      document.documentElement.style.removeProperty("--holmeta-reading-surface");
+      document.documentElement.style.removeProperty("--holmeta-reading-fg");
+      document.documentElement.style.removeProperty("--holmeta-reading-muted");
+      document.documentElement.style.removeProperty("--holmeta-reading-link");
+      document.documentElement.style.removeProperty("--holmeta-reading-border");
+      document.documentElement.style.removeProperty("--holmeta-reading-control-bg");
+      document.documentElement.style.removeProperty("--holmeta-reading-media-filter");
+    }
 
     overlay.style.setProperty("--holmeta-overlay-bg", overlayBg);
     overlay.style.setProperty("--holmeta-overlay-opacity", String(overlayOpacity));

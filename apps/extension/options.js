@@ -56,6 +56,8 @@
     optSiteProfiles: $("optSiteProfiles"),
     optReadingEnabled: $("optReadingEnabled"),
     optReadingAppearance: $("optReadingAppearance"),
+    optReadingDarkVariant: $("optReadingDarkVariant"),
+    optReadingLightVariant: $("optReadingLightVariant"),
     optReadingScheduleMode: $("optReadingScheduleMode"),
     optReadingStart: $("optReadingStart"),
     optReadingEnd: $("optReadingEnd"),
@@ -339,6 +341,50 @@
     return settings.darkLightTheme || settings.readingTheme || {};
   }
 
+  function normalizeReadingDarkVariant(value, fallback = "coal") {
+    const raw = String(value || "").trim().toLowerCase();
+    if (raw === "gray") return "grey";
+    if (raw === "dim_slate") return "grey";
+    if (raw === "gentle_night") return "brown";
+    if (raw === "soft_black") return "coal";
+    return ["coal", "black", "brown", "grey", "sepia", "teal", "purple", "forest_green"].includes(raw)
+      ? raw
+      : fallback;
+  }
+
+  function normalizeReadingLightVariant(value, fallback = "white") {
+    const raw = String(value || "").trim().toLowerCase();
+    if (raw === "gray") return "off_white";
+    if (raw === "soft_paper") return "off_white";
+    if (raw === "warm_page") return "warm";
+    if (raw === "neutral_light") return "white";
+    return ["white", "warm", "off_white", "soft_green", "baby_blue", "light_brown"].includes(raw)
+      ? raw
+      : fallback;
+  }
+
+  function darkVariantFromPreset(preset, fallback = "coal") {
+    const key = String(preset || "").trim().toLowerCase();
+    if (["coal", "black", "brown", "grey", "sepia", "teal", "purple", "forest_green"].includes(key)) return key;
+    if (key === "soft_black") return "coal";
+    if (key === "dim_slate") return "grey";
+    if (key === "gentle_night") return "brown";
+    return normalizeReadingDarkVariant(fallback, "coal");
+  }
+
+  function lightVariantFromPreset(preset, fallback = "white") {
+    const key = String(preset || "").trim().toLowerCase();
+    if (["white", "warm", "off_white", "soft_green", "baby_blue", "light_brown"].includes(key)) return key;
+    if (key === "soft_paper") return "off_white";
+    if (key === "warm_page") return "warm";
+    if (key === "neutral_light") return "white";
+    return normalizeReadingLightVariant(fallback, "white");
+  }
+
+  function readingPresetFor(mode, darkVariant, lightVariant) {
+    return mode === "light" ? lightVariant : darkVariant;
+  }
+
   function getAdaptiveSettings() {
     const settings = state.app?.settings || {};
     return settings.adaptiveSiteTheme || {};
@@ -376,23 +422,40 @@
     const appearance = String(
       settings.appearance || (String(settings.mode || "dark") === "light" ? "light" : "dark")
     );
-    const scheduleMode = String(
-      settings.scheduleMode || (settings.schedule?.useSunset ? "sunset" : "custom")
+    const sourcePreset = String(settings.preset || "");
+    const darkVariant = normalizeReadingDarkVariant(
+      settings.darkVariant || settings.darkThemeVariant,
+      darkVariantFromPreset(sourcePreset, "coal")
     );
+    const lightVariant = normalizeReadingLightVariant(
+      settings.lightVariant || settings.lightThemeVariant,
+      lightVariantFromPreset(sourcePreset, "white")
+    );
+    const scheduleMode = String(
+      settings.scheduleMode || (settings.schedule?.useSunset ? "sunset" : "system")
+    );
+    const safeScheduleMode = ["system", "sunset", "custom"].includes(scheduleMode)
+      ? scheduleMode
+      : "system";
+    const mode = appearance === "light" ? "light" : "dark";
     const schedule = {
       enabled: appearance === "auto",
-      useSunset: scheduleMode === "sunset",
+      useSunset: safeScheduleMode === "sunset",
       start: String(settings.schedule?.start || "20:00"),
       end: String(settings.schedule?.end || "06:00")
     };
     return {
       enabled: true,
       appearance,
-      scheduleMode,
+      darkVariant,
+      darkThemeVariant: darkVariant,
+      lightVariant,
+      lightThemeVariant: lightVariant,
+      scheduleMode: safeScheduleMode,
       schedule,
       // Backward compatibility for older renderers still reading legacy keys.
-      mode: appearance === "light" ? "light" : "dark",
-      preset: String(settings.preset || "soft_black"),
+      mode,
+      preset: String(settings.preset || readingPresetFor(mode, darkVariant, lightVariant)),
       intensity: Number(settings.intensity ?? 44)
     };
   }
@@ -608,12 +671,25 @@
     const readingAppearance = String(
       reading.appearance || (String(reading.mode || "dark") === "light" ? "light" : "dark")
     );
-    const readingScheduleMode = String(
-      reading.scheduleMode || (reading.schedule?.useSunset ? "sunset" : "custom")
+    const readingDarkVariant = normalizeReadingDarkVariant(
+      reading.darkVariant || reading.darkThemeVariant,
+      darkVariantFromPreset(reading.preset, "coal")
     );
+    const readingLightVariant = normalizeReadingLightVariant(
+      reading.lightVariant || reading.lightThemeVariant,
+      lightVariantFromPreset(reading.preset, "white")
+    );
+    const readingScheduleModeRaw = String(
+      reading.scheduleMode || (reading.schedule?.useSunset ? "sunset" : "system")
+    );
+    const readingScheduleMode = ["system", "sunset", "custom"].includes(readingScheduleModeRaw)
+      ? readingScheduleModeRaw
+      : "system";
     const readingIsAuto = readingAppearance === "auto";
     setChecked("optReadingEnabled", reading.enabled);
     setValue("optReadingAppearance", readingAppearance);
+    setValue("optReadingDarkVariant", readingDarkVariant);
+    setValue("optReadingLightVariant", readingLightVariant);
     setValue("optReadingScheduleMode", readingScheduleMode);
     setValue("optReadingStart", reading.schedule?.start || "20:00");
     setValue("optReadingEnd", reading.schedule?.end || "06:00");
@@ -795,7 +871,12 @@
     bindSelect("optReadingAppearance", (el) => {
       const appearance = String(el.value || "dark");
       const isAuto = appearance === "auto";
-      const scheduleMode = String(refs.optReadingScheduleMode?.value || "sunset");
+      const scheduleMode = ["system", "sunset", "custom"].includes(String(refs.optReadingScheduleMode?.value || ""))
+        ? String(refs.optReadingScheduleMode.value)
+        : "system";
+      const darkVariant = normalizeReadingDarkVariant(refs.optReadingDarkVariant?.value, "coal");
+      const lightVariant = normalizeReadingLightVariant(refs.optReadingLightVariant?.value, "white");
+      const mode = appearance === "light" ? "light" : "dark";
       if (refs.optReadingScheduleMode) refs.optReadingScheduleMode.disabled = !isAuto;
       const customEnabled = isAuto && scheduleMode === "custom";
       if (refs.optReadingStart) refs.optReadingStart.disabled = !customEnabled;
@@ -803,7 +884,12 @@
       queuePatch({
         readingTheme: {
           appearance,
-          mode: appearance === "light" ? "light" : "dark",
+          darkVariant,
+          darkThemeVariant: darkVariant,
+          lightVariant,
+          lightThemeVariant: lightVariant,
+          mode,
+          preset: readingPresetFor(mode, darkVariant, lightVariant),
           schedule: {
             enabled: isAuto,
             useSunset: scheduleMode === "sunset"
@@ -811,8 +897,38 @@
         }
       });
     });
+    bindSelect("optReadingDarkVariant", (el) => {
+      const darkVariant = normalizeReadingDarkVariant(el.value, "coal");
+      const appearance = String(refs.optReadingAppearance?.value || "dark");
+      const mode = appearance === "light" ? "light" : "dark";
+      const lightVariant = normalizeReadingLightVariant(refs.optReadingLightVariant?.value, "white");
+      queuePatch({
+        readingTheme: {
+          darkVariant,
+          darkThemeVariant: darkVariant,
+          mode,
+          preset: readingPresetFor(mode, darkVariant, lightVariant)
+        }
+      });
+    });
+    bindSelect("optReadingLightVariant", (el) => {
+      const lightVariant = normalizeReadingLightVariant(el.value, "white");
+      const appearance = String(refs.optReadingAppearance?.value || "dark");
+      const mode = appearance === "light" ? "light" : "dark";
+      const darkVariant = normalizeReadingDarkVariant(refs.optReadingDarkVariant?.value, "coal");
+      queuePatch({
+        readingTheme: {
+          lightVariant,
+          lightThemeVariant: lightVariant,
+          mode,
+          preset: readingPresetFor(mode, darkVariant, lightVariant)
+        }
+      });
+    });
     bindSelect("optReadingScheduleMode", (el) => {
-      const scheduleMode = String(el.value || "sunset");
+      const scheduleMode = ["system", "sunset", "custom"].includes(String(el.value || ""))
+        ? String(el.value)
+        : "system";
       const isAuto = String(refs.optReadingAppearance?.value || "dark") === "auto";
       const customEnabled = isAuto && scheduleMode === "custom";
       if (refs.optReadingStart) refs.optReadingStart.disabled = !customEnabled;

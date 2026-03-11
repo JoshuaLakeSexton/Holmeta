@@ -71,6 +71,8 @@
     readingThemeDark: document.getElementById("readingThemeDark"),
     readingThemeLight: document.getElementById("readingThemeLight"),
     readingThemeAuto: document.getElementById("readingThemeAuto"),
+    readingThemeDarkVariant: document.getElementById("readingThemeDarkVariant"),
+    readingThemeLightVariant: document.getElementById("readingThemeLightVariant"),
     readingThemeScheduleMode: document.getElementById("readingThemeScheduleMode"),
     readingThemeScheduleStart: document.getElementById("readingThemeScheduleStart"),
     readingThemeScheduleEnd: document.getElementById("readingThemeScheduleEnd"),
@@ -463,6 +465,96 @@
     return state.app?.settings?.darkLightTheme || state.app?.settings?.readingTheme || {};
   }
 
+  const READING_DARK_VARIANTS = [
+    "coal",
+    "black",
+    "brown",
+    "grey",
+    "sepia",
+    "teal",
+    "purple",
+    "forest_green"
+  ];
+
+  const READING_LIGHT_VARIANTS = [
+    "white",
+    "warm",
+    "off_white",
+    "soft_green",
+    "baby_blue",
+    "light_brown"
+  ];
+
+  function normalizeReadingDarkVariant(value, fallback = "coal") {
+    const raw = String(value || "").trim().toLowerCase();
+    if (raw === "gray") return "grey";
+    if (raw === "dim_slate") return "grey";
+    if (raw === "gentle_night") return "brown";
+    if (raw === "soft_black") return "coal";
+    if (READING_DARK_VARIANTS.includes(raw)) return raw;
+    if (raw === "black" || raw === "brown" || raw === "grey") return raw;
+    return fallback;
+  }
+
+  function normalizeReadingLightVariant(value, fallback = "white") {
+    const raw = String(value || "").trim().toLowerCase();
+    if (raw === "gray") return "off_white";
+    if (raw === "soft_paper") return "off_white";
+    if (raw === "warm_page") return "warm";
+    if (raw === "neutral_light") return "white";
+    if (READING_LIGHT_VARIANTS.includes(raw)) return raw;
+    if (raw === "white" || raw === "warm" || raw === "off_white") return raw;
+    return fallback;
+  }
+
+  function darkVariantFromPreset(preset, fallback = "coal") {
+    const key = String(preset || "").trim().toLowerCase();
+    if (READING_DARK_VARIANTS.includes(key)) return key;
+    if (key === "soft_black") return "coal";
+    if (key === "dim_slate") return "grey";
+    if (key === "gentle_night") return "brown";
+    if (key === "sepia") return "sepia";
+    return normalizeReadingDarkVariant(fallback, "coal");
+  }
+
+  function lightVariantFromPreset(preset, fallback = "white") {
+    const key = String(preset || "").trim().toLowerCase();
+    if (READING_LIGHT_VARIANTS.includes(key)) return key;
+    if (key === "neutral_light") return "white";
+    if (key === "warm_page") return "warm";
+    if (key === "soft_paper") return "off_white";
+    return normalizeReadingLightVariant(fallback, "white");
+  }
+
+  function readingPresetForVariants(mode, darkVariant, lightVariant) {
+    return mode === "light" ? lightVariant : darkVariant;
+  }
+
+  function baseReadingIntensity(mode, darkVariant, lightVariant) {
+    if (mode === "light") {
+      const lightLevels = {
+        white: 72,
+        warm: 68,
+        off_white: 66,
+        soft_green: 67,
+        baby_blue: 68,
+        light_brown: 67
+      };
+      return lightLevels[lightVariant] || 70;
+    }
+    const darkLevels = {
+      coal: 78,
+      black: 84,
+      brown: 76,
+      grey: 74,
+      sepia: 74,
+      teal: 75,
+      purple: 75,
+      forest_green: 75
+    };
+    return darkLevels[darkVariant] || 78;
+  }
+
   function getAdaptiveThemeState() {
     return state.app?.settings?.adaptiveSiteTheme || {};
   }
@@ -521,13 +613,27 @@
     const siteProfile = getReadingSiteProfile();
     const rawAppearance = String(siteProfile?.appearance || reading.appearance || siteProfile?.mode || reading.mode || "dark");
     const appearance = ["light", "dark", "auto"].includes(rawAppearance) ? rawAppearance : "dark";
-    const scheduleMode = String(siteProfile?.scheduleMode || reading.scheduleMode || ((siteProfile?.schedule?.useSunset || reading.schedule?.useSunset) ? "sunset" : "custom"));
+    const sourcePreset = String(siteProfile?.preset || reading.preset || "");
+    const darkVariant = normalizeReadingDarkVariant(
+      siteProfile?.darkVariant || reading.darkVariant || siteProfile?.darkThemeVariant || reading.darkThemeVariant,
+      darkVariantFromPreset(sourcePreset, "coal")
+    );
+    const lightVariant = normalizeReadingLightVariant(
+      siteProfile?.lightVariant || reading.lightVariant || siteProfile?.lightThemeVariant || reading.lightThemeVariant,
+      lightVariantFromPreset(sourcePreset, "white")
+    );
+    const scheduleModeRaw = String(siteProfile?.scheduleMode || reading.scheduleMode || (siteProfile?.schedule?.useSunset || reading.schedule?.useSunset ? "sunset" : "system"));
+    const scheduleMode = ["system", "sunset", "custom"].includes(scheduleModeRaw)
+      ? scheduleModeRaw
+      : ((siteProfile?.schedule?.useSunset || reading.schedule?.useSunset) ? "sunset" : "custom");
     const scheduleStart = String(siteProfile?.schedule?.start || reading.schedule?.start || "20:00");
     const scheduleEnd = String(siteProfile?.schedule?.end || reading.schedule?.end || "06:00");
     const effective = {
       enabled: Boolean(reading.enabled),
       appearance,
-      scheduleMode: scheduleMode === "sunset" ? "sunset" : "custom",
+      darkVariant,
+      lightVariant,
+      scheduleMode,
       scheduleStart,
       scheduleEnd
     };
@@ -536,6 +642,8 @@
     refs.readingThemeLight.classList.toggle("is-active", effective.appearance === "light");
     refs.readingThemeDark.classList.toggle("is-active", effective.appearance === "dark");
     refs.readingThemeAuto.classList.toggle("is-active", effective.appearance === "auto");
+    setInputValue(refs.readingThemeDarkVariant, effective.darkVariant);
+    setInputValue(refs.readingThemeLightVariant, effective.lightVariant);
     setInputValue(refs.readingThemeScheduleMode, effective.scheduleMode);
     setInputValue(refs.readingThemeScheduleStart, effective.scheduleStart);
     setInputValue(refs.readingThemeScheduleEnd, effective.scheduleEnd);
@@ -546,11 +654,23 @@
     setChecked(refs.readingThemeThisSiteEnabled, Boolean(siteProfile));
     setChecked(refs.readingThemeExcludeSite, isReadingSiteExcluded());
 
+    const titleize = (value) => String(value || "")
+      .replaceAll("_", " ")
+      .split(" ")
+      .filter(Boolean)
+      .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+      .join(" ");
+    const darkLabel = titleize(darkVariant);
+    const lightLabel = titleize(lightVariant);
+    const scheduleLabel = effective.scheduleMode === "system"
+      ? "System"
+      : (effective.scheduleMode === "sunset" ? "Sunset to Sunrise" : `${effective.scheduleStart} → ${effective.scheduleEnd}`);
+
     refs.readingThemeStatus.textContent = effective.enabled
       ? (
         effective.appearance === "auto"
-          ? `Active: Auto · ${effective.scheduleMode === "sunset" ? "Sunset to Sunrise" : `${effective.scheduleStart} → ${effective.scheduleEnd}`}`
-          : `Active: ${effective.appearance === "dark" ? "Dark" : "Light"}`
+          ? `Active: Auto · Dark ${darkLabel} / Light ${lightLabel} · ${scheduleLabel}`
+          : `Active: ${effective.appearance === "dark" ? `Dark ${darkLabel}` : `Light ${lightLabel}`}`
       )
       : "Appearance is off. Toggle On to apply Light / Dark / Auto.";
   }
@@ -1496,22 +1616,54 @@
       : refs.readingThemeLight.classList.contains("is-active")
         ? "light"
         : "dark";
-    const scheduleMode = String(refs.readingThemeScheduleMode.value || "sunset") === "sunset" ? "sunset" : "custom";
+    const darkVariant = normalizeReadingDarkVariant(refs.readingThemeDarkVariant?.value, "coal");
+    const lightVariant = normalizeReadingLightVariant(refs.readingThemeLightVariant?.value, "white");
+    const scheduleMode = ["system", "sunset", "custom"].includes(String(refs.readingThemeScheduleMode.value || ""))
+      ? String(refs.readingThemeScheduleMode.value)
+      : "system";
     const schedule = {
       enabled: appearance === "auto",
       useSunset: scheduleMode === "sunset",
       start: String(refs.readingThemeScheduleStart.value || "20:00"),
       end: String(refs.readingThemeScheduleEnd.value || "06:00")
     };
-    const mode = appearance === "light" ? "light" : "dark";
-    const preset = mode === "light" ? "neutral_light" : "soft_black";
+    const isNowInRange = (start, end) => {
+      const [startH, startM] = String(start || "20:00").split(":").map((v) => Number(v || 0));
+      const [endH, endM] = String(end || "06:00").split(":").map((v) => Number(v || 0));
+      const now = new Date();
+      const nowMins = now.getHours() * 60 + now.getMinutes();
+      const startMins = startH * 60 + startM;
+      const endMins = endH * 60 + endM;
+      if (startMins === endMins) return true;
+      if (startMins < endMins) return nowMins >= startMins && nowMins < endMins;
+      return nowMins >= startMins || nowMins < endMins;
+    };
+    let mode = appearance === "light" ? "light" : "dark";
+    if (appearance === "auto") {
+      if (scheduleMode === "system") {
+        mode = window.matchMedia?.("(prefers-color-scheme: dark)")?.matches ? "dark" : "light";
+      } else {
+        mode = isNowInRange(schedule.start, schedule.end) ? "dark" : "light";
+      }
+    }
+    const preset = readingPresetForVariants(mode, darkVariant, lightVariant);
+    const current = getReadingSiteProfile() || getReadingThemeState();
+    const targetIntensity = baseReadingIntensity(mode, darkVariant, lightVariant);
+    const existingIntensity = Number(current?.intensity);
+    const intensity = Number.isFinite(existingIntensity)
+      ? Math.max(Math.round(Math.max(0, Math.min(100, existingIntensity))), targetIntensity)
+      : targetIntensity;
     return {
       appearance,
+      darkVariant,
+      darkThemeVariant: darkVariant,
+      lightVariant,
+      lightThemeVariant: lightVariant,
       scheduleMode,
       schedule,
       mode,
       preset,
-      intensity: 44
+      intensity
     };
   }
 
@@ -1716,7 +1868,11 @@
     patch.appearance = safeAppearance;
     patch.schedule.enabled = safeAppearance === "auto";
     patch.mode = safeAppearance === "light" ? "light" : "dark";
-    patch.preset = patch.mode === "light" ? "neutral_light" : "soft_black";
+    patch.preset = readingPresetForVariants(patch.mode, patch.darkVariant, patch.lightVariant);
+    patch.intensity = Math.max(
+      Math.round(Math.max(0, Math.min(100, Number(patch.intensity ?? 0)))),
+      baseReadingIntensity(patch.mode, patch.darkVariant, patch.lightVariant)
+    );
     queueReadingPatch({
       enabled: true,
       ...patch
@@ -1875,6 +2031,30 @@
       refs.readingThemeDark.classList.remove("is-active");
       refs.readingThemeLight.classList.remove("is-active");
       setReadingAppearanceWithEnable("auto");
+      await applyAllTabs({ ensureLightEnabled: false, quiet: true });
+    });
+
+    refs.readingThemeDarkVariant.addEventListener("change", async () => {
+      const patch = currentReadingPatchFromUI();
+      queueReadingPatch({
+        darkVariant: patch.darkVariant,
+        darkThemeVariant: patch.darkVariant,
+        mode: patch.mode,
+        preset: patch.preset,
+        intensity: patch.intensity
+      });
+      await applyAllTabs({ ensureLightEnabled: false, quiet: true });
+    });
+
+    refs.readingThemeLightVariant.addEventListener("change", async () => {
+      const patch = currentReadingPatchFromUI();
+      queueReadingPatch({
+        lightVariant: patch.lightVariant,
+        lightThemeVariant: patch.lightVariant,
+        mode: patch.mode,
+        preset: patch.preset,
+        intensity: patch.intensity
+      });
       await applyAllTabs({ ensureLightEnabled: false, quiet: true });
     });
 
