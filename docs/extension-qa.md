@@ -116,3 +116,16 @@
 - Content script console on normal sites: no overlay/input interference.
 - Rapidly open/close popup 10+ times: no state corruption.
 - Onboarding regression: click `Finish`, reload popup, and confirm onboarding stays completed.
+
+## 11) Translate Tool (New)
+- Open popup `9) Translate Tool`.
+- Verify source/target language selectors persist after popup close/reopen.
+- Select text on a normal web page and click `Translate Selection`.
+- Confirm on-page translation card shows original + translated text and copy/save actions.
+- Click `Page`, `Section`, and `Visible` and verify text updates while layout remains intact.
+- Click `Restore Original` and verify all translated text nodes revert exactly.
+- Click `Overlay` and verify side panel appears with source/translated rows, then closes cleanly.
+- Verify `Preserve code blocks` keeps `code/pre` content unchanged during page translation.
+- Save a phrase; confirm it appears under `Saved Phrases` in popup and persists across restart.
+- Confirm `Recent Translations` records new translations and `Clear History` removes entries.
+- Enable `Disable on this site`; verify translate actions return disabled state on that hostname.

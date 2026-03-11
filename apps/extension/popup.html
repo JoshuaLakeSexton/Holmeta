@@ -399,7 +399,7 @@
 
       <section class="panel core" id="eyeDropperPanel">
         <div class="section-head">
-          <h2>5) Color Eye Dropper</h2>
+          <h2>7) Color Eye Dropper</h2>
           <button id="eyePickFromPage" class="secondary">Pick from Page</button>
         </div>
 
@@ -429,7 +429,7 @@
 
       <section class="panel core" id="screenshotPanel">
         <div class="section-head">
-          <h2>6) Element Screenshot Tool</h2>
+          <h2>8) Element Screenshot Tool</h2>
           <label class="switch" aria-label="Enable screenshot tool">
             <input id="screenshotEnabled" type="checkbox" />
             <span>On</span>
@@ -524,9 +524,127 @@
         </details>
       </section>
 
+      <section class="panel core" id="translatePanel">
+        <div class="section-head">
+          <h2>9) Translate Tool</h2>
+          <label class="switch" aria-label="Enable translate tool">
+            <input id="translateEnabled" type="checkbox" />
+            <span>On</span>
+          </label>
+        </div>
+
+        <div class="field-row">
+          <label for="translateSourceLang">Source</label>
+          <select id="translateSourceLang" aria-label="Source language">
+            <option value="auto">Auto detect</option>
+            <option value="en">English</option>
+            <option value="es">Spanish</option>
+            <option value="fr">French</option>
+            <option value="de">German</option>
+            <option value="pt">Portuguese</option>
+            <option value="it">Italian</option>
+            <option value="nl">Dutch</option>
+            <option value="ja">Japanese</option>
+            <option value="ko">Korean</option>
+            <option value="zh">Chinese</option>
+          </select>
+        </div>
+
+        <div class="field-row">
+          <label for="translateTargetLang">Target</label>
+          <select id="translateTargetLang" aria-label="Target language">
+            <option value="en">English</option>
+            <option value="es">Spanish</option>
+            <option value="fr">French</option>
+            <option value="de">German</option>
+            <option value="pt">Portuguese</option>
+            <option value="it">Italian</option>
+            <option value="nl">Dutch</option>
+            <option value="ja">Japanese</option>
+            <option value="ko">Korean</option>
+            <option value="zh">Chinese</option>
+          </select>
+        </div>
+
+        <div class="field-row">
+          <label for="translateInput">Quick text</label>
+          <textarea id="translateInput" rows="3" placeholder="Paste or type text to translate"></textarea>
+        </div>
+
+        <div class="row actions-row">
+          <button id="translateInputRun" class="primary" type="button">Translate Text</button>
+          <button id="translateSelectionRun" class="secondary" type="button">Translate Selection</button>
+        </div>
+
+        <div class="row actions-row">
+          <button id="translatePageRun" class="ghost" type="button">Page</button>
+          <button id="translateSectionRun" class="ghost" type="button">Section</button>
+          <button id="translateVisibleRun" class="ghost" type="button">Visible</button>
+          <button id="translateOverlayRun" class="ghost" type="button">Overlay</button>
+        </div>
+
+        <div class="row actions-row">
+          <button id="translateRestoreRun" class="ghost" type="button">Restore Original</button>
+          <button id="translateSaveLast" class="secondary" type="button">Save Last Phrase</button>
+        </div>
+
+        <div class="field-row">
+          <label for="translateOutput">Translated output</label>
+          <textarea id="translateOutput" rows="3" readonly placeholder="Translation output appears here"></textarea>
+        </div>
+
+        <div class="field-row compact">
+          <label class="switch"><input id="translateChipEnabled" type="checkbox" /><span>Selection chip</span></label>
+          <label class="switch"><input id="translateHistoryEnabled" type="checkbox" /><span>History</span></label>
+        </div>
+
+        <details class="inline-advanced">
+          <summary>Advanced Translate Settings</summary>
+          <div class="field-row compact">
+            <label class="switch"><input id="translatePreserveCode" type="checkbox" /><span>Preserve code blocks</span></label>
+            <label class="switch"><input id="translateShowOriginalHover" type="checkbox" /><span>Show original on hover</span></label>
+          </div>
+          <div class="field-row compact">
+            <label class="switch"><input id="translateSideBySide" type="checkbox" /><span>Side-by-side text</span></label>
+          </div>
+          <div class="field-row">
+            <label for="translateProvider">Provider</label>
+            <select id="translateProvider">
+              <option value="local_lite">Local Lite (default)</option>
+              <option value="remote_api">Remote API (configure in options)</option>
+            </select>
+          </div>
+          <div class="field-row compact">
+            <label class="switch"><input id="translateSiteDisable" type="checkbox" /><span>Disable on this site</span></label>
+            <label class="switch"><input id="translateSiteAutoArticle" type="checkbox" /><span>Auto-translate articles</span></label>
+          </div>
+          <div class="field-row compact">
+            <label class="switch"><input id="translateSiteAutoChip" type="checkbox" /><span>Chip on this site</span></label>
+          </div>
+        </details>
+
+        <p id="translateStatus" class="micro">Translate selection, page blocks, or quick text with local-first controls.</p>
+
+        <details class="inline-advanced">
+          <summary>Recent Translations</summary>
+          <div class="row actions-row single-action-row">
+            <button id="translateClearHistory" class="ghost" type="button">Clear History</button>
+          </div>
+          <div id="translateHistoryList" class="translate-list" role="list"></div>
+        </details>
+
+        <details class="inline-advanced">
+          <summary>Saved Phrases</summary>
+          <div class="row actions-row single-action-row">
+            <button id="translateClearSaved" class="ghost" type="button">Clear Saved</button>
+          </div>
+          <div id="translateSavedList" class="translate-list" role="list"></div>
+        </details>
+      </section>
+
       <section class="panel core" id="blockerPanel">
         <div class="section-head">
-          <h2>7) Site Blocker Tool</h2>
+          <h2>10) Site Blocker Tool</h2>
           <label class="switch" aria-label="Toggle site blocker">
             <input id="blockerEnabled" type="checkbox" />
             <span>On</span>
@@ -598,7 +716,7 @@
 
       <section class="panel core" id="secureTunnelPanel">
         <div class="section-head">
-          <h2>8) Secure Tunnel</h2>
+          <h2>11) Secure Tunnel</h2>
           <label class="switch" aria-label="Toggle secure tunnel">
             <input id="secureTunnelEnabled" type="checkbox" />
             <span>On</span>
@@ -659,7 +777,7 @@
 
       <section class="panel core" id="alertsPanel">
         <div class="section-head">
-          <h2>9) Health Alert Popups</h2>
+          <h2>12) Health Alert Popups</h2>
           <label class="switch" aria-label="Toggle health alerts">
             <input id="alertsEnabled" type="checkbox" />
             <span>On</span>
@@ -822,7 +940,7 @@
 
       <section class="panel core" id="siteInsightPanel">
         <div class="section-head">
-          <h2>10) Site Insight Popup</h2>
+          <h2>13) Site Insight Popup</h2>
           <label class="switch" aria-label="Toggle site insight popup">
             <input id="siteInsightEnabled" type="checkbox" />
             <span>On</span>
@@ -920,7 +1038,7 @@
 
       <section class="panel compact">
         <div class="section-head">
-          <h2>11) Hotkeys</h2>
+          <h2>14) Hotkeys</h2>
         </div>
         <div class="hotkeys">
           <button class="hotkey" data-command="toggle_light_filters">Toggle Filters</button>

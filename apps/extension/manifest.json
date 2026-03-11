@@ -81,6 +81,7 @@
       ],
       "js": [
         "light/engine.js",
+        "translate/engine.js",
         "content.js"
       ],
       "all_frames": true,

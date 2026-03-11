@@ -3794,6 +3794,7 @@
     applyLightEngine();
     applyCosmeticFiltering();
     applyMorphing(Boolean(state.licensePremium && state.settings.advanced?.morphing));
+    globalThis.HolmetaTranslateEngine?.applyState?.({ settings: state.settings.translate || {} });
 
     if (state.licensePremium && state.settings.advanced?.biofeedback) {
       runBiofeedbackFallback();
@@ -3831,6 +3832,18 @@
       showToast(message.payload || {});
       sendResponse({ ok: true });
       return false;
+    }
+
+    if (type.startsWith("holmeta:translate")) {
+      const handler = globalThis.HolmetaTranslateEngine?.handleMessage;
+      if (typeof handler !== "function") {
+        sendResponse({ ok: false, error: "translate_engine_unavailable" });
+        return false;
+      }
+      Promise.resolve(handler(message))
+        .then((result) => sendResponse(result || { ok: false, error: "translate_empty_response" }))
+        .catch((error) => sendResponse({ ok: false, error: String(error?.message || "translate_handler_failed") }));
+      return true;
     }
 
     if (type === "holmeta:sound") {

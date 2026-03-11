@@ -348,6 +348,88 @@ input[type="checkbox"] {
   padding: 0 8px;
 }
 
+#translatePanel textarea {
+  width: 100%;
+  min-height: 72px;
+  border: 1px solid var(--border);
+  background: rgba(20, 17, 15, 0.86);
+  color: var(--text);
+  padding: 8px;
+  font-size: 12px;
+  line-height: 1.45;
+  resize: vertical;
+}
+
+#translatePanel textarea[readonly] {
+  color: var(--muted);
+}
+
+#translatePanel .actions-row {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+#translatePanel .actions-row button {
+  min-width: 0;
+}
+
+#translatePanel .actions-row:nth-of-type(2) {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.translate-list {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.translate-item {
+  border: 1px solid var(--border);
+  background: rgba(20, 17, 15, 0.82);
+  padding: var(--space-2);
+  display: grid;
+  gap: 6px;
+}
+
+.translate-item .meta {
+  font-size: 10px;
+  color: var(--muted);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.translate-item .line {
+  font-size: 11px;
+  line-height: 1.4;
+  color: var(--text);
+  word-break: break-word;
+}
+
+.translate-item .line.muted {
+  color: var(--muted);
+}
+
+.translate-item .actions {
+  display: flex;
+  gap: 6px;
+}
+
+.translate-item .actions button {
+  flex: 1 1 auto;
+  min-height: 30px;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+}
+
+.translate-empty {
+  border: 1px dashed rgba(243, 243, 244, 0.2);
+  min-height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  color: var(--muted);
+  padding: 0 8px;
+}
+
 .header {
   grid-template-columns: 1fr auto;
   align-items: start;

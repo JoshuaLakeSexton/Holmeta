@@ -8,7 +8,7 @@
 const STORAGE_KEY = "holmeta.v3.state";
 const _LEGACY_KEYS = ["holmeta.v2.state", "holmeta.settings", "holmeta.v3"];
 const VERSION = "3.0.0";
-const SCHEMA_VERSION = 7;
+const SCHEMA_VERSION = 8;
 const LOG_LIMIT = 500;
 const DOMAIN_LIMIT = 600;
 const SWATCH_LIMIT = 12;
@@ -16,6 +16,8 @@ const FAVORITE_LIMIT = 20;
 const SITE_INSIGHT_CACHE_LIMIT = 320;
 const SITE_INSIGHT_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 const SITE_INSIGHT_THROTTLE_MS = 10 * 1000;
+const TRANSLATE_HISTORY_LIMIT = 120;
+const SAVED_PHRASE_LIMIT = 200;
 const SCREEN_PRESETS = new Set([
   "desktop_hd",
   "desktop_fhd",
@@ -493,6 +495,109 @@ function normalizeScreenshotToolSettings(input, fallback = null) {
     showTooltip: Boolean(raw.showTooltip ?? base.showTooltip),
     autoCopy: Boolean(raw.autoCopy ?? base.autoCopy),
     previewRounded: Boolean(raw.previewRounded ?? base.previewRounded)
+  };
+}
+
+function normalizeTranslateSettings(input, fallback = null) {
+  const base = fallback && typeof fallback === "object"
+    ? fallback
+    : {
+        enabled: true,
+        autoShowSelectionChip: true,
+        targetLanguage: "en",
+        sourceLanguage: "auto",
+        recentLanguages: ["en", "es", "fr"],
+        preserveCodeBlocks: true,
+        preserveBrandTerms: true,
+        showOriginalOnHover: false,
+        enableSideBySide: false,
+        perSitePreferences: {},
+        historyEnabled: true,
+        provider: "local_lite",
+        providerConfig: {
+          endpoint: "",
+          apiKey: "",
+          headers: {}
+        }
+      };
+
+  const raw = input && typeof input === "object" ? input : {};
+  const allowedLangs = new Set(["auto", "en", "es", "fr", "de", "pt", "it", "nl", "sv", "no", "da", "fi", "ja", "ko", "zh"]);
+  const normalizeLang = (value, fallbackLang) => {
+    const candidate = String(value || "").trim().toLowerCase();
+    return allowedLangs.has(candidate) ? candidate : fallbackLang;
+  };
+
+  const perSitePreferences = raw.perSitePreferences && typeof raw.perSitePreferences === "object"
+    ? Object.fromEntries(
+        Object.entries(raw.perSitePreferences)
+          .map(([host, pref]) => [normalizeHost(host), pref])
+          .filter(([host, pref]) => Boolean(host && pref && typeof pref === "object"))
+          .map(([host, pref]) => [
+            host,
+            {
+              disabled: Boolean(pref.disabled),
+              autoShowSelectionChip: pref.autoShowSelectionChip !== false,
+              autoTranslateArticles: Boolean(pref.autoTranslateArticles),
+              mode: String(pref.mode || "default").slice(0, 32)
+            }
+          ])
+      )
+    : { ...(base.perSitePreferences || {}) };
+
+  const recentLanguages = Array.isArray(raw.recentLanguages)
+    ? [...new Set(raw.recentLanguages.map((lang) => normalizeLang(lang, "")).filter(Boolean))].slice(0, 8)
+    : [...(base.recentLanguages || ["en", "es", "fr"])];
+
+  const headers = raw.providerConfig?.headers && typeof raw.providerConfig.headers === "object"
+    ? Object.fromEntries(
+        Object.entries(raw.providerConfig.headers)
+          .filter(([key, value]) => String(key || "").trim() && typeof value === "string")
+          .slice(0, 20)
+      )
+    : (base.providerConfig?.headers || {});
+
+  return {
+    ...base,
+    ...raw,
+    enabled: Boolean(raw.enabled ?? base.enabled),
+    autoShowSelectionChip: raw.autoShowSelectionChip !== false,
+    targetLanguage: normalizeLang(raw.targetLanguage, base.targetLanguage || "en"),
+    sourceLanguage: normalizeLang(raw.sourceLanguage, base.sourceLanguage || "auto"),
+    recentLanguages: recentLanguages.length ? recentLanguages : [...(base.recentLanguages || ["en"])],
+    preserveCodeBlocks: raw.preserveCodeBlocks !== false,
+    preserveBrandTerms: raw.preserveBrandTerms !== false,
+    showOriginalOnHover: Boolean(raw.showOriginalOnHover ?? base.showOriginalOnHover),
+    enableSideBySide: Boolean(raw.enableSideBySide ?? base.enableSideBySide),
+    perSitePreferences,
+    historyEnabled: raw.historyEnabled !== false,
+    provider: ["local_lite", "remote_api"].includes(String(raw.provider || ""))
+      ? String(raw.provider)
+      : String(base.provider || "local_lite"),
+    providerConfig: {
+      endpoint: String(raw.providerConfig?.endpoint ?? base.providerConfig?.endpoint ?? "").trim().slice(0, 260),
+      apiKey: String(raw.providerConfig?.apiKey ?? base.providerConfig?.apiKey ?? "").slice(0, 260),
+      headers
+    }
+  };
+}
+
+function normalizeTranslationEntry(entry) {
+  const row = entry && typeof entry === "object" ? entry : {};
+  const sourceLang = String(row.sourceLang || "auto").trim().toLowerCase().slice(0, 12);
+  const targetLang = String(row.targetLang || "en").trim().toLowerCase().slice(0, 12);
+  const originalText = String(row.originalText || "").replace(/\s+/g, " ").trim().slice(0, 2200);
+  const translatedText = String(row.translatedText || "").replace(/\s+/g, " ").trim().slice(0, 2200);
+  if (!originalText || !translatedText) return null;
+  return {
+    id: String(row.id || `tr_${now()}_${Math.random().toString(36).slice(2, 8)}`).slice(0, 80),
+    originalText,
+    translatedText,
+    sourceLang,
+    targetLang,
+    domain: normalizeHost(row.domain || ""),
+    note: String(row.note || "").trim().slice(0, 240),
+    timestamp: Math.max(0, Number(row.timestamp || now()))
   };
 }
 
@@ -1253,6 +1358,25 @@ function createDefaultState() {
         showAlgorithmLabel: true,
         showPurposeSummary: true
       },
+      translate: {
+        enabled: true,
+        autoShowSelectionChip: true,
+        targetLanguage: "en",
+        sourceLanguage: "auto",
+        recentLanguages: ["en", "es", "fr"],
+        preserveCodeBlocks: true,
+        preserveBrandTerms: true,
+        showOriginalOnHover: false,
+        enableSideBySide: false,
+        perSitePreferences: {},
+        historyEnabled: true,
+        provider: "local_lite",
+        providerConfig: {
+          endpoint: "",
+          apiKey: "",
+          headers: {}
+        }
+      },
       deepWork: {
         active: false,
         phase: "focus",
@@ -1288,6 +1412,10 @@ function createDefaultState() {
       lightUsageMinutes: 0,
       blockerUsageMinutes: 0
     },
+    history: {
+      translate: []
+    },
+    savedPhrases: [],
     runtime: {
       dynamicRuleIds: [],
       lastAlertCursor: 0,
@@ -1646,6 +1774,11 @@ function normalizeState(input) {
     merged.settings.siteInsight.selectedProfile = fallback;
   }
 
+  merged.settings.translate = normalizeTranslateSettings(
+    merged.settings.translate || {},
+    base.settings.translate
+  );
+
   merged.settings.deepWork = {
     ...base.settings.deepWork,
     ...(merged.settings.deepWork || {})
@@ -1694,6 +1827,23 @@ function normalizeState(input) {
   };
   merged.stats.lightUsageMinutes = Math.max(0, Number(merged.stats.lightUsageMinutes || 0));
   merged.stats.blockerUsageMinutes = Math.max(0, Number(merged.stats.blockerUsageMinutes || 0));
+
+  merged.history = merged.history && typeof merged.history === "object" ? merged.history : { translate: [] };
+  merged.history.translate = Array.isArray(merged.history.translate)
+    ? merged.history.translate
+      .map((entry) => normalizeTranslationEntry(entry))
+      .filter(Boolean)
+      .sort((a, b) => Number(b.timestamp || 0) - Number(a.timestamp || 0))
+      .slice(0, TRANSLATE_HISTORY_LIMIT)
+    : [];
+
+  merged.savedPhrases = Array.isArray(merged.savedPhrases)
+    ? merged.savedPhrases
+      .map((entry) => normalizeTranslationEntry(entry))
+      .filter(Boolean)
+      .sort((a, b) => Number(b.timestamp || 0) - Number(a.timestamp || 0))
+      .slice(0, SAVED_PHRASE_LIMIT)
+    : [];
 
   merged.runtime.dynamicRuleIds = Array.isArray(merged.runtime.dynamicRuleIds)
     ? merged.runtime.dynamicRuleIds.map(Number).filter((n) => Number.isInteger(n))
@@ -1904,7 +2054,7 @@ async function ensureContentScriptReady(tabId) {
     return { ok: false, error: ping.error || "receiver_unavailable" };
   }
 
-  const injected = await executeScriptFiles(tabId, ["light/engine.js", "content.js"]);
+  const injected = await executeScriptFiles(tabId, ["light/engine.js", "translate/engine.js", "content.js"]);
   if (!injected.ok) return { ok: false, error: injected.error || "inject_failed" };
   const verify = await sendTab(tabId, { type: "holmeta:ping" }, { frameId: 0 });
   if (!verify.ok || !verify.res?.ok) {
@@ -2128,6 +2278,87 @@ async function stopScreenshotToolOnActiveTab(state) {
   state.runtime.screenshotTool.lastError = "";
   await saveState(state);
   return { ok: true };
+}
+
+function upsertRecentLanguage(settings, language) {
+  if (!settings || typeof settings !== "object" || !settings.translate || typeof settings.translate !== "object") return;
+  const normalized = String(language || "").trim().toLowerCase();
+  if (!normalized) return;
+  if (!Array.isArray(settings.translate.recentLanguages)) {
+    settings.translate.recentLanguages = [];
+  }
+  settings.translate.recentLanguages = [
+    normalized,
+    ...settings.translate.recentLanguages.filter((entry) => String(entry || "").toLowerCase() !== normalized)
+  ].slice(0, 8);
+}
+
+function addTranslationHistoryEntry(state, entryInput) {
+  const entry = normalizeTranslationEntry(entryInput);
+  if (!entry) return false;
+  if (!state.history || typeof state.history !== "object") state.history = { translate: [] };
+  if (!Array.isArray(state.history.translate)) state.history.translate = [];
+  state.history.translate = [
+    entry,
+    ...state.history.translate.filter((row) => String(row.id || "") !== entry.id)
+  ]
+    .sort((a, b) => Number(b.timestamp || 0) - Number(a.timestamp || 0))
+    .slice(0, TRANSLATE_HISTORY_LIMIT);
+  upsertRecentLanguage(state.settings, entry.targetLang);
+  return true;
+}
+
+function addSavedPhraseEntry(state, entryInput) {
+  const entry = normalizeTranslationEntry(entryInput);
+  if (!entry) return false;
+  if (!Array.isArray(state.savedPhrases)) state.savedPhrases = [];
+  state.savedPhrases = [
+    entry,
+    ...state.savedPhrases.filter((row) => String(row.id || "") !== entry.id)
+  ]
+    .sort((a, b) => Number(b.timestamp || 0) - Number(a.timestamp || 0))
+    .slice(0, SAVED_PHRASE_LIMIT);
+  upsertRecentLanguage(state.settings, entry.targetLang);
+  return true;
+}
+
+async function runTranslateActionOnActiveTab(type, payload = {}) {
+  const tabs = await tabsQuery({ active: true, currentWindow: true });
+  const tab = tabs.find((item) => Number.isInteger(item.id));
+  if (!tab) return { ok: false, error: "no_active_tab" };
+  if (isRestrictedExtensionPageUrl(tab.url)) {
+    return { ok: false, error: "restricted_page" };
+  }
+
+  const ready = await ensureContentScriptReady(tab.id);
+  if (!ready.ok) {
+    if (ready.error === "cannot_access_tab") return { ok: false, error: "restricted_page" };
+    return { ok: false, error: "content_script_unavailable" };
+  }
+
+  const sent = await sendTab(tab.id, { type, payload }, { frameId: 0 });
+  if (!sent.ok) {
+    if (isMissingReceiverError(sent.error)) {
+      const retryReady = await ensureContentScriptReady(tab.id);
+      if (!retryReady.ok) return { ok: false, error: "content_script_unavailable" };
+      const retry = await sendTab(tab.id, { type, payload }, { frameId: 0 });
+      if (!retry.ok) return { ok: false, error: retry.error || "translate_send_failed" };
+      return retry.res || { ok: true };
+    }
+    return { ok: false, error: sent.error || "translate_send_failed" };
+  }
+  if (sent.res?.ok === false && sent.res?.error === "translate_engine_unavailable") {
+    const reinjected = await executeScriptFiles(tab.id, ["light/engine.js", "translate/engine.js", "content.js"]);
+    if (!reinjected.ok) {
+      return { ok: false, error: reinjected.error || "translate_engine_unavailable" };
+    }
+    const retry = await sendTab(tab.id, { type, payload }, { frameId: 0 });
+    if (!retry.ok) {
+      return { ok: false, error: retry.error || "translate_send_failed" };
+    }
+    return retry.res || { ok: true };
+  }
+  return sent.res || { ok: true };
 }
 
 function runtimeSend(message) {
@@ -2629,6 +2860,10 @@ function publicState(state) {
     },
     settings: state.settings,
     stats: state.stats,
+    history: {
+      translate: Array.isArray(state.history?.translate) ? state.history.translate : []
+    },
+    savedPhrases: Array.isArray(state.savedPhrases) ? state.savedPhrases : [],
     runtime: {
       blockerActive: isBlockerActiveNow(state),
       lightActive: isLightActiveNow(state),
@@ -3798,7 +4033,7 @@ async function startColorPickOnActiveTab() {
 
   let result = await sendTab(tab.id, { type: "holmeta:start-color-pick" }, { frameId: 0 });
   if (!result.ok && isMissingReceiverError(result.error)) {
-    const injected = await executeScriptFiles(tab.id, ["light/engine.js", "content.js"]);
+    const injected = await executeScriptFiles(tab.id, ["light/engine.js", "translate/engine.js", "content.js"]);
     if (!injected.ok) {
       return { ok: false, error: injected.error || "inject_failed" };
     }
@@ -4339,6 +4574,99 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         height: cropped.height,
         rect: cropped.rect
       });
+      return;
+    }
+
+    if (
+      type === "holmeta:translate-selection" ||
+      type === "holmeta:translate-text" ||
+      type === "holmeta:translate-page" ||
+      type === "holmeta:translate-section" ||
+      type === "holmeta:translate-visible" ||
+      type === "holmeta:translate-overlay" ||
+      type === "holmeta:translate-restore" ||
+      type === "holmeta:translate-save-current"
+    ) {
+      const result = await runTranslateActionOnActiveTab(type, message.payload || {});
+      if (!result?.ok) {
+        sendResponse({ ok: false, error: result?.error || "translate_failed", state: publicState(state) });
+        return;
+      }
+
+      if (result.entry) {
+        addTranslationHistoryEntry(state, result.entry);
+        await saveState(state);
+      }
+
+      await broadcastState(state);
+      sendResponse({ ok: true, ...result, state: publicState(state) });
+      return;
+    }
+
+    if (type === "holmeta:translate-log") {
+      const changed = addTranslationHistoryEntry(state, message.entry);
+      if (!changed) {
+        sendResponse({ ok: false, error: "invalid_entry" });
+        return;
+      }
+      await saveState(state);
+      await broadcastState(state);
+      sendResponse({ ok: true, state: publicState(state) });
+      return;
+    }
+
+    if (type === "holmeta:translate-save-phrase") {
+      const changed = addSavedPhraseEntry(state, message.entry);
+      if (!changed) {
+        sendResponse({ ok: false, error: "invalid_entry" });
+        return;
+      }
+      await saveState(state);
+      await broadcastState(state);
+      sendResponse({ ok: true, state: publicState(state) });
+      return;
+    }
+
+    if (type === "holmeta:translate-clear-history") {
+      if (!state.history || typeof state.history !== "object") state.history = { translate: [] };
+      state.history.translate = [];
+      await saveState(state);
+      await broadcastState(state);
+      sendResponse({ ok: true, state: publicState(state) });
+      return;
+    }
+
+    if (type === "holmeta:translate-clear-saved") {
+      state.savedPhrases = [];
+      await saveState(state);
+      await broadcastState(state);
+      sendResponse({ ok: true, state: publicState(state) });
+      return;
+    }
+
+    if (type === "holmeta:translate-remove-history") {
+      const id = String(message.id || "").trim();
+      if (!id) {
+        sendResponse({ ok: false, error: "invalid_id" });
+        return;
+      }
+      state.history.translate = (state.history.translate || []).filter((entry) => String(entry.id || "") !== id);
+      await saveState(state);
+      await broadcastState(state);
+      sendResponse({ ok: true, state: publicState(state) });
+      return;
+    }
+
+    if (type === "holmeta:translate-remove-saved") {
+      const id = String(message.id || "").trim();
+      if (!id) {
+        sendResponse({ ok: false, error: "invalid_id" });
+        return;
+      }
+      state.savedPhrases = (state.savedPhrases || []).filter((entry) => String(entry.id || "") !== id);
+      await saveState(state);
+      await broadcastState(state);
+      sendResponse({ ok: true, state: publicState(state) });
       return;
     }
 

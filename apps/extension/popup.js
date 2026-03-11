@@ -33,7 +33,10 @@
     eyeDraftHex: "#FFB300",
     favoriteDraftUrl: "",
     tunnelTimerHandle: null,
-    screenshotRunning: false
+    screenshotRunning: false,
+    translateInputDraft: "",
+    translateOutputDraft: "",
+    translateLastEntry: null
   };
 
   const onboardingSteps = [
@@ -155,6 +158,34 @@
     screenshotShowTooltip: document.getElementById("screenshotShowTooltip"),
     screenshotAutoCopy: document.getElementById("screenshotAutoCopy"),
     screenshotPreviewRounded: document.getElementById("screenshotPreviewRounded"),
+
+    translateEnabled: document.getElementById("translateEnabled"),
+    translateSourceLang: document.getElementById("translateSourceLang"),
+    translateTargetLang: document.getElementById("translateTargetLang"),
+    translateInput: document.getElementById("translateInput"),
+    translateOutput: document.getElementById("translateOutput"),
+    translateInputRun: document.getElementById("translateInputRun"),
+    translateSelectionRun: document.getElementById("translateSelectionRun"),
+    translatePageRun: document.getElementById("translatePageRun"),
+    translateSectionRun: document.getElementById("translateSectionRun"),
+    translateVisibleRun: document.getElementById("translateVisibleRun"),
+    translateOverlayRun: document.getElementById("translateOverlayRun"),
+    translateRestoreRun: document.getElementById("translateRestoreRun"),
+    translateSaveLast: document.getElementById("translateSaveLast"),
+    translateChipEnabled: document.getElementById("translateChipEnabled"),
+    translateHistoryEnabled: document.getElementById("translateHistoryEnabled"),
+    translatePreserveCode: document.getElementById("translatePreserveCode"),
+    translateShowOriginalHover: document.getElementById("translateShowOriginalHover"),
+    translateSideBySide: document.getElementById("translateSideBySide"),
+    translateProvider: document.getElementById("translateProvider"),
+    translateSiteDisable: document.getElementById("translateSiteDisable"),
+    translateSiteAutoChip: document.getElementById("translateSiteAutoChip"),
+    translateSiteAutoArticle: document.getElementById("translateSiteAutoArticle"),
+    translateStatus: document.getElementById("translateStatus"),
+    translateHistoryList: document.getElementById("translateHistoryList"),
+    translateSavedList: document.getElementById("translateSavedList"),
+    translateClearHistory: document.getElementById("translateClearHistory"),
+    translateClearSaved: document.getElementById("translateClearSaved"),
 
     favoriteAddCurrent: document.getElementById("favoriteAddCurrent"),
     favoriteUrlInput: document.getElementById("favoriteUrlInput"),
@@ -738,6 +769,147 @@
     refs.screenshotStatus.textContent = "Ready. Start capture, hover an element, click once to crop.";
   }
 
+  function getTranslateSettings() {
+    return state.app?.settings?.translate || {
+      enabled: true,
+      autoShowSelectionChip: true,
+      targetLanguage: "en",
+      sourceLanguage: "auto",
+      recentLanguages: ["en", "es", "fr"],
+      preserveCodeBlocks: true,
+      preserveBrandTerms: true,
+      showOriginalOnHover: false,
+      enableSideBySide: false,
+      perSitePreferences: {},
+      historyEnabled: true,
+      provider: "local_lite",
+      providerConfig: {
+        endpoint: "",
+        apiKey: "",
+        headers: {}
+      }
+    };
+  }
+
+  function getTranslateHistory() {
+    const list = state.app?.history?.translate;
+    return Array.isArray(list) ? list : [];
+  }
+
+  function getSavedPhrases() {
+    const list = state.app?.savedPhrases;
+    return Array.isArray(list) ? list : [];
+  }
+
+  function getTranslateSitePreference() {
+    const translate = getTranslateSettings();
+    const map = translate.perSitePreferences && typeof translate.perSitePreferences === "object"
+      ? translate.perSitePreferences
+      : {};
+    return state.currentHost ? map[state.currentHost] || null : null;
+  }
+
+  function queueTranslatePatch(partial) {
+    const current = getTranslateSettings();
+    queuePatch({ translate: deepMerge(current, partial) });
+  }
+
+  function renderTranslateListItems(container, list, kind) {
+    container.innerHTML = "";
+    if (!list.length) {
+      const empty = document.createElement("div");
+      empty.className = "translate-empty";
+      empty.textContent = kind === "saved" ? "No saved phrases yet." : "No recent translations yet.";
+      container.appendChild(empty);
+      return;
+    }
+
+    list.slice(0, 12).forEach((entry) => {
+      const item = document.createElement("article");
+      item.className = "translate-item";
+      const sourceLang = String(entry.sourceLang || "auto").toUpperCase();
+      const targetLang = String(entry.targetLang || "en").toUpperCase();
+      const domain = String(entry.domain || "").trim();
+      const timestamp = Number(entry.timestamp || 0);
+      const timeLabel = timestamp > 0 ? new Date(timestamp).toLocaleString() : "Recent";
+
+      item.innerHTML = `
+        <div class="meta">${sourceLang} → ${targetLang}${domain ? ` · ${domain}` : ""}</div>
+        <div class="line muted">${String(entry.originalText || "").slice(0, 160)}</div>
+        <div class="line">${String(entry.translatedText || "").slice(0, 160)}</div>
+        <div class="meta">${timeLabel}</div>
+        <div class="actions">
+          <button type="button" class="ghost" data-translate-copy="${entry.id}">Copy</button>
+          <button type="button" class="ghost" data-translate-remove="${kind}:${entry.id}">Remove</button>
+        </div>
+      `;
+      container.appendChild(item);
+    });
+  }
+
+  function renderTranslateTool() {
+    const translate = getTranslateSettings();
+    const sitePref = getTranslateSitePreference() || {};
+    const history = getTranslateHistory();
+    const saved = getSavedPhrases();
+    const disabledOnSite = Boolean(sitePref.disabled);
+
+    setChecked(refs.translateEnabled, translate.enabled !== false);
+    setInputValue(refs.translateSourceLang, translate.sourceLanguage || "auto");
+    setInputValue(refs.translateTargetLang, translate.targetLanguage || "en");
+    setChecked(refs.translateChipEnabled, translate.autoShowSelectionChip !== false);
+    setChecked(refs.translateHistoryEnabled, translate.historyEnabled !== false);
+    setChecked(refs.translatePreserveCode, translate.preserveCodeBlocks !== false);
+    setChecked(refs.translateShowOriginalHover, Boolean(translate.showOriginalOnHover));
+    setChecked(refs.translateSideBySide, Boolean(translate.enableSideBySide));
+    setInputValue(refs.translateProvider, translate.provider || "local_lite");
+
+    if (!state.editing.has(refs.translateInput.id) && document.activeElement !== refs.translateInput) {
+      setInputValue(refs.translateInput, state.translateInputDraft || "");
+    }
+    if (!state.editing.has(refs.translateOutput.id) && document.activeElement !== refs.translateOutput) {
+      setInputValue(refs.translateOutput, state.translateOutputDraft || "");
+    }
+
+    setChecked(refs.translateSiteDisable, disabledOnSite);
+    setChecked(refs.translateSiteAutoChip, sitePref.autoShowSelectionChip !== false);
+    setChecked(refs.translateSiteAutoArticle, Boolean(sitePref.autoTranslateArticles));
+    refs.translateSiteDisable.disabled = !state.currentHost;
+    refs.translateSiteAutoChip.disabled = !state.currentHost;
+    refs.translateSiteAutoArticle.disabled = !state.currentHost;
+
+    refs.translateStatus.textContent = translate.enabled
+      ? `Active · ${state.currentHost || "site unavailable"} · ${translate.provider === "remote_api" ? "Remote API provider" : "Local Lite provider"}`
+      : "Translate Tool is off.";
+
+    const disableInteractive = !translate.enabled;
+    [
+      refs.translateSourceLang,
+      refs.translateTargetLang,
+      refs.translateInput,
+      refs.translateInputRun,
+      refs.translateSelectionRun,
+      refs.translatePageRun,
+      refs.translateSectionRun,
+      refs.translateVisibleRun,
+      refs.translateOverlayRun,
+      refs.translateRestoreRun,
+      refs.translateSaveLast,
+      refs.translateChipEnabled,
+      refs.translateHistoryEnabled,
+      refs.translatePreserveCode,
+      refs.translateShowOriginalHover,
+      refs.translateSideBySide,
+      refs.translateProvider
+    ].forEach((control) => {
+      if (!control) return;
+      control.disabled = disableInteractive;
+    });
+
+    renderTranslateListItems(refs.translateHistoryList, history, "history");
+    renderTranslateListItems(refs.translateSavedList, saved, "saved");
+  }
+
   function getFavoritesState() {
     return state.app?.settings?.favorites || { links: [] };
   }
@@ -1104,6 +1276,7 @@
     renderScreenEmulator();
     renderEyeDropper();
     renderScreenshotTool();
+    renderTranslateTool();
     renderBlocker();
     renderSecureTunnel();
     renderAlerts();
@@ -1185,6 +1358,33 @@
     return { ok: true };
   }
 
+  async function runTranslateAction(type, payload = {}, successText = "") {
+    await flushPatchNow();
+    const response = await sendMessage({ type, payload });
+    if (!response?.ok) {
+      toast(`Translate failed: ${response?.error || "unknown"}`);
+      return { ok: false, error: response?.error || "translate_failed" };
+    }
+
+    if (response.state) {
+      state.app = response.state;
+      await refreshDiagnostics();
+      render();
+    }
+
+    if (response.entry) {
+      state.translateLastEntry = response.entry;
+      state.translateOutputDraft = String(response.entry.translatedText || "");
+      setInputValue(refs.translateOutput, state.translateOutputDraft);
+    }
+
+    if (successText) {
+      toast(successText);
+    }
+
+    return response;
+  }
+
   async function refreshDiagnostics() {
     const tab = await queryCurrentTab();
     const tabId = Number(tab?.id || 0);
@@ -1215,6 +1415,9 @@
     state.app = res.state;
     state.eyeDraftHex = normalizeHexColor(state.app?.settings?.eyeDropper?.recentHex, "#FFB300");
     state.favoriteDraftUrl = "";
+    state.translateInputDraft = "";
+    state.translateOutputDraft = "";
+    state.translateLastEntry = null;
     await refreshDiagnostics();
 
     state.hydrated = true;
@@ -1532,6 +1735,39 @@
   function queueScreenshotPatch(partial) {
     const current = getScreenshotSettings();
     queuePatch({ screenshotTool: deepMerge(current, partial) });
+  }
+
+  function setTranslateSitePreference(partial) {
+    if (!state.currentHost) {
+      toast("No active website detected.");
+      return;
+    }
+    const translate = getTranslateSettings();
+    const map = {
+      ...(translate.perSitePreferences && typeof translate.perSitePreferences === "object"
+        ? translate.perSitePreferences
+        : {})
+    };
+    const current = map[state.currentHost] && typeof map[state.currentHost] === "object"
+      ? map[state.currentHost]
+      : {};
+    map[state.currentHost] = deepMerge(current, partial);
+    queueTranslatePatch({ perSitePreferences: map });
+  }
+
+  function removeTranslateSitePreference() {
+    if (!state.currentHost) {
+      toast("No active website detected.");
+      return;
+    }
+    const translate = getTranslateSettings();
+    const map = {
+      ...(translate.perSitePreferences && typeof translate.perSitePreferences === "object"
+        ? translate.perSitePreferences
+        : {})
+    };
+    delete map[state.currentHost];
+    queueTranslatePatch({ perSitePreferences: map });
   }
 
   function secureTunnelPayloadFromUI() {
@@ -2078,6 +2314,242 @@
       renderScreenshotTool();
       toast("Screenshot mode stopped.");
     });
+
+    refs.translateEnabled.addEventListener("change", (event) => {
+      queueTranslatePatch({ enabled: Boolean(event.target.checked) });
+    });
+    refs.translateSourceLang.addEventListener("change", (event) => {
+      queueTranslatePatch({ sourceLanguage: String(event.target.value || "auto") });
+    });
+    refs.translateTargetLang.addEventListener("change", (event) => {
+      const value = String(event.target.value || "en");
+      const current = getTranslateSettings();
+      const recent = [value, ...(Array.isArray(current.recentLanguages) ? current.recentLanguages : []).filter((lang) => lang !== value)].slice(0, 8);
+      queueTranslatePatch({
+        targetLanguage: value,
+        recentLanguages: recent
+      });
+    });
+    refs.translateInput.addEventListener("input", (event) => {
+      state.translateInputDraft = String(event.target.value || "");
+    });
+    refs.translateChipEnabled.addEventListener("change", (event) => {
+      queueTranslatePatch({ autoShowSelectionChip: Boolean(event.target.checked) });
+    });
+    refs.translateHistoryEnabled.addEventListener("change", (event) => {
+      queueTranslatePatch({ historyEnabled: Boolean(event.target.checked) });
+    });
+    refs.translatePreserveCode.addEventListener("change", (event) => {
+      queueTranslatePatch({ preserveCodeBlocks: Boolean(event.target.checked) });
+    });
+    refs.translateShowOriginalHover.addEventListener("change", (event) => {
+      queueTranslatePatch({ showOriginalOnHover: Boolean(event.target.checked) });
+    });
+    refs.translateSideBySide.addEventListener("change", (event) => {
+      queueTranslatePatch({ enableSideBySide: Boolean(event.target.checked) });
+    });
+    refs.translateProvider.addEventListener("change", (event) => {
+      queueTranslatePatch({ provider: String(event.target.value || "local_lite") });
+    });
+
+    refs.translateInputRun.addEventListener("click", async () => {
+      const text = String(state.translateInputDraft || refs.translateInput.value || "").trim();
+      if (!text) {
+        toast("Enter text to translate.");
+        return;
+      }
+      const response = await runTranslateAction(
+        "holmeta:translate-text",
+        {
+          text,
+          sourceLang: refs.translateSourceLang.value || "auto",
+          targetLang: refs.translateTargetLang.value || "en"
+        },
+        "Text translated."
+      );
+      if (response?.ok && response.entry) {
+        state.translateLastEntry = response.entry;
+        state.translateOutputDraft = String(response.entry.translatedText || "");
+      }
+      renderTranslateTool();
+    });
+
+    refs.translateSelectionRun.addEventListener("click", async () => {
+      const response = await runTranslateAction(
+        "holmeta:translate-selection",
+        {
+          sourceLang: refs.translateSourceLang.value || "auto",
+          targetLang: refs.translateTargetLang.value || "en"
+        },
+        "Selection translated."
+      );
+      if (response?.ok && response.entry) {
+        state.translateLastEntry = response.entry;
+        state.translateOutputDraft = String(response.entry.translatedText || "");
+      }
+      renderTranslateTool();
+    });
+
+    refs.translatePageRun.addEventListener("click", async () => {
+      const response = await runTranslateAction(
+        "holmeta:translate-page",
+        {
+          sourceLang: refs.translateSourceLang.value || "auto",
+          targetLang: refs.translateTargetLang.value || "en"
+        },
+        "Page translated."
+      );
+      if (response?.ok && Number(response.applied || 0) > 0) {
+        refs.translateStatus.textContent = `Translated ${response.applied} page text nodes.`;
+      }
+    });
+
+    refs.translateSectionRun.addEventListener("click", async () => {
+      const response = await runTranslateAction(
+        "holmeta:translate-section",
+        {
+          sourceLang: refs.translateSourceLang.value || "auto",
+          targetLang: refs.translateTargetLang.value || "en"
+        },
+        "Section translated."
+      );
+      if (response?.ok && Number(response.applied || 0) > 0) {
+        refs.translateStatus.textContent = `Translated ${response.applied} section text nodes.`;
+      }
+    });
+
+    refs.translateVisibleRun.addEventListener("click", async () => {
+      const response = await runTranslateAction(
+        "holmeta:translate-visible",
+        {
+          sourceLang: refs.translateSourceLang.value || "auto",
+          targetLang: refs.translateTargetLang.value || "en"
+        },
+        "Visible content translated."
+      );
+      if (response?.ok && Number(response.applied || 0) > 0) {
+        refs.translateStatus.textContent = `Translated ${response.applied} visible text nodes.`;
+      }
+    });
+
+    refs.translateOverlayRun.addEventListener("click", async () => {
+      const response = await runTranslateAction(
+        "holmeta:translate-overlay",
+        {
+          sourceLang: refs.translateSourceLang.value || "auto",
+          targetLang: refs.translateTargetLang.value || "en"
+        },
+        "Overlay translation opened."
+      );
+      if (response?.ok && Number(response.rows || 0) > 0) {
+        refs.translateStatus.textContent = `Overlay generated with ${response.rows} translated rows.`;
+      }
+    });
+
+    refs.translateRestoreRun.addEventListener("click", async () => {
+      const response = await runTranslateAction("holmeta:translate-restore", {}, "Original text restored.");
+      if (response?.ok) {
+        refs.translateStatus.textContent = "Original page text restored.";
+      }
+    });
+
+    refs.translateSaveLast.addEventListener("click", async () => {
+      if (!state.translateLastEntry) {
+        toast("Run a translation first.");
+        return;
+      }
+      const response = await sendMessage({
+        type: "holmeta:translate-save-phrase",
+        entry: state.translateLastEntry
+      });
+      if (!response?.ok) {
+        toast(`Save failed: ${response?.error || "unknown"}`);
+        return;
+      }
+      state.app = response.state;
+      renderTranslateTool();
+      toast("Phrase saved.");
+    });
+
+    refs.translateSiteDisable.addEventListener("change", (event) => {
+      const checked = Boolean(event.target.checked);
+      if (!state.currentHost) {
+        refs.translateSiteDisable.checked = false;
+        toast("No active website detected.");
+        return;
+      }
+      if (checked) {
+        setTranslateSitePreference({ disabled: true });
+      } else {
+        const pref = getTranslateSitePreference();
+        if (pref && !pref.autoTranslateArticles && pref.autoShowSelectionChip !== false) {
+          removeTranslateSitePreference();
+        } else {
+          setTranslateSitePreference({ disabled: false });
+        }
+      }
+    });
+
+    refs.translateSiteAutoChip.addEventListener("change", (event) => {
+      const checked = Boolean(event.target.checked);
+      setTranslateSitePreference({ autoShowSelectionChip: checked, disabled: false });
+    });
+
+    refs.translateSiteAutoArticle.addEventListener("change", (event) => {
+      const checked = Boolean(event.target.checked);
+      setTranslateSitePreference({ autoTranslateArticles: checked, disabled: false });
+    });
+
+    refs.translateClearHistory.addEventListener("click", async () => {
+      const response = await sendMessage({ type: "holmeta:translate-clear-history" });
+      if (!response?.ok) {
+        toast(`Clear failed: ${response?.error || "unknown"}`);
+        return;
+      }
+      state.app = response.state;
+      renderTranslateTool();
+      toast("Translation history cleared.");
+    });
+
+    refs.translateClearSaved.addEventListener("click", async () => {
+      const response = await sendMessage({ type: "holmeta:translate-clear-saved" });
+      if (!response?.ok) {
+        toast(`Clear failed: ${response?.error || "unknown"}`);
+        return;
+      }
+      state.app = response.state;
+      renderTranslateTool();
+      toast("Saved phrases cleared.");
+    });
+
+    const handleTranslateListClick = async (event) => {
+      const copyBtn = event.target.closest("[data-translate-copy]");
+      if (copyBtn) {
+        const id = String(copyBtn.getAttribute("data-translate-copy") || "");
+        const source = [...getTranslateHistory(), ...getSavedPhrases()].find((row) => String(row.id || "") === id);
+        if (!source) return;
+        const ok = await copyToClipboard(String(source.translatedText || ""));
+        toast(ok ? "Copied translation." : "Copy failed.");
+        return;
+      }
+
+      const removeBtn = event.target.closest("[data-translate-remove]");
+      if (!removeBtn) return;
+      const token = String(removeBtn.getAttribute("data-translate-remove") || "");
+      const [kind, id] = token.split(":");
+      if (!kind || !id) return;
+      const type = kind === "saved" ? "holmeta:translate-remove-saved" : "holmeta:translate-remove-history";
+      const response = await sendMessage({ type, id });
+      if (!response?.ok) {
+        toast(`Remove failed: ${response?.error || "unknown"}`);
+        return;
+      }
+      state.app = response.state;
+      renderTranslateTool();
+    };
+
+    refs.translateHistoryList.addEventListener("click", handleTranslateListClick);
+    refs.translateSavedList.addEventListener("click", handleTranslateListClick);
 
     refs.favoriteUrlInput.addEventListener("input", (event) => {
       state.favoriteDraftUrl = String(event.target.value || "");
