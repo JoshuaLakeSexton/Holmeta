@@ -27,6 +27,38 @@
     "custom"
   ]);
 
+  const ADAPTIVE_MODES = new Set([
+    "smart_dark",
+    "smart_light",
+    "minimal_dark",
+    "minimal_light",
+    "code_focus_dark",
+    "soft_contrast"
+  ]);
+
+  const ADAPTIVE_PRESETS = new Set([
+    "balanced",
+    "comfort",
+    "clarity"
+  ]);
+
+  const ADAPTIVE_STRATEGIES = new Set([
+    "auto",
+    "css_variables",
+    "semantic_recolor",
+    "minimal_surface",
+    "compatibility",
+    "app_safe"
+  ]);
+
+  const ADAPTIVE_COMPAT = new Set([
+    "normal",
+    "minimal",
+    "app-safe",
+    "media-safe",
+    "code-safe"
+  ]);
+
   const SPECTRUM_PRESETS = {
     balanced: { r: 255, g: 172, b: 92 },
     amber_590: { r: 255, g: 168, b: 56 },
@@ -49,9 +81,22 @@
       canvasCount: 0,
       iframeCount: 0,
       profileSource: "global",
+      readingProfileSource: "global",
+      adaptiveProfileSource: "global",
       pageTone: "unknown",
       pageLuminance: 0.5,
-      safeFallback: false
+      safeFallback: false,
+      adaptiveMode: "off",
+      adaptivePreset: "off",
+      adaptiveStrategy: "none",
+      compatibilityMode: "normal",
+      siteType: "unknown",
+      activeSystems: {
+        lightFilter: false,
+        darkLightTheme: false,
+        adaptiveSiteTheme: false
+      },
+      clampReason: ""
     },
     spotlightPoint: null,
     enabled: false,
@@ -285,6 +330,32 @@
     return output;
   }
 
+  function detectSiteType(host, media = { mediaCount: 0, canvasCount: 0 }) {
+    const title = String(document.title || "").toLowerCase();
+    const bodyText = String(document.body?.innerText || "").slice(0, 4000).toLowerCase();
+    const full = `${host} ${location.pathname || ""} ${title} ${bodyText}`;
+    const hasCode = document.querySelectorAll("pre,code,.highlight,.token").length > 5;
+    const hasManyInputs = document.querySelectorAll("input,select,textarea,button,[role='button']").length > 20;
+    const hasSidebar = Boolean(document.querySelector("aside,.sidebar,[data-testid*='sidebar']"));
+
+    if (/github\.com|gitlab\.com|bitbucket\.org|stack(?:over|under)flow|developer|docs/.test(full) || hasCode) {
+      return "docs_code";
+    }
+    if (/dashboard|admin|workspace|console|jira|notion|linear|figma/.test(full) || (hasManyInputs && hasSidebar)) {
+      return "dashboard_app";
+    }
+    if (/youtube|vimeo|twitch|netflix|primevideo/.test(full) || media.mediaCount >= 2) {
+      return "media";
+    }
+    if (/news|article|blog|press|times|post/.test(full) || document.querySelectorAll("article,time").length > 0) {
+      return "article";
+    }
+    if (/shop|cart|checkout|product|buy now|add to cart|ecommerce|store/.test(full)) {
+      return "ecommerce";
+    }
+    return "general";
+  }
+
   function chooseStrategy(profile, media) {
     const host = getHost();
     const maybeColorCritical = /(figma|photopea|canva|pixlr)/i.test(host);
@@ -326,6 +397,54 @@
 
       :root.holmeta-reading-light {
         color-scheme: light !important;
+      }
+
+      :root.holmeta-adaptive-active {
+        --holmeta-adaptive-bg: #101113;
+        --holmeta-adaptive-surface: #17191d;
+        --holmeta-adaptive-fg: #edf0f4;
+        --holmeta-adaptive-muted: #c7ced8;
+        --holmeta-adaptive-border: rgba(237, 240, 244, 0.24);
+        --holmeta-adaptive-link: #ffb300;
+        --holmeta-adaptive-overlay: 0.18;
+        --holmeta-adaptive-text-boost: 1.02;
+      }
+
+      html.holmeta-adaptive-active {
+        color-scheme: dark !important;
+      }
+
+      html.holmeta-adaptive-light {
+        color-scheme: light !important;
+      }
+
+      html.holmeta-adaptive-active :where(body, main, article, section, aside, nav, header, footer, dialog, form, table, thead, tbody, tr, th, td, pre, blockquote, fieldset) {
+        background-color: var(--holmeta-adaptive-surface) !important;
+        border-color: var(--holmeta-adaptive-border) !important;
+        color: var(--holmeta-adaptive-fg) !important;
+      }
+
+      html.holmeta-adaptive-active :where(body) {
+        background-color: var(--holmeta-adaptive-bg) !important;
+        color: var(--holmeta-adaptive-fg) !important;
+      }
+
+      html.holmeta-adaptive-active :where(p, span, li, dt, dd, label, small, strong, em) {
+        color: var(--holmeta-adaptive-fg) !important;
+      }
+
+      html.holmeta-adaptive-active :where(a, a:visited) {
+        color: var(--holmeta-adaptive-link) !important;
+      }
+
+      html.holmeta-adaptive-active :where(input, textarea, select, button, [role='button']) {
+        background-color: color-mix(in srgb, var(--holmeta-adaptive-surface) 82%, #000 18%) !important;
+        color: var(--holmeta-adaptive-fg) !important;
+        border-color: var(--holmeta-adaptive-border) !important;
+      }
+
+      html.holmeta-adaptive-active :where(code, pre, kbd, samp) {
+        filter: contrast(var(--holmeta-adaptive-text-boost)) !important;
       }
 
       html.holmeta-light-active {
@@ -430,7 +549,17 @@
     document.documentElement.classList.remove("holmeta-reading-theme");
     document.documentElement.classList.remove("holmeta-reading-dark");
     document.documentElement.classList.remove("holmeta-reading-light");
+    document.documentElement.classList.remove("holmeta-adaptive-active");
+    document.documentElement.classList.remove("holmeta-adaptive-light");
     document.documentElement.style.removeProperty("--holmeta-light-filter");
+    document.documentElement.style.removeProperty("--holmeta-adaptive-bg");
+    document.documentElement.style.removeProperty("--holmeta-adaptive-surface");
+    document.documentElement.style.removeProperty("--holmeta-adaptive-fg");
+    document.documentElement.style.removeProperty("--holmeta-adaptive-muted");
+    document.documentElement.style.removeProperty("--holmeta-adaptive-border");
+    document.documentElement.style.removeProperty("--holmeta-adaptive-link");
+    document.documentElement.style.removeProperty("--holmeta-adaptive-overlay");
+    document.documentElement.style.removeProperty("--holmeta-adaptive-text-boost");
 
     const overlay = document.getElementById(IDS.OVERLAY);
     if (overlay) overlay.remove();
@@ -441,6 +570,30 @@
     state.enabled = false;
     state.diagnostics.active = false;
     state.diagnostics.strategy = "none";
+    state.diagnostics.mode = "none";
+    state.diagnostics.adaptiveMode = "off";
+    state.diagnostics.adaptivePreset = "off";
+    state.diagnostics.adaptiveStrategy = "none";
+    state.diagnostics.compatibilityMode = "normal";
+    state.diagnostics.activeSystems = {
+      lightFilter: false,
+      darkLightTheme: false,
+      adaptiveSiteTheme: false
+    };
+    state.diagnostics.clampReason = "";
+  }
+
+  function clearAdaptiveTheme() {
+    document.documentElement.classList.remove("holmeta-adaptive-active");
+    document.documentElement.classList.remove("holmeta-adaptive-light");
+    document.documentElement.style.removeProperty("--holmeta-adaptive-bg");
+    document.documentElement.style.removeProperty("--holmeta-adaptive-surface");
+    document.documentElement.style.removeProperty("--holmeta-adaptive-fg");
+    document.documentElement.style.removeProperty("--holmeta-adaptive-muted");
+    document.documentElement.style.removeProperty("--holmeta-adaptive-border");
+    document.documentElement.style.removeProperty("--holmeta-adaptive-link");
+    document.documentElement.style.removeProperty("--holmeta-adaptive-overlay");
+    document.documentElement.style.removeProperty("--holmeta-adaptive-text-boost");
   }
 
   function computeRampFactor(profile) {
@@ -570,9 +723,169 @@
       : {};
     const direct = map[host];
     if (direct && typeof direct === "object") {
+      state.diagnostics.readingProfileSource = "site";
       return normalizeReadingProfile(direct, globalProfile);
     }
+    state.diagnostics.readingProfileSource = "global";
     return globalProfile;
+  }
+
+  function createDefaultAdaptiveProfile() {
+    return {
+      enabled: false,
+      mode: "smart_dark",
+      preset: "balanced",
+      strategy: "auto",
+      compatibilityMode: "normal",
+      intensity: 52
+    };
+  }
+
+  function normalizeAdaptiveProfile(input, fallback) {
+    const base = {
+      ...createDefaultAdaptiveProfile(),
+      ...(fallback || {})
+    };
+    const raw = input && typeof input === "object" ? input : {};
+    const mode = ADAPTIVE_MODES.has(String(raw.mode || "")) ? String(raw.mode) : String(base.mode || "smart_dark");
+    const preset = ADAPTIVE_PRESETS.has(String(raw.preset || "")) ? String(raw.preset) : String(base.preset || "balanced");
+    const strategy = ADAPTIVE_STRATEGIES.has(String(raw.strategy || ""))
+      ? String(raw.strategy)
+      : String(base.strategy || "auto");
+    const compatibilityMode = ADAPTIVE_COMPAT.has(String(raw.compatibilityMode || ""))
+      ? String(raw.compatibilityMode)
+      : String(base.compatibilityMode || "normal");
+    return {
+      ...base,
+      ...raw,
+      enabled: Boolean(raw.enabled ?? base.enabled),
+      mode,
+      preset,
+      strategy,
+      compatibilityMode,
+      intensity: Math.round(clamp(raw.intensity ?? base.intensity, 0, 100))
+    };
+  }
+
+  function pickAdaptiveProfile(adaptiveSettings, host) {
+    const fallback = createDefaultAdaptiveProfile();
+    const settings = adaptiveSettings && typeof adaptiveSettings === "object" ? adaptiveSettings : {};
+    const globalProfile = normalizeAdaptiveProfile(settings, fallback);
+    const map = settings.perSiteOverrides && typeof settings.perSiteOverrides === "object"
+      ? settings.perSiteOverrides
+      : {};
+    const direct = map[host];
+    if (direct && typeof direct === "object") {
+      state.diagnostics.adaptiveProfileSource = "site";
+      return normalizeAdaptiveProfile(direct, globalProfile);
+    }
+    state.diagnostics.adaptiveProfileSource = "global";
+    return globalProfile;
+  }
+
+  function adaptiveThemeForProfile(profile = {}, pageTone = { tone: "mixed" }, siteType = "general") {
+    const mode = String(profile.mode || "smart_dark");
+    const tone = pageTone.tone || "mixed";
+    const intensity = clamp(profile.intensity, 0, 100) / 100;
+    const isDarkTarget = /dark/.test(mode);
+    const alreadyDark = tone === "dark";
+    const alreadyLight = tone === "light";
+    const codeSafe = siteType === "docs_code" || profile.compatibilityMode === "code-safe";
+    const mediaSafe = siteType === "media" || profile.compatibilityMode === "media-safe";
+    const appSafe = siteType === "dashboard_app" || profile.compatibilityMode === "app-safe";
+    const minimal = /minimal/.test(mode) || profile.compatibilityMode === "minimal";
+
+    let bg = "#101113";
+    let surface = "#17191d";
+    let fg = "#edf0f4";
+    let muted = "#c7ced8";
+    let border = "rgba(237, 240, 244, 0.24)";
+    let link = "#ffb300";
+    let overlayOpacity = 0.18 + (intensity * 0.22);
+    let textBoost = 1.02;
+
+    if (!isDarkTarget) {
+      bg = "#f3f0e8";
+      surface = "#fcf9f1";
+      fg = "#1e2228";
+      muted = "#47505b";
+      border = "rgba(30, 34, 40, 0.22)";
+      link = "#8a3a14";
+      overlayOpacity = 0.06 + (intensity * 0.10);
+      textBoost = 1.0;
+    }
+
+    if (mode === "code_focus_dark") {
+      bg = "#0d1117";
+      surface = "#141a24";
+      fg = "#e9edf3";
+      muted = "#b9c2d0";
+      border = "rgba(233, 237, 243, 0.24)";
+      link = "#7dc4ff";
+      overlayOpacity = 0.12 + (intensity * 0.12);
+      textBoost = 1.03;
+    } else if (mode === "soft_contrast") {
+      bg = "#1a1b1f";
+      surface = "#24262c";
+      fg = "#f1efe8";
+      muted = "#d8cfbc";
+      border = "rgba(241, 239, 232, 0.18)";
+      link = "#ffb352";
+      overlayOpacity = 0.10 + (intensity * 0.08);
+      textBoost = 1.01;
+    } else if (mode === "minimal_light") {
+      bg = "#f5f3ef";
+      surface = "#fbf9f4";
+      fg = "#242a33";
+      muted = "#55606c";
+      overlayOpacity = 0.04 + (intensity * 0.06);
+    } else if (mode === "minimal_dark") {
+      bg = "#141518";
+      surface = "#1c1f24";
+      fg = "#edf0f4";
+      muted = "#c4ccd6";
+      overlayOpacity = 0.11 + (intensity * 0.10);
+    }
+
+    if (profile.preset === "comfort") {
+      overlayOpacity += 0.04;
+      muted = isDarkTarget ? "#d9c9b6" : muted;
+      link = isDarkTarget ? "#ffc15e" : link;
+    } else if (profile.preset === "clarity") {
+      textBoost += 0.02;
+      overlayOpacity -= 0.02;
+      border = isDarkTarget ? "rgba(237, 240, 244, 0.30)" : "rgba(30, 34, 40, 0.26)";
+    }
+
+    if (alreadyDark && isDarkTarget) {
+      overlayOpacity *= 0.55;
+    }
+    if (alreadyLight && !isDarkTarget) {
+      overlayOpacity *= 0.65;
+    }
+    if (minimal || appSafe) {
+      overlayOpacity *= 0.72;
+    }
+    if (mediaSafe) {
+      overlayOpacity *= 0.64;
+    }
+    if (codeSafe) {
+      textBoost = Math.max(textBoost, 1.03);
+    }
+
+    return {
+      mode,
+      bg,
+      surface,
+      fg,
+      muted,
+      border,
+      link,
+      textBoost: Number(textBoost.toFixed(3)),
+      overlayOpacity: clamp(overlayOpacity, 0.02, 0.42),
+      strategy: profile.strategy || "auto",
+      compatibilityMode: profile.compatibilityMode || "normal"
+    };
   }
 
   function profileToStyle(profile, strategy, rampFactor) {
@@ -827,11 +1140,106 @@
     };
   }
 
+  function resolveEffectiveVisualProfile(input = {}) {
+    const {
+      pageTone = { tone: "mixed", luminance: 0.5 },
+      siteType = "general",
+      lightEnabled = false,
+      readingEnabled = false,
+      adaptiveEnabled = false,
+      lightProfile = {},
+      adaptiveProfile = {}
+    } = input;
+
+    const pageIsDark = pageTone.tone === "dark";
+    const mediaHeavy = siteType === "media";
+    const dashboardLike = siteType === "dashboard_app";
+    const docsLike = siteType === "docs_code";
+    const combined = Boolean(lightEnabled) + Boolean(readingEnabled) + Boolean(adaptiveEnabled);
+
+    let clampOverlayMax = 0.72;
+    let clampReason = "";
+    let readingWeight = 1;
+    let adaptiveWeight = 1;
+
+    if (adaptiveEnabled && readingEnabled) {
+      readingWeight = 0.48;
+      clampOverlayMax = Math.min(clampOverlayMax, 0.34);
+      clampReason = "adaptive+reading";
+    }
+
+    if (adaptiveEnabled && lightEnabled) {
+      clampOverlayMax = Math.min(clampOverlayMax, 0.38);
+      if (!clampReason) clampReason = "adaptive+light";
+    }
+
+    if (combined >= 3) {
+      clampOverlayMax = Math.min(clampOverlayMax, 0.30);
+      clampReason = "triple-stack";
+    }
+
+    if (pageIsDark) {
+      clampOverlayMax = Math.min(clampOverlayMax, 0.26);
+      if (!clampReason) clampReason = "already-dark";
+    }
+
+    if (dashboardLike) {
+      clampOverlayMax = Math.min(clampOverlayMax, 0.24);
+      adaptiveWeight = 0.86;
+      if (!clampReason) clampReason = "dashboard-safe";
+    }
+
+    if (mediaHeavy) {
+      clampOverlayMax = Math.min(clampOverlayMax, 0.22);
+      adaptiveWeight = Math.min(adaptiveWeight, 0.8);
+      if (lightEnabled && !lightProfile.videoSafe) {
+        lightProfile.videoSafe = true;
+      }
+      if (!clampReason) clampReason = "media-safe";
+    }
+
+    if (docsLike && adaptiveEnabled && String(adaptiveProfile.mode || "").includes("code")) {
+      adaptiveWeight = Math.max(adaptiveWeight, 0.95);
+      clampOverlayMax = Math.min(clampOverlayMax, 0.32);
+      if (!clampReason) clampReason = "code-safe";
+    }
+
+    return {
+      lightEnabled: Boolean(lightEnabled),
+      readingEnabled: Boolean(readingEnabled),
+      adaptiveEnabled: Boolean(adaptiveEnabled),
+      clampOverlayMax,
+      readingWeight,
+      adaptiveWeight,
+      clampReason,
+      compatibilityMode: adaptiveProfile.compatibilityMode || "normal"
+    };
+  }
+
+  function applyAdaptiveTheme(theme, enabled) {
+    if (!enabled || !theme) {
+      clearAdaptiveTheme();
+      return;
+    }
+
+    const root = document.documentElement;
+    root.classList.add("holmeta-adaptive-active");
+    root.classList.toggle("holmeta-adaptive-light", /light/.test(String(theme.mode || "")));
+    root.style.setProperty("--holmeta-adaptive-bg", theme.bg);
+    root.style.setProperty("--holmeta-adaptive-surface", theme.surface);
+    root.style.setProperty("--holmeta-adaptive-fg", theme.fg);
+    root.style.setProperty("--holmeta-adaptive-muted", theme.muted);
+    root.style.setProperty("--holmeta-adaptive-border", theme.border);
+    root.style.setProperty("--holmeta-adaptive-link", theme.link);
+    root.style.setProperty("--holmeta-adaptive-overlay", String(theme.overlayOpacity));
+    root.style.setProperty("--holmeta-adaptive-text-boost", String(theme.textBoost));
+  }
+
   function apply(payload = {}) {
     const settings = payload.settings || {};
     const legacyLight = settings.light || {};
     const lightSettings = settings.lightFilter || legacyLight || {};
-    const readingSettings = settings.readingTheme || {
+    const readingSettings = settings.darkLightTheme || settings.readingTheme || {
       enabled: Boolean(legacyLight.readingModeEnabled ?? false),
       mode: legacyLight.readingMode === "light" ? "light" : "dark",
       preset: legacyLight.readingMode === "light"
@@ -843,13 +1251,15 @@
         ? Object.fromEntries(legacyLight.excludedHosts.map((host) => [normalizeHost(host), true]))
         : {}
     };
+    const adaptiveSettings = settings.adaptiveSiteTheme || {};
     const effective = payload.effective || {};
     const debugEnabled = Boolean(payload.meta?.debug);
 
     const host = getHost();
     const filterExcluded = Boolean(lightSettings.excludedSites?.[host] || (Array.isArray(lightSettings.excludedHosts) && lightSettings.excludedHosts.map(normalizeHost).includes(host)));
     const readingExcluded = Boolean(readingSettings.excludedSites?.[host] || (Array.isArray(readingSettings.excludedHosts) && readingSettings.excludedHosts.map(normalizeHost).includes(host)));
-    const excluded = filterExcluded && readingExcluded;
+    const adaptiveExcluded = Boolean(adaptiveSettings.excludedSites?.[host] || (Array.isArray(adaptiveSettings.excludedHosts) && adaptiveSettings.excludedHosts.map(normalizeHost).includes(host)));
+    const excluded = filterExcluded && readingExcluded && adaptiveExcluded;
 
     const media = countMedia();
     state.diagnostics.host = host;
@@ -861,14 +1271,18 @@
     const baseEnabled = Boolean(lightSettings.enabled);
     const scheduleActive = !lightSettings.schedule?.enabled || inRange(lightSettings.schedule.start || "20:00", lightSettings.schedule.end || "06:00");
     const runtimeEnabled = typeof effective.lightActive === "boolean" ? effective.lightActive : scheduleActive;
+    const pageTone = detectPageTone();
+    const siteType = detectSiteType(host, media);
     const profile = pickProfile(lightSettings, host);
     const readingProfile = pickReadingProfile(readingSettings, host);
+    const adaptiveProfile = pickAdaptiveProfile(adaptiveSettings, host);
     if (profile.mode === "spotlight") profile.spotlightEnabled = true;
 
     const filterEnabled = Boolean(baseEnabled && runtimeEnabled && !filterExcluded);
     const readingThemeEnabled = Boolean(readingProfile.enabled && !readingExcluded);
+    const adaptiveEnabled = Boolean(adaptiveProfile.enabled && !adaptiveExcluded);
 
-    if ((!filterEnabled && !readingThemeEnabled) || excluded) {
+    if ((!filterEnabled && !readingThemeEnabled && !adaptiveEnabled) || excluded) {
       clear();
       return { ...state.diagnostics };
     }
@@ -878,7 +1292,6 @@
     const focus = ensureLayer(IDS.FOCUS);
 
     const rampFactor = filterEnabled ? computeRampFactor(profile) : 1;
-    const pageTone = detectPageTone();
     const strategy = filterEnabled ? chooseStrategy(profile, media) : "overlay";
     const style = filterEnabled
       ? profileToStyle(profile, strategy, rampFactor)
@@ -886,21 +1299,35 @@
     const readingTheme = readingThemeEnabled
       ? readingThemeForProfile(readingProfile, pageTone)
       : { mode: "off", variant: "off", overlayBg: style.overlayBg, overlayOpacity: 0, maxOverlayOpacity: 0.62, filter: "none" };
+    const adaptiveTheme = adaptiveEnabled
+      ? adaptiveThemeForProfile(adaptiveProfile, pageTone, siteType)
+      : null;
+    const resolved = resolveEffectiveVisualProfile({
+      pageTone,
+      siteType,
+      lightEnabled: filterEnabled,
+      readingEnabled: readingThemeEnabled,
+      adaptiveEnabled,
+      lightProfile: profile,
+      readingProfile,
+      adaptiveProfile
+    });
 
     let overlayBg = style.overlayBg;
     let overlayOpacity = filterEnabled ? style.overlayOpacity : 0;
     let pageFilter = filterEnabled ? style.filter : "none";
     let safeFallback = false;
+    let clampReason = "";
 
     if (readingThemeEnabled) {
       overlayBg = readingTheme.overlayBg || overlayBg;
-      overlayOpacity = readingTheme.overlayOpacity || 0;
+      overlayOpacity = (readingTheme.overlayOpacity || 0) * resolved.readingWeight;
       pageFilter = readingTheme.filter || "none";
 
       if (filterEnabled) {
         const supplemental = supplementalReadingAdjustment(profile, pageTone);
         overlayOpacity = clamp(
-          overlayOpacity + ((style.overlayOpacity || 0) * (supplemental.overlayFactor || 0)),
+          overlayOpacity + ((style.overlayOpacity || 0) * (supplemental.overlayFactor || 0) * resolved.readingWeight),
           0,
           readingTheme.maxOverlayOpacity || 0.52
         );
@@ -911,16 +1338,42 @@
       }
     }
 
+    if (adaptiveEnabled && adaptiveTheme) {
+      applyAdaptiveTheme(adaptiveTheme, true);
+      if (readingThemeEnabled) {
+        overlayOpacity = clamp(overlayOpacity * 0.72, 0, resolved.clampOverlayMax);
+      }
+      if (filterEnabled) {
+        overlayOpacity = clamp(
+          overlayOpacity + ((style.overlayOpacity || 0) * 0.24 * resolved.adaptiveWeight),
+          0,
+          resolved.clampOverlayMax
+        );
+      }
+      if (!pageFilter || pageFilter === "none") {
+        pageFilter = "brightness(0.996) contrast(1.01)";
+      }
+    } else {
+      clearAdaptiveTheme();
+    }
+
     if (pageTone.tone === "dark" && overlayOpacity > 0.28) {
       overlayOpacity = 0.28;
       safeFallback = true;
+      clampReason = "already-dark";
     }
     if (pageTone.tone === "light" && readingThemeEnabled && readingProfile.mode === "light" && overlayOpacity > 0.20) {
       overlayOpacity = 0.20;
       safeFallback = true;
+      clampReason = "light-reading-cap";
+    }
+    if (overlayOpacity > resolved.clampOverlayMax) {
+      overlayOpacity = resolved.clampOverlayMax;
+      safeFallback = true;
+      clampReason = resolved.clampReason || clampReason || "resolver-clamp";
     }
 
-    document.documentElement.classList.add("holmeta-light-active");
+    document.documentElement.classList.toggle("holmeta-light-active", filterEnabled || readingThemeEnabled || adaptiveEnabled);
     document.documentElement.classList.toggle("holmeta-reading-theme", readingThemeEnabled);
     document.documentElement.classList.toggle("holmeta-reading-dark", readingThemeEnabled && readingTheme.mode === "dark");
     document.documentElement.classList.toggle("holmeta-reading-light", readingThemeEnabled && readingTheme.mode === "light");
@@ -958,25 +1411,49 @@
     }
 
     state.enabled = true;
-    state.diagnostics.active = filterEnabled || readingThemeEnabled;
-    state.diagnostics.mode = readingThemeEnabled
+    state.diagnostics.active = filterEnabled || readingThemeEnabled || adaptiveEnabled;
+    state.diagnostics.mode = adaptiveEnabled
+      ? adaptiveProfile.mode
+      : (readingThemeEnabled
       ? `${readingTheme.mode}_reading`
-      : (filterEnabled ? profile.mode : "none");
-    state.diagnostics.strategy = strategy;
+      : (filterEnabled ? profile.mode : "none"));
+    state.diagnostics.strategy = adaptiveEnabled
+      ? (adaptiveTheme?.strategy || adaptiveProfile.strategy || "auto")
+      : strategy;
     state.diagnostics.readingMode = readingTheme.mode;
     state.diagnostics.readingVariant = readingTheme.variant;
     state.diagnostics.pageTone = pageTone.tone;
     state.diagnostics.pageLuminance = pageTone.luminance;
     state.diagnostics.safeFallback = safeFallback;
+    state.diagnostics.clampReason = clampReason || resolved.clampReason || "";
+    state.diagnostics.siteType = siteType;
+    state.diagnostics.adaptiveMode = adaptiveEnabled ? adaptiveProfile.mode : "off";
+    state.diagnostics.adaptivePreset = adaptiveEnabled ? adaptiveProfile.preset : "off";
+    state.diagnostics.adaptiveStrategy = adaptiveEnabled
+      ? (adaptiveTheme?.strategy || adaptiveProfile.strategy || "auto")
+      : "none";
+    state.diagnostics.compatibilityMode = adaptiveEnabled
+      ? (adaptiveTheme?.compatibilityMode || adaptiveProfile.compatibilityMode || "normal")
+      : "normal";
+    state.diagnostics.activeSystems = {
+      lightFilter: filterEnabled,
+      darkLightTheme: readingThemeEnabled,
+      adaptiveSiteTheme: adaptiveEnabled
+    };
     if (debugEnabled) {
       console.info("[Holmeta light]", {
         mode: state.diagnostics.mode,
-        strategy,
+        strategy: state.diagnostics.strategy,
+        adaptiveMode: state.diagnostics.adaptiveMode,
+        adaptivePreset: state.diagnostics.adaptivePreset,
+        compatibilityMode: state.diagnostics.compatibilityMode,
         pageTone: pageTone.tone,
         pageLuminance: pageTone.luminance,
+        siteType,
         overlayOpacity: Number(overlayOpacity.toFixed(3)),
         filter: pageFilter,
-        excluded
+        excluded,
+        clampReason: state.diagnostics.clampReason
       });
     }
 
@@ -1000,6 +1477,8 @@
   globalThis.HolmetaLightEngine = {
     createDefaultProfile,
     normalizeProfile,
+    createDefaultAdaptiveProfile,
+    normalizeAdaptiveProfile,
     apply,
     clear,
     getDiagnostics,

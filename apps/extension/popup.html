@@ -152,17 +152,6 @@
           </label>
         </div>
 
-        <div class="row actions-row single-action-row">
-          <button id="lightApplyAll" class="primary" type="button">Apply All Tabs</button>
-        </div>
-
-        <div class="row actions-row">
-          <button id="saveSiteProfile" class="secondary">Save This Site Profile</button>
-          <button id="copyGlobalToSite" class="secondary">Copy Global → Site</button>
-        </div>
-
-        <p id="siteInfo" class="micro">Site: unavailable</p>
-
         <details class="inline-advanced">
           <summary>Advanced</summary>
           <div class="field-row compact">
@@ -255,9 +244,104 @@
         </details>
       </section>
 
+      <section class="panel core" id="adaptiveThemePanel">
+        <div class="section-head">
+          <h2>4) Adaptive Site Theme</h2>
+          <label class="switch" aria-label="Toggle adaptive site theme">
+            <input id="adaptiveThemeEnabled" type="checkbox" />
+            <span>On</span>
+          </label>
+        </div>
+
+        <div class="field-row">
+          <label for="adaptiveThemeMode">Mode</label>
+          <select id="adaptiveThemeMode" aria-label="Adaptive site theme mode">
+            <option value="smart_dark">Smart Dark</option>
+            <option value="smart_light">Smart Light</option>
+            <option value="minimal_dark">Minimal Dark</option>
+            <option value="minimal_light">Minimal Light</option>
+            <option value="code_focus_dark">Code Focus Dark</option>
+            <option value="soft_contrast">Soft Contrast</option>
+          </select>
+        </div>
+
+        <div class="field-row">
+          <label for="adaptiveThemePreset">Preset</label>
+          <select id="adaptiveThemePreset" aria-label="Adaptive site theme preset">
+            <option value="balanced">Balanced</option>
+            <option value="comfort">Comfort</option>
+            <option value="clarity">Clarity</option>
+          </select>
+        </div>
+
+        <div class="field-row">
+          <label for="adaptiveThemeIntensity">Adaptive Intensity</label>
+          <div class="range-wrap">
+            <input id="adaptiveThemeIntensity" type="range" min="0" max="100" step="1" />
+            <span id="adaptiveThemeIntensityValue" class="value">52%</span>
+          </div>
+        </div>
+
+        <div class="row actions-row alert-types">
+          <label class="switch" title="Enable Adaptive Site Theme override for this host">
+            <input id="adaptiveThemeThisSiteEnabled" type="checkbox" />
+            <span>This site override</span>
+          </label>
+          <label class="switch" title="Exclude this host from Adaptive Site Theme">
+            <input id="adaptiveThemeExcludeSite" type="checkbox" />
+            <span>Exclude site</span>
+          </label>
+        </div>
+
+        <details class="inline-advanced">
+          <summary>Advanced</summary>
+          <div class="field-row">
+            <label for="adaptiveThemeStrategy">Strategy</label>
+            <select id="adaptiveThemeStrategy" aria-label="Adaptive strategy">
+              <option value="auto">Auto</option>
+              <option value="css_variables">CSS Variables</option>
+              <option value="semantic_recolor">Semantic Recolor</option>
+              <option value="minimal_surface">Minimal Surface</option>
+              <option value="compatibility">Compatibility</option>
+              <option value="app_safe">App-safe</option>
+            </select>
+          </div>
+
+          <div class="field-row">
+            <label for="adaptiveThemeCompatibility">Compatibility</label>
+            <select id="adaptiveThemeCompatibility" aria-label="Adaptive compatibility mode">
+              <option value="normal">Normal</option>
+              <option value="minimal">Minimal</option>
+              <option value="app-safe">App-safe</option>
+              <option value="media-safe">Media-safe</option>
+              <option value="code-safe">Code-safe</option>
+            </select>
+          </div>
+        </details>
+
+        <p id="adaptiveThemeStatus" class="micro">
+          Adaptive Site Theme is the advanced smart transformation engine.
+        </p>
+      </section>
+
+      <section class="panel compact" id="sharedVisualActionsPanel">
+        <div class="section-head">
+          <h2>5) Shared Site Actions</h2>
+        </div>
+        <div class="row actions-row single-action-row">
+          <button id="lightApplyAll" class="primary" type="button">Apply to All Tabs</button>
+        </div>
+        <div class="row actions-row">
+          <button id="saveSiteProfile" class="secondary">Save This Site Profile</button>
+          <button id="copyGlobalToSite" class="secondary">Copy Global → Site</button>
+        </div>
+        <button id="resetSiteOverrides" class="ghost" type="button">Reset Site Overrides</button>
+        <p id="siteInfo" class="micro">Site: unavailable</p>
+      </section>
+
       <section class="panel core" id="screenEmulatorPanel">
         <div class="section-head">
-          <h2>4) Screen Resolution Emulator</h2>
+          <h2>6) Screen Resolution Emulator</h2>
           <label class="switch" aria-label="Screen emulator state">
             <input id="screenEmulatorActive" type="checkbox" disabled />
             <span>Active</span>

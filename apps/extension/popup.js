@@ -78,11 +78,24 @@
     readingThemeThisSiteEnabled: document.getElementById("readingThemeThisSiteEnabled"),
     readingThemeExcludeSite: document.getElementById("readingThemeExcludeSite"),
     readingThemeStatus: document.getElementById("readingThemeStatus"),
+
+    adaptiveThemeEnabled: document.getElementById("adaptiveThemeEnabled"),
+    adaptiveThemeMode: document.getElementById("adaptiveThemeMode"),
+    adaptiveThemePreset: document.getElementById("adaptiveThemePreset"),
+    adaptiveThemeIntensity: document.getElementById("adaptiveThemeIntensity"),
+    adaptiveThemeIntensityValue: document.getElementById("adaptiveThemeIntensityValue"),
+    adaptiveThemeStrategy: document.getElementById("adaptiveThemeStrategy"),
+    adaptiveThemeCompatibility: document.getElementById("adaptiveThemeCompatibility"),
+    adaptiveThemeThisSiteEnabled: document.getElementById("adaptiveThemeThisSiteEnabled"),
+    adaptiveThemeExcludeSite: document.getElementById("adaptiveThemeExcludeSite"),
+    adaptiveThemeStatus: document.getElementById("adaptiveThemeStatus"),
+
     lightThisSiteEnabled: document.getElementById("lightThisSiteEnabled"),
     lightExcludeSite: document.getElementById("lightExcludeSite"),
     lightApplyAll: document.getElementById("lightApplyAll"),
     saveSiteProfile: document.getElementById("saveSiteProfile"),
     copyGlobalToSite: document.getElementById("copyGlobalToSite"),
+    resetSiteOverrides: document.getElementById("resetSiteOverrides"),
     siteInfo: document.getElementById("siteInfo"),
 
     reduceWhites: document.getElementById("reduceWhites"),
@@ -418,7 +431,11 @@
   }
 
   function getReadingThemeState() {
-    return state.app?.settings?.readingTheme || {};
+    return state.app?.settings?.darkLightTheme || state.app?.settings?.readingTheme || {};
+  }
+
+  function getAdaptiveThemeState() {
+    return state.app?.settings?.adaptiveSiteTheme || {};
   }
 
   function getLightSiteProfile() {
@@ -433,6 +450,12 @@
     return state.currentHost ? map[state.currentHost] : null;
   }
 
+  function getAdaptiveSiteProfile() {
+    const adaptive = getAdaptiveThemeState();
+    const map = adaptive.perSiteOverrides || adaptive.siteProfiles || {};
+    return state.currentHost ? map[state.currentHost] : null;
+  }
+
   function isFilterSiteExcluded() {
     const light = getLightFilterState();
     const map = light.excludedSites || {};
@@ -442,6 +465,12 @@
   function isReadingSiteExcluded() {
     const reading = getReadingThemeState();
     const map = reading.excludedSites || {};
+    return Boolean(state.currentHost && map[state.currentHost]);
+  }
+
+  function isAdaptiveSiteExcluded() {
+    const adaptive = getAdaptiveThemeState();
+    const map = adaptive.excludedSites || {};
     return Boolean(state.currentHost && map[state.currentHost]);
   }
 
@@ -542,7 +571,47 @@
     if (state.diagnostics?.strategy) {
       info += ` · Strategy: ${state.diagnostics.strategy}`;
     }
+    if (state.diagnostics?.siteType) {
+      info += ` · Type: ${state.diagnostics.siteType}`;
+    }
+    if (state.diagnostics?.activeSystems) {
+      const active = Object.entries(state.diagnostics.activeSystems)
+        .filter(([, value]) => Boolean(value))
+        .map(([key]) => key);
+      if (active.length) {
+        info += ` · Active: ${active.join(", ")}`;
+      }
+    }
     refs.siteInfo.textContent = info;
+  }
+
+  function renderAdaptiveTheme() {
+    const adaptive = getAdaptiveThemeState();
+    const siteProfile = getAdaptiveSiteProfile();
+    const effective = {
+      enabled: Boolean(adaptive.enabled),
+      mode: siteProfile?.mode ?? adaptive.mode ?? "smart_dark",
+      preset: siteProfile?.preset ?? adaptive.preset ?? "balanced",
+      strategy: siteProfile?.strategy ?? adaptive.strategy ?? "auto",
+      compatibilityMode: siteProfile?.compatibilityMode ?? adaptive.compatibilityMode ?? "normal",
+      intensity: siteProfile?.intensity ?? adaptive.intensity ?? 52
+    };
+
+    setChecked(refs.adaptiveThemeEnabled, effective.enabled);
+    setInputValue(refs.adaptiveThemeMode, effective.mode);
+    setInputValue(refs.adaptiveThemePreset, effective.preset);
+    setInputValue(refs.adaptiveThemeStrategy, effective.strategy);
+    setInputValue(refs.adaptiveThemeCompatibility, effective.compatibilityMode);
+    setInputValue(refs.adaptiveThemeIntensity, effective.intensity);
+    refs.adaptiveThemeIntensityValue.textContent = `${effective.intensity}%`;
+    setChecked(refs.adaptiveThemeThisSiteEnabled, Boolean(siteProfile));
+    setChecked(refs.adaptiveThemeExcludeSite, isAdaptiveSiteExcluded());
+
+    const strategyLabel = String(effective.strategy || "auto").replaceAll("_", " ");
+    const compatLabel = String(effective.compatibilityMode || "normal");
+    refs.adaptiveThemeStatus.textContent = effective.enabled
+      ? `Active: ${effective.mode.replaceAll("_", " ")} · ${strategyLabel} · ${compatLabel}`
+      : "Adaptive Site Theme is off. Toggle On for smart site transformation.";
   }
 
   function renderEyeDropper() {
@@ -1010,6 +1079,7 @@
     renderFavorites();
     renderReadingTheme();
     renderLight();
+    renderAdaptiveTheme();
     renderScreenEmulator();
     renderEyeDropper();
     renderScreenshotTool();
@@ -1247,6 +1317,21 @@
     };
   }
 
+  function currentAdaptivePatchFromUI() {
+    const mode = String(refs.adaptiveThemeMode.value || "smart_dark");
+    const preset = String(refs.adaptiveThemePreset.value || "balanced");
+    const strategy = String(refs.adaptiveThemeStrategy.value || "auto");
+    const compatibilityMode = String(refs.adaptiveThemeCompatibility.value || "normal");
+    const intensity = Math.max(0, Math.min(100, Number(refs.adaptiveThemeIntensity.value || 52)));
+    return {
+      mode,
+      preset,
+      strategy,
+      compatibilityMode,
+      intensity
+    };
+  }
+
   function queueLightPatch(partial) {
     const light = getLightFilterState();
     const siteProfile = getLightSiteProfile();
@@ -1269,6 +1354,18 @@
       return;
     }
     queuePatch({ readingTheme: partial });
+  }
+
+  function queueAdaptivePatch(partial) {
+    const adaptive = getAdaptiveThemeState();
+    const siteProfile = getAdaptiveSiteProfile();
+    if (state.currentHost && siteProfile) {
+      const map = { ...(adaptive.perSiteOverrides || adaptive.siteProfiles || {}) };
+      map[state.currentHost] = deepMerge(map[state.currentHost] || {}, partial);
+      queuePatch({ adaptiveSiteTheme: { perSiteOverrides: map } });
+      return;
+    }
+    queuePatch({ adaptiveSiteTheme: partial });
   }
 
   function setLightSiteOverride(enabled) {
@@ -1337,6 +1434,40 @@
     if (enabled) map[state.currentHost] = true;
     else delete map[state.currentHost];
     queuePatch({ readingTheme: { excludedSites: map } });
+  }
+
+  function setAdaptiveSiteOverride(enabled) {
+    if (!state.currentHost) {
+      toast("No active website detected.");
+      refs.adaptiveThemeThisSiteEnabled.checked = false;
+      return;
+    }
+    const adaptive = getAdaptiveThemeState();
+    const map = { ...(adaptive.perSiteOverrides || adaptive.siteProfiles || {}) };
+    if (enabled) {
+      map[state.currentHost] = {
+        enabled: true,
+        ...currentAdaptivePatchFromUI()
+      };
+      toast(`Adaptive Theme override enabled for ${state.currentHost}`);
+    } else {
+      delete map[state.currentHost];
+      toast(`Adaptive Theme override removed for ${state.currentHost}`);
+    }
+    queuePatch({ adaptiveSiteTheme: { perSiteOverrides: map } });
+  }
+
+  function setAdaptiveExcludeSite(enabled) {
+    if (!state.currentHost) {
+      toast("No active website detected.");
+      refs.adaptiveThemeExcludeSite.checked = false;
+      return;
+    }
+    const adaptive = getAdaptiveThemeState();
+    const map = { ...(adaptive.excludedSites || {}) };
+    if (enabled) map[state.currentHost] = true;
+    else delete map[state.currentHost];
+    queuePatch({ adaptiveSiteTheme: { excludedSites: map } });
   }
 
   function setReadingModeWithEnable(mode) {
@@ -1477,6 +1608,19 @@
     refs.readingThemeThisSiteEnabled.addEventListener("change", (e) => setReadingSiteOverride(e.target.checked));
     refs.readingThemeExcludeSite.addEventListener("change", (e) => setReadingExcludeSite(e.target.checked));
 
+    refs.adaptiveThemeEnabled.addEventListener("change", (e) => queuePatch({ adaptiveSiteTheme: { enabled: e.target.checked } }));
+    refs.adaptiveThemeMode.addEventListener("change", (e) => queueAdaptivePatch({ mode: String(e.target.value || "smart_dark") }));
+    refs.adaptiveThemePreset.addEventListener("change", (e) => queueAdaptivePatch({ preset: String(e.target.value || "balanced") }));
+    refs.adaptiveThemeStrategy.addEventListener("change", (e) => queueAdaptivePatch({ strategy: String(e.target.value || "auto") }));
+    refs.adaptiveThemeCompatibility.addEventListener("change", (e) => queueAdaptivePatch({ compatibilityMode: String(e.target.value || "normal") }));
+    refs.adaptiveThemeIntensity.addEventListener("input", (e) => {
+      const value = Math.max(0, Math.min(100, Number(e.target.value || 52)));
+      refs.adaptiveThemeIntensityValue.textContent = `${value}%`;
+      queueAdaptivePatch({ intensity: value });
+    });
+    refs.adaptiveThemeThisSiteEnabled.addEventListener("change", (e) => setAdaptiveSiteOverride(e.target.checked));
+    refs.adaptiveThemeExcludeSite.addEventListener("change", (e) => setAdaptiveExcludeSite(e.target.checked));
+
     refs.lightEnabled.addEventListener("change", (e) => queuePatch({ lightFilter: { enabled: e.target.checked } }));
     refs.lightMode.addEventListener("change", (e) => queueLightPatch({ mode: e.target.value }));
     refs.lightIntensity.addEventListener("input", (e) => {
@@ -1491,7 +1635,21 @@
       await applyAllTabs({ ensureLightEnabled: false, quiet: false });
     });
 
-    refs.saveSiteProfile.addEventListener("click", () => setLightSiteOverride(true));
+    refs.saveSiteProfile.addEventListener("click", async () => {
+      if (!state.currentHost) {
+        toast("No active website detected.");
+        return;
+      }
+      const response = await sendMessage({ type: "holmeta:save-site-profile", host: state.currentHost });
+      if (!response?.ok) {
+        toast(`Save profile failed: ${response?.error || "unknown"}`);
+        return;
+      }
+      state.app = response.state;
+      await refreshDiagnostics();
+      render();
+      toast(`Saved 3-system profile for ${state.currentHost}`);
+    });
 
     refs.copyGlobalToSite.addEventListener("click", () => {
       if (!state.currentHost) {
@@ -1500,8 +1658,10 @@
       }
       const light = getLightFilterState();
       const reading = getReadingThemeState();
+      const adaptive = getAdaptiveThemeState();
       const lightMap = { ...(light.perSiteOverrides || light.siteProfiles || {}) };
       const readingMap = { ...(reading.perSiteOverrides || reading.siteProfiles || {}) };
+      const adaptiveMap = { ...(adaptive.perSiteOverrides || adaptive.siteProfiles || {}) };
       lightMap[state.currentHost] = {
         enabled: true,
         ...currentLightPatchFromUI()
@@ -1510,11 +1670,32 @@
         enabled: true,
         ...currentReadingPatchFromUI()
       };
+      adaptiveMap[state.currentHost] = {
+        enabled: true,
+        ...currentAdaptivePatchFromUI()
+      };
       queuePatch({
         lightFilter: { perSiteOverrides: lightMap },
-        readingTheme: { perSiteOverrides: readingMap }
+        readingTheme: { perSiteOverrides: readingMap },
+        adaptiveSiteTheme: { perSiteOverrides: adaptiveMap }
       });
       toast(`Copied global profiles to ${state.currentHost}`);
+    });
+
+    refs.resetSiteOverrides.addEventListener("click", async () => {
+      if (!state.currentHost) {
+        toast("No active website detected.");
+        return;
+      }
+      const response = await sendMessage({ type: "holmeta:reset-site-overrides", host: state.currentHost });
+      if (!response?.ok) {
+        toast(`Reset failed: ${response?.error || "unknown"}`);
+        return;
+      }
+      state.app = response.state;
+      await refreshDiagnostics();
+      render();
+      toast(`Reset overrides for ${state.currentHost}`);
     });
 
     refs.reduceWhites.addEventListener("change", (e) => queueLightPatch({ reduceWhites: e.target.checked }));

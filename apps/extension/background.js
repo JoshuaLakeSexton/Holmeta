@@ -8,7 +8,7 @@
 const STORAGE_KEY = "holmeta.v3.state";
 const _LEGACY_KEYS = ["holmeta.v2.state", "holmeta.settings", "holmeta.v3"];
 const VERSION = "3.0.0";
-const SCHEMA_VERSION = 6;
+const SCHEMA_VERSION = 7;
 const LOG_LIMIT = 500;
 const DOMAIN_LIMIT = 600;
 const SWATCH_LIMIT = 12;
@@ -61,6 +61,38 @@ const READING_THEME_PRESETS = [
   "soft_paper",
   "neutral_light",
   "warm_page"
+];
+
+const ADAPTIVE_SITE_THEME_MODES = [
+  "smart_dark",
+  "smart_light",
+  "minimal_dark",
+  "minimal_light",
+  "code_focus_dark",
+  "soft_contrast"
+];
+
+const ADAPTIVE_SITE_THEME_PRESETS = [
+  "balanced",
+  "comfort",
+  "clarity"
+];
+
+const ADAPTIVE_SITE_THEME_STRATEGIES = [
+  "auto",
+  "css_variables",
+  "semantic_recolor",
+  "minimal_surface",
+  "compatibility",
+  "app_safe"
+];
+
+const ADAPTIVE_SITE_THEME_COMPATIBILITY = [
+  "normal",
+  "minimal",
+  "app-safe",
+  "media-safe",
+  "code-safe"
 ];
 
 const ALARMS = {
@@ -508,6 +540,19 @@ function createDefaultLightFilterSettings() {
   };
 }
 
+function createDefaultAdaptiveSiteThemeSettings() {
+  return {
+    enabled: false,
+    mode: "smart_dark",
+    preset: "balanced",
+    strategy: "auto",
+    compatibilityMode: "normal",
+    intensity: 52,
+    perSiteOverrides: {},
+    excludedSites: {}
+  };
+}
+
 function normalizeSiteOverrideMap(rawMap) {
   if (!rawMap || typeof rawMap !== "object") return {};
   return Object.fromEntries(
@@ -676,6 +721,64 @@ function normalizeLightFilterSettings(rawSettings, fallback, legacyLight = {}) {
         ? String(schedule.quickPreset)
         : "custom"
     },
+    perSiteOverrides: normalizedOverrides,
+    excludedSites
+  };
+}
+
+function normalizeAdaptiveSiteThemeSettings(rawSettings, fallback) {
+  const base = fallback && typeof fallback === "object"
+    ? fallback
+    : createDefaultAdaptiveSiteThemeSettings();
+  const raw = rawSettings && typeof rawSettings === "object" ? rawSettings : {};
+  const siteOverridesRaw = raw.perSiteOverrides || raw.siteProfiles || {};
+  const excludeRaw = raw.excludedSites || raw.excludedHosts || {};
+  const siteOverrides = normalizeSiteOverrideMap(siteOverridesRaw);
+  const excludedSites = normalizeExcludedSiteMap(excludeRaw);
+
+  const mode = ADAPTIVE_SITE_THEME_MODES.includes(String(raw.mode || ""))
+    ? String(raw.mode)
+    : String(base.mode || "smart_dark");
+  const preset = ADAPTIVE_SITE_THEME_PRESETS.includes(String(raw.preset || ""))
+    ? String(raw.preset)
+    : String(base.preset || "balanced");
+  const strategy = ADAPTIVE_SITE_THEME_STRATEGIES.includes(String(raw.strategy || ""))
+    ? String(raw.strategy)
+    : String(base.strategy || "auto");
+  const compatibilityMode = ADAPTIVE_SITE_THEME_COMPATIBILITY.includes(String(raw.compatibilityMode || ""))
+    ? String(raw.compatibilityMode)
+    : String(base.compatibilityMode || "normal");
+
+  const normalizedOverrides = {};
+  for (const [host, value] of Object.entries(siteOverrides)) {
+    const row = value && typeof value === "object" ? value : {};
+    normalizedOverrides[host] = {
+      enabled: Boolean(row.enabled ?? true),
+      mode: ADAPTIVE_SITE_THEME_MODES.includes(String(row.mode || ""))
+        ? String(row.mode)
+        : mode,
+      preset: ADAPTIVE_SITE_THEME_PRESETS.includes(String(row.preset || ""))
+        ? String(row.preset)
+        : preset,
+      strategy: ADAPTIVE_SITE_THEME_STRATEGIES.includes(String(row.strategy || ""))
+        ? String(row.strategy)
+        : strategy,
+      compatibilityMode: ADAPTIVE_SITE_THEME_COMPATIBILITY.includes(String(row.compatibilityMode || ""))
+        ? String(row.compatibilityMode)
+        : compatibilityMode,
+      intensity: Math.round(clamp(row.intensity ?? raw.intensity ?? base.intensity, 0, 100))
+    };
+  }
+
+  return {
+    ...base,
+    ...raw,
+    enabled: Boolean(raw.enabled ?? base.enabled),
+    mode,
+    preset,
+    strategy,
+    compatibilityMode,
+    intensity: Math.round(clamp(raw.intensity ?? base.intensity, 0, 100)),
     perSiteOverrides: normalizedOverrides,
     excludedSites
   };
@@ -907,7 +1010,9 @@ function createDefaultState() {
     },
     settings: {
       readingTheme: createDefaultReadingThemeSettings(),
+      darkLightTheme: createDefaultReadingThemeSettings(),
       lightFilter: createDefaultLightFilterSettings(),
+      adaptiveSiteTheme: createDefaultAdaptiveSiteThemeSettings(),
       light: {
         enabled: false,
         mode: "warm", // warm | amber | candle | paper | cool_focus | red_overlay | red_mono | red_lock | gray_warm | dim | spotlight
@@ -1205,7 +1310,9 @@ function normalizeState(input) {
   const raw = input && typeof input === "object" ? input : {};
   const rawSettings = raw.settings && typeof raw.settings === "object" ? raw.settings : {};
   const hasReadingTheme = Object.prototype.hasOwnProperty.call(rawSettings, "readingTheme");
+  const hasDarkLightTheme = Object.prototype.hasOwnProperty.call(rawSettings, "darkLightTheme");
   const hasLightFilter = Object.prototype.hasOwnProperty.call(rawSettings, "lightFilter");
+  const hasAdaptiveSiteTheme = Object.prototype.hasOwnProperty.call(rawSettings, "adaptiveSiteTheme");
 
   const merged = {
     ...base,
@@ -1239,15 +1346,24 @@ function normalizeState(input) {
   };
   if (legacyLight.mode === "red") legacyLight.mode = "red_overlay";
 
+  const readingRaw = hasDarkLightTheme
+    ? (merged.settings.darkLightTheme || {})
+    : (hasReadingTheme ? (merged.settings.readingTheme || {}) : {});
+
   merged.settings.readingTheme = normalizeReadingThemeSettings(
-    hasReadingTheme ? (merged.settings.readingTheme || {}) : {},
+    readingRaw,
     base.settings.readingTheme,
     legacyLight
   );
+  merged.settings.darkLightTheme = { ...merged.settings.readingTheme };
   merged.settings.lightFilter = normalizeLightFilterSettings(
     hasLightFilter ? (merged.settings.lightFilter || {}) : {},
     base.settings.lightFilter,
     legacyLight
+  );
+  merged.settings.adaptiveSiteTheme = normalizeAdaptiveSiteThemeSettings(
+    hasAdaptiveSiteTheme ? (merged.settings.adaptiveSiteTheme || {}) : {},
+    base.settings.adaptiveSiteTheme
   );
   merged.settings.light = buildLegacyLightFromSeparated(
     merged.settings.lightFilter,
@@ -2404,6 +2520,7 @@ function effectivePayload(state) {
     },
     effective: {
       lightActive: isLightActiveNow(state),
+      adaptiveThemeActive: Boolean(state.settings?.adaptiveSiteTheme?.enabled),
       blockerActive: isBlockerActiveNow(state),
       deepWorkActive: Boolean(state.settings.deepWork.active)
     }
@@ -2430,6 +2547,7 @@ function publicState(state) {
     runtime: {
       blockerActive: isBlockerActiveNow(state),
       lightActive: isLightActiveNow(state),
+      adaptiveThemeActive: Boolean(state.settings?.adaptiveSiteTheme?.enabled),
       windowResizeActive: Boolean(resizeBackup),
       windowResizeBackup: resizeBackup,
       blockerRuleLimitHit: Boolean(state.runtime.blockerRuleLimitHit),
@@ -3795,6 +3913,20 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         return;
       }
       const result = await sendTab(tabId, { type: "holmeta:get-light-diagnostics" });
+      if (!result.ok && isMissingReceiverError(result.error)) {
+        const injected = await executeScriptFiles(tabId, ["light/engine.js", "content.js"]);
+        if (!injected.ok) {
+          sendResponse({ ok: false, error: injected.error || "diagnostics_inject_failed" });
+          return;
+        }
+        const retry = await sendTab(tabId, { type: "holmeta:get-light-diagnostics" });
+        if (!retry.ok) {
+          sendResponse({ ok: false, error: retry.error || "diagnostics_failed" });
+          return;
+        }
+        sendResponse({ ok: true, diagnostics: retry.res?.diagnostics || null });
+        return;
+      }
       if (!result.ok) {
         sendResponse({ ok: false, error: result.error || "diagnostics_failed" });
         return;
@@ -4149,6 +4281,32 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         preset: state.settings.readingTheme.preset,
         intensity: state.settings.readingTheme.intensity
       };
+      state.settings.adaptiveSiteTheme.perSiteOverrides[host] = {
+        enabled: true,
+        mode: state.settings.adaptiveSiteTheme.mode,
+        preset: state.settings.adaptiveSiteTheme.preset,
+        strategy: state.settings.adaptiveSiteTheme.strategy,
+        compatibilityMode: state.settings.adaptiveSiteTheme.compatibilityMode,
+        intensity: state.settings.adaptiveSiteTheme.intensity
+      };
+      await saveState(state);
+      await broadcastState(state);
+      sendResponse({ ok: true, state: publicState(state) });
+      return;
+    }
+
+    if (type === "holmeta:reset-site-overrides") {
+      const host = normalizeHost(message.host);
+      if (!host) {
+        sendResponse({ ok: false, error: "invalid_host" });
+        return;
+      }
+      delete state.settings.lightFilter.perSiteOverrides[host];
+      delete state.settings.lightFilter.excludedSites[host];
+      delete state.settings.readingTheme.perSiteOverrides[host];
+      delete state.settings.readingTheme.excludedSites[host];
+      delete state.settings.adaptiveSiteTheme.perSiteOverrides[host];
+      delete state.settings.adaptiveSiteTheme.excludedSites[host];
       await saveState(state);
       await broadcastState(state);
       sendResponse({ ok: true, state: publicState(state) });
