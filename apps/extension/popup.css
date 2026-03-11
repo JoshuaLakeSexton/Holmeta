@@ -116,7 +116,7 @@ input[type="checkbox"] {
 
 .reading-theme-buttons {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: var(--space-2);
 }
 
@@ -135,6 +135,21 @@ input[type="checkbox"] {
 
 .reading-theme-buttons button.is-active {
   color: var(--warning);
+}
+
+.reading-schedule-row {
+  gap: 6px;
+}
+
+.reading-schedule-row input {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+#readingThemeAutoRow[hidden],
+#readingThemeCustomScheduleRow[hidden],
+#lightCustomScheduleRow[hidden] {
+  display: none;
 }
 
 .reading-theme-selects {

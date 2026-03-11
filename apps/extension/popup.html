@@ -50,7 +50,7 @@
 
       <section class="panel core" id="readingThemePanel">
         <div class="section-head">
-          <h2>2) Reading Theme</h2>
+          <h2>2) Appearance</h2>
           <label class="switch" aria-label="Toggle reading theme">
             <input id="readingThemeEnabled" type="checkbox" />
             <span>On</span>
@@ -58,32 +58,30 @@
         </div>
 
         <div class="field-row">
-          <label>Mode</label>
+          <label>Theme</label>
           <div class="reading-theme-wrap">
             <div class="row reading-theme-buttons">
-              <button id="readingThemeDark" class="secondary" type="button">Night / Dark</button>
-              <button id="readingThemeLight" class="ghost" type="button">Day / Light</button>
+              <button id="readingThemeLight" class="ghost" type="button">Light</button>
+              <button id="readingThemeDark" class="secondary" type="button">Dark</button>
+              <button id="readingThemeAuto" class="ghost" type="button">Auto</button>
             </div>
           </div>
         </div>
 
-        <div class="field-row">
-          <label for="readingThemePreset">Preset</label>
-          <select id="readingThemePreset" aria-label="Reading theme preset">
-            <option value="soft_black">Soft Black</option>
-            <option value="dim_slate">Dim Slate</option>
-            <option value="gentle_night">Gentle Night</option>
-            <option value="soft_paper">Soft Paper</option>
-            <option value="neutral_light">Neutral Light</option>
-            <option value="warm_page">Warm Page</option>
+        <div id="readingThemeAutoRow" class="field-row">
+          <label for="readingThemeScheduleMode">Auto schedule</label>
+          <select id="readingThemeScheduleMode" aria-label="Appearance auto schedule mode">
+            <option value="sunset">Sunset to Sunrise</option>
+            <option value="custom">Custom Schedule</option>
           </select>
         </div>
 
-        <div class="field-row">
-          <label for="readingThemeIntensity">Reading Intensity</label>
-          <div class="range-wrap">
-            <input id="readingThemeIntensity" type="range" min="0" max="100" step="1" />
-            <span id="readingThemeIntensityValue" class="value">44%</span>
+        <div id="readingThemeCustomScheduleRow" class="field-row">
+          <label>Custom time</label>
+          <div class="row reading-schedule-row">
+            <input id="readingThemeScheduleStart" type="time" aria-label="Appearance schedule start" />
+            <span class="micro">→</span>
+            <input id="readingThemeScheduleEnd" type="time" aria-label="Appearance schedule end" />
           </div>
         </div>
 
@@ -99,7 +97,7 @@
         </div>
 
         <p id="readingThemeStatus" class="micro">
-          Reading Theme runs independently from Light Filter Tool.
+          iPhone-style Appearance: Light, Dark, or Auto schedule. Independent from Light Filter Tool.
         </p>
       </section>
 
@@ -136,6 +134,24 @@
           <div class="range-wrap">
             <input id="lightIntensity" type="range" min="0" max="100" step="1" aria-label="Light intensity" />
             <span id="lightIntensityValue" class="value">45%</span>
+          </div>
+        </div>
+
+        <div class="field-row">
+          <label for="lightScheduleMode">Schedule</label>
+          <select id="lightScheduleMode" aria-label="Light filter schedule">
+            <option value="off">Off</option>
+            <option value="sunset">Sunset to Sunrise</option>
+            <option value="custom">Custom Schedule</option>
+          </select>
+        </div>
+
+        <div id="lightCustomScheduleRow" class="field-row">
+          <label>Custom time</label>
+          <div class="row reading-schedule-row">
+            <input id="lightScheduleStart" type="time" aria-label="Light schedule start" />
+            <span class="micro">→</span>
+            <input id="lightScheduleEnd" type="time" aria-label="Light schedule end" />
           </div>
         </div>
 

@@ -55,9 +55,10 @@
     siteProfileList: $("siteProfileList"),
     optSiteProfiles: $("optSiteProfiles"),
     optReadingEnabled: $("optReadingEnabled"),
-    optReadingMode: $("optReadingMode"),
-    optReadingPreset: $("optReadingPreset"),
-    optReadingIntensity: $("optReadingIntensity"),
+    optReadingAppearance: $("optReadingAppearance"),
+    optReadingScheduleMode: $("optReadingScheduleMode"),
+    optReadingStart: $("optReadingStart"),
+    optReadingEnd: $("optReadingEnd"),
     optReadingThisSiteEnabled: $("optReadingThisSiteEnabled"),
     optReadingExcludeSite: $("optReadingExcludeSite"),
     optReadingHostStatus: $("optReadingHostStatus"),
@@ -372,11 +373,27 @@
   }
 
   function buildReadingSiteOverride(settings) {
+    const appearance = String(
+      settings.appearance || (String(settings.mode || "dark") === "light" ? "light" : "dark")
+    );
+    const scheduleMode = String(
+      settings.scheduleMode || (settings.schedule?.useSunset ? "sunset" : "custom")
+    );
+    const schedule = {
+      enabled: appearance === "auto",
+      useSunset: scheduleMode === "sunset",
+      start: String(settings.schedule?.start || "20:00"),
+      end: String(settings.schedule?.end || "06:00")
+    };
     return {
       enabled: true,
-      mode: String(settings.mode || "dark"),
+      appearance,
+      scheduleMode,
+      schedule,
+      // Backward compatibility for older renderers still reading legacy keys.
+      mode: appearance === "light" ? "light" : "dark",
       preset: String(settings.preset || "soft_black"),
-      intensity: Number(settings.intensity || 44)
+      intensity: Number(settings.intensity ?? 44)
     };
   }
 
@@ -588,10 +605,22 @@
     setValue("optLightExclusions", domainsToLines(lightExcludedHosts));
     setValue("optSiteProfiles", JSON.stringify(lightSiteProfiles || {}, null, 2));
 
+    const readingAppearance = String(
+      reading.appearance || (String(reading.mode || "dark") === "light" ? "light" : "dark")
+    );
+    const readingScheduleMode = String(
+      reading.scheduleMode || (reading.schedule?.useSunset ? "sunset" : "custom")
+    );
+    const readingIsAuto = readingAppearance === "auto";
     setChecked("optReadingEnabled", reading.enabled);
-    setValue("optReadingMode", reading.mode || "dark");
-    setValue("optReadingPreset", reading.preset || "soft_black");
-    setValue("optReadingIntensity", reading.intensity ?? 44);
+    setValue("optReadingAppearance", readingAppearance);
+    setValue("optReadingScheduleMode", readingScheduleMode);
+    setValue("optReadingStart", reading.schedule?.start || "20:00");
+    setValue("optReadingEnd", reading.schedule?.end || "06:00");
+    if (refs.optReadingScheduleMode) refs.optReadingScheduleMode.disabled = !readingIsAuto;
+    const readingCustomEnabled = readingIsAuto && readingScheduleMode === "custom";
+    if (refs.optReadingStart) refs.optReadingStart.disabled = !readingCustomEnabled;
+    if (refs.optReadingEnd) refs.optReadingEnd.disabled = !readingCustomEnabled;
     setValue("optReadingExclusions", hostMapToLines(readingExcludedMap));
     setValue("optReadingSiteProfiles", JSON.stringify(readingSiteProfiles || {}, null, 2));
     setChecked("optReadingThisSiteEnabled", Boolean(state.activeHost && readingSiteProfiles[state.activeHost]));
@@ -763,9 +792,65 @@
     bindInput("optLightExclusions", (el) => queuePatch({ light: { excludedHosts: linesToDomains(el.value) } }));
 
     bindCheck("optReadingEnabled", (el) => queuePatch({ readingTheme: { enabled: el.checked } }));
-    bindSelect("optReadingMode", (el) => queuePatch({ readingTheme: { mode: String(el.value || "dark") } }));
-    bindSelect("optReadingPreset", (el) => queuePatch({ readingTheme: { preset: String(el.value || "soft_black") } }));
-    bindInput("optReadingIntensity", (el) => queuePatch({ readingTheme: { intensity: Number(el.value || 44) } }));
+    bindSelect("optReadingAppearance", (el) => {
+      const appearance = String(el.value || "dark");
+      const isAuto = appearance === "auto";
+      const scheduleMode = String(refs.optReadingScheduleMode?.value || "sunset");
+      if (refs.optReadingScheduleMode) refs.optReadingScheduleMode.disabled = !isAuto;
+      const customEnabled = isAuto && scheduleMode === "custom";
+      if (refs.optReadingStart) refs.optReadingStart.disabled = !customEnabled;
+      if (refs.optReadingEnd) refs.optReadingEnd.disabled = !customEnabled;
+      queuePatch({
+        readingTheme: {
+          appearance,
+          mode: appearance === "light" ? "light" : "dark",
+          schedule: {
+            enabled: isAuto,
+            useSunset: scheduleMode === "sunset"
+          }
+        }
+      });
+    });
+    bindSelect("optReadingScheduleMode", (el) => {
+      const scheduleMode = String(el.value || "sunset");
+      const isAuto = String(refs.optReadingAppearance?.value || "dark") === "auto";
+      const customEnabled = isAuto && scheduleMode === "custom";
+      if (refs.optReadingStart) refs.optReadingStart.disabled = !customEnabled;
+      if (refs.optReadingEnd) refs.optReadingEnd.disabled = !customEnabled;
+      queuePatch({
+        readingTheme: {
+          scheduleMode,
+          schedule: {
+            enabled: isAuto,
+            useSunset: scheduleMode === "sunset"
+          }
+        }
+      });
+    });
+    bindInput("optReadingStart", (el) =>
+      queuePatch({
+        readingTheme: {
+          scheduleMode: "custom",
+          schedule: {
+            enabled: true,
+            useSunset: false,
+            start: String(el.value || "20:00")
+          }
+        }
+      })
+    );
+    bindInput("optReadingEnd", (el) =>
+      queuePatch({
+        readingTheme: {
+          scheduleMode: "custom",
+          schedule: {
+            enabled: true,
+            useSunset: false,
+            end: String(el.value || "06:00")
+          }
+        }
+      })
+    );
     bindInput("optReadingExclusions", (el) => queuePatch({ readingTheme: { excludedSites: linesToHostMap(el.value) } }));
     bindInput("optReadingSiteProfiles", (el) => {
       try {

@@ -19,15 +19,6 @@
     mobile_large: { width: 430, height: 932, label: "Mobile Large" }
   };
 
-  const READING_PRESET_LABELS = {
-    soft_black: "Soft Black",
-    dim_slate: "Dim Slate",
-    gentle_night: "Gentle Night",
-    soft_paper: "Soft Paper",
-    neutral_light: "Neutral Light",
-    warm_page: "Warm Page"
-  };
-
   const state = {
     hydrated: false,
     editing: new Set(),
@@ -69,12 +60,19 @@
     lightMode: document.getElementById("lightMode"),
     lightIntensity: document.getElementById("lightIntensity"),
     lightIntensityValue: document.getElementById("lightIntensityValue"),
+    lightScheduleMode: document.getElementById("lightScheduleMode"),
+    lightScheduleStart: document.getElementById("lightScheduleStart"),
+    lightScheduleEnd: document.getElementById("lightScheduleEnd"),
+    lightCustomScheduleRow: document.getElementById("lightCustomScheduleRow"),
     readingThemeEnabled: document.getElementById("readingThemeEnabled"),
     readingThemeDark: document.getElementById("readingThemeDark"),
     readingThemeLight: document.getElementById("readingThemeLight"),
-    readingThemePreset: document.getElementById("readingThemePreset"),
-    readingThemeIntensity: document.getElementById("readingThemeIntensity"),
-    readingThemeIntensityValue: document.getElementById("readingThemeIntensityValue"),
+    readingThemeAuto: document.getElementById("readingThemeAuto"),
+    readingThemeScheduleMode: document.getElementById("readingThemeScheduleMode"),
+    readingThemeScheduleStart: document.getElementById("readingThemeScheduleStart"),
+    readingThemeScheduleEnd: document.getElementById("readingThemeScheduleEnd"),
+    readingThemeAutoRow: document.getElementById("readingThemeAutoRow"),
+    readingThemeCustomScheduleRow: document.getElementById("readingThemeCustomScheduleRow"),
     readingThemeThisSiteEnabled: document.getElementById("readingThemeThisSiteEnabled"),
     readingThemeExcludeSite: document.getElementById("readingThemeExcludeSite"),
     readingThemeStatus: document.getElementById("readingThemeStatus"),
@@ -490,26 +488,40 @@
   function renderReadingTheme() {
     const reading = getReadingThemeState();
     const siteProfile = getReadingSiteProfile();
+    const rawAppearance = String(siteProfile?.appearance || reading.appearance || siteProfile?.mode || reading.mode || "dark");
+    const appearance = ["light", "dark", "auto"].includes(rawAppearance) ? rawAppearance : "dark";
+    const scheduleMode = String(siteProfile?.scheduleMode || reading.scheduleMode || ((siteProfile?.schedule?.useSunset || reading.schedule?.useSunset) ? "sunset" : "custom"));
+    const scheduleStart = String(siteProfile?.schedule?.start || reading.schedule?.start || "20:00");
+    const scheduleEnd = String(siteProfile?.schedule?.end || reading.schedule?.end || "06:00");
     const effective = {
       enabled: Boolean(reading.enabled),
-      mode: siteProfile?.mode ?? reading.mode ?? "dark",
-      preset: siteProfile?.preset ?? reading.preset ?? "soft_black",
-      intensity: siteProfile?.intensity ?? reading.intensity ?? 44
+      appearance,
+      scheduleMode: scheduleMode === "sunset" ? "sunset" : "custom",
+      scheduleStart,
+      scheduleEnd
     };
 
     setChecked(refs.readingThemeEnabled, effective.enabled);
-    refs.readingThemeDark.classList.toggle("is-active", effective.mode === "dark");
-    refs.readingThemeLight.classList.toggle("is-active", effective.mode === "light");
-    setInputValue(refs.readingThemePreset, effective.preset);
-    setInputValue(refs.readingThemeIntensity, effective.intensity);
-    refs.readingThemeIntensityValue.textContent = `${effective.intensity}%`;
+    refs.readingThemeLight.classList.toggle("is-active", effective.appearance === "light");
+    refs.readingThemeDark.classList.toggle("is-active", effective.appearance === "dark");
+    refs.readingThemeAuto.classList.toggle("is-active", effective.appearance === "auto");
+    setInputValue(refs.readingThemeScheduleMode, effective.scheduleMode);
+    setInputValue(refs.readingThemeScheduleStart, effective.scheduleStart);
+    setInputValue(refs.readingThemeScheduleEnd, effective.scheduleEnd);
+    refs.readingThemeAutoRow.hidden = effective.appearance !== "auto";
+    refs.readingThemeCustomScheduleRow.hidden = effective.appearance !== "auto" || effective.scheduleMode !== "custom";
+    refs.readingThemeScheduleStart.disabled = effective.appearance !== "auto" || effective.scheduleMode !== "custom";
+    refs.readingThemeScheduleEnd.disabled = effective.appearance !== "auto" || effective.scheduleMode !== "custom";
     setChecked(refs.readingThemeThisSiteEnabled, Boolean(siteProfile));
     setChecked(refs.readingThemeExcludeSite, isReadingSiteExcluded());
 
-    const presetLabel = READING_PRESET_LABELS[String(effective.preset || "")] || "Soft Black";
     refs.readingThemeStatus.textContent = effective.enabled
-      ? `Active: ${effective.mode === "dark" ? "Night / Dark" : "Day / Light"} · ${presetLabel}`
-      : "Reading Theme is off. Toggle On to apply.";
+      ? (
+        effective.appearance === "auto"
+          ? `Active: Auto · ${effective.scheduleMode === "sunset" ? "Sunset to Sunrise" : `${effective.scheduleStart} → ${effective.scheduleEnd}`}`
+          : `Active: ${effective.appearance === "dark" ? "Dark" : "Light"}`
+      )
+      : "Appearance is off. Toggle On to apply Light / Dark / Auto.";
   }
 
   function renderLight() {
@@ -540,6 +552,15 @@
     setInputValue(refs.lightMode, effective.mode);
     setInputValue(refs.lightIntensity, effective.intensity);
     refs.lightIntensityValue.textContent = `${effective.intensity}%`;
+    const scheduleMode = !light.schedule?.enabled
+      ? "off"
+      : (light.schedule?.useSunset ? "sunset" : "custom");
+    setInputValue(refs.lightScheduleMode, scheduleMode);
+    setInputValue(refs.lightScheduleStart, light.schedule?.start || "20:00");
+    setInputValue(refs.lightScheduleEnd, light.schedule?.end || "06:00");
+    refs.lightCustomScheduleRow.hidden = scheduleMode !== "custom";
+    refs.lightScheduleStart.disabled = scheduleMode !== "custom";
+    refs.lightScheduleEnd.disabled = scheduleMode !== "custom";
 
     setChecked(refs.lightThisSiteEnabled, Boolean(siteProfile));
     setChecked(refs.lightExcludeSite, isFilterSiteExcluded());
@@ -1267,13 +1288,27 @@
   }
 
   function currentReadingPatchFromUI() {
-    const mode = refs.readingThemeDark.classList.contains("is-active") ? "dark" : "light";
-    const preset = String(refs.readingThemePreset.value || (mode === "dark" ? "soft_black" : "neutral_light"));
-    const intensity = Math.max(0, Math.min(100, Number(refs.readingThemeIntensity.value || 44)));
+    const appearance = refs.readingThemeAuto.classList.contains("is-active")
+      ? "auto"
+      : refs.readingThemeLight.classList.contains("is-active")
+        ? "light"
+        : "dark";
+    const scheduleMode = String(refs.readingThemeScheduleMode.value || "sunset") === "sunset" ? "sunset" : "custom";
+    const schedule = {
+      enabled: appearance === "auto",
+      useSunset: scheduleMode === "sunset",
+      start: String(refs.readingThemeScheduleStart.value || "20:00"),
+      end: String(refs.readingThemeScheduleEnd.value || "06:00")
+    };
+    const mode = appearance === "light" ? "light" : "dark";
+    const preset = mode === "light" ? "neutral_light" : "soft_black";
     return {
+      appearance,
+      scheduleMode,
+      schedule,
       mode,
       preset,
-      intensity
+      intensity: 44
     };
   }
 
@@ -1470,16 +1505,18 @@
     queuePatch({ adaptiveSiteTheme: { excludedSites: map } });
   }
 
-  function setReadingModeWithEnable(mode) {
-    const safeMode = mode === "light" ? "light" : "dark";
-    const current = currentReadingPatchFromUI();
-    const nextPreset = safeMode === "dark"
-      ? (["soft_black", "dim_slate", "gentle_night"].includes(current.preset) ? current.preset : "soft_black")
-      : (["soft_paper", "neutral_light", "warm_page"].includes(current.preset) ? current.preset : "neutral_light");
+  function setReadingAppearanceWithEnable(appearance) {
+    const safeAppearance = ["light", "dark", "auto"].includes(String(appearance || ""))
+      ? String(appearance)
+      : "dark";
+    const patch = currentReadingPatchFromUI();
+    patch.appearance = safeAppearance;
+    patch.schedule.enabled = safeAppearance === "auto";
+    patch.mode = safeAppearance === "light" ? "light" : "dark";
+    patch.preset = patch.mode === "light" ? "neutral_light" : "soft_black";
     queueReadingPatch({
       enabled: true,
-      mode: safeMode,
-      preset: nextPreset
+      ...patch
     });
   }
 
@@ -1584,25 +1621,54 @@
     refs.readingThemeDark.addEventListener("click", async () => {
       refs.readingThemeDark.classList.add("is-active");
       refs.readingThemeLight.classList.remove("is-active");
-      setReadingModeWithEnable("dark");
+      refs.readingThemeAuto.classList.remove("is-active");
+      setReadingAppearanceWithEnable("dark");
       await applyAllTabs({ ensureLightEnabled: false, quiet: true });
     });
 
     refs.readingThemeLight.addEventListener("click", async () => {
       refs.readingThemeLight.classList.add("is-active");
       refs.readingThemeDark.classList.remove("is-active");
-      setReadingModeWithEnable("light");
+      refs.readingThemeAuto.classList.remove("is-active");
+      setReadingAppearanceWithEnable("light");
       await applyAllTabs({ ensureLightEnabled: false, quiet: true });
     });
 
-    refs.readingThemePreset.addEventListener("change", (e) => {
-      queueReadingPatch({ preset: String(e.target.value || "soft_black") });
+    refs.readingThemeAuto.addEventListener("click", async () => {
+      refs.readingThemeAuto.classList.add("is-active");
+      refs.readingThemeDark.classList.remove("is-active");
+      refs.readingThemeLight.classList.remove("is-active");
+      setReadingAppearanceWithEnable("auto");
+      await applyAllTabs({ ensureLightEnabled: false, quiet: true });
     });
 
-    refs.readingThemeIntensity.addEventListener("input", (e) => {
-      const value = Math.max(0, Math.min(100, Number(e.target.value || 44)));
-      refs.readingThemeIntensityValue.textContent = `${value}%`;
-      queueReadingPatch({ intensity: value });
+    refs.readingThemeScheduleMode.addEventListener("change", () => {
+      const patch = currentReadingPatchFromUI();
+      queueReadingPatch({
+        appearance: "auto",
+        scheduleMode: patch.scheduleMode,
+        schedule: patch.schedule,
+        mode: patch.mode,
+        preset: patch.preset
+      });
+    });
+
+    refs.readingThemeScheduleStart.addEventListener("input", () => {
+      const patch = currentReadingPatchFromUI();
+      queueReadingPatch({
+        appearance: patch.appearance,
+        scheduleMode: patch.scheduleMode,
+        schedule: patch.schedule
+      });
+    });
+
+    refs.readingThemeScheduleEnd.addEventListener("input", () => {
+      const patch = currentReadingPatchFromUI();
+      queueReadingPatch({
+        appearance: patch.appearance,
+        scheduleMode: patch.scheduleMode,
+        schedule: patch.schedule
+      });
     });
 
     refs.readingThemeThisSiteEnabled.addEventListener("change", (e) => setReadingSiteOverride(e.target.checked));
@@ -1627,6 +1693,24 @@
       const value = Math.max(0, Math.min(100, Number(e.target.value || 0)));
       refs.lightIntensityValue.textContent = `${value}%`;
       queueLightPatch({ intensity: value });
+    });
+    refs.lightScheduleMode.addEventListener("change", (e) => {
+      const mode = String(e.target.value || "off");
+      if (mode === "off") {
+        queueLightPatch({ schedule: { enabled: false, useSunset: false } });
+        return;
+      }
+      if (mode === "sunset") {
+        queueLightPatch({ schedule: { enabled: true, useSunset: true } });
+        return;
+      }
+      queueLightPatch({ schedule: { enabled: true, useSunset: false } });
+    });
+    refs.lightScheduleStart.addEventListener("input", (e) => {
+      queueLightPatch({ schedule: { start: String(e.target.value || "20:00"), enabled: true, useSunset: false } });
+    });
+    refs.lightScheduleEnd.addEventListener("input", (e) => {
+      queueLightPatch({ schedule: { end: String(e.target.value || "06:00"), enabled: true, useSunset: false } });
     });
 
     refs.lightThisSiteEnabled.addEventListener("change", (e) => setLightSiteOverride(e.target.checked));

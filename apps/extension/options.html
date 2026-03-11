@@ -146,25 +146,21 @@
         <p class="muted">Simple page reading theme. Independent from Light Filters and Adaptive Site Theme.</p>
         <div class="grid cols-4">
           <label class="switch-row"><input id="optReadingEnabled" type="checkbox" />Enabled</label>
-          <label>Mode
-            <select id="optReadingMode">
+          <label>Appearance
+            <select id="optReadingAppearance">
               <option value="dark">Night / Dark</option>
               <option value="light">Day / Light</option>
+              <option value="auto">Automatic</option>
             </select>
           </label>
-          <label>Preset
-            <select id="optReadingPreset">
-              <option value="soft_black">Soft Black</option>
-              <option value="dim_slate">Dim Slate</option>
-              <option value="gentle_night">Gentle Night</option>
-              <option value="soft_paper">Soft Paper</option>
-              <option value="neutral_light">Neutral Light</option>
-              <option value="warm_page">Warm Page</option>
+          <label>Auto schedule
+            <select id="optReadingScheduleMode">
+              <option value="sunset">Sunset to Sunrise</option>
+              <option value="custom">Custom Schedule</option>
             </select>
           </label>
-          <label>Intensity
-            <input id="optReadingIntensity" type="range" min="0" max="100" step="1" />
-          </label>
+          <label>Start <input id="optReadingStart" type="time" /></label>
+          <label>End <input id="optReadingEnd" type="time" /></label>
           <label class="switch-row"><input id="optReadingThisSiteEnabled" type="checkbox" />This site override</label>
           <label class="switch-row"><input id="optReadingExcludeSite" type="checkbox" />Exclude this site</label>
           <p id="optReadingHostStatus" class="muted">Active host: unavailable</p>
@@ -175,7 +171,7 @@
         </label>
 
         <label>Per-site profiles JSON (advanced)
-          <textarea id="optReadingSiteProfiles" rows="6" placeholder='{"github.com":{"enabled":true,"mode":"dark","preset":"soft_black","intensity":44}}'></textarea>
+          <textarea id="optReadingSiteProfiles" rows="6" placeholder='{"github.com":{"enabled":true,"appearance":"dark","scheduleMode":"custom","schedule":{"start":"20:00","end":"06:00"}}}'></textarea>
         </label>
       </section>
 

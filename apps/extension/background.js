@@ -499,8 +499,17 @@ function normalizeScreenshotToolSettings(input, fallback = null) {
 function createDefaultReadingThemeSettings() {
   return {
     enabled: false,
-    mode: "dark", // dark | light
-    preset: "soft_black", // soft_black | dim_slate | gentle_night | soft_paper | neutral_light | warm_page
+    appearance: "auto", // light | dark | auto
+    scheduleMode: "sunset", // sunset | custom
+    schedule: {
+      enabled: true,
+      useSunset: true,
+      start: "20:00",
+      end: "06:00"
+    },
+    // Legacy compatibility fields retained for migration paths.
+    mode: "dark",
+    preset: "soft_black",
     intensity: 44,
     perSiteOverrides: {},
     excludedSites: {}
@@ -587,6 +596,25 @@ function readingPresetFromLegacy(mode, darkVariant, lightVariant) {
   return "soft_black";
 }
 
+function normalizeReadingAppearance(value, fallback = "auto") {
+  const raw = String(value || "").trim().toLowerCase();
+  if (["light", "dark", "auto"].includes(raw)) return raw;
+  return fallback;
+}
+
+function normalizeReadingScheduleMode(value, fallback = "sunset") {
+  const raw = String(value || "").trim().toLowerCase();
+  return raw === "custom" ? "custom" : fallback;
+}
+
+function resolveReadingModeFromAppearance(appearance, schedule) {
+  const safeAppearance = normalizeReadingAppearance(appearance, "auto");
+  if (safeAppearance === "light" || safeAppearance === "dark") return safeAppearance;
+  const start = normalizeTime(schedule?.start, "20:00");
+  const end = normalizeTime(schedule?.end, "06:00");
+  return inTimeRange(start, end, new Date()) ? "dark" : "light";
+}
+
 function normalizeReadingThemeSettings(rawSettings, fallback, legacyLight = {}) {
   const base = fallback && typeof fallback === "object"
     ? fallback
@@ -595,9 +623,25 @@ function normalizeReadingThemeSettings(rawSettings, fallback, legacyLight = {}) 
   const legacyMode = ["dark", "light"].includes(String(legacyLight.readingMode || ""))
     ? String(legacyLight.readingMode)
     : "dark";
-  const mode = ["dark", "light"].includes(String(raw.mode || ""))
-    ? String(raw.mode)
-    : legacyMode;
+  const appearance = normalizeReadingAppearance(
+    raw.appearance || raw.mode || legacyMode,
+    normalizeReadingAppearance(base.appearance, "auto")
+  );
+  const scheduleMode = normalizeReadingScheduleMode(
+    raw.scheduleMode || (raw.schedule?.useSunset ? "sunset" : "") || (base.scheduleMode || "sunset"),
+    "sunset"
+  );
+  const scheduleRaw = {
+    ...(base.schedule || {}),
+    ...(raw.schedule && typeof raw.schedule === "object" ? raw.schedule : {})
+  };
+  const schedule = {
+    enabled: Boolean(raw.schedule?.enabled ?? (appearance === "auto")),
+    useSunset: scheduleMode === "sunset",
+    start: normalizeTime(scheduleRaw.start, "20:00"),
+    end: normalizeTime(scheduleRaw.end, "06:00")
+  };
+  const mode = resolveReadingModeFromAppearance(appearance, schedule);
   const presetRaw = String(raw.preset || "");
   const preset = READING_THEME_PRESETS.includes(presetRaw)
     ? presetRaw
@@ -612,9 +656,30 @@ function normalizeReadingThemeSettings(rawSettings, fallback, legacyLight = {}) 
   const normalizedOverrides = {};
   for (const [host, value] of Object.entries(siteOverrides)) {
     const row = value && typeof value === "object" ? value : {};
-    const rowMode = ["dark", "light"].includes(String(row.mode || "")) ? String(row.mode) : mode;
+    const rowAppearance = normalizeReadingAppearance(
+      row.appearance || row.mode || appearance,
+      appearance
+    );
+    const rowScheduleMode = normalizeReadingScheduleMode(
+      row.scheduleMode || (row.schedule?.useSunset ? "sunset" : "") || scheduleMode,
+      scheduleMode
+    );
+    const rowScheduleRaw = {
+      ...schedule,
+      ...(row.schedule && typeof row.schedule === "object" ? row.schedule : {})
+    };
+    const rowSchedule = {
+      enabled: Boolean(row.schedule?.enabled ?? (rowAppearance === "auto")),
+      useSunset: rowScheduleMode === "sunset",
+      start: normalizeTime(rowScheduleRaw.start, schedule.start),
+      end: normalizeTime(rowScheduleRaw.end, schedule.end)
+    };
+    const rowMode = resolveReadingModeFromAppearance(rowAppearance, rowSchedule);
     normalizedOverrides[host] = {
       enabled: Boolean(row.enabled ?? true),
+      appearance: rowAppearance,
+      scheduleMode: rowScheduleMode,
+      schedule: rowSchedule,
       mode: rowMode,
       preset: READING_THEME_PRESETS.includes(String(row.preset || ""))
         ? String(row.preset)
@@ -627,6 +692,9 @@ function normalizeReadingThemeSettings(rawSettings, fallback, legacyLight = {}) 
     ...base,
     ...raw,
     enabled,
+    appearance,
+    scheduleMode,
+    schedule,
     mode,
     preset,
     intensity,
@@ -791,7 +859,10 @@ function lightFilterModeToLegacy(mode = "warm") {
 }
 
 function readingThemeToLegacyVariants(reading = {}) {
-  const mode = reading.mode === "light" ? "light" : "dark";
+  const mode = resolveReadingModeFromAppearance(
+    reading.appearance || reading.mode || "dark",
+    reading.schedule || {}
+  );
   const preset = String(reading.preset || "");
   if (mode === "dark") {
     if (preset === "dim_slate") return { darkThemeVariant: "gray", lightThemeVariant: "white" };
@@ -821,11 +892,15 @@ function buildLegacyLightFromSeparated(lightFilter = {}, readingTheme = {}, fall
     const filterSite = lightFilter.perSiteOverrides?.[host] || {};
     const readingSite = readingTheme.perSiteOverrides?.[host] || {};
     const readingVars = readingThemeToLegacyVariants(readingSite);
+    const readingSiteMode = resolveReadingModeFromAppearance(
+      readingSite.appearance || readingSite.mode || readingTheme.appearance || readingTheme.mode || "dark",
+      readingSite.schedule || readingTheme.schedule || {}
+    );
     siteProfiles[host] = {
       enabled: Boolean(filterSite.enabled ?? readingSite.enabled ?? true),
       mode: lightFilterModeToLegacy(filterSite.mode || lightFilter.mode || "warm"),
       readingModeEnabled: Boolean(readingSite.enabled ?? readingTheme.enabled ?? false),
-      readingMode: readingSite.mode || readingTheme.mode || "dark",
+      readingMode: readingSiteMode,
       darkThemeVariant: readingVars.darkThemeVariant,
       lightThemeVariant: readingVars.lightThemeVariant,
       spectrumPreset: filterSite.spectrumPreset || lightFilter.spectrumPreset || "balanced",
@@ -852,7 +927,10 @@ function buildLegacyLightFromSeparated(lightFilter = {}, readingTheme = {}, fall
     enabled: Boolean(lightFilter.enabled),
     mode: lightFilterModeToLegacy(lightFilter.mode || "warm"),
     readingModeEnabled: Boolean(readingTheme.enabled),
-    readingMode: readingTheme.mode === "light" ? "light" : "dark",
+    readingMode: resolveReadingModeFromAppearance(
+      readingTheme.appearance || readingTheme.mode || "dark",
+      readingTheme.schedule || {}
+    ),
     darkThemeVariant: variants.darkThemeVariant,
     lightThemeVariant: variants.lightThemeVariant,
     spectrumPreset: lightFilter.spectrumPreset || "balanced",
@@ -918,7 +996,10 @@ function legacyLightPatchToSeparated(lightPatch) {
     readingTheme.enabled = Boolean(raw.readingModeEnabled);
   }
   const mode = ["dark", "light"].includes(String(raw.readingMode || "")) ? String(raw.readingMode) : "dark";
-  if (Object.prototype.hasOwnProperty.call(raw, "readingMode")) readingTheme.mode = mode;
+  if (Object.prototype.hasOwnProperty.call(raw, "readingMode")) {
+    readingTheme.mode = mode;
+    readingTheme.appearance = mode;
+  }
   if (
     Object.prototype.hasOwnProperty.call(raw, "darkThemeVariant") ||
     Object.prototype.hasOwnProperty.call(raw, "lightThemeVariant") ||
@@ -1783,9 +1864,13 @@ function windowsUpdate(windowId, updateInfo = {}) {
   });
 }
 
-function sendTab(tabId, message) {
+function sendTab(tabId, message, options = {}) {
   return new Promise((resolve) => {
-    chrome.tabs.sendMessage(tabId, message, (res) => {
+    const sendOptions = {};
+    if (Number.isInteger(Number(options.frameId))) {
+      sendOptions.frameId = Number(options.frameId);
+    }
+    chrome.tabs.sendMessage(tabId, message, sendOptions, (res) => {
       const err = chrome.runtime.lastError;
       if (err) {
         resolve({ ok: false, error: err.message || "send_failed" });
@@ -1810,7 +1895,7 @@ function isRestrictedExtensionPageUrl(urlLike) {
 }
 
 async function ensureContentScriptReady(tabId) {
-  const ping = await sendTab(tabId, { type: "holmeta:ping" });
+  const ping = await sendTab(tabId, { type: "holmeta:ping" }, { frameId: 0 });
   if (ping.ok && ping.res?.ok) return { ok: true, injected: false };
   if (ping.ok && ping.res?.ok === false && !isMissingReceiverError(ping.res?.error)) {
     return { ok: true, injected: false };
@@ -1821,7 +1906,7 @@ async function ensureContentScriptReady(tabId) {
 
   const injected = await executeScriptFiles(tabId, ["light/engine.js", "content.js"]);
   if (!injected.ok) return { ok: false, error: injected.error || "inject_failed" };
-  const verify = await sendTab(tabId, { type: "holmeta:ping" });
+  const verify = await sendTab(tabId, { type: "holmeta:ping" }, { frameId: 0 });
   if (!verify.ok || !verify.res?.ok) {
     return { ok: false, error: verify.error || verify.res?.error || "receiver_not_ready" };
   }
@@ -1997,7 +2082,7 @@ async function startScreenshotToolOnActiveTab(state) {
   const result = await sendTab(tab.id, {
     type: "holmeta:screenshot-start",
     payload: { settings: state.settings.screenshotTool }
-  });
+  }, { frameId: 0 });
   if ((!result.ok || result.res?.ok === false) && isMissingReceiverError(result.error || result.res?.error)) {
     const retryReady = await ensureContentScriptReady(tab.id);
     if (!retryReady.ok) {
@@ -2006,7 +2091,7 @@ async function startScreenshotToolOnActiveTab(state) {
     const retry = await sendTab(tab.id, {
       type: "holmeta:screenshot-start",
       payload: { settings: state.settings.screenshotTool }
-    });
+    }, { frameId: 0 });
     if (retry.ok && retry.res?.ok !== false) {
       state.runtime.screenshotTool.activeTabId = Number(tab.id || 0);
       state.runtime.screenshotTool.activeWindowId = Number(tab.windowId || 0);
@@ -2031,11 +2116,11 @@ async function startScreenshotToolOnActiveTab(state) {
 async function stopScreenshotToolOnActiveTab(state) {
   const tabId = Number(state.runtime?.screenshotTool?.activeTabId || 0);
   if (tabId > 0) {
-    await sendTab(tabId, { type: "holmeta:screenshot-stop" });
+    await sendTab(tabId, { type: "holmeta:screenshot-stop" }, { frameId: 0 });
   } else {
     const tabs = await tabsQuery({ active: true, currentWindow: true });
     const tab = tabs.find((t) => Number.isInteger(t.id) && /^https?:/i.test(String(t.url || "")));
-    if (tab) await sendTab(tab.id, { type: "holmeta:screenshot-stop" });
+    if (tab) await sendTab(tab.id, { type: "holmeta:screenshot-stop" }, { frameId: 0 });
   }
   state.runtime.screenshotTool.activeTabId = 0;
   state.runtime.screenshotTool.activeWindowId = 0;
@@ -3399,7 +3484,7 @@ async function broadcastState(state) {
     attempted += 1;
     // Expected to fail on restricted/internal pages.
     // eslint-disable-next-line no-await-in-loop
-    const result = await sendTab(tab.id, { type: "holmeta:apply-state", payload });
+    const result = await sendTab(tab.id, { type: "holmeta:apply-state", payload }, { frameId: 0 });
     if (result.ok) applied += 1;
   }
   return { attempted, applied };
@@ -3422,8 +3507,15 @@ async function scheduleRuntimeAlarms(state) {
     alarmCreate(ALARMS.DEEPWORK, { when: state.settings.deepWork.nextTransitionAt });
   }
 
+  const readingTheme = state.settings.darkLightTheme || state.settings.readingTheme || {};
+  const readingAutoEnabled = Boolean(
+    readingTheme.enabled
+    && normalizeReadingAppearance(readingTheme.appearance || readingTheme.mode || "dark", "dark") === "auto"
+  );
+
   const needsHeartbeat =
     Boolean(state.settings.lightFilter?.enabled || state.settings.light?.enabled) ||
+    readingAutoEnabled ||
     state.settings.blocker.enabled ||
     state.settings.deepWork.active ||
     state.settings.alerts.enabled;
@@ -3704,13 +3796,13 @@ async function startColorPickOnActiveTab() {
     return { ok: false, error: "no_active_tab" };
   }
 
-  let result = await sendTab(tab.id, { type: "holmeta:start-color-pick" });
+  let result = await sendTab(tab.id, { type: "holmeta:start-color-pick" }, { frameId: 0 });
   if (!result.ok && isMissingReceiverError(result.error)) {
     const injected = await executeScriptFiles(tab.id, ["light/engine.js", "content.js"]);
     if (!injected.ok) {
       return { ok: false, error: injected.error || "inject_failed" };
     }
-    result = await sendTab(tab.id, { type: "holmeta:start-color-pick" });
+    result = await sendTab(tab.id, { type: "holmeta:start-color-pick" }, { frameId: 0 });
   }
   if (!result.ok) {
     return { ok: false, error: result.error || "pick_unavailable" };
@@ -3802,7 +3894,7 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
   if (changeInfo.status !== "complete") return;
   if (!/^https?:/i.test(String(tab?.url || ""))) return;
   const state = await loadState();
-  await sendTab(tabId, { type: "holmeta:apply-state", payload: effectivePayload(state) });
+  await sendTab(tabId, { type: "holmeta:apply-state", payload: effectivePayload(state) }, { frameId: 0 });
   await maybeShowSiteInsight(tabId, tab?.url, state);
 });
 
@@ -3896,42 +3988,68 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     }
 
     if (type === "holmeta:get-light-diagnostics") {
-      let tabId = Number(message.tabId || 0);
-      if ((!Number.isInteger(tabId) || tabId <= 0) && Number.isInteger(Number(sender?.tab?.id || 0))) {
-        const senderUrl = String(sender?.tab?.url || "");
-        if (/^https?:/i.test(senderUrl)) {
-          tabId = Number(sender.tab.id || 0);
+      const tryDiagnosticsForTab = async (candidateTabId) => {
+        const tabResult = await sendTab(candidateTabId, { type: "holmeta:get-light-diagnostics" }, { frameId: 0 });
+        if (tabResult.ok) {
+          return { ok: true, diagnostics: tabResult.res?.diagnostics || null, tabId: candidateTabId };
         }
+        if (!isMissingReceiverError(tabResult.error)) {
+          return { ok: false, error: tabResult.error || "diagnostics_failed", tabId: candidateTabId };
+        }
+
+        const ready = await ensureContentScriptReady(candidateTabId);
+        if (!ready.ok) {
+          return { ok: false, error: ready.error || "diagnostics_inject_failed", tabId: candidateTabId };
+        }
+
+        const retry = await sendTab(candidateTabId, { type: "holmeta:get-light-diagnostics" }, { frameId: 0 });
+        if (!retry.ok) {
+          return { ok: false, error: retry.error || "diagnostics_failed", tabId: candidateTabId };
+        }
+        return { ok: true, diagnostics: retry.res?.diagnostics || null, tabId: candidateTabId };
+      };
+
+      const candidateTabIds = [];
+      const requestedTabId = Number(message.tabId || 0);
+      if (Number.isInteger(requestedTabId) && requestedTabId > 0) {
+        candidateTabIds.push(requestedTabId);
       }
-      if (!Number.isInteger(tabId) || tabId <= 0) {
-        const tabs = await tabsQuery({ active: true, currentWindow: true });
-        const activeTab = tabs.find((candidate) => Number.isInteger(candidate?.id) && /^https?:/i.test(String(candidate?.url || "")));
-        tabId = Number(activeTab?.id || 0);
+
+      const senderTabId = Number(sender?.tab?.id || 0);
+      const senderUrl = String(sender?.tab?.url || "");
+      if (
+        Number.isInteger(senderTabId)
+        && senderTabId > 0
+        && /^https?:/i.test(senderUrl)
+        && !candidateTabIds.includes(senderTabId)
+      ) {
+        candidateTabIds.push(senderTabId);
       }
-      if (!Number.isInteger(tabId) || tabId <= 0) {
+
+      const tabs = await tabsQuery({ active: true, currentWindow: true });
+      const activeTab = tabs.find((candidate) => Number.isInteger(candidate?.id) && /^https?:/i.test(String(candidate?.url || "")));
+      const activeTabId = Number(activeTab?.id || 0);
+      if (Number.isInteger(activeTabId) && activeTabId > 0 && !candidateTabIds.includes(activeTabId)) {
+        candidateTabIds.push(activeTabId);
+      }
+
+      if (!candidateTabIds.length) {
         sendResponse({ ok: false, error: "invalid_tab" });
         return;
       }
-      const result = await sendTab(tabId, { type: "holmeta:get-light-diagnostics" });
-      if (!result.ok && isMissingReceiverError(result.error)) {
-        const injected = await executeScriptFiles(tabId, ["light/engine.js", "content.js"]);
-        if (!injected.ok) {
-          sendResponse({ ok: false, error: injected.error || "diagnostics_inject_failed" });
+
+      let lastError = "diagnostics_failed";
+      for (const tabId of candidateTabIds) {
+        // eslint-disable-next-line no-await-in-loop
+        const diagnosticAttempt = await tryDiagnosticsForTab(tabId);
+        if (diagnosticAttempt.ok) {
+          sendResponse({ ok: true, diagnostics: diagnosticAttempt.diagnostics, tabId });
           return;
         }
-        const retry = await sendTab(tabId, { type: "holmeta:get-light-diagnostics" });
-        if (!retry.ok) {
-          sendResponse({ ok: false, error: retry.error || "diagnostics_failed" });
-          return;
-        }
-        sendResponse({ ok: true, diagnostics: retry.res?.diagnostics || null });
-        return;
+        lastError = diagnosticAttempt.error || lastError;
       }
-      if (!result.ok) {
-        sendResponse({ ok: false, error: result.error || "diagnostics_failed" });
-        return;
-      }
-      sendResponse({ ok: true, diagnostics: result.res?.diagnostics || null });
+
+      sendResponse({ ok: false, error: lastError });
       return;
     }
 
@@ -3942,7 +4060,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         sendResponse({ ok: false, error: "no_active_tab" });
         return;
       }
-      await sendTab(tab.id, { type: "holmeta:set-spotlight-point", point: message.point || {} });
+      await sendTab(tab.id, { type: "holmeta:set-spotlight-point", point: message.point || {} }, { frameId: 0 });
       sendResponse({ ok: true });
       return;
     }
@@ -3954,7 +4072,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         sendResponse({ ok: false, error: "no_active_tab" });
         return;
       }
-      await sendTab(tab.id, { type: "holmeta:clear-spotlight-point" });
+      await sendTab(tab.id, { type: "holmeta:clear-spotlight-point" }, { frameId: 0 });
       sendResponse({ ok: true });
       return;
     }
@@ -3965,6 +4083,12 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       if (patch.light && typeof patch.light === "object") {
         const mapped = legacyLightPatchToSeparated(patch.light);
         expandedPatch = mergeDeep(expandedPatch, mapped);
+      }
+      // Keep reading theme aliases in lockstep for backward compatibility.
+      if (patch.readingTheme && typeof patch.readingTheme === "object" && !(patch.darkLightTheme && typeof patch.darkLightTheme === "object")) {
+        expandedPatch = mergeDeep(expandedPatch, { darkLightTheme: patch.readingTheme });
+      } else if (patch.darkLightTheme && typeof patch.darkLightTheme === "object" && !(patch.readingTheme && typeof patch.readingTheme === "object")) {
+        expandedPatch = mergeDeep(expandedPatch, { readingTheme: patch.darkLightTheme });
       }
       state.settings = normalizeState({ settings: mergeDeep(state.settings, expandedPatch), license: state.license }).settings;
       await saveState(state);
@@ -4277,6 +4401,11 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       };
       state.settings.readingTheme.perSiteOverrides[host] = {
         enabled: true,
+        appearance: state.settings.readingTheme.appearance,
+        scheduleMode: state.settings.readingTheme.scheduleMode,
+        schedule: {
+          ...(state.settings.readingTheme.schedule || {})
+        },
         mode: state.settings.readingTheme.mode,
         preset: state.settings.readingTheme.preset,
         intensity: state.settings.readingTheme.intensity
@@ -4410,7 +4539,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         sendResponse({ ok: false, error: "no_active_tab" });
         return;
       }
-      const result = await sendTab(tab.id, { type: "holmeta:block-element-picker" });
+      const result = await sendTab(tab.id, { type: "holmeta:block-element-picker" }, { frameId: 0 });
       if (!result.ok) {
         sendResponse({ ok: false, error: result.error || "picker_failed" });
         return;

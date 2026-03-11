@@ -679,8 +679,16 @@
   function createDefaultReadingProfile() {
     return {
       enabled: false,
-      mode: "dark",
-      preset: "soft_black",
+      appearance: "auto", // light | dark | auto
+      scheduleMode: "sunset", // sunset | custom
+      schedule: {
+        enabled: true,
+        useSunset: true,
+        start: "20:00",
+        end: "06:00"
+      },
+      mode: "dark", // legacy compatibility
+      preset: "soft_black", // legacy compatibility
       intensity: 44
     };
   }
@@ -691,9 +699,26 @@
       ...(fallback || {})
     };
     const raw = input && typeof input === "object" ? input : {};
-    const mode = ["dark", "light"].includes(String(raw.mode || ""))
-      ? String(raw.mode)
-      : String(base.mode || "dark");
+    const appearanceRaw = String(raw.appearance || raw.mode || base.appearance || "auto").toLowerCase();
+    const appearance = ["light", "dark", "auto"].includes(appearanceRaw)
+      ? appearanceRaw
+      : "auto";
+    const scheduleMode = String(raw.scheduleMode || (raw.schedule?.useSunset ? "sunset" : "") || base.scheduleMode || "sunset") === "custom"
+      ? "custom"
+      : "sunset";
+    const scheduleRaw = {
+      ...(base.schedule || {}),
+      ...(raw.schedule && typeof raw.schedule === "object" ? raw.schedule : {})
+    };
+    const schedule = {
+      enabled: Boolean(raw.schedule?.enabled ?? (appearance === "auto")),
+      useSunset: scheduleMode === "sunset",
+      start: /^([01]\d|2[0-3]):([0-5]\d)$/.test(String(scheduleRaw.start || "")) ? String(scheduleRaw.start) : "20:00",
+      end: /^([01]\d|2[0-3]):([0-5]\d)$/.test(String(scheduleRaw.end || "")) ? String(scheduleRaw.end) : "06:00"
+    };
+    const mode = appearance === "auto"
+      ? (inRange(schedule.start, schedule.end, new Date()) ? "dark" : "light")
+      : appearance;
     const preset = [
       "soft_black",
       "dim_slate",
@@ -708,6 +733,9 @@
       ...base,
       ...raw,
       enabled: Boolean(raw.enabled ?? base.enabled),
+      appearance,
+      scheduleMode,
+      schedule,
       mode,
       preset,
       intensity: Math.round(clamp(raw.intensity ?? base.intensity, 0, 100))
@@ -1022,70 +1050,39 @@
   }
 
   function readingThemeForProfile(profile = {}, pageTone = { tone: "mixed", luminance: 0.5 }) {
-    const mode = profile.mode === "light" ? "light" : "dark";
-    const preset = String(profile.preset || (mode === "light" ? "neutral_light" : "soft_black"));
+    const appearance = ["light", "dark", "auto"].includes(String(profile.appearance || ""))
+      ? String(profile.appearance)
+      : (profile.mode === "light" ? "light" : "dark");
+    const schedule = profile.schedule && typeof profile.schedule === "object"
+      ? profile.schedule
+      : { start: "20:00", end: "06:00", enabled: appearance === "auto" };
+    const mode = appearance === "auto"
+      ? (inRange(String(schedule.start || "20:00"), String(schedule.end || "06:00"), new Date()) ? "dark" : "light")
+      : (appearance === "light" ? "light" : "dark");
     const tone = pageTone.tone || "mixed";
     const alreadyDark = tone === "dark";
-    const intensityFactor = clamp(profile.intensity, 0, 100) / 100;
+    const intensityFactor = clamp(profile.intensity ?? 44, 0, 100) / 100;
 
     if (mode === "dark") {
-      if (preset === "gentle_night") {
-        return {
-          mode,
-          variant: preset,
-          overlayBg: "rgba(54, 39, 31, 1)",
-          overlayOpacity: clamp((alreadyDark ? 0.07 : 0.24) + (intensityFactor * 0.18), 0.04, 0.42),
-          maxOverlayOpacity: alreadyDark ? 0.22 : 0.48,
-          filter: "brightness(0.985) contrast(1.04)"
-        };
-      }
-      if (preset === "dim_slate") {
-        return {
-          mode,
-          variant: preset,
-          overlayBg: "rgba(26, 29, 34, 1)",
-          overlayOpacity: clamp((alreadyDark ? 0.06 : 0.22) + (intensityFactor * 0.17), 0.04, 0.40),
-          maxOverlayOpacity: alreadyDark ? 0.20 : 0.46,
-          filter: "brightness(0.988) contrast(1.03)"
-        };
-      }
       return {
         mode,
-        variant: "soft_black",
+        appearance,
+        variant: "appearance_dark",
         overlayBg: "rgba(10, 12, 15, 1)",
-        overlayOpacity: clamp((alreadyDark ? 0.07 : 0.26) + (intensityFactor * 0.20), 0.04, 0.46),
-        maxOverlayOpacity: alreadyDark ? 0.22 : 0.52,
-        filter: "brightness(0.98) contrast(1.05)"
+        overlayOpacity: clamp((alreadyDark ? 0.05 : 0.17) + (intensityFactor * 0.08), 0.03, 0.30),
+        maxOverlayOpacity: alreadyDark ? 0.18 : 0.34,
+        filter: alreadyDark ? "brightness(0.995) contrast(1.01)" : "brightness(0.985) contrast(1.04)"
       };
     }
 
-    if (preset === "warm_page") {
-      return {
-        mode,
-        variant: preset,
-        overlayBg: "rgba(252, 241, 219, 1)",
-        overlayOpacity: clamp((alreadyDark ? 0.04 : 0.10) + (intensityFactor * 0.10), 0.02, 0.20),
-        maxOverlayOpacity: alreadyDark ? 0.12 : 0.24,
-        filter: alreadyDark ? "brightness(1.015) contrast(1.0)" : "brightness(1.006) contrast(1.0)"
-      };
-    }
-    if (preset === "soft_paper") {
-      return {
-        mode,
-        variant: preset,
-        overlayBg: "rgba(237, 239, 242, 1)",
-        overlayOpacity: clamp((alreadyDark ? 0.03 : 0.09) + (intensityFactor * 0.08), 0.02, 0.18),
-        maxOverlayOpacity: alreadyDark ? 0.10 : 0.20,
-        filter: alreadyDark ? "brightness(1.012) contrast(1.0)" : "brightness(1.004) contrast(1.0)"
-      };
-    }
     return {
       mode,
-      variant: "neutral_light",
-      overlayBg: "rgba(250, 248, 244, 1)",
-      overlayOpacity: clamp((alreadyDark ? 0.03 : 0.08) + (intensityFactor * 0.08), 0.02, 0.16),
+      appearance,
+      variant: "appearance_light",
+      overlayBg: "rgba(247, 243, 232, 1)",
+      overlayOpacity: clamp((alreadyDark ? 0.03 : 0.06) + (intensityFactor * 0.06), 0.02, 0.14),
       maxOverlayOpacity: alreadyDark ? 0.10 : 0.20,
-      filter: alreadyDark ? "brightness(1.01) contrast(1.0)" : "brightness(1.003) contrast(1.0)"
+      filter: alreadyDark ? "brightness(1.01) contrast(1.0)" : "brightness(1.005) contrast(1.0)"
     };
   }
 
@@ -1163,9 +1160,10 @@
     let adaptiveWeight = 1;
 
     if (adaptiveEnabled && readingEnabled) {
-      readingWeight = 0.48;
-      clampOverlayMax = Math.min(clampOverlayMax, 0.34);
-      clampReason = "adaptive+reading";
+      // Adaptive Site Theme takes priority over simple Appearance when both are enabled.
+      readingWeight = 0;
+      clampOverlayMax = Math.min(clampOverlayMax, 0.30);
+      clampReason = "adaptive-priority";
     }
 
     if (adaptiveEnabled && lightEnabled) {
@@ -1241,6 +1239,16 @@
     const lightSettings = settings.lightFilter || legacyLight || {};
     const readingSettings = settings.darkLightTheme || settings.readingTheme || {
       enabled: Boolean(legacyLight.readingModeEnabled ?? false),
+      appearance: ["light", "dark"].includes(String(legacyLight.readingMode || ""))
+        ? String(legacyLight.readingMode)
+        : "auto",
+      scheduleMode: legacyLight.schedule?.useSunset ? "sunset" : "custom",
+      schedule: {
+        enabled: Boolean(legacyLight.readingModeEnabled ?? false),
+        useSunset: Boolean(legacyLight.schedule?.useSunset ?? true),
+        start: String(legacyLight.schedule?.start || "20:00"),
+        end: String(legacyLight.schedule?.end || "06:00")
+      },
       mode: legacyLight.readingMode === "light" ? "light" : "dark",
       preset: legacyLight.readingMode === "light"
         ? (legacyLight.lightThemeVariant === "gray" ? "soft_paper" : legacyLight.lightThemeVariant === "warm" ? "warm_page" : "neutral_light")

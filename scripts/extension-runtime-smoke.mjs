@@ -20,6 +20,12 @@ function truncate(value, max = 140) {
   return `${text.slice(0, max - 3)}...`;
 }
 
+function isMissingReceiverError(text) {
+  const value = String(text || "").toLowerCase();
+  return value.includes("receiving end does not exist")
+    || value.includes("could not establish connection");
+}
+
 async function getServiceWorker(context) {
   const existing = context.serviceWorkers()[0];
   if (existing) return existing;
@@ -47,6 +53,80 @@ async function runtimeMessage(controllerPage, message) {
       });
     });
   }, message);
+}
+
+async function tabMessage(controllerPage, tabId, message, options = {}) {
+  return controllerPage.evaluate(({ id, payload, opts }) => {
+    return new Promise((resolveMessage) => {
+      chrome.tabs.sendMessage(id, payload, opts || {}, (response) => {
+        const runtimeErr = chrome.runtime.lastError;
+        if (runtimeErr) {
+          resolveMessage({
+            ok: false,
+            error: runtimeErr.message || "tab_message_failed",
+            response: null
+          });
+          return;
+        }
+        resolveMessage({
+          ok: true,
+          error: "",
+          response: response || null
+        });
+      });
+    });
+  }, {
+    id: Number(tabId || 0),
+    payload: message,
+    opts: Number.isInteger(Number(options.frameId)) ? { frameId: Number(options.frameId) } : {}
+  });
+}
+
+async function injectContentScripts(controllerPage, tabId) {
+  return controllerPage.evaluate(({ id }) => {
+    return new Promise((resolveInject) => {
+      chrome.scripting.executeScript(
+        {
+          target: { tabId: id },
+          files: ["light/engine.js", "content.js"]
+        },
+        () => {
+          const runtimeErr = chrome.runtime.lastError;
+          if (runtimeErr) {
+            resolveInject({ ok: false, error: runtimeErr.message || "inject_failed" });
+            return;
+          }
+          resolveInject({ ok: true, error: "" });
+        }
+      );
+    });
+  }, { id: Number(tabId || 0) });
+}
+
+async function ensureTabReceiver(controllerPage, tabId) {
+  if (!Number.isInteger(Number(tabId)) || Number(tabId) <= 0) {
+    return { ok: false, error: "invalid_tab" };
+  }
+  const ping = await tabMessage(controllerPage, tabId, { type: "holmeta:ping" }, { frameId: 0 });
+  if (ping.ok && ping.response?.ok) return { ok: true };
+  if (ping.ok && ping.response?.ok === false && !isMissingReceiverError(ping.response?.error)) {
+    return { ok: true };
+  }
+  if (!isMissingReceiverError(ping.error || ping.response?.error)) {
+    return { ok: false, error: ping.error || ping.response?.error || "receiver_unavailable" };
+  }
+
+  const injected = await injectContentScripts(controllerPage, tabId);
+  if (!injected.ok) return injected;
+
+  const verify = await tabMessage(controllerPage, tabId, { type: "holmeta:ping" }, { frameId: 0 });
+  if (!verify.ok || !verify.response?.ok) {
+    return {
+      ok: false,
+      error: verify.error || verify.response?.error || "receiver_not_ready"
+    };
+  }
+  return { ok: true };
 }
 
 async function getActiveTab(controllerPage) {
@@ -170,10 +250,34 @@ async function run() {
           note: `active_tab_error:${truncate(activeTab.error || "unknown")}`
         });
       } else {
-        const diagnosticsResult = await runtimeMessage(controller, {
-          type: "holmeta:get-light-diagnostics",
-          tabId: diagnosticTabId
-        });
+        const receiverReady = await ensureTabReceiver(controller, diagnosticTabId);
+        if (!receiverReady.ok) {
+          summary.checks.lightDiagnostics.push({
+            site: url,
+            ok: false,
+            overlayCount: -1,
+            strategy: "unknown",
+            note: truncate(receiverReady.error || "receiver_unavailable")
+          });
+          await runtimeMessage(controller, { type: "holmeta:screenshot-stop" });
+          await runtimeMessage(controller, { type: "holmeta:stop-color-pick" });
+          continue;
+        }
+
+        let diagnosticsResult = await tabMessage(controller, diagnosticTabId, {
+          type: "holmeta:get-light-diagnostics"
+        }, { frameId: 0 });
+        if (
+          !diagnosticsResult.ok
+          && isMissingReceiverError(diagnosticsResult.error || diagnosticsResult.response?.error)
+        ) {
+          const retryReady = await ensureTabReceiver(controller, diagnosticTabId);
+          if (retryReady.ok) {
+            diagnosticsResult = await tabMessage(controller, diagnosticTabId, {
+              type: "holmeta:get-light-diagnostics"
+            }, { frameId: 0 });
+          }
+        }
         summary.checks.lightDiagnostics.push({
           site: url,
           ok: Boolean(diagnosticsResult.ok && diagnosticsResult.response?.ok),
