@@ -1190,6 +1190,7 @@
   }
 
   function readingThemeForProfile(profile = {}, pageTone = { tone: "mixed", luminance: 0.5 }) {
+    const appearancePalettes = globalThis.HolmetaAppearancePalettes || null;
     const appearance = ["light", "dark", "auto"].includes(String(profile.appearance || ""))
       ? String(profile.appearance)
       : (profile.mode === "light" ? "light" : "dark");
@@ -1302,7 +1303,19 @@
           overlayBg: "rgba(20, 70, 24, 1)"
         }
       };
-      const palette = DARK_PALETTES[darkVariant] || DARK_PALETTES.coal;
+      const paletteFromLib = appearancePalettes?.getPalette?.("dark", darkVariant) || null;
+      const palette = paletteFromLib
+        ? {
+            bg: paletteFromLib.background,
+            surface: paletteFromLib.surface,
+            fg: paletteFromLib.textPrimary,
+            muted: paletteFromLib.textSecondary,
+            link: paletteFromLib.selectedAccent,
+            border: paletteFromLib.border,
+            controlBg: paletteFromLib.inputBackground,
+            overlayBg: "rgba(8, 8, 8, 1)"
+          }
+        : (DARK_PALETTES[darkVariant] || DARK_PALETTES.coal);
       const variantBoostMap = {
         coal: 0.07,
         black: 0.10,
@@ -1315,11 +1328,11 @@
       };
       const variantBoost = variantBoostMap[darkVariant] ?? 0.06;
       const overlayOpacity = clamp(
-        (alreadyDark ? 0.05 : 0.19)
-          + (intensityFactor * 0.14)
-          + variantBoost,
-        alreadyDark ? 0.04 : 0.14,
-        alreadyDark ? 0.24 : 0.46
+        (alreadyDark ? 0.03 : 0.08)
+          + (intensityFactor * 0.06)
+          + (variantBoost * 0.35),
+        alreadyDark ? 0.02 : 0.05,
+        alreadyDark ? 0.14 : 0.22
       );
 
       return {
@@ -1328,7 +1341,7 @@
         variant: `appearance_dark_${darkVariant}`,
         overlayBg: palette.overlayBg,
         overlayOpacity,
-        maxOverlayOpacity: alreadyDark ? 0.24 : 0.46,
+        maxOverlayOpacity: alreadyDark ? 0.14 : 0.22,
         filter: "none",
         mediaFilter: "none",
         bg: palette.bg,
@@ -1403,13 +1416,25 @@
         overlayBg: "rgba(215, 204, 200, 1)"
       }
     };
-    const palette = LIGHT_PALETTES[lightVariant] || LIGHT_PALETTES.white;
+    const paletteFromLib = appearancePalettes?.getPalette?.("light", lightVariant) || null;
+    const palette = paletteFromLib
+      ? {
+          bg: paletteFromLib.background,
+          surface: paletteFromLib.surface,
+          fg: paletteFromLib.textPrimary,
+          muted: paletteFromLib.textSecondary,
+          link: paletteFromLib.accent,
+          border: paletteFromLib.border,
+          controlBg: paletteFromLib.inputBackground,
+          overlayBg: "rgba(255, 255, 255, 1)"
+        }
+      : (LIGHT_PALETTES[lightVariant] || LIGHT_PALETTES.white);
     const overlayOpacity = clamp(
-      (alreadyDark ? 0.04 : 0.11)
-        + (intensityFactor * 0.09)
-        + (lightVariant === "white" ? 0.03 : 0.02),
-      alreadyDark ? 0.02 : 0.07,
-      alreadyDark ? 0.14 : 0.28
+      (alreadyDark ? 0.02 : 0.05)
+        + (intensityFactor * 0.04)
+        + (lightVariant === "white" ? 0.02 : 0.01),
+      alreadyDark ? 0.01 : 0.04,
+      alreadyDark ? 0.08 : 0.14
     );
     return {
       mode,
@@ -1417,7 +1442,7 @@
       variant: `appearance_light_${lightVariant}`,
       overlayBg: palette.overlayBg,
       overlayOpacity,
-      maxOverlayOpacity: alreadyDark ? 0.14 : 0.28,
+      maxOverlayOpacity: alreadyDark ? 0.08 : 0.14,
       filter: "none",
       mediaFilter: "none",
       bg: palette.bg,
@@ -1705,6 +1730,17 @@
         }
         pageFilter = joinFilters(pageFilter, supplemental.filter);
       }
+    }
+
+    // Tool 2 (Day / Night Appearance) should be the primary page transform.
+    // Keep only a subtle comfort overlay when Light Filter Tool is off.
+    if (readingThemeEnabled && !filterEnabled) {
+      overlayOpacity = clamp(
+        overlayOpacity * 0.38,
+        0,
+        readingTheme.mode === "dark" ? 0.16 : 0.10
+      );
+      pageFilter = "none";
     }
 
     if (adaptiveEnabled && adaptiveTheme) {

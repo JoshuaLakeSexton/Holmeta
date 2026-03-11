@@ -29,10 +29,13 @@
       if (componentRoot.closest(`[${ATTR.MEDIA_SAFE}]`)) continue;
 
       componentRoot.setAttribute(ATTR.SURFACE, "1");
-      componentRoot.setAttribute(ATTR.COMPONENT, classifier.classifyComponent(componentRoot));
+      const componentType = classifier.classifyComponent(componentRoot);
+      componentRoot.setAttribute(ATTR.COMPONENT, componentType);
       classifier.markOwned(componentRoot);
 
-      const componentWrappers = classifier.collectInnerWrappers(componentRoot, 40);
+      const componentWrappers = classifier.collectInnerWrappers(componentRoot, 56, {
+        aggressive: componentType === "button" || componentType === "input" || componentType === "nav"
+      });
       for (const inner of componentWrappers) {
         if (!(inner instanceof Element)) continue;
         if (inner.closest(`[${ATTR.MEDIA_SAFE}]`)) continue;

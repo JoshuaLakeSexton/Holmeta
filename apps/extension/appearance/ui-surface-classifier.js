@@ -109,7 +109,7 @@
     const role = String(el.getAttribute("role") || "").toLowerCase();
     const className = String(el.className || "").toLowerCase();
 
-    if (tag === "input" || tag === "textarea" || tag === "select" || role === "textbox" || /search|input|field/.test(className)) {
+    if (tag === "input" || tag === "textarea" || tag === "select" || role === "textbox" || role === "search" || /search|input|field/.test(className)) {
       return "input";
     }
     if (tag === "button" || role === "button" || /button|btn|pill|chip|toggle/.test(className)) {
@@ -149,7 +149,7 @@
     if (!sizeOk || !structured) return false;
 
     const interactiveTag = /^(button|a|input|textarea|select)$/i.test(el.tagName);
-    const interactiveRole = /button|tab|menuitem|option|switch|textbox/.test(String(el.getAttribute("role") || ""));
+    const interactiveRole = /button|tab|menuitem|option|switch|textbox|search/.test(String(el.getAttribute("role") || ""));
     const classText = String(el.className || "").toLowerCase();
     const semanticClass = /(button|btn|card|panel|input|field|chip|pill|menu|nav|toolbar|header|footer|modal|dialog|search)/.test(classText);
 
@@ -201,9 +201,11 @@
     return out;
   }
 
-  function collectInnerWrappers(componentRoot, max = 28) {
+  function collectInnerWrappers(componentRoot, max = 28, options = {}) {
     if (!(componentRoot instanceof Element)) return [];
     const wrappers = [];
+    const aggressive = Boolean(options.aggressive);
+    const rootRect = componentRoot.getBoundingClientRect?.() || { width: 0, height: 0 };
     const nodes = componentRoot.querySelectorAll(WRAPPER_SELECTOR);
     for (const node of nodes) {
       if (wrappers.length >= max) break;
@@ -214,7 +216,8 @@
       const style = getComputedStyle(node);
       const classText = String(node.className || "").toLowerCase();
       const semantic = /(inner|label|content|text|icon|button|btn|pill|chip|search|input|field|control|surface)/.test(classText);
-      if (!semantic && !hasVisualSurface(style)) continue;
+      if (!aggressive && !semantic && !hasVisualSurface(style)) continue;
+      if (aggressive && style.position === "absolute" && rootRect.width > 0 && rect.width > rootRect.width * 0.95) continue;
       wrappers.push(node);
     }
     return wrappers;

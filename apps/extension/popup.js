@@ -787,13 +787,26 @@
       ? "System"
       : (effective.scheduleMode === "sunset" ? "Sunset to Sunrise" : `${effective.scheduleStart} → ${effective.scheduleEnd}`);
 
-    refs.readingThemeStatus.textContent = effective.enabled
-      ? (
-        effective.appearance === "auto"
-          ? `Active: Auto · Dark ${darkLabel} / Light ${lightLabel} · ${scheduleLabel}`
-          : `Active: ${effective.appearance === "dark" ? `Dark ${darkLabel}` : `Light ${lightLabel}`}`
-      )
-      : "Appearance is off. Toggle On to apply Light / Dark / Auto.";
+    const excluded = isReadingSiteExcluded();
+    if (excluded) {
+      refs.readingThemeStatus.textContent = "This site is excluded from appearance changes.";
+      return;
+    }
+
+    const hostSuffix = state.currentHost ? ` on ${state.currentHost}` : "";
+    if (effective.enabled) {
+      if (effective.appearance === "auto") {
+        refs.readingThemeStatus.textContent = `Applying Auto${hostSuffix} · Dark ${darkLabel} / Light ${lightLabel} · ${scheduleLabel}.`;
+      } else {
+        refs.readingThemeStatus.textContent = `Applying ${effective.appearance === "dark" ? `Dark ${darkLabel}` : `Light ${lightLabel}`}${hostSuffix}.`;
+      }
+      if (siteProfile) {
+        refs.readingThemeStatus.textContent += " This site uses its own override.";
+      }
+      return;
+    }
+
+    refs.readingThemeStatus.textContent = "Appearance is off. Toggle On to apply Light / Dark / Auto.";
   }
 
   function renderLight() {

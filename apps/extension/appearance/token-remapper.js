@@ -37,7 +37,8 @@ html[${ATTR.ACTIVE}='1'][${ATTR.COMPAT}='media-safe'] [${ATTR.SURFACE}='1'] {
 }
 
 html[${ATTR.ACTIVE}='1'] [${ATTR.SURFACE}='1'][${ATTR.COMPONENT}='card'],
-html[${ATTR.ACTIVE}='1'] [${ATTR.SURFACE}='1'][${ATTR.COMPONENT}='nav'] {
+html[${ATTR.ACTIVE}='1'] [${ATTR.SURFACE}='1'][${ATTR.COMPONENT}='nav'],
+html[${ATTR.ACTIVE}='1'] [${ATTR.SURFACE}='1'][${ATTR.COMPONENT}='listitem'] {
   background-color: var(--holmeta-appearance-card-bg) !important;
 }
 
@@ -60,10 +61,27 @@ html[${ATTR.ACTIVE}='1'] [${ATTR.SURFACE}='1'][${ATTR.COMPONENT}='input'] *:not(
   border-color: inherit !important;
 }
 
+html[${ATTR.ACTIVE}='1'] [${ATTR.SURFACE}='1'][${ATTR.COMPONENT}='button'] :where(div, span, p, strong, em, b, i, label, small),
+html[${ATTR.ACTIVE}='1'] [${ATTR.SURFACE}='1'][${ATTR.COMPONENT}='input'] :where(div, span, p, strong, em, b, i, label, small) {
+  background-color: transparent !important;
+  background-image: none !important;
+  box-shadow: none !important;
+  color: inherit !important;
+}
+
+html[${ATTR.ACTIVE}='1'] [${ATTR.SURFACE}='1'][${ATTR.COMPONENT}='button'] :where(div, span, p, strong, em, b, i, label, small)::before,
+html[${ATTR.ACTIVE}='1'] [${ATTR.SURFACE}='1'][${ATTR.COMPONENT}='button'] :where(div, span, p, strong, em, b, i, label, small)::after,
+html[${ATTR.ACTIVE}='1'] [${ATTR.SURFACE}='1'][${ATTR.COMPONENT}='input'] :where(div, span, p, strong, em, b, i, label, small)::before,
+html[${ATTR.ACTIVE}='1'] [${ATTR.SURFACE}='1'][${ATTR.COMPONENT}='input'] :where(div, span, p, strong, em, b, i, label, small)::after {
+  background-color: transparent !important;
+  border-color: inherit !important;
+}
+
 html[${ATTR.ACTIVE}='1'] [${ATTR.SURFACE}='1'][${ATTR.COMPONENT}='button']:hover,
 html[${ATTR.ACTIVE}='1'] [${ATTR.SURFACE}='1'][${ATTR.COMPONENT}='button']:focus-visible,
 html[${ATTR.ACTIVE}='1'] [${ATTR.SURFACE}='1'][${ATTR.COMPONENT}='button'][aria-pressed='true'],
-html[${ATTR.ACTIVE}='1'] [${ATTR.SURFACE}='1'][${ATTR.COMPONENT}='button'][aria-current='page'] {
+html[${ATTR.ACTIVE}='1'] [${ATTR.SURFACE}='1'][${ATTR.COMPONENT}='button'][aria-current='page'],
+html[${ATTR.ACTIVE}='1'] [${ATTR.SURFACE}='1'][${ATTR.COMPONENT}='button'][aria-selected='true'] {
   background-color: var(--holmeta-appearance-interactive-hover) !important;
   color: var(--holmeta-appearance-selected-text) !important;
 }
@@ -88,6 +106,12 @@ html[${ATTR.ACTIVE}='1'] :where(input, textarea, select, button, [role='button']
 html[${ATTR.ACTIVE}='1'] :where(input, textarea, select) {
   background-color: var(--holmeta-appearance-input-bg) !important;
   border-color: var(--holmeta-appearance-input-border) !important;
+}
+
+html[${ATTR.ACTIVE}='1'] :where([role='search'], [type='search']) {
+  background-color: var(--holmeta-appearance-input-bg) !important;
+  border-color: var(--holmeta-appearance-input-border) !important;
+  color: var(--holmeta-appearance-text-primary) !important;
 }
 
 html[${ATTR.ACTIVE}='1'] :where(a, a:visited) {

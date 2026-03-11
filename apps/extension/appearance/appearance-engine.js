@@ -8,8 +8,9 @@
   const dynamicProcessorLib = globalThis.HolmetaAppearanceDynamicProcessor;
   const compat = globalThis.HolmetaAppearanceCompatibility;
   const mediaGuard = globalThis.HolmetaAppearanceMediaGuard;
+  const siteRules = globalThis.HolmetaAppearanceSiteRules;
 
-  if (!stateRef || !detector || !remapper || !normalizer || !dynamicProcessorLib || !compat || !mediaGuard) {
+  if (!stateRef || !detector || !remapper || !normalizer || !dynamicProcessorLib || !compat || !mediaGuard || !siteRules) {
     console.error("[Holmeta appearance] dependency_missing");
     return;
   }
@@ -131,7 +132,15 @@
 
   function apply(profile = {}, options = {}) {
     const root = document.documentElement;
-    const enabled = Boolean(profile.enabled);
+    const resolved = siteRules.resolveProfile(profile, getHost());
+    if (resolved.excluded) {
+      clear();
+      state.diagnostics.reason = "site-excluded";
+      return { ...state.diagnostics };
+    }
+
+    const effectiveProfile = resolved.profile || {};
+    const enabled = Boolean(effectiveProfile.enabled);
     if (!enabled) {
       clear();
       return { ...state.diagnostics };
@@ -150,17 +159,17 @@
       pageTone
     });
 
-    const mode = resolveMode(profile);
+    const mode = resolveMode(effectiveProfile);
     if (mode === "off") {
       clear();
       return { ...state.diagnostics };
     }
 
-    const intensity = Number(profile.intensity ?? 46);
+    const intensity = Number(effectiveProfile.intensity ?? 46);
     const tokens = stateRef.toTokens({
       mode,
-      darkVariant: stateRef.normalizeDarkVariant(profile.darkVariant || profile.darkThemeVariant || "coal"),
-      lightVariant: stateRef.normalizeLightVariant(profile.lightVariant || profile.lightThemeVariant || "white"),
+      darkVariant: stateRef.normalizeDarkVariant(effectiveProfile.darkVariant || effectiveProfile.darkThemeVariant || "coal"),
+      lightVariant: stateRef.normalizeLightVariant(effectiveProfile.lightVariant || effectiveProfile.lightThemeVariant || "white"),
       intensity
     });
 
@@ -185,7 +194,7 @@
       components: 0,
       wrappers: 0,
       media: 0,
-      reason: compatibility.reason || "applied"
+      reason: resolved.usingSiteOverride ? "site-override" : (compatibility.reason || "applied")
     };
 
     applyDynamic(root);
