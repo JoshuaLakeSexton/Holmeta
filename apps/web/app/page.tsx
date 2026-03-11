@@ -1,7 +1,5 @@
 "use client";
 
-import Image from "next/image";
-
 import { Button } from "@/components/holmeta/Button";
 import { FAQItem } from "@/components/holmeta/FAQItem";
 import { FeatureCard } from "@/components/holmeta/FeatureCard";
@@ -103,14 +101,6 @@ export default function HomePage() {
                   <span>Video embed is supported here via NEXT_PUBLIC_DEMO_VIDEO_URL.</span>
                 </div>
               )}
-              <Image
-                src="/images/holmeta-extension-command-center.png"
-                alt="Holmeta extension popup showing focus, filters, reminders, and quick controls."
-                width={384}
-                height={1240}
-                className="hm-proof-image"
-                priority
-              />
             </figure>
           </Panel>
         </div>
