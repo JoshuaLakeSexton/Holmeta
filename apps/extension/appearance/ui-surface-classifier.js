@@ -49,6 +49,9 @@
     "[class*='menu']",
     "[class*='input']",
     "[class*='search']",
+    "[class*='searchbox']",
+    "[class*='ytSearchboxComponent']",
+    "ytd-searchbox",
     "[class*='toolbar']",
     "[class*='TopBar']",
     "[class*='Nav']",
@@ -151,7 +154,7 @@
     const interactiveTag = /^(button|a|input|textarea|select)$/i.test(el.tagName);
     const interactiveRole = /button|tab|menuitem|option|switch|textbox|search/.test(String(el.getAttribute("role") || ""));
     const classText = String(el.className || "").toLowerCase();
-    const semanticClass = /(button|btn|card|panel|input|field|chip|pill|menu|nav|toolbar|header|footer|modal|dialog|search)/.test(classText);
+    const semanticClass = /(button|btn|card|panel|input|field|chip|pill|menu|nav|toolbar|header|footer|modal|dialog|search|searchbox|ytsearchbox)/.test(classText);
 
     const styleSignal = hasVisualSurface(style);
 

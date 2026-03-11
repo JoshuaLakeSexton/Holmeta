@@ -89,6 +89,7 @@ async function injectContentScripts(controllerPage, tabId) {
         {
           target: { tabId: id },
           files: [
+            "appearance/palette-presets.js",
             "appearance/appearance-state.js",
             "appearance/theme-detector.js",
             "appearance/media-guard.js",
@@ -96,6 +97,7 @@ async function injectContentScripts(controllerPage, tabId) {
             "appearance/component-normalizer.js",
             "appearance/dynamic-node-processor.js",
             "appearance/site-compatibility.js",
+            "appearance/site-rules.js",
             "appearance/token-remapper.js",
             "appearance/appearance-engine.js",
             "light/engine.js",

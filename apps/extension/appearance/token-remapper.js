@@ -166,6 +166,101 @@ html[${ATTR.ACTIVE}='1'][${ATTR.SITE}='x'] :is(
   background-image: none !important;
 }
 
+html[${ATTR.ACTIVE}='1'][${ATTR.SITE}='x'] :is(
+  main [role='button'],
+  main [role='button'] *,
+  main a[role='link'][data-testid],
+  main a[role='link'][data-testid] *
+) {
+  color: var(--holmeta-appearance-text-primary) !important;
+  border-color: var(--holmeta-appearance-border-soft) !important;
+}
+
+html[${ATTR.ACTIVE}='1'][${ATTR.SITE}='x'] :is(
+  main [role='button'],
+  main a[role='link'][data-testid]
+) {
+  background-color: var(--holmeta-appearance-button-bg) !important;
+}
+
+html[${ATTR.ACTIVE}='1'][${ATTR.SITE}='x'] :is(
+  main [role='button'] *,
+  main a[role='link'][data-testid] *
+) {
+  background-color: transparent !important;
+  background-image: none !important;
+}
+
+html[${ATTR.ACTIVE}='1'][${ATTR.SITE}='youtube'] :is(
+  ytd-searchbox,
+  ytd-searchbox *,
+  .ytSearchboxComponentHost,
+  .ytSearchboxComponentHost *,
+  .ytSearchboxComponentInputBox,
+  .ytSearchboxComponentSearchButton,
+  #search-form,
+  #search-form *,
+  #search-icon-legacy,
+  #search-icon-legacy *
+) {
+  color: var(--holmeta-appearance-text-primary) !important;
+  border-color: var(--holmeta-appearance-border-soft) !important;
+}
+
+html[${ATTR.ACTIVE}='1'][${ATTR.SITE}='youtube'] :is(
+  ytd-searchbox,
+  .ytSearchboxComponentHost,
+  .ytSearchboxComponentInputBox,
+  .ytSearchboxComponentSearchButton,
+  #search-form,
+  #search-icon-legacy
+) {
+  background-color: var(--holmeta-appearance-input-bg) !important;
+}
+
+html[${ATTR.ACTIVE}='1'][${ATTR.SITE}='youtube'] :is(
+  ytd-searchbox *,
+  .ytSearchboxComponentHost *,
+  .ytSearchboxComponentInputBox *,
+  .ytSearchboxComponentSearchButton *,
+  #search-form *,
+  #search-icon-legacy *
+) {
+  background-color: transparent !important;
+  background-image: none !important;
+}
+
+html[${ATTR.ACTIVE}='1'][${ATTR.SITE}='github'] :is(
+  .Header,
+  .Header *,
+  .header-search-wrapper,
+  .header-search-wrapper *,
+  [data-target='qbsearch-input.inputButtonText'],
+  [data-target='qbsearch-input.inputButtonText'] *,
+  .Button,
+  .Button *
+) {
+  color: var(--holmeta-appearance-text-primary) !important;
+  border-color: var(--holmeta-appearance-border-soft) !important;
+}
+
+html[${ATTR.ACTIVE}='1'][${ATTR.SITE}='github'] :is(
+  .header-search-wrapper,
+  [data-target='qbsearch-input.inputButtonText'],
+  .Button
+) {
+  background-color: var(--holmeta-appearance-input-bg) !important;
+}
+
+html[${ATTR.ACTIVE}='1'][${ATTR.SITE}='github'] :is(
+  .header-search-wrapper *,
+  [data-target='qbsearch-input.inputButtonText'] *,
+  .Button *
+) {
+  background-color: transparent !important;
+  background-image: none !important;
+}
+
 html[${ATTR.ACTIVE}='1'] body::before {
   content: "";
   position: fixed;
