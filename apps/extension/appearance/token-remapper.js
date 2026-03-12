@@ -131,7 +131,8 @@ html[${ATTR.ACTIVE}='1'] :where([role='tab'][aria-selected='true'], [aria-curren
 }
 
 html[${ATTR.ACTIVE}='1'] :where(a, a:visited) {
-  color: var(--holmeta-appearance-accent-strong) !important;
+  color: var(--holmeta-appearance-text-primary) !important;
+  text-decoration-color: var(--holmeta-appearance-line-subtle) !important;
 }
 
 html[${ATTR.ACTIVE}='1'] :where(h1, h2, h3, h4, h5, h6, strong) {
@@ -203,7 +204,7 @@ html[${ATTR.ACTIVE}='1'][${ATTR.SITE_CLASS}='docs_editor'] :where(code, pre, kbd
 }
 
 html[${ATTR.ACTIVE}='1'][${ATTR.SITE_CLASS}='ecommerce'] :where([class*='price'], [data-testid*='price']) {
-  color: var(--holmeta-appearance-accent-strong) !important;
+  color: var(--holmeta-appearance-text-primary) !important;
 }
 
 html[${ATTR.ACTIVE}='1'][${ATTR.SITE}='x'] :is(

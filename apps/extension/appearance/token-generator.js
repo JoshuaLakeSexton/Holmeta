@@ -153,11 +153,13 @@
     const dropdownBackground = mix(panelBackground, isDark ? "#060606" : "#ffffff", isDark ? 0.10 : 0.08);
     const inputBackground = mix(cardBackground, isDark ? darkBg : lightBg, isDark ? 0.12 : 0.18);
     const hoverBackground = mix(elevatedBackground, palette.accent, 0.12 + (strength * 0.08));
-    const selectedBackground = mix(elevatedBackground, palette.selectedAccent || palette.accent, 0.26 + adj.accentBoost);
+    const selectedAnchor = isDark ? palette.accent : (palette.selectedAccent || palette.accent);
+    const selectedBackground = mix(elevatedBackground, selectedAnchor, 0.24 + adj.accentBoost);
 
-    const textPrimary = palette.textPrimary;
-    const textSecondary = palette.textSecondary || mix(textPrimary, isDark ? "#ffffff" : "#3a3a3a", isDark ? 0.12 : 0.18);
-    const textMuted = mix(textPrimary, isDark ? "#8e8e8e" : "#767676", isDark ? 0.34 : 0.40);
+    // Keep Tool 2 typography neutral and high-contrast regardless of preset tint.
+    const textPrimary = isDark ? "#F3F3F4" : "#111111";
+    const textSecondary = isDark ? "#D5D6DA" : "#2A2A2A";
+    const textMuted = isDark ? "#B8BAC2" : "#565962";
 
     const borderSubtle = alpha(textPrimary, (isDark ? 0.12 : 0.18) + (adj.borderBoost * 0.8));
     const borderStrong = alpha(textPrimary, (isDark ? 0.22 : 0.30) + (adj.borderBoost * 0.9));
@@ -172,8 +174,8 @@
 
     const accent = palette.accent;
     const accentSoft = alpha(accent, isDark ? 0.26 : 0.18);
-    const accentStrong = mix(accent, isDark ? "#ffd27a" : "#0d47a1", isDark ? 0.24 : 0.12);
-    const textOnAccent = isDark ? "#101010" : "#ffffff";
+    const accentStrong = mix(accent, isDark ? "#ffffff" : "#0d47a1", isDark ? 0.12 : 0.10);
+    const textOnAccent = isDark ? "#0E0E10" : "#ffffff";
     const iconPrimary = textPrimary;
     const iconMuted = textMuted;
     const inputBorder = borderStrong;

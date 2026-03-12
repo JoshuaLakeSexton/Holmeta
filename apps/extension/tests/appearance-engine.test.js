@@ -67,7 +67,7 @@ test("appearance state tokens map to selected palette values", () => {
     compatibilityMode: "normal"
   });
   assert.equal(darkTokens.mode, "dark");
-  assert.equal(darkTokens.textPrimary, "#FFF8E1");
+  assert.equal(darkTokens.textPrimary, "#F3F3F4");
   assert.equal(darkTokens.accent, "#6D4C41");
   assert.ok(darkTokens.cardBackground, "token generator should emit cardBackground");
   assert.ok(darkTokens.sidebarBackground, "token generator should emit sidebarBackground");
@@ -127,7 +127,7 @@ test("appearance state tokens map to selected palette values", () => {
     compatibilityMode: "normal"
   });
   assert.equal(lightTokens.mode, "light");
-  assert.equal(lightTokens.textPrimary, "#0D47A1");
+  assert.equal(lightTokens.textPrimary, "#111111");
   assert.equal(lightTokens.accent, "#42A5F5");
   assert.ok(lightTokens.panelBackground, "token generator should emit panelBackground");
   assert.ok(lightTokens.inputBackground, "token generator should emit inputBackground");
