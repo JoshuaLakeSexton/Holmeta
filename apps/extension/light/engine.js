@@ -17,6 +17,16 @@
     "candle",
     "paper",
     "cool_focus",
+    "sunset_glow",
+    "moonlight",
+    "deep_night",
+    "dusk_rose",
+    "amber_focus",
+    "cocoa_night",
+    "ocean_dim",
+    "slate_mono",
+    "cinema_soft",
+    "mint_calm",
     "red_overlay",
     "red_mono",
     "red_lock",
@@ -416,7 +426,18 @@
     if (profile.mode === "red_lock") return media.mediaCount > 0 ? "overlay" : "hybrid";
     if (profile.mode === "red_mono") return media.canvasCount > 0 ? "overlay" : "hybrid";
     if (maybeColorCritical) return "overlay";
-    if (media.mediaCount > 2 && ["warm", "amber", "candle", "paper", "cool_focus"].includes(profile.mode)) return "overlay";
+    if (media.mediaCount > 2 && [
+      "warm",
+      "amber",
+      "candle",
+      "paper",
+      "cool_focus",
+      "sunset_glow",
+      "moonlight",
+      "amber_focus",
+      "mint_calm",
+      "cinema_soft"
+    ].includes(profile.mode)) return "overlay";
     return "hybrid";
   }
 
@@ -1188,6 +1209,77 @@
         overlayOpacity = 0.03 + (i * 0.16) + (d * 0.2);
         filter = `brightness(${(b - (i * 0.03)).toFixed(3)}) contrast(${(1 - (c * 0.14)).toFixed(3)}) saturate(${(sat * 1.03).toFixed(3)})`;
         break;
+      case "sunset_glow":
+        tintR = Math.round(clamp(tintR + 32, 0, 255));
+        tintG = Math.round(clamp(tintG - 4, 0, 255));
+        tintB = Math.round(clamp(tintB - 38, 0, 255));
+        overlayBg = `rgba(${tintR}, ${tintG}, ${tintB}, 1)`;
+        overlayOpacity = 0.10 + (i * 0.48) + (d * 0.20) + (blueCut * 0.12);
+        filter = `brightness(${(b - (i * 0.10)).toFixed(3)}) contrast(${(1 - (c * 0.14)).toFixed(3)}) saturate(${(sat * 0.92).toFixed(3)}) sepia(${(0.24 + (blueCut * 0.24)).toFixed(3)})`;
+        break;
+      case "moonlight":
+        tintR = Math.round(clamp(tintR - 54, 0, 255));
+        tintG = Math.round(clamp(tintG - 12, 0, 255));
+        tintB = Math.round(clamp(tintB + 42, 0, 255));
+        overlayBg = `rgba(${tintR}, ${tintG}, ${tintB}, 1)`;
+        overlayOpacity = 0.04 + (i * 0.20) + (d * 0.18);
+        filter = `brightness(${(b - (i * 0.04)).toFixed(3)}) contrast(${(1 - (c * 0.12)).toFixed(3)}) saturate(${(sat * 0.96).toFixed(3)})`;
+        break;
+      case "deep_night":
+        overlayBg = "rgba(4, 8, 16, 1)";
+        overlayOpacity = 0.12 + (i * 0.60) + (d * 0.26);
+        filter = `brightness(${(b - (i * 0.24)).toFixed(3)}) contrast(${(1 - (c * 0.10)).toFixed(3)}) saturate(${(sat * 0.84).toFixed(3)})`;
+        break;
+      case "dusk_rose":
+        tintR = Math.round(clamp(tintR + 26, 0, 255));
+        tintG = Math.round(clamp(tintG - 24, 0, 255));
+        tintB = Math.round(clamp(tintB + 2, 0, 255));
+        overlayBg = `rgba(${tintR}, ${tintG}, ${tintB}, 1)`;
+        overlayOpacity = 0.07 + (i * 0.34) + (d * 0.20);
+        filter = `brightness(${(b - (i * 0.08)).toFixed(3)}) contrast(${(1 - (c * 0.14)).toFixed(3)}) saturate(${(sat * 0.90).toFixed(3)}) sepia(${(0.18 + (blueCut * 0.18)).toFixed(3)})`;
+        break;
+      case "amber_focus":
+        tintR = Math.round(clamp(tintR + 20, 0, 255));
+        tintG = Math.round(clamp(tintG + 6, 0, 255));
+        tintB = Math.round(clamp(tintB - 28, 0, 255));
+        overlayBg = `rgba(${tintR}, ${tintG}, ${tintB}, 1)`;
+        overlayOpacity = 0.06 + (i * 0.28) + (d * 0.16) + (blueCut * 0.10);
+        filter = `brightness(${(b - (i * 0.05)).toFixed(3)}) contrast(${(1.02 - (c * 0.10)).toFixed(3)}) saturate(${(sat * 0.94).toFixed(3)}) sepia(${(0.16 + (blueCut * 0.14)).toFixed(3)})`;
+        break;
+      case "cocoa_night":
+        tintR = Math.round(clamp(tintR + 18, 0, 255));
+        tintG = Math.round(clamp(tintG - 28, 0, 255));
+        tintB = Math.round(clamp(tintB - 42, 0, 255));
+        overlayBg = `rgba(${tintR}, ${tintG}, ${tintB}, 1)`;
+        overlayOpacity = 0.10 + (i * 0.44) + (d * 0.20) + (blueCut * 0.08);
+        filter = `brightness(${(b - (i * 0.14)).toFixed(3)}) contrast(${(1 - (c * 0.12)).toFixed(3)}) saturate(${(sat * 0.82).toFixed(3)}) sepia(${(0.30 + (blueCut * 0.22)).toFixed(3)})`;
+        break;
+      case "ocean_dim":
+        tintR = Math.round(clamp(tintR - 40, 0, 255));
+        tintG = Math.round(clamp(tintG + 14, 0, 255));
+        tintB = Math.round(clamp(tintB + 26, 0, 255));
+        overlayBg = `rgba(${tintR}, ${tintG}, ${tintB}, 1)`;
+        overlayOpacity = 0.08 + (i * 0.38) + (d * 0.24);
+        filter = `brightness(${(b - (i * 0.15)).toFixed(3)}) contrast(${(1 - (c * 0.14)).toFixed(3)}) saturate(${(sat * 0.88).toFixed(3)})`;
+        break;
+      case "slate_mono":
+        overlayBg = "rgba(18, 24, 34, 1)";
+        overlayOpacity = 0.06 + (i * 0.30) + (d * 0.20);
+        filter = `grayscale(0.96) brightness(${(b - (i * 0.10)).toFixed(3)}) contrast(${(1 - (c * 0.18)).toFixed(3)}) saturate(0.34)`;
+        break;
+      case "cinema_soft":
+        overlayBg = "rgba(0, 0, 0, 1)";
+        overlayOpacity = 0.08 + (i * 0.40) + (d * 0.22);
+        filter = `brightness(${(b - (i * 0.16)).toFixed(3)}) contrast(${(1 - (c * 0.08)).toFixed(3)}) saturate(${(sat * 0.90).toFixed(3)})`;
+        break;
+      case "mint_calm":
+        tintR = Math.round(clamp(tintR - 24, 0, 255));
+        tintG = Math.round(clamp(tintG + 18, 0, 255));
+        tintB = Math.round(clamp(tintB - 6, 0, 255));
+        overlayBg = `rgba(${tintR}, ${tintG}, ${tintB}, 1)`;
+        overlayOpacity = 0.04 + (i * 0.22) + (d * 0.18);
+        filter = `brightness(${(b - (i * 0.05)).toFixed(3)}) contrast(${(1 - (c * 0.12)).toFixed(3)}) saturate(${(sat * 0.96).toFixed(3)})`;
+        break;
       case "red_overlay":
         overlayBg = `rgba(${Math.max(210, tintR)}, ${Math.round(clamp(tintG * 0.45, 0, 110))}, ${Math.round(clamp(tintB * 0.35, 0, 90))}, 1)`;
         overlayOpacity = 0.10 + (i * 0.56) + (d * 0.16) + (blueCut * 0.14);
@@ -1557,14 +1649,14 @@
       };
     }
 
-    if (mode === "gray_warm") {
+    if (mode === "gray_warm" || mode === "slate_mono") {
       return {
         overlayFactor: darkPage ? 0.08 : 0.16,
         filter: `grayscale(${(0.16 + (intensityFactor * 0.16)).toFixed(3)}) sepia(${(0.10 + (intensityFactor * 0.12)).toFixed(3)})`
       };
     }
 
-    if (mode === "dim") {
+    if (mode === "dim" || mode === "deep_night" || mode === "ocean_dim" || mode === "cinema_soft" || mode === "cocoa_night") {
       return {
         overlayFactor: darkPage ? 0.08 : 0.16,
         filter: `brightness(${(0.99 - (dimFactor * 0.08)).toFixed(3)})`
@@ -1578,7 +1670,9 @@
       };
     }
 
-    const warmBias = mode === "cool_focus" ? 0.06 : 0.12;
+    const warmBias = (mode === "cool_focus" || mode === "moonlight" || mode === "mint_calm")
+      ? 0.06
+      : 0.12;
     return {
       overlayFactor: darkPage ? 0.06 : 0.14,
       filter: `sepia(${(warmBias + (intensityFactor * 0.12)).toFixed(3)}) saturate(${(0.97 - (intensityFactor * 0.05)).toFixed(3)})`
