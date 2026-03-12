@@ -19,6 +19,7 @@
     INNER: "data-holmeta-ui-inner",
     OWNED: "data-holmeta-appearance-owned",
     MEDIA_SAFE: "data-holmeta-media-safe",
+    ACCENT_SAFE: "data-holmeta-accent-safe",
     FORCE_TEXT: "data-holmeta-force-text",
     LOGO_WORDMARK: "data-holmeta-logo-wordmark",
     LOGO_SAFE_BG: "data-holmeta-logo-safe-bg",

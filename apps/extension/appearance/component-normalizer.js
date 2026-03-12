@@ -10,6 +10,7 @@
     INNER: "data-holmeta-ui-inner",
     OWNED: "data-holmeta-appearance-owned",
     MEDIA_SAFE: "data-holmeta-media-safe",
+    ACCENT_SAFE: "data-holmeta-accent-safe",
     FORCE_TEXT: "data-holmeta-force-text",
     LOGO_WORDMARK: "data-holmeta-logo-wordmark",
     LOGO_SAFE_BG: "data-holmeta-logo-safe-bg",
@@ -129,6 +130,68 @@
     return Boolean(hasBrightBg || hasBorder || semantic || hasShadow || (hasMidBg && hasBgImage));
   }
 
+  function chromaFromRgb(rgb) {
+    if (!rgb) return 0;
+    const r = rgb.r / 255;
+    const g = rgb.g / 255;
+    const b = rgb.b / 255;
+    return Math.max(r, g, b) - Math.min(r, g, b);
+  }
+
+  function hasAccentSemantic(node) {
+    if (!(node instanceof Element)) return false;
+    const text = [
+      String(node.className || ""),
+      String(node.id || ""),
+      String(node.getAttribute("role") || ""),
+      String(node.getAttribute("aria-label") || ""),
+      String(node.getAttribute("data-testid") || ""),
+      String(node.getAttribute("data-state") || "")
+    ].join(" ").toLowerCase();
+    return /(success|warning|danger|error|alert|info|primary|secondary|accent|badge|tag|chip|pill|status|highlight|marker|label|progress|notification|toast|positive|negative)/.test(text);
+  }
+
+  function hasAccentTone(style) {
+    if (!style) return false;
+    const samples = [
+      parseRgba(style.color),
+      parseRgba(style.backgroundColor),
+      parseRgba(style.borderTopColor)
+    ];
+    for (const rgb of samples) {
+      if (!rgb || rgb.a < 0.35) continue;
+      const lum = luminanceFromRgb(rgb);
+      const chroma = chromaFromRgb(rgb);
+      if (chroma >= 0.16 && lum >= 0.08 && lum <= 0.92) return true;
+    }
+    return false;
+  }
+
+  function shouldPreserveAccent(node) {
+    if (!(node instanceof Element)) return false;
+    const rect = node.getBoundingClientRect?.();
+    if (!rect || rect.width < 6 || rect.height < 6) return false;
+    const area = rect.width * rect.height;
+    const viewportArea = Math.max(1, window.innerWidth * window.innerHeight);
+    const style = getComputedStyle(node);
+    const interactive = node.matches(
+      "button, a, [role='button'], [role='tab'], [role='status'], [aria-live], [data-state], [class*='chip' i], [class*='badge' i], [class*='pill' i], [class*='tag' i]"
+    );
+    if (!interactive && area > (viewportArea * 0.08)) return false;
+    if (area > 140000) return false;
+    return hasAccentSemantic(node) || hasAccentTone(style);
+  }
+
+  function markAccentSafe(node) {
+    if (!(node instanceof Element)) return;
+    node.setAttribute(ATTR.ACCENT_SAFE, "1");
+    node.removeAttribute(ATTR.SURFACE);
+    node.removeAttribute(ATTR.COMPONENT);
+    node.removeAttribute(ATTR.INNER);
+    node.removeAttribute(ATTR.FORCE_TEXT);
+    classifier.markOwned(node);
+  }
+
   function normalizeRoot(root = document.documentElement, options = {}) {
     if (!classifier || !mediaGuard) return { components: 0, wrappers: 0, media: 0 };
 
@@ -144,6 +207,10 @@
     for (const componentRoot of components) {
       if (!(componentRoot instanceof Element)) continue;
       if (componentRoot.closest(`[${ATTR.MEDIA_SAFE}]`)) continue;
+      if (shouldPreserveAccent(componentRoot)) {
+        markAccentSafe(componentRoot);
+        continue;
+      }
       const componentStyle = getComputedStyle(componentRoot);
       if (hasUrlBackgroundImage(componentStyle)) {
         componentRoot.setAttribute(ATTR.MEDIA_SAFE, "1");
@@ -172,6 +239,10 @@
       for (const inner of componentWrappers) {
         if (!(inner instanceof Element)) continue;
         if (inner.closest(`[${ATTR.MEDIA_SAFE}]`)) continue;
+        if (shouldPreserveAccent(inner)) {
+          markAccentSafe(inner);
+          continue;
+        }
         const innerStyle = getComputedStyle(inner);
         if (hasUrlBackgroundImage(innerStyle)) {
           inner.setAttribute(ATTR.MEDIA_SAFE, "1");
@@ -203,6 +274,10 @@
         for (const node of anatomy) {
           if (!(node instanceof Element)) continue;
           if (node.closest(`[${ATTR.MEDIA_SAFE}]`)) continue;
+          if (shouldPreserveAccent(node)) {
+            markAccentSafe(node);
+            continue;
+          }
           const nodeStyle = getComputedStyle(node);
           if (hasUrlBackgroundImage(nodeStyle)) {
             node.setAttribute(ATTR.MEDIA_SAFE, "1");
@@ -227,6 +302,10 @@
       if (residualCount >= 140) break;
       if (!(node instanceof Element)) continue;
       if (node.closest(`[${ATTR.MEDIA_SAFE}]`)) continue;
+      if (shouldPreserveAccent(node)) {
+        markAccentSafe(node);
+        continue;
+      }
       if (node.hasAttribute(ATTR.SURFACE)) continue;
       const rect = node.getBoundingClientRect?.();
       if (!rect || rect.width < 32 || rect.height < 18) continue;
@@ -417,6 +496,7 @@
       if (forcedSurfaces >= maxNodes) break;
       if (!(node instanceof Element)) continue;
       if (node.closest(`[${ATTR.MEDIA_SAFE}]`)) continue;
+      if (node.closest(`[${ATTR.ACCENT_SAFE}]`)) continue;
       const rect = node.getBoundingClientRect?.();
       if (!rect || rect.width < 24 || rect.height < 18) continue;
       if ((rect.width * rect.height) < 6000) continue;
@@ -460,6 +540,7 @@
       if (forcedText >= maxNodes) break;
       if (!(block instanceof Element)) continue;
       if (block.closest(`[${ATTR.MEDIA_SAFE}]`)) continue;
+      if (block.closest(`[${ATTR.ACCENT_SAFE}]`)) continue;
       const bgLum = resolveEffectiveBackgroundLuminance(block, root);
       const preferred = preferredContrastByBackground(bgLum);
       if (!preferred) continue;
@@ -473,6 +554,7 @@
       if (forcedText >= maxNodes) break;
       if (!(node instanceof Element)) continue;
       if (node.closest(`[${ATTR.MEDIA_SAFE}]`)) continue;
+      if (node.closest(`[${ATTR.ACCENT_SAFE}]`)) continue;
       const nodeStyle = getComputedStyle(node);
       const textLum = node.tagName.toLowerCase() === "svg"
         ? (parseColorLuminance(nodeStyle, "fill") ?? parseColorLuminance(nodeStyle, "color"))
@@ -539,13 +621,14 @@
     mediaGuard?.clearMarks?.(root);
     if (!(root instanceof Element)) return;
     const extra = root.querySelectorAll(
-      `[${ATTR.FORCE_TEXT}], [${ATTR.LOGO_WORDMARK}], [${ATTR.LOGO_SAFE_BG}], [${ATTR.LOGO_SVG}]`
+      `[${ATTR.FORCE_TEXT}], [${ATTR.LOGO_WORDMARK}], [${ATTR.LOGO_SAFE_BG}], [${ATTR.LOGO_SVG}], [${ATTR.ACCENT_SAFE}]`
     );
     for (const node of extra) {
       node.removeAttribute(ATTR.FORCE_TEXT);
       node.removeAttribute(ATTR.LOGO_WORDMARK);
       node.removeAttribute(ATTR.LOGO_SAFE_BG);
       node.removeAttribute(ATTR.LOGO_SVG);
+      node.removeAttribute(ATTR.ACCENT_SAFE);
     }
   }
 

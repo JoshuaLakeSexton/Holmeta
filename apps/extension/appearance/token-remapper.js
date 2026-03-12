@@ -12,6 +12,7 @@
     COMPONENT: "data-holmeta-ui-component",
     INNER: "data-holmeta-ui-inner",
     MEDIA_SAFE: "data-holmeta-media-safe",
+    ACCENT_SAFE: "data-holmeta-accent-safe",
     FORCE_TEXT: "data-holmeta-force-text",
     LOGO_WORDMARK: "data-holmeta-logo-wordmark",
     LOGO_SAFE_BG: "data-holmeta-logo-safe-bg",
@@ -97,7 +98,7 @@ html[${ATTR.ACTIVE}='1'][${ATTR.MODE}='dark'] :is(
   border-color: var(--holmeta-appearance-line-subtle) !important;
 }
 
-html[${ATTR.ACTIVE}='1'] [${ATTR.SURFACE}='1'] {
+html[${ATTR.ACTIVE}='1'] [${ATTR.SURFACE}='1']:not([${ATTR.ACCENT_SAFE}='1']) {
   background-color: var(--holmeta-appearance-panel-background) !important;
   color: var(--holmeta-appearance-text-primary) !important;
   border-color: var(--holmeta-appearance-border-subtle) !important;
@@ -218,7 +219,7 @@ html[${ATTR.ACTIVE}='1'] :where(
   [${ATTR.COMPONENT}='button'],
   [${ATTR.COMPONENT}='input'],
   [role='tab']
-) {
+):not([${ATTR.ACCENT_SAFE}='1']) {
   background-color: var(--holmeta-appearance-control-background) !important;
   color: var(--holmeta-appearance-text-primary) !important;
   border-color: var(--holmeta-appearance-button-border) !important;
@@ -263,45 +264,28 @@ html[${ATTR.ACTIVE}='1'] :where(
   [type='reset'],
   [${ATTR.COMPONENT}='button'],
   [role='tab']
-).active {
+).active:not([${ATTR.ACCENT_SAFE}='1']) {
   background-color: var(--holmeta-appearance-selected-background) !important;
   color: var(--holmeta-appearance-selected-text) !important;
   border-color: var(--holmeta-appearance-accent-strong) !important;
 }
 
 /* Keep generic role=button elements readable without forcing boxed patches. */
-html[${ATTR.ACTIVE}='1'] :where([role='button']) {
+html[${ATTR.ACTIVE}='1'] :where([role='button']):not([${ATTR.ACCENT_SAFE}='1']) {
   background-color: transparent !important;
   border-color: transparent !important;
   color: var(--holmeta-appearance-text-primary) !important;
 }
 
-html[${ATTR.ACTIVE}='1'] :where([role='button'][aria-selected='true'], [role='button'][aria-current='page'], [role='button'][aria-pressed='true']) {
+html[${ATTR.ACTIVE}='1'] :where([role='button'][aria-selected='true'], [role='button'][aria-current='page'], [role='button'][aria-pressed='true']):not([${ATTR.ACCENT_SAFE}='1']) {
   background-color: color-mix(in srgb, var(--holmeta-appearance-selected-background) 72%, transparent) !important;
   border-color: var(--holmeta-appearance-border-subtle) !important;
-}
-
-html[${ATTR.ACTIVE}='1'] :where(p, li, dt, dd, label, td, figcaption, blockquote) {
-  color: var(--holmeta-appearance-text-primary) !important;
 }
 
 html[${ATTR.ACTIVE}='1'] :where([role='tab'][aria-selected='true'], [aria-current='page']) {
   background-color: var(--holmeta-appearance-selected-background) !important;
   color: var(--holmeta-appearance-selected-text) !important;
   border-color: var(--holmeta-appearance-accent-strong) !important;
-}
-
-html[${ATTR.ACTIVE}='1'] :where(a, a:visited) {
-  color: var(--holmeta-appearance-text-primary) !important;
-  text-decoration-color: var(--holmeta-appearance-line-subtle) !important;
-}
-
-html[${ATTR.ACTIVE}='1'] :where(h1, h2, h3, h4, h5, h6, strong) {
-  color: var(--holmeta-appearance-text-primary) !important;
-}
-
-html[${ATTR.ACTIVE}='1'] :where(small, time, figcaption, [data-testid*='subtext']) {
-  color: var(--holmeta-appearance-text-muted) !important;
 }
 
 html[${ATTR.ACTIVE}='1'] :where(hr, [role='separator']) {
@@ -417,14 +401,14 @@ html[${ATTR.ACTIVE}='1'][${ATTR.MODE}='dark'] :where(body, main, [role='main'], 
   border-color: var(--holmeta-appearance-border-subtle) !important;
 }
 
-html[${ATTR.ACTIVE}='1'][${ATTR.MODE}='dark'] :where(h1, h2, h3, h4, h5, h6, p, span, label, a, button, li, td, th, strong, em, b, i)[style*='color: rgb(0' i],
-html[${ATTR.ACTIVE}='1'][${ATTR.MODE}='dark'] :where(h1, h2, h3, h4, h5, h6, p, span, label, a, button, li, td, th, strong, em, b, i)[style*='color: rgb(1' i],
-html[${ATTR.ACTIVE}='1'][${ATTR.MODE}='dark'] :where(h1, h2, h3, h4, h5, h6, p, span, label, a, button, li, td, th, strong, em, b, i)[style*='color: rgb(2' i],
-html[${ATTR.ACTIVE}='1'][${ATTR.MODE}='dark'] :where(h1, h2, h3, h4, h5, h6, p, span, label, a, button, li, td, th, strong, em, b, i)[style*='color: rgb(3' i],
-html[${ATTR.ACTIVE}='1'][${ATTR.MODE}='dark'] :where(h1, h2, h3, h4, h5, h6, p, span, label, a, button, li, td, th, strong, em, b, i)[style*='color:#000' i],
-html[${ATTR.ACTIVE}='1'][${ATTR.MODE}='dark'] :where(h1, h2, h3, h4, h5, h6, p, span, label, a, button, li, td, th, strong, em, b, i)[style*='color:#111' i],
-html[${ATTR.ACTIVE}='1'][${ATTR.MODE}='dark'] :where(h1, h2, h3, h4, h5, h6, p, span, label, a, button, li, td, th, strong, em, b, i)[style*='color:#222' i],
-html[${ATTR.ACTIVE}='1'][${ATTR.MODE}='dark'] :where(h1, h2, h3, h4, h5, h6, p, span, label, a, button, li, td, th, strong, em, b, i)[style*='color:#333' i] {
+html[${ATTR.ACTIVE}='1'][${ATTR.MODE}='dark'] :where(h1, h2, h3, h4, h5, h6, p, span, label, a, button, li, td, th, strong, em, b, i):not([${ATTR.ACCENT_SAFE}='1'])[style*='color: rgb(0' i],
+html[${ATTR.ACTIVE}='1'][${ATTR.MODE}='dark'] :where(h1, h2, h3, h4, h5, h6, p, span, label, a, button, li, td, th, strong, em, b, i):not([${ATTR.ACCENT_SAFE}='1'])[style*='color: rgb(1' i],
+html[${ATTR.ACTIVE}='1'][${ATTR.MODE}='dark'] :where(h1, h2, h3, h4, h5, h6, p, span, label, a, button, li, td, th, strong, em, b, i):not([${ATTR.ACCENT_SAFE}='1'])[style*='color: rgb(2' i],
+html[${ATTR.ACTIVE}='1'][${ATTR.MODE}='dark'] :where(h1, h2, h3, h4, h5, h6, p, span, label, a, button, li, td, th, strong, em, b, i):not([${ATTR.ACCENT_SAFE}='1'])[style*='color: rgb(3' i],
+html[${ATTR.ACTIVE}='1'][${ATTR.MODE}='dark'] :where(h1, h2, h3, h4, h5, h6, p, span, label, a, button, li, td, th, strong, em, b, i):not([${ATTR.ACCENT_SAFE}='1'])[style*='color:#000' i],
+html[${ATTR.ACTIVE}='1'][${ATTR.MODE}='dark'] :where(h1, h2, h3, h4, h5, h6, p, span, label, a, button, li, td, th, strong, em, b, i):not([${ATTR.ACCENT_SAFE}='1'])[style*='color:#111' i],
+html[${ATTR.ACTIVE}='1'][${ATTR.MODE}='dark'] :where(h1, h2, h3, h4, h5, h6, p, span, label, a, button, li, td, th, strong, em, b, i):not([${ATTR.ACCENT_SAFE}='1'])[style*='color:#222' i],
+html[${ATTR.ACTIVE}='1'][${ATTR.MODE}='dark'] :where(h1, h2, h3, h4, h5, h6, p, span, label, a, button, li, td, th, strong, em, b, i):not([${ATTR.ACCENT_SAFE}='1'])[style*='color:#333' i] {
   color: var(--holmeta-appearance-contrast-on-dark) !important;
 }
 
@@ -435,8 +419,8 @@ html[${ATTR.ACTIVE}='1'][${ATTR.MODE}='dark'] :where(main, section, article, asi
   border-color: var(--holmeta-appearance-row-separator) !important;
 }
 
-html[${ATTR.ACTIVE}='1'][${ATTR.MODE}='light'] :where(h1, h2, h3, h4, h5, h6, p, span, label, a, button, li, td, th, strong, em, b, i)[style*='color: rgb(255' i],
-html[${ATTR.ACTIVE}='1'][${ATTR.MODE}='light'] :where(h1, h2, h3, h4, h5, h6, p, span, label, a, button, li, td, th, strong, em, b, i)[style*='color:#fff' i] {
+html[${ATTR.ACTIVE}='1'][${ATTR.MODE}='light'] :where(h1, h2, h3, h4, h5, h6, p, span, label, a, button, li, td, th, strong, em, b, i):not([${ATTR.ACCENT_SAFE}='1'])[style*='color: rgb(255' i],
+html[${ATTR.ACTIVE}='1'][${ATTR.MODE}='light'] :where(h1, h2, h3, h4, h5, h6, p, span, label, a, button, li, td, th, strong, em, b, i):not([${ATTR.ACCENT_SAFE}='1'])[style*='color:#fff' i] {
   color: var(--holmeta-appearance-contrast-on-light) !important;
 }
 
@@ -525,19 +509,6 @@ html[${ATTR.ACTIVE}='1'] [${ATTR.LOGO_SAFE_BG}='1'] {
   border: 1px solid var(--holmeta-appearance-line-subtle) !important;
   border-radius: 6px !important;
   padding: 2px 6px !important;
-}
-
-html[${ATTR.ACTIVE}='1'] svg:not([${ATTR.MEDIA_SAFE}]) {
-  color: var(--holmeta-appearance-icon-primary) !important;
-  opacity: 0.92 !important;
-}
-
-html[${ATTR.ACTIVE}='1'] :where(svg [fill]:not([fill='none'])):not([${ATTR.MEDIA_SAFE}] *) {
-  fill: currentColor !important;
-}
-
-html[${ATTR.ACTIVE}='1'] :where(svg [stroke]:not([stroke='none'])):not([${ATTR.MEDIA_SAFE}] *) {
-  stroke: currentColor !important;
 }
 
 /* Keep explicit contrast markers stronger than generic icon recoloring. */
