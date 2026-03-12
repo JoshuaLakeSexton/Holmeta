@@ -456,6 +456,19 @@ function normalizeTime(value, fallback) {
   return /^([01]\d|2[0-3]):([0-5]\d)$/.test(v) ? v : fallback;
 }
 
+function normalizeReadingFontSize(value, fallback = 13) {
+  const n = Math.round(clamp(value, 10, 24));
+  return Number.isFinite(n) ? n : fallback;
+}
+
+function normalizeReadingFontFamily(value, fallback) {
+  const raw = String(value ?? "").trim();
+  if (!raw) return fallback;
+  // Keep font stacks safe and compact for storage.
+  const safe = raw.replace(/[<>`]/g, "").slice(0, 220);
+  return safe || fallback;
+}
+
 function normalizeHexColor(value, fallback = "") {
   const raw = String(value || "").trim().toUpperCase();
   const short = raw.match(/^#([0-9A-F]{3})$/);
@@ -680,6 +693,12 @@ function createDefaultReadingThemeSettings() {
     mode: "dark",
     preset: "coal",
     intensity: 44,
+    opaqueBackground: false,
+    pointerCursors: false,
+    sansFontSize: 13,
+    sansFontFamily: "-apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+    codeFontSize: 12,
+    codeFontFamily: "ui-monospace, \"SFMono-Regular\", Menlo, Consolas, monospace",
     perSiteOverrides: {},
     excludedSites: {}
   };
@@ -870,6 +889,18 @@ function normalizeReadingThemeSettings(rawSettings, fallback, legacyLight = {}) 
     : readingPresetFromLegacy(mode, darkVariant, lightVariant);
   const enabled = Boolean(raw.enabled ?? legacyLight.readingModeEnabled ?? base.enabled);
   const intensity = Math.round(clamp(raw.intensity ?? legacyLight.intensity ?? base.intensity, 0, 100));
+  const opaqueBackground = Boolean(raw.opaqueBackground ?? base.opaqueBackground);
+  const pointerCursors = Boolean(raw.pointerCursors ?? base.pointerCursors);
+  const sansFontSize = normalizeReadingFontSize(raw.sansFontSize ?? base.sansFontSize, base.sansFontSize || 13);
+  const sansFontFamily = normalizeReadingFontFamily(
+    raw.sansFontFamily,
+    String(base.sansFontFamily || "-apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif")
+  );
+  const codeFontSize = normalizeReadingFontSize(raw.codeFontSize ?? base.codeFontSize, base.codeFontSize || 12);
+  const codeFontFamily = normalizeReadingFontFamily(
+    raw.codeFontFamily,
+    String(base.codeFontFamily || "ui-monospace, \"SFMono-Regular\", Menlo, Consolas, monospace")
+  );
   const siteOverridesRaw = raw.perSiteOverrides || raw.siteProfiles || {};
   const excludeRaw = raw.excludedSites || raw.excludedHosts || legacyLight.excludedHosts || {};
   const siteOverrides = normalizeSiteOverrideMap(siteOverridesRaw);
@@ -918,7 +949,13 @@ function normalizeReadingThemeSettings(rawSettings, fallback, legacyLight = {}) 
       preset: READING_THEME_PRESETS.includes(String(row.preset || ""))
         ? String(row.preset)
         : readingPresetFromLegacy(rowMode, rowDarkVariant, rowLightVariant),
-      intensity: Math.round(clamp(row.intensity ?? intensity, 0, 100))
+      intensity: Math.round(clamp(row.intensity ?? intensity, 0, 100)),
+      opaqueBackground: Boolean(row.opaqueBackground ?? opaqueBackground),
+      pointerCursors: Boolean(row.pointerCursors ?? pointerCursors),
+      sansFontSize: normalizeReadingFontSize(row.sansFontSize ?? sansFontSize, sansFontSize),
+      sansFontFamily: normalizeReadingFontFamily(row.sansFontFamily, sansFontFamily),
+      codeFontSize: normalizeReadingFontSize(row.codeFontSize ?? codeFontSize, codeFontSize),
+      codeFontFamily: normalizeReadingFontFamily(row.codeFontFamily, codeFontFamily)
     };
   }
 
@@ -936,6 +973,12 @@ function normalizeReadingThemeSettings(rawSettings, fallback, legacyLight = {}) 
     mode,
     preset,
     intensity,
+    opaqueBackground,
+    pointerCursors,
+    sansFontSize,
+    sansFontFamily,
+    codeFontSize,
+    codeFontFamily,
     perSiteOverrides: normalizedOverrides,
     excludedSites
   };
@@ -5509,7 +5552,13 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         },
         mode: state.settings.readingTheme.mode,
         preset: state.settings.readingTheme.preset,
-        intensity: state.settings.readingTheme.intensity
+        intensity: state.settings.readingTheme.intensity,
+        opaqueBackground: Boolean(state.settings.readingTheme.opaqueBackground),
+        pointerCursors: Boolean(state.settings.readingTheme.pointerCursors),
+        sansFontSize: state.settings.readingTheme.sansFontSize,
+        sansFontFamily: state.settings.readingTheme.sansFontFamily,
+        codeFontSize: state.settings.readingTheme.codeFontSize,
+        codeFontFamily: state.settings.readingTheme.codeFontFamily
       };
       state.settings.adaptiveSiteTheme.perSiteOverrides[host] = {
         enabled: true,

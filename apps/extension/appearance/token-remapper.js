@@ -28,6 +28,57 @@ html[${ATTR.ACTIVE}='1'] {
 html[${ATTR.ACTIVE}='1'] body {
   background-color: var(--holmeta-appearance-page-background) !important;
   color: var(--holmeta-appearance-text-primary) !important;
+  font-family: var(--holmeta-appearance-sans-family, inherit) !important;
+  font-size: calc(var(--holmeta-appearance-sans-size, 13) * 1px) !important;
+}
+
+html[${ATTR.ACTIVE}='1'] :where(code, pre, kbd, samp, [class*='code' i], [data-testid*='code']) {
+  font-family: var(--holmeta-appearance-code-family, ui-monospace) !important;
+  font-size: calc(var(--holmeta-appearance-code-size, 12) * 1px) !important;
+}
+
+html[${ATTR.ACTIVE}='1'][data-holmeta-pointer-cursors='1'] :where(
+  button,
+  [role='button'],
+  [role='tab'],
+  [role='menuitem'],
+  a[href],
+  summary,
+  [aria-expanded],
+  [aria-controls]
+) {
+  cursor: pointer !important;
+}
+
+html[${ATTR.ACTIVE}='1'][data-holmeta-opaque-window='1'] {
+  backdrop-filter: none !important;
+}
+
+html[${ATTR.ACTIVE}='1'][data-holmeta-opaque-window='1'] :where(
+  body,
+  header,
+  nav,
+  aside,
+  main,
+  footer,
+  section,
+  article,
+  [${ATTR.SURFACE}='1'],
+  [class*='glass' i],
+  [class*='frost' i],
+  [class*='blur' i],
+  [style*='backdrop-filter' i],
+  [style*='background: transparent' i],
+  [style*='background-color: transparent' i]
+) {
+  backdrop-filter: none !important;
+  background-image: none !important;
+  background-color: color-mix(
+    in srgb,
+    var(--holmeta-appearance-panel-background) 92%,
+    var(--holmeta-appearance-page-background) 8%
+  ) !important;
+  opacity: 1 !important;
 }
 
 html[${ATTR.ACTIVE}='1'][${ATTR.MODE}='dark'] :is(
@@ -643,8 +694,30 @@ html[${ATTR.ACTIVE}='1']::before {
 `;
   }
 
-  function applyRootTokens(root, tokens, compatibilityMode = "normal", siteKey = "", siteClass = "general") {
+  function applyRootTokens(root, tokens, compatibilityMode = "normal", siteKey = "", siteClass = "general", options = {}) {
     if (!root || !tokens) return;
+    const safeOptions = options && typeof options === "object" ? options : {};
+    const sanitizeSize = (value, fallback) => {
+      const n = Number(value);
+      if (!Number.isFinite(n)) return fallback;
+      return Math.max(10, Math.min(24, Math.round(n)));
+    };
+    const sanitizeFamily = (value, fallback) => {
+      const raw = String(value ?? "").trim();
+      if (!raw) return fallback;
+      const safe = raw.replace(/[<>`]/g, "").slice(0, 220);
+      return safe || fallback;
+    };
+    const sansFontSize = sanitizeSize(safeOptions.sansFontSize, 13);
+    const sansFontFamily = sanitizeFamily(
+      safeOptions.sansFontFamily,
+      "-apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif"
+    );
+    const codeFontSize = sanitizeSize(safeOptions.codeFontSize, 12);
+    const codeFontFamily = sanitizeFamily(
+      safeOptions.codeFontFamily,
+      "ui-monospace, \"SFMono-Regular\", Menlo, Consolas, monospace"
+    );
 
     root.style.setProperty("--holmeta-appearance-scheme", tokens.mode === "light" ? "light" : "dark");
     root.style.setProperty("--holmeta-appearance-page-background", tokens.pageBackground || tokens.pageBase);
@@ -703,11 +776,19 @@ html[${ATTR.ACTIVE}='1']::before {
     root.style.setProperty("--holmeta-appearance-logo-safe-background-dark", tokens.logoSafeBackgroundDark || "#11151B");
     root.style.setProperty("--holmeta-appearance-logo-on-dark-text", tokens.logoOnDarkText || tokens.textPrimary);
     root.style.setProperty("--holmeta-appearance-logo-on-light-text", tokens.logoOnLightText || "#15181C");
+    root.style.setProperty("--holmeta-appearance-sans-size", String(sansFontSize));
+    root.style.setProperty("--holmeta-appearance-sans-family", sansFontFamily);
+    root.style.setProperty("--holmeta-appearance-code-size", String(codeFontSize));
+    root.style.setProperty("--holmeta-appearance-code-family", codeFontFamily);
 
     root.setAttribute(ATTR.ACTIVE, "1");
     root.setAttribute(ATTR.MODE, tokens.mode === "light" ? "light" : "dark");
     root.setAttribute(ATTR.COMPAT, compatibilityMode || "normal");
     root.setAttribute(ATTR.SITE_CLASS, siteClass || "general");
+    if (safeOptions.opaqueBackground) root.setAttribute("data-holmeta-opaque-window", "1");
+    else root.removeAttribute("data-holmeta-opaque-window");
+    if (safeOptions.pointerCursors) root.setAttribute("data-holmeta-pointer-cursors", "1");
+    else root.removeAttribute("data-holmeta-pointer-cursors");
     if (siteKey) root.setAttribute(ATTR.SITE, siteKey);
     else root.removeAttribute(ATTR.SITE);
   }
@@ -719,6 +800,8 @@ html[${ATTR.ACTIVE}='1']::before {
     root.removeAttribute(ATTR.COMPAT);
     root.removeAttribute(ATTR.SITE);
     root.removeAttribute(ATTR.SITE_CLASS);
+    root.removeAttribute("data-holmeta-opaque-window");
+    root.removeAttribute("data-holmeta-pointer-cursors");
 
     const keys = [
       "--holmeta-appearance-scheme",
@@ -777,7 +860,11 @@ html[${ATTR.ACTIVE}='1']::before {
       "--holmeta-appearance-logo-safe-background-light",
       "--holmeta-appearance-logo-safe-background-dark",
       "--holmeta-appearance-logo-on-dark-text",
-      "--holmeta-appearance-logo-on-light-text"
+      "--holmeta-appearance-logo-on-light-text",
+      "--holmeta-appearance-sans-size",
+      "--holmeta-appearance-sans-family",
+      "--holmeta-appearance-code-size",
+      "--holmeta-appearance-code-family"
     ];
     for (const key of keys) {
       root.style.removeProperty(key);

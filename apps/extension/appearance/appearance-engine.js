@@ -220,7 +220,14 @@
     });
 
     const siteKey = siteKeyFromHost(host);
-    remapper.applyRootTokens(root, tokens, compatibility.mode, siteKey, siteClass);
+    remapper.applyRootTokens(root, tokens, compatibility.mode, siteKey, siteClass, {
+      opaqueBackground: Boolean(effectiveProfile.opaqueBackground),
+      pointerCursors: Boolean(effectiveProfile.pointerCursors),
+      sansFontSize: Number(effectiveProfile.sansFontSize),
+      sansFontFamily: String(effectiveProfile.sansFontFamily || ""),
+      codeFontSize: Number(effectiveProfile.codeFontSize),
+      codeFontFamily: String(effectiveProfile.codeFontFamily || "")
+    });
 
     state.mode = mode;
     state.enabled = true;

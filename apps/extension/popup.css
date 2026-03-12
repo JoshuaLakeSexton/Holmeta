@@ -211,6 +211,26 @@ input[type="checkbox"] {
   min-width: 0;
 }
 
+.reading-theme-font-row {
+  align-items: start;
+}
+
+.reading-theme-font-controls {
+  display: grid;
+  grid-template-columns: 72px 22px 1fr;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+}
+
+.reading-theme-font-controls input[type="number"] {
+  width: 100%;
+}
+
+.reading-theme-font-controls input[type="text"] {
+  width: 100%;
+}
+
 .favorites-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));

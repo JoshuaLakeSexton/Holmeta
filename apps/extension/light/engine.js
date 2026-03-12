@@ -173,6 +173,18 @@
     return Math.min(max, Math.max(min, n));
   }
 
+  function normalizeReadingFontSize(value, fallback = 13) {
+    const n = Math.round(clamp(value, 10, 24));
+    return Number.isFinite(n) ? n : fallback;
+  }
+
+  function normalizeReadingFontFamily(value, fallback) {
+    const raw = String(value ?? "").trim();
+    if (!raw) return fallback;
+    const safe = raw.replace(/[<>`]/g, "").slice(0, 220);
+    return safe || fallback;
+  }
+
   function normalizeHost(input) {
     return String(input || "")
       .toLowerCase()
@@ -853,7 +865,13 @@
       },
       mode: "dark", // legacy compatibility
       preset: "coal", // legacy compatibility
-      intensity: 44
+      intensity: 44,
+      opaqueBackground: false,
+      pointerCursors: false,
+      sansFontSize: 13,
+      sansFontFamily: "-apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+      codeFontSize: 12,
+      codeFontFamily: "ui-monospace, \"SFMono-Regular\", Menlo, Consolas, monospace"
     };
   }
 
@@ -900,6 +918,18 @@
     const preset = READING_PRESETS.has(rawPreset)
       ? rawPreset
       : presetFromVariants(mode, darkVariant, lightVariant);
+    const opaqueBackground = Boolean(raw.opaqueBackground ?? base.opaqueBackground);
+    const pointerCursors = Boolean(raw.pointerCursors ?? base.pointerCursors);
+    const sansFontSize = normalizeReadingFontSize(raw.sansFontSize ?? base.sansFontSize, base.sansFontSize || 13);
+    const sansFontFamily = normalizeReadingFontFamily(
+      raw.sansFontFamily,
+      String(base.sansFontFamily || "-apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif")
+    );
+    const codeFontSize = normalizeReadingFontSize(raw.codeFontSize ?? base.codeFontSize, base.codeFontSize || 12);
+    const codeFontFamily = normalizeReadingFontFamily(
+      raw.codeFontFamily,
+      String(base.codeFontFamily || "ui-monospace, \"SFMono-Regular\", Menlo, Consolas, monospace")
+    );
     return {
       ...base,
       ...raw,
@@ -913,7 +943,13 @@
       schedule,
       mode,
       preset,
-      intensity: Math.round(clamp(raw.intensity ?? base.intensity, 0, 100))
+      intensity: Math.round(clamp(raw.intensity ?? base.intensity, 0, 100)),
+      opaqueBackground,
+      pointerCursors,
+      sansFontSize,
+      sansFontFamily,
+      codeFontSize,
+      codeFontFamily
     };
   }
 
@@ -2000,7 +2036,13 @@
           lightVariant: readingProfile.lightVariant,
           intensity: readingProfile.intensity,
           scheduleMode: readingProfile.scheduleMode,
-          schedule: readingProfile.schedule
+          schedule: readingProfile.schedule,
+          opaqueBackground: readingProfile.opaqueBackground,
+          pointerCursors: readingProfile.pointerCursors,
+          sansFontSize: readingProfile.sansFontSize,
+          sansFontFamily: readingProfile.sansFontFamily,
+          codeFontSize: readingProfile.codeFontSize,
+          codeFontFamily: readingProfile.codeFontFamily
         }, { debug: debugEnabled });
       } catch {
         safeFallback = true;

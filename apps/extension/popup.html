@@ -84,10 +84,42 @@
               <button id="readingThemeDark" class="secondary" type="button" aria-label="Appearance Dark mode">
                 <span class="mode-icon" aria-hidden="true">D</span><span>Dark</span>
               </button>
-              <button id="readingThemeAuto" class="ghost" type="button" aria-label="Appearance Auto mode">
-                <span class="mode-icon" aria-hidden="true">A</span><span>Auto</span>
+              <button id="readingThemeAuto" class="ghost" type="button" aria-label="Appearance System mode">
+                <span class="mode-icon" aria-hidden="true">S</span><span>System</span>
               </button>
             </div>
+          </div>
+        </div>
+
+        <div class="field-row">
+          <label class="switch" title="Use opaque page surfaces instead of translucent/glass backgrounds.">
+            <input id="readingThemeOpaqueBackground" type="checkbox" />
+            <span>Use opaque window background</span>
+          </label>
+        </div>
+
+        <div class="field-row">
+          <label class="switch" title="Use pointer cursor on interactive elements for clearer affordance.">
+            <input id="readingThemePointerCursors" type="checkbox" />
+            <span>Use pointer cursors</span>
+          </label>
+        </div>
+
+        <div class="field-row reading-theme-font-row">
+          <label for="readingThemeSansSize">Sans font family</label>
+          <div class="row reading-theme-font-controls">
+            <input id="readingThemeSansSize" type="number" min="10" max="24" step="1" aria-label="Appearance sans font size" />
+            <span class="micro">px</span>
+            <input id="readingThemeSansFamily" type="text" aria-label="Appearance sans font stack" />
+          </div>
+        </div>
+
+        <div class="field-row reading-theme-font-row">
+          <label for="readingThemeCodeSize">Code font</label>
+          <div class="row reading-theme-font-controls">
+            <input id="readingThemeCodeSize" type="number" min="10" max="24" step="1" aria-label="Appearance code font size" />
+            <span class="micro">px</span>
+            <input id="readingThemeCodeFamily" type="text" aria-label="Appearance code font stack" />
           </div>
         </div>
 

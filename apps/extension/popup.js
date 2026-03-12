@@ -83,6 +83,12 @@
     readingThemeAuto: document.getElementById("readingThemeAuto"),
     readingThemeDarkVariant: document.getElementById("readingThemeDarkVariant"),
     readingThemeLightVariant: document.getElementById("readingThemeLightVariant"),
+    readingThemeOpaqueBackground: document.getElementById("readingThemeOpaqueBackground"),
+    readingThemePointerCursors: document.getElementById("readingThemePointerCursors"),
+    readingThemeSansSize: document.getElementById("readingThemeSansSize"),
+    readingThemeSansFamily: document.getElementById("readingThemeSansFamily"),
+    readingThemeCodeSize: document.getElementById("readingThemeCodeSize"),
+    readingThemeCodeFamily: document.getElementById("readingThemeCodeFamily"),
     readingThemeScheduleMode: document.getElementById("readingThemeScheduleMode"),
     readingThemeScheduleStart: document.getElementById("readingThemeScheduleStart"),
     readingThemeScheduleEnd: document.getElementById("readingThemeScheduleEnd"),
@@ -546,6 +552,19 @@
     return fallback;
   }
 
+  function normalizeReadingFontSize(value, fallback = 13) {
+    const n = Math.round(Number(value));
+    if (!Number.isFinite(n)) return fallback;
+    return Math.max(10, Math.min(24, n));
+  }
+
+  function normalizeReadingFontFamily(value, fallback) {
+    const raw = String(value ?? "").trim();
+    if (!raw) return fallback;
+    const safe = raw.replace(/[<>`]/g, "").slice(0, 220);
+    return safe || fallback;
+  }
+
   function darkVariantFromPreset(preset, fallback = "coal") {
     const key = String(preset || "").trim().toLowerCase();
     if (key === "iron ore") return "iron_ore";
@@ -792,7 +811,19 @@
       lightVariant,
       scheduleMode,
       scheduleStart,
-      scheduleEnd
+      scheduleEnd,
+      opaqueBackground: Boolean(siteProfile?.opaqueBackground ?? reading.opaqueBackground),
+      pointerCursors: Boolean(siteProfile?.pointerCursors ?? reading.pointerCursors),
+      sansFontSize: normalizeReadingFontSize(siteProfile?.sansFontSize ?? reading.sansFontSize, 13),
+      sansFontFamily: normalizeReadingFontFamily(
+        siteProfile?.sansFontFamily ?? reading.sansFontFamily,
+        "-apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif"
+      ),
+      codeFontSize: normalizeReadingFontSize(siteProfile?.codeFontSize ?? reading.codeFontSize, 12),
+      codeFontFamily: normalizeReadingFontFamily(
+        siteProfile?.codeFontFamily ?? reading.codeFontFamily,
+        "ui-monospace, \"SFMono-Regular\", Menlo, Consolas, monospace"
+      )
     };
 
     setChecked(refs.readingThemeEnabled, effective.enabled);
@@ -804,6 +835,12 @@
     setInputValue(refs.readingThemeScheduleMode, effective.scheduleMode);
     setInputValue(refs.readingThemeScheduleStart, effective.scheduleStart);
     setInputValue(refs.readingThemeScheduleEnd, effective.scheduleEnd);
+    setChecked(refs.readingThemeOpaqueBackground, effective.opaqueBackground);
+    setChecked(refs.readingThemePointerCursors, effective.pointerCursors);
+    setInputValue(refs.readingThemeSansSize, effective.sansFontSize);
+    setInputValue(refs.readingThemeSansFamily, effective.sansFontFamily);
+    setInputValue(refs.readingThemeCodeSize, effective.codeFontSize);
+    setInputValue(refs.readingThemeCodeFamily, effective.codeFontFamily);
     refs.readingThemeAutoRow.hidden = effective.appearance !== "auto";
     refs.readingThemeCustomScheduleRow.hidden = effective.appearance !== "auto" || effective.scheduleMode !== "custom";
     refs.readingThemeScheduleStart.disabled = effective.appearance !== "auto" || effective.scheduleMode !== "custom";
@@ -1863,6 +1900,18 @@
       start: String(refs.readingThemeScheduleStart.value || "20:00"),
       end: String(refs.readingThemeScheduleEnd.value || "06:00")
     };
+    const opaqueBackground = Boolean(refs.readingThemeOpaqueBackground?.checked);
+    const pointerCursors = Boolean(refs.readingThemePointerCursors?.checked);
+    const sansFontSize = normalizeReadingFontSize(refs.readingThemeSansSize?.value, 13);
+    const sansFontFamily = normalizeReadingFontFamily(
+      refs.readingThemeSansFamily?.value,
+      "-apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif"
+    );
+    const codeFontSize = normalizeReadingFontSize(refs.readingThemeCodeSize?.value, 12);
+    const codeFontFamily = normalizeReadingFontFamily(
+      refs.readingThemeCodeFamily?.value,
+      "ui-monospace, \"SFMono-Regular\", Menlo, Consolas, monospace"
+    );
     const isNowInRange = (start, end) => {
       const [startH, startM] = String(start || "20:00").split(":").map((v) => Number(v || 0));
       const [endH, endM] = String(end || "06:00").split(":").map((v) => Number(v || 0));
@@ -1899,7 +1948,13 @@
       schedule,
       mode,
       preset,
-      intensity
+      intensity,
+      opaqueBackground,
+      pointerCursors,
+      sansFontSize,
+      sansFontFamily,
+      codeFontSize,
+      codeFontFamily
     };
   }
 
@@ -2321,6 +2376,36 @@
         scheduleMode: patch.scheduleMode,
         schedule: patch.schedule
       });
+    });
+
+    refs.readingThemeOpaqueBackground?.addEventListener("change", () => {
+      const patch = currentReadingPatchFromUI();
+      queueReadingPatch({ opaqueBackground: patch.opaqueBackground });
+    });
+
+    refs.readingThemePointerCursors?.addEventListener("change", () => {
+      const patch = currentReadingPatchFromUI();
+      queueReadingPatch({ pointerCursors: patch.pointerCursors });
+    });
+
+    refs.readingThemeSansSize?.addEventListener("input", () => {
+      const patch = currentReadingPatchFromUI();
+      queueReadingPatch({ sansFontSize: patch.sansFontSize });
+    });
+
+    refs.readingThemeSansFamily?.addEventListener("input", () => {
+      const patch = currentReadingPatchFromUI();
+      queueReadingPatch({ sansFontFamily: patch.sansFontFamily });
+    });
+
+    refs.readingThemeCodeSize?.addEventListener("input", () => {
+      const patch = currentReadingPatchFromUI();
+      queueReadingPatch({ codeFontSize: patch.codeFontSize });
+    });
+
+    refs.readingThemeCodeFamily?.addEventListener("input", () => {
+      const patch = currentReadingPatchFromUI();
+      queueReadingPatch({ codeFontFamily: patch.codeFontFamily });
     });
 
     refs.readingThemeThisSiteEnabled.addEventListener("change", (e) => setReadingSiteOverride(e.target.checked));

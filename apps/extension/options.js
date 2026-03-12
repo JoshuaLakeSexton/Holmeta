@@ -69,6 +69,12 @@
     optReadingScheduleMode: $("optReadingScheduleMode"),
     optReadingStart: $("optReadingStart"),
     optReadingEnd: $("optReadingEnd"),
+    optReadingOpaqueBackground: $("optReadingOpaqueBackground"),
+    optReadingPointerCursors: $("optReadingPointerCursors"),
+    optReadingSansFontSize: $("optReadingSansFontSize"),
+    optReadingSansFontFamily: $("optReadingSansFontFamily"),
+    optReadingCodeFontSize: $("optReadingCodeFontSize"),
+    optReadingCodeFontFamily: $("optReadingCodeFontFamily"),
     optReadingThisSiteEnabled: $("optReadingThisSiteEnabled"),
     optReadingExcludeSite: $("optReadingExcludeSite"),
     optReadingHostStatus: $("optReadingHostStatus"),
@@ -457,6 +463,19 @@
     return mode === "light" ? lightVariant : darkVariant;
   }
 
+  function normalizeReadingFontSize(value, fallback = 13) {
+    const n = Math.round(Number(value));
+    if (!Number.isFinite(n)) return fallback;
+    return Math.max(10, Math.min(24, n));
+  }
+
+  function normalizeReadingFontFamily(value, fallback) {
+    const raw = String(value ?? "").trim();
+    if (!raw) return fallback;
+    const safe = raw.replace(/[<>`]/g, "").slice(0, 220);
+    return safe || fallback;
+  }
+
   function getAdaptiveSettings() {
     const settings = state.app?.settings || {};
     return settings.adaptiveSiteTheme || {};
@@ -528,7 +547,19 @@
       // Backward compatibility for older renderers still reading legacy keys.
       mode,
       preset: String(settings.preset || readingPresetFor(mode, darkVariant, lightVariant)),
-      intensity: Number(settings.intensity ?? 44)
+      intensity: Number(settings.intensity ?? 44),
+      opaqueBackground: Boolean(settings.opaqueBackground),
+      pointerCursors: Boolean(settings.pointerCursors),
+      sansFontSize: normalizeReadingFontSize(settings.sansFontSize, 13),
+      sansFontFamily: normalizeReadingFontFamily(
+        settings.sansFontFamily,
+        "-apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif"
+      ),
+      codeFontSize: normalizeReadingFontSize(settings.codeFontSize, 12),
+      codeFontFamily: normalizeReadingFontFamily(
+        settings.codeFontFamily,
+        "ui-monospace, \"SFMono-Regular\", Menlo, Consolas, monospace"
+      )
     };
   }
 
@@ -826,6 +857,24 @@
     setValue("optReadingScheduleMode", readingScheduleMode);
     setValue("optReadingStart", reading.schedule?.start || "20:00");
     setValue("optReadingEnd", reading.schedule?.end || "06:00");
+    setChecked("optReadingOpaqueBackground", Boolean(reading.opaqueBackground));
+    setChecked("optReadingPointerCursors", Boolean(reading.pointerCursors));
+    setValue("optReadingSansFontSize", normalizeReadingFontSize(reading.sansFontSize, 13));
+    setValue(
+      "optReadingSansFontFamily",
+      normalizeReadingFontFamily(
+        reading.sansFontFamily,
+        "-apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif"
+      )
+    );
+    setValue("optReadingCodeFontSize", normalizeReadingFontSize(reading.codeFontSize, 12));
+    setValue(
+      "optReadingCodeFontFamily",
+      normalizeReadingFontFamily(
+        reading.codeFontFamily,
+        "ui-monospace, \"SFMono-Regular\", Menlo, Consolas, monospace"
+      )
+    );
     if (refs.optReadingScheduleMode) refs.optReadingScheduleMode.disabled = !readingIsAuto;
     const readingCustomEnabled = readingIsAuto && readingScheduleMode === "custom";
     if (refs.optReadingStart) refs.optReadingStart.disabled = !readingCustomEnabled;
@@ -1097,6 +1146,38 @@
             useSunset: false,
             end: String(el.value || "06:00")
           }
+        }
+      })
+    );
+    bindCheck("optReadingOpaqueBackground", (el) =>
+      queuePatch({ readingTheme: { opaqueBackground: Boolean(el.checked) } })
+    );
+    bindCheck("optReadingPointerCursors", (el) =>
+      queuePatch({ readingTheme: { pointerCursors: Boolean(el.checked) } })
+    );
+    bindInput("optReadingSansFontSize", (el) =>
+      queuePatch({ readingTheme: { sansFontSize: normalizeReadingFontSize(el.value, 13) } })
+    );
+    bindInput("optReadingSansFontFamily", (el) =>
+      queuePatch({
+        readingTheme: {
+          sansFontFamily: normalizeReadingFontFamily(
+            el.value,
+            "-apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif"
+          )
+        }
+      })
+    );
+    bindInput("optReadingCodeFontSize", (el) =>
+      queuePatch({ readingTheme: { codeFontSize: normalizeReadingFontSize(el.value, 12) } })
+    );
+    bindInput("optReadingCodeFontFamily", (el) =>
+      queuePatch({
+        readingTheme: {
+          codeFontFamily: normalizeReadingFontFamily(
+            el.value,
+            "ui-monospace, \"SFMono-Regular\", Menlo, Consolas, monospace"
+          )
         }
       })
     );

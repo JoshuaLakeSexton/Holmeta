@@ -209,6 +209,20 @@
           </label>
           <label>Start <input id="optReadingStart" type="time" /></label>
           <label>End <input id="optReadingEnd" type="time" /></label>
+          <label class="switch-row"><input id="optReadingOpaqueBackground" type="checkbox" />Use opaque window background</label>
+          <label class="switch-row"><input id="optReadingPointerCursors" type="checkbox" />Use pointer cursors</label>
+          <label>Sans font size
+            <input id="optReadingSansFontSize" type="number" min="10" max="24" step="1" />
+          </label>
+          <label>Sans font family
+            <input id="optReadingSansFontFamily" type="text" placeholder='-apple-system, "Segoe UI", sans-serif' />
+          </label>
+          <label>Code font size
+            <input id="optReadingCodeFontSize" type="number" min="10" max="24" step="1" />
+          </label>
+          <label>Code font family
+            <input id="optReadingCodeFontFamily" type="text" placeholder='ui-monospace, Menlo, Consolas, monospace' />
+          </label>
           <label class="switch-row"><input id="optReadingThisSiteEnabled" type="checkbox" />This site override</label>
           <label class="switch-row"><input id="optReadingExcludeSite" type="checkbox" />Exclude this site</label>
           <p id="optReadingHostStatus" class="muted">Active host: unavailable</p>
