@@ -625,7 +625,13 @@ html[${ATTR.ACTIVE}='1'][${ATTR.SITE}='x'] :is(
   [data-testid='primaryColumn'] article,
   [data-testid='cellInnerDiv'],
   [data-testid='tweet'],
-  [data-testid='placementTracking'],
+  [data-testid='placementTracking']
+) {
+  background-color: transparent !important;
+  border-color: var(--holmeta-appearance-line-subtle) !important;
+}
+
+html[${ATTR.ACTIVE}='1'][${ATTR.SITE}='x'] :is(
   [data-testid='sidebarColumn'] section,
   [data-testid='sidebarColumn'] [role='region'],
   [data-testid='sidebarColumn'] [data-testid='trend'],
@@ -642,8 +648,17 @@ html[${ATTR.ACTIVE}='1'][${ATTR.SITE}='x'] :is(
 
 html[${ATTR.ACTIVE}='1'][${ATTR.SITE}='x'] :is(
   [data-testid='primaryColumn'] article:hover,
-  [data-testid='sidebarColumn'] section:hover,
   [data-testid='placementTracking']:hover
+) {
+  background-color: color-mix(
+    in srgb,
+    var(--holmeta-appearance-selected-background) 26%,
+    transparent
+  ) !important;
+}
+
+html[${ATTR.ACTIVE}='1'][${ATTR.SITE}='x'] :is(
+  [data-testid='sidebarColumn'] section:hover
 ) {
   background-color: var(--holmeta-appearance-card-background) !important;
 }
@@ -655,6 +670,16 @@ html[${ATTR.ACTIVE}='1'][${ATTR.SITE}='x'] :is(
   [data-testid='TopNavBar']
 ) [style*='background-color: rgb(0' i] {
   background-color: var(--holmeta-appearance-panel-background) !important;
+}
+
+html[${ATTR.ACTIVE}='1'][${ATTR.SITE}='x'][${ATTR.MODE}='dark'] :is(
+  [data-testid='primaryColumn'],
+  [data-testid='sidebarColumn'],
+  [data-testid='AppTabBar'],
+  [data-testid='TopNavBar']
+) :where(div, section, article, header, nav, aside, main)[style*='background-color: rgb(0' i]:not([${ATTR.MEDIA_SAFE}='1']):not([${ATTR.ACCENT_SAFE}='1']) {
+  background-color: var(--holmeta-appearance-section-background) !important;
+  border-color: var(--holmeta-appearance-line-subtle) !important;
 }
 
 html[${ATTR.ACTIVE}='1'][${ATTR.SITE}='x'] :is(
@@ -771,6 +796,7 @@ html[${ATTR.ACTIVE}='1'][${ATTR.SITE}='amazon'] :is(
   html,
   body,
   #a-page,
+  .a-page,
   #pageContent,
   #gw-layout,
   #gw-card-layout,
@@ -797,43 +823,20 @@ html[${ATTR.ACTIVE}='1'][${ATTR.SITE}='amazon'] :is(
   color: var(--holmeta-appearance-text-primary) !important;
 }
 
-html[${ATTR.ACTIVE}='1'][${ATTR.SITE}='amazon'] :is(
-  .a-cardui:has(img),
-  .a-box:has(img),
-  .s-card-container:has(img),
-  .sg-col-inner:has(img),
-  [data-card-metrics-id]:has(img),
-  [data-cel-widget]:has(img),
-  [id^='CardInstance']:has(img),
-  [id^='anonCarousel']:has(img)
-) {
-  background-color: revert !important;
-  border-color: revert !important;
-  color: revert !important;
-}
-
-html[${ATTR.ACTIVE}='1'][${ATTR.SITE}='amazon'] :is(
-  .a-cardui:has(img),
-  .a-box:has(img),
-  .s-card-container:has(img),
-  [data-card-metrics-id]:has(img),
-  [data-cel-widget]:has(img),
-  [id^='CardInstance']:has(img)
-) :is(
-  [class*='header' i],
-  [class*='title' i],
-  h1,
-  h2,
-  h3,
-  h4,
-  .a-color-base,
-  .a-link-normal,
-  .a-size-base,
-  .a-size-large
-) {
-  background-color: transparent !important;
-  color: revert !important;
-  text-shadow: none !important;
+html[${ATTR.ACTIVE}='1'][${ATTR.SITE}='amazon'][${ATTR.MODE}='dark'] :is(
+  #a-page,
+  .a-page,
+  #pageContent,
+  #gw-layout,
+  #gw-card-layout,
+  #gw-content,
+  #gw-main-container,
+  #gw-main,
+  .a-section,
+  .a-container
+):not([${ATTR.MEDIA_SAFE}='1']) {
+  background-color: var(--holmeta-appearance-page-background) !important;
+  border-color: var(--holmeta-appearance-line-subtle) !important;
 }
 
 html[${ATTR.ACTIVE}='1'][${ATTR.SITE}='amazon'] :is(

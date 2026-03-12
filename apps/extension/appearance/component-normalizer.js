@@ -232,14 +232,6 @@
       }
 
       const componentType = classifier.classifyComponent(componentRoot);
-      if (
-        (componentType === "card" || componentType === "panel" || componentType === "surface")
-        && isImageHeavySurface(componentRoot)
-      ) {
-        componentRoot.setAttribute(ATTR.MEDIA_SAFE, "1");
-        classifier.markOwned(componentRoot);
-        continue;
-      }
       componentRoot.setAttribute(ATTR.SURFACE, "1");
       componentRoot.setAttribute(ATTR.COMPONENT, componentType);
       classifier.markOwned(componentRoot);
