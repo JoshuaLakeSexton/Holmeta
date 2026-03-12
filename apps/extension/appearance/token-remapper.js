@@ -26,9 +26,13 @@ html[${ATTR.ACTIVE}='1'] {
   background-color: var(--holmeta-appearance-page-background) !important;
 }
 
-html[${ATTR.ACTIVE}='1'] body {
+html[${ATTR.ACTIVE}='1'] :where(html, body) {
   background-color: var(--holmeta-appearance-page-background) !important;
   color: var(--holmeta-appearance-text-primary) !important;
+  border-color: var(--holmeta-appearance-line-subtle) !important;
+}
+
+html[${ATTR.ACTIVE}='1'] body {
   font-family: var(--holmeta-appearance-sans-family, inherit) !important;
   font-size: calc(var(--holmeta-appearance-sans-size, 13) * 1px) !important;
 }
@@ -51,50 +55,16 @@ html[${ATTR.ACTIVE}='1'][data-holmeta-pointer-cursors='1'] :where(
   cursor: pointer !important;
 }
 
-html[${ATTR.ACTIVE}='1'][data-holmeta-opaque-window='1'] {
-  backdrop-filter: none !important;
-}
-
 html[${ATTR.ACTIVE}='1'][data-holmeta-opaque-window='1'] :where(
-  body,
-  header,
-  nav,
-  aside,
-  main,
-  footer,
-  section,
-  article,
-  [${ATTR.SURFACE}='1'],
-  [class*='glass' i],
-  [class*='frost' i],
-  [class*='blur' i],
-  [style*='backdrop-filter' i],
-  [style*='background: transparent' i],
-  [style*='background-color: transparent' i]
+  body, header, nav, aside, main, footer, section, article, [${ATTR.SURFACE}='1']
 ) {
   backdrop-filter: none !important;
-  background-image: none !important;
-  background-color: color-mix(
-    in srgb,
-    var(--holmeta-appearance-panel-background) 92%,
-    var(--holmeta-appearance-page-background) 8%
-  ) !important;
-  opacity: 1 !important;
 }
 
-html[${ATTR.ACTIVE}='1'][${ATTR.MODE}='dark'] :is(
-  body > div,
-  body > main,
-  body > section,
-  body > article,
-  body > [role='main'],
-  body > [id='root'],
-  body > [id='app'],
-  body > [class*='layout' i],
-  body > [class*='page' i],
-  body > [class*='shell' i]
-) {
-  background-color: var(--holmeta-appearance-page-background-alt) !important;
+/* Structural defaults */
+html[${ATTR.ACTIVE}='1'] :where(
+  main, [role='main'], section, article, aside, header, nav, footer, dialog, [role='region']
+):not([${ATTR.MEDIA_SAFE}='1']):not([${ATTR.ACCENT_SAFE}='1']) {
   border-color: var(--holmeta-appearance-line-subtle) !important;
 }
 
@@ -105,40 +75,21 @@ html[${ATTR.ACTIVE}='1'] [${ATTR.SURFACE}='1']:not([${ATTR.ACCENT_SAFE}='1']) {
   box-shadow: none !important;
 }
 
-html[${ATTR.ACTIVE}='1'] [${ATTR.SURFACE}='1'][${ATTR.COMPONENT}='card'],
 html[${ATTR.ACTIVE}='1'] [${ATTR.SURFACE}='1'][${ATTR.COMPONENT}='surface'],
 html[${ATTR.ACTIVE}='1'] [${ATTR.SURFACE}='1'][${ATTR.COMPONENT}='panel'],
+html[${ATTR.ACTIVE}='1'] [${ATTR.SURFACE}='1'][${ATTR.COMPONENT}='card'],
 html[${ATTR.ACTIVE}='1'] [${ATTR.SURFACE}='1'][${ATTR.COMPONENT}='buy_panel'] {
   background-color: var(--holmeta-appearance-card-background) !important;
 }
 
+html[${ATTR.ACTIVE}='1'] [${ATTR.SURFACE}='1'][${ATTR.COMPONENT}='header'],
 html[${ATTR.ACTIVE}='1'] [${ATTR.SURFACE}='1'][${ATTR.COMPONENT}='nav'] {
-  background-color: var(--holmeta-appearance-sidebar-background) !important;
-}
-
-html[${ATTR.ACTIVE}='1'] [${ATTR.SURFACE}='1'][${ATTR.COMPONENT}='header'] {
-  background-color: var(--holmeta-appearance-header-background) !important;
+  background-color: var(--holmeta-appearance-nav-harmonized-background) !important;
   color: var(--holmeta-appearance-nav-harmonized-text) !important;
-  border-color: var(--holmeta-appearance-line-subtle) !important;
 }
 
 html[${ATTR.ACTIVE}='1'] [${ATTR.SURFACE}='1'][${ATTR.COMPONENT}='footer'] {
   background-color: var(--holmeta-appearance-section-background) !important;
-  border-color: var(--holmeta-appearance-line-subtle) !important;
-}
-
-html[${ATTR.ACTIVE}='1'] [${ATTR.SURFACE}='1'][${ATTR.COMPONENT}='accordion'] {
-  background-color: var(--holmeta-appearance-panel-background) !important;
-  border-color: var(--holmeta-appearance-row-separator) !important;
-}
-
-html[${ATTR.ACTIVE}='1'] [${ATTR.SURFACE}='1'][${ATTR.COMPONENT}='toolbar'] {
-  background-color: var(--holmeta-appearance-section-background) !important;
-  border-color: var(--holmeta-appearance-line-subtle) !important;
-}
-
-html[${ATTR.ACTIVE}='1'] [${ATTR.SURFACE}='1'][${ATTR.COMPONENT}='listitem'] {
-  background-color: color-mix(in srgb, var(--holmeta-appearance-table-row-background) 20%, transparent) !important;
 }
 
 html[${ATTR.ACTIVE}='1'] [${ATTR.SURFACE}='1'][${ATTR.COMPONENT}='table'] {
@@ -157,52 +108,33 @@ html[${ATTR.ACTIVE}='1'] [${ATTR.SURFACE}='1'][${ATTR.COMPONENT}='dropdown'] {
   border-color: var(--holmeta-appearance-dropdown-border) !important;
 }
 
-html[${ATTR.ACTIVE}='1'] [${ATTR.SURFACE}='1'][${ATTR.COMPONENT}='separator'] {
-  background-color: transparent !important;
-  border-color: var(--holmeta-appearance-line-subtle) !important;
-}
-
 html[${ATTR.ACTIVE}='1'] [${ATTR.SURFACE}='1'][${ATTR.COMPONENT}='input'] {
   background-color: var(--holmeta-appearance-input-background) !important;
   color: var(--holmeta-appearance-text-primary) !important;
-  border-color: var(--holmeta-appearance-border-strong) !important;
+  border-color: var(--holmeta-appearance-input-border) !important;
 }
 
 html[${ATTR.ACTIVE}='1'] [${ATTR.SURFACE}='1'][${ATTR.COMPONENT}='button'] {
-  background-color: var(--holmeta-appearance-control-background) !important;
-  color: var(--holmeta-appearance-control-text) !important;
+  background-color: var(--holmeta-appearance-button-background, var(--holmeta-appearance-control-background)) !important;
+  color: var(--holmeta-appearance-button-text, var(--holmeta-appearance-control-text)) !important;
   border-color: var(--holmeta-appearance-button-border) !important;
-  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--holmeta-appearance-line-subtle) 40%, transparent) !important;
 }
 
 html[${ATTR.ACTIVE}='1'] [${ATTR.SURFACE}='1'][${ATTR.COMPONENT}='button']:hover,
 html[${ATTR.ACTIVE}='1'] [${ATTR.SURFACE}='1'][${ATTR.COMPONENT}='button']:focus-visible,
 html[${ATTR.ACTIVE}='1'] [${ATTR.SURFACE}='1'][${ATTR.COMPONENT}='button'][aria-current='page'],
 html[${ATTR.ACTIVE}='1'] [${ATTR.SURFACE}='1'][${ATTR.COMPONENT}='button'][aria-selected='true'],
-html[${ATTR.ACTIVE}='1'] [${ATTR.SURFACE}='1'][${ATTR.COMPONENT}='button'][data-state='active'],
-html[${ATTR.ACTIVE}='1'] [${ATTR.SURFACE}='1'][${ATTR.COMPONENT}='button'].active {
+html[${ATTR.ACTIVE}='1'] [${ATTR.SURFACE}='1'][${ATTR.COMPONENT}='button'][aria-pressed='true'] {
   background-color: var(--holmeta-appearance-selected-background) !important;
   color: var(--holmeta-appearance-selected-text) !important;
   border-color: var(--holmeta-appearance-accent-strong) !important;
 }
 
-html[${ATTR.ACTIVE}='1'] [${ATTR.SURFACE}='1'][${ATTR.COMPONENT}='input']:focus-within,
-html[${ATTR.ACTIVE}='1'] :where(input, textarea, select):focus-visible {
-  outline: 2px solid var(--holmeta-appearance-focus-ring) !important;
-  outline-offset: 1px !important;
-}
-
 html[${ATTR.ACTIVE}='1'] [${ATTR.SURFACE}='1'] [${ATTR.INNER}='1'] {
   background-color: transparent !important;
-  color: inherit !important;
   border-color: transparent !important;
   box-shadow: none !important;
-}
-
-html[${ATTR.ACTIVE}='1'] [${ATTR.SURFACE}='1'] [${ATTR.INNER}='1']::before,
-html[${ATTR.ACTIVE}='1'] [${ATTR.SURFACE}='1'] [${ATTR.INNER}='1']::after {
-  background-color: transparent !important;
-  border-color: transparent !important;
+  color: inherit !important;
 }
 
 html[${ATTR.ACTIVE}='1'] :where(input, textarea, select, [role='textbox'], [type='search']) {
@@ -212,74 +144,23 @@ html[${ATTR.ACTIVE}='1'] :where(input, textarea, select, [role='textbox'], [type
 }
 
 html[${ATTR.ACTIVE}='1'] :where(
-  button,
-  [type='button'],
-  [type='submit'],
-  [type='reset'],
-  [${ATTR.COMPONENT}='button'],
-  [${ATTR.COMPONENT}='input'],
-  [role='tab']
+  button, [type='button'], [type='submit'], [type='reset'], [role='tab']
 ):not([${ATTR.ACCENT_SAFE}='1']) {
   background-color: var(--holmeta-appearance-control-background) !important;
-  color: var(--holmeta-appearance-text-primary) !important;
+  color: var(--holmeta-appearance-control-text) !important;
   border-color: var(--holmeta-appearance-button-border) !important;
 }
 
-html[${ATTR.ACTIVE}='1'] :where(
-  button,
-  [type='button'],
-  [type='submit'],
-  [type='reset'],
-  [${ATTR.COMPONENT}='button'],
-  [role='tab']
-):hover,
-html[${ATTR.ACTIVE}='1'] :where(
-  button,
-  [type='button'],
-  [type='submit'],
-  [type='reset'],
-  [${ATTR.COMPONENT}='button'],
-  [role='tab']
-):focus-visible,
-html[${ATTR.ACTIVE}='1'] :where(
-  button,
-  [type='button'],
-  [type='submit'],
-  [type='reset'],
-  [${ATTR.COMPONENT}='button'],
-  [role='tab']
-)[aria-current='page'],
-html[${ATTR.ACTIVE}='1'] :where(
-  button,
-  [type='button'],
-  [type='submit'],
-  [type='reset'],
-  [${ATTR.COMPONENT}='button'],
-  [role='tab']
-)[aria-selected='true'],
-html[${ATTR.ACTIVE}='1'] :where(
-  button,
-  [type='button'],
-  [type='submit'],
-  [type='reset'],
-  [${ATTR.COMPONENT}='button'],
-  [role='tab']
-).active:not([${ATTR.ACCENT_SAFE}='1']) {
-  background-color: var(--holmeta-appearance-selected-background) !important;
-  color: var(--holmeta-appearance-selected-text) !important;
-  border-color: var(--holmeta-appearance-accent-strong) !important;
-}
-
-/* Keep generic role=button elements readable without forcing boxed patches. */
 html[${ATTR.ACTIVE}='1'] :where([role='button']):not([${ATTR.ACCENT_SAFE}='1']) {
   background-color: transparent !important;
   border-color: transparent !important;
   color: var(--holmeta-appearance-text-primary) !important;
+  box-shadow: none !important;
 }
 
 html[${ATTR.ACTIVE}='1'] :where([role='button'][aria-selected='true'], [role='button'][aria-current='page'], [role='button'][aria-pressed='true']):not([${ATTR.ACCENT_SAFE}='1']) {
-  background-color: color-mix(in srgb, var(--holmeta-appearance-selected-background) 72%, transparent) !important;
-  border-color: var(--holmeta-appearance-border-subtle) !important;
+  background-color: color-mix(in srgb, var(--holmeta-appearance-selected-background) 40%, transparent) !important;
+  border-color: transparent !important;
 }
 
 html[${ATTR.ACTIVE}='1'] :where([role='tab'][aria-selected='true'], [aria-current='page']) {
@@ -288,7 +169,7 @@ html[${ATTR.ACTIVE}='1'] :where([role='tab'][aria-selected='true'], [aria-curren
   border-color: var(--holmeta-appearance-accent-strong) !important;
 }
 
-html[${ATTR.ACTIVE}='1'] :where(hr, [role='separator']) {
+html[${ATTR.ACTIVE}='1'] :where([class*='divider' i], [class*='separator' i], hr, [role='separator']) {
   border-color: var(--holmeta-appearance-line-subtle) !important;
   background-color: transparent !important;
 }
@@ -302,214 +183,27 @@ html[${ATTR.ACTIVE}='1'] :where(thead, th) {
   color: var(--holmeta-appearance-text-primary) !important;
 }
 
-html[${ATTR.ACTIVE}='1'] :where(table tr:nth-child(odd), [role='row']:nth-child(odd), [${ATTR.COMPONENT}='listitem']:nth-child(odd)) {
-  background-color: color-mix(in srgb, var(--holmeta-appearance-table-row-background) 22%, transparent) !important;
+html[${ATTR.ACTIVE}='1'] :where(table tr:nth-child(odd), [role='row']:nth-child(odd)) {
+  background-color: color-mix(in srgb, var(--holmeta-appearance-table-row-background) 24%, transparent) !important;
 }
 
-html[${ATTR.ACTIVE}='1'] :where(table tr:nth-child(even), [role='row']:nth-child(even), [${ATTR.COMPONENT}='listitem']:nth-child(even)) {
-  background-color: color-mix(in srgb, var(--holmeta-appearance-table-row-alt) 14%, transparent) !important;
+html[${ATTR.ACTIVE}='1'] :where(table tr:nth-child(even), [role='row']:nth-child(even)) {
+  background-color: color-mix(in srgb, var(--holmeta-appearance-table-row-alt) 18%, transparent) !important;
 }
 
-html[${ATTR.ACTIVE}='1'] :where([class*='divider'], [class*='separator'], [data-testid*='divider']) {
-  border-color: var(--holmeta-appearance-line-subtle) !important;
-  background-color: transparent !important;
+html[${ATTR.ACTIVE}='1'] :where(a, p, span, li, td, th, h1, h2, h3, h4, h5, h6, label, small, strong, em, i, b) {
+  color: inherit;
 }
 
-html[${ATTR.ACTIVE}='1'] :where([class*='footer'], footer, [role='contentinfo']) {
-  background-color: var(--holmeta-appearance-section-background) !important;
-  border-color: var(--holmeta-appearance-line-subtle) !important;
-}
-
-html[${ATTR.ACTIVE}='1'] :where([class*='accordion'], [data-testid*='accordion'], details, summary, [aria-expanded]) {
-  border-color: var(--holmeta-appearance-row-separator) !important;
-}
-
-html[${ATTR.ACTIVE}='1'] :where([class*='accordion'], details, summary, [aria-expanded='true']) {
-  background-color: color-mix(in srgb, var(--holmeta-appearance-card-background) 88%, transparent) !important;
-}
-
-html[${ATTR.ACTIVE}='1'] :where([class*='search'], [role='search'], [class*='filter'], [class*='toolbar']) {
-  border-color: var(--holmeta-appearance-line-subtle) !important;
-}
-
-html[${ATTR.ACTIVE}='1'][${ATTR.MODE}='dark'] :where(
-  header,
-  [role='banner'],
-  nav,
-  [class*='navbar'],
-  [class*='menu-bar'],
-  [class*='topbar'],
-  [class*='appbar'],
-  [class*='masthead']
-) {
-  background-color: var(--holmeta-appearance-nav-harmonized-background) !important;
-  color: var(--holmeta-appearance-nav-harmonized-text) !important;
-  border-color: var(--holmeta-appearance-line-subtle) !important;
-}
-
-html[${ATTR.ACTIVE}='1'][${ATTR.MODE}='dark'] :where(
-  header,
-  [role='banner'],
-  nav,
-  [class*='navbar'],
-  [class*='menu-bar'],
-  [class*='topbar'],
-  [class*='appbar'],
-  [class*='masthead']
-) :where(a, p, span, strong, em, i, b, label, button) {
-  color: var(--holmeta-appearance-nav-harmonized-text) !important;
-}
-
-html[${ATTR.ACTIVE}='1'][${ATTR.MODE}='light'] :where(
-  header,
-  [role='banner'],
-  nav,
-  [class*='navbar'],
-  [class*='menu-bar'],
-  [class*='topbar'],
-  [class*='appbar'],
-  [class*='masthead']
-) {
-  background-color: var(--holmeta-appearance-nav-harmonized-background) !important;
-  color: var(--holmeta-appearance-nav-harmonized-text) !important;
-  border-color: var(--holmeta-appearance-line-subtle) !important;
-}
-
-html[${ATTR.ACTIVE}='1'][${ATTR.MODE}='light'] :where(
-  header,
-  [role='banner'],
-  nav,
-  [class*='navbar'],
-  [class*='menu-bar'],
-  [class*='topbar'],
-  [class*='appbar'],
-  [class*='masthead']
-) :where(a, p, span, strong, em, i, b, label, button) {
-  color: var(--holmeta-appearance-nav-harmonized-text) !important;
-}
-
-/* Conservative fallback: only correct large structural shells with explicit inline light backgrounds. */
-html[${ATTR.ACTIVE}='1'][${ATTR.MODE}='dark'] :where(body, main, [role='main'], header, nav, footer, section, article, aside)[style*='background-color: rgb(255' i],
-html[${ATTR.ACTIVE}='1'][${ATTR.MODE}='dark'] :where(body, main, [role='main'], header, nav, footer, section, article, aside)[style*='background-color: rgba(255' i],
-html[${ATTR.ACTIVE}='1'][${ATTR.MODE}='dark'] :where(body, main, [role='main'], header, nav, footer, section, article, aside)[style*='background-color:#fff' i],
-html[${ATTR.ACTIVE}='1'][${ATTR.MODE}='dark'] :where(body, main, [role='main'], header, nav, footer, section, article, aside)[style*='background:#fff' i] {
-  background-color: var(--holmeta-appearance-card-background) !important;
-  border-color: var(--holmeta-appearance-border-subtle) !important;
-}
-
-html[${ATTR.ACTIVE}='1'][${ATTR.MODE}='dark'] :where(h1, h2, h3, h4, h5, h6, p, span, label, a, button, li, td, th, strong, em, b, i):not([${ATTR.ACCENT_SAFE}='1'])[style*='color: rgb(0' i],
-html[${ATTR.ACTIVE}='1'][${ATTR.MODE}='dark'] :where(h1, h2, h3, h4, h5, h6, p, span, label, a, button, li, td, th, strong, em, b, i):not([${ATTR.ACCENT_SAFE}='1'])[style*='color: rgb(1' i],
-html[${ATTR.ACTIVE}='1'][${ATTR.MODE}='dark'] :where(h1, h2, h3, h4, h5, h6, p, span, label, a, button, li, td, th, strong, em, b, i):not([${ATTR.ACCENT_SAFE}='1'])[style*='color: rgb(2' i],
-html[${ATTR.ACTIVE}='1'][${ATTR.MODE}='dark'] :where(h1, h2, h3, h4, h5, h6, p, span, label, a, button, li, td, th, strong, em, b, i):not([${ATTR.ACCENT_SAFE}='1'])[style*='color: rgb(3' i],
-html[${ATTR.ACTIVE}='1'][${ATTR.MODE}='dark'] :where(h1, h2, h3, h4, h5, h6, p, span, label, a, button, li, td, th, strong, em, b, i):not([${ATTR.ACCENT_SAFE}='1'])[style*='color:#000' i],
-html[${ATTR.ACTIVE}='1'][${ATTR.MODE}='dark'] :where(h1, h2, h3, h4, h5, h6, p, span, label, a, button, li, td, th, strong, em, b, i):not([${ATTR.ACCENT_SAFE}='1'])[style*='color:#111' i],
-html[${ATTR.ACTIVE}='1'][${ATTR.MODE}='dark'] :where(h1, h2, h3, h4, h5, h6, p, span, label, a, button, li, td, th, strong, em, b, i):not([${ATTR.ACCENT_SAFE}='1'])[style*='color:#222' i],
-html[${ATTR.ACTIVE}='1'][${ATTR.MODE}='dark'] :where(h1, h2, h3, h4, h5, h6, p, span, label, a, button, li, td, th, strong, em, b, i):not([${ATTR.ACCENT_SAFE}='1'])[style*='color:#333' i] {
-  color: var(--holmeta-appearance-contrast-on-dark) !important;
-}
-
-html[${ATTR.ACTIVE}='1'][${ATTR.MODE}='dark'] :where(main, section, article, aside, div, li, td, th, header, nav, footer, button, input, textarea, select)[style*='border-color: rgb(255' i],
-html[${ATTR.ACTIVE}='1'][${ATTR.MODE}='dark'] :where(main, section, article, aside, div, li, td, th, header, nav, footer, button, input, textarea, select)[style*='border-color:#fff' i],
-html[${ATTR.ACTIVE}='1'][${ATTR.MODE}='dark'] :where(main, section, article, aside, div, li, td, th, header, nav, footer, button, input, textarea, select)[style*='border-top-color: rgb(255' i],
-html[${ATTR.ACTIVE}='1'][${ATTR.MODE}='dark'] :where(main, section, article, aside, div, li, td, th, header, nav, footer, button, input, textarea, select)[style*='border-bottom-color: rgb(255' i] {
-  border-color: var(--holmeta-appearance-row-separator) !important;
-}
-
-html[${ATTR.ACTIVE}='1'][${ATTR.MODE}='light'] :where(h1, h2, h3, h4, h5, h6, p, span, label, a, button, li, td, th, strong, em, b, i):not([${ATTR.ACCENT_SAFE}='1'])[style*='color: rgb(255' i],
-html[${ATTR.ACTIVE}='1'][${ATTR.MODE}='light'] :where(h1, h2, h3, h4, h5, h6, p, span, label, a, button, li, td, th, strong, em, b, i):not([${ATTR.ACCENT_SAFE}='1'])[style*='color:#fff' i] {
-  color: var(--holmeta-appearance-contrast-on-light) !important;
-}
-
+/* Contrast enforcement markers */
 html[${ATTR.ACTIVE}='1'] [${ATTR.FORCE_TEXT}='light'],
-html[${ATTR.ACTIVE}='1'] [${ATTR.FORCE_TEXT}='light'] :where(a, p, span, strong, em, i, b, label, button, svg) {
+html[${ATTR.ACTIVE}='1'] [${ATTR.FORCE_TEXT}='light'] * {
   color: var(--holmeta-appearance-contrast-on-dark) !important;
-}
-
-html[${ATTR.ACTIVE}='1'] [${ATTR.FORCE_TEXT}='light'] :where(svg [fill]:not([fill='none'])) {
-  fill: var(--holmeta-appearance-contrast-on-dark) !important;
-}
-
-html[${ATTR.ACTIVE}='1'] [${ATTR.FORCE_TEXT}='light'] :where(svg [stroke]:not([stroke='none'])) {
-  stroke: var(--holmeta-appearance-contrast-on-dark) !important;
 }
 
 html[${ATTR.ACTIVE}='1'] [${ATTR.FORCE_TEXT}='dark'],
-html[${ATTR.ACTIVE}='1'] [${ATTR.FORCE_TEXT}='dark'] :where(a, p, span, strong, em, i, b, label, button, svg) {
+html[${ATTR.ACTIVE}='1'] [${ATTR.FORCE_TEXT}='dark'] * {
   color: var(--holmeta-appearance-contrast-on-light) !important;
-}
-
-html[${ATTR.ACTIVE}='1'] [${ATTR.FORCE_TEXT}='dark'] :where(svg [fill]:not([fill='none'])) {
-  fill: var(--holmeta-appearance-contrast-on-light) !important;
-}
-
-html[${ATTR.ACTIVE}='1'] [${ATTR.FORCE_TEXT}='dark'] :where(svg [stroke]:not([stroke='none'])) {
-  stroke: var(--holmeta-appearance-contrast-on-light) !important;
-}
-
-html[${ATTR.ACTIVE}='1'] [${ATTR.LOGO_WORDMARK}='light'] {
-  color: var(--holmeta-appearance-logo-on-dark-text) !important;
-  text-shadow: 0 0 0.5px color-mix(in srgb, var(--holmeta-appearance-logo-on-dark-text) 45%, transparent) !important;
-}
-
-html[${ATTR.ACTIVE}='1'] [${ATTR.LOGO_WORDMARK}='dark'] {
-  color: var(--holmeta-appearance-logo-on-light-text) !important;
-  text-shadow: none !important;
-}
-
-html[${ATTR.ACTIVE}='1'] [${ATTR.LOGO_SVG}='light'],
-html[${ATTR.ACTIVE}='1'] [${ATTR.LOGO_SVG}='light'] * {
-  fill: var(--holmeta-appearance-logo-on-dark-text) !important;
-  stroke: var(--holmeta-appearance-logo-on-dark-text) !important;
-  color: var(--holmeta-appearance-logo-on-dark-text) !important;
-}
-
-html[${ATTR.ACTIVE}='1'] [${ATTR.LOGO_SVG}='dark'],
-html[${ATTR.ACTIVE}='1'] [${ATTR.LOGO_SVG}='dark'] * {
-  fill: var(--holmeta-appearance-logo-on-light-text) !important;
-  stroke: var(--holmeta-appearance-logo-on-light-text) !important;
-  color: var(--holmeta-appearance-logo-on-light-text) !important;
-}
-
-html[${ATTR.ACTIVE}='1'] [${ATTR.LOGO_SAFE_BG}='light'] {
-  background-color: var(--holmeta-appearance-logo-safe-background-light) !important;
-  border: 1px solid var(--holmeta-appearance-line-subtle) !important;
-  border-radius: 6px !important;
-  padding: 2px 6px !important;
-}
-
-html[${ATTR.ACTIVE}='1'] [${ATTR.LOGO_SAFE_BG}='dark'] {
-  background-color: var(--holmeta-appearance-logo-safe-background-dark) !important;
-  border: 1px solid var(--holmeta-appearance-line-subtle) !important;
-  border-radius: 6px !important;
-  padding: 2px 6px !important;
-}
-
-/* Backward compatibility for older marker values from previous passes. */
-html[${ATTR.ACTIVE}='1'] [${ATTR.FORCE_TEXT}='1'] {
-  color: var(--holmeta-appearance-low-contrast-fix-text) !important;
-}
-
-html[${ATTR.ACTIVE}='1'] [${ATTR.LOGO_WORDMARK}='1'] {
-  color: var(--holmeta-appearance-logo-on-dark-text) !important;
-}
-
-html[${ATTR.ACTIVE}='1'] [${ATTR.LOGO_SVG}='1'],
-html[${ATTR.ACTIVE}='1'] [${ATTR.LOGO_SVG}='1'] * {
-  fill: var(--holmeta-appearance-logo-on-dark-text) !important;
-  stroke: var(--holmeta-appearance-logo-on-dark-text) !important;
-  color: var(--holmeta-appearance-logo-on-dark-text) !important;
-}
-
-html[${ATTR.ACTIVE}='1'] [${ATTR.LOGO_SAFE_BG}='1'] {
-  background-color: var(--holmeta-appearance-logo-safe-background-light) !important;
-  border: 1px solid var(--holmeta-appearance-line-subtle) !important;
-  border-radius: 6px !important;
-  padding: 2px 6px !important;
-}
-
-/* Keep explicit contrast markers stronger than generic icon recoloring. */
-html[${ATTR.ACTIVE}='1'] [${ATTR.FORCE_TEXT}='light'] :where(svg, svg *) {
-  color: var(--holmeta-appearance-contrast-on-dark) !important;
 }
 
 html[${ATTR.ACTIVE}='1'] [${ATTR.FORCE_TEXT}='light'] :where(svg [fill]:not([fill='none'])) {
@@ -520,16 +214,22 @@ html[${ATTR.ACTIVE}='1'] [${ATTR.FORCE_TEXT}='light'] :where(svg [stroke]:not([s
   stroke: var(--holmeta-appearance-contrast-on-dark) !important;
 }
 
-html[${ATTR.ACTIVE}='1'] [${ATTR.FORCE_TEXT}='dark'] :where(svg, svg *) {
-  color: var(--holmeta-appearance-contrast-on-light) !important;
-}
-
 html[${ATTR.ACTIVE}='1'] [${ATTR.FORCE_TEXT}='dark'] :where(svg [fill]:not([fill='none'])) {
   fill: var(--holmeta-appearance-contrast-on-light) !important;
 }
 
 html[${ATTR.ACTIVE}='1'] [${ATTR.FORCE_TEXT}='dark'] :where(svg [stroke]:not([stroke='none'])) {
   stroke: var(--holmeta-appearance-contrast-on-light) !important;
+}
+
+html[${ATTR.ACTIVE}='1'] [${ATTR.LOGO_WORDMARK}='light'],
+html[${ATTR.ACTIVE}='1'] [${ATTR.LOGO_WORDMARK}='light'] * {
+  color: var(--holmeta-appearance-logo-on-dark-text) !important;
+}
+
+html[${ATTR.ACTIVE}='1'] [${ATTR.LOGO_WORDMARK}='dark'],
+html[${ATTR.ACTIVE}='1'] [${ATTR.LOGO_WORDMARK}='dark'] * {
+  color: var(--holmeta-appearance-logo-on-light-text) !important;
 }
 
 html[${ATTR.ACTIVE}='1'] [${ATTR.LOGO_SVG}='light'],
@@ -558,69 +258,41 @@ html[${ATTR.ACTIVE}='1'] [${ATTR.LOGO_SVG}='dark'] :where([stroke]:not([stroke='
   stroke: var(--holmeta-appearance-logo-on-light-text) !important;
 }
 
+html[${ATTR.ACTIVE}='1'] [${ATTR.LOGO_SAFE_BG}='light'] {
+  background-color: var(--holmeta-appearance-logo-safe-background-light) !important;
+}
+
+html[${ATTR.ACTIVE}='1'] [${ATTR.LOGO_SAFE_BG}='dark'] {
+  background-color: var(--holmeta-appearance-logo-safe-background-dark) !important;
+}
+
+/* Media safety */
 html[${ATTR.ACTIVE}='1'] [${ATTR.MEDIA_SAFE}='1'],
 html[${ATTR.ACTIVE}='1'] [${ATTR.MEDIA_SAFE}='1'] * {
   filter: none !important;
   mix-blend-mode: normal !important;
-  color-scheme: normal !important;
 }
 
-html[${ATTR.ACTIVE}='1'] :where(video, img, picture, canvas, iframe, embed, object) {
+html[${ATTR.ACTIVE}='1'] :where(img, picture, video, canvas, iframe, embed, object) {
+  filter: none !important;
+  mix-blend-mode: normal !important;
   opacity: 1 !important;
 }
 
-html[${ATTR.ACTIVE}='1'][${ATTR.SITE_CLASS}='dashboard'] [${ATTR.SURFACE}='1'] {
-  border-color: var(--holmeta-appearance-row-separator) !important;
-}
-
-html[${ATTR.ACTIVE}='1'][${ATTR.SITE_CLASS}='dashboard'] :where(th, td, tr, [role='row']) {
-  border-color: var(--holmeta-appearance-row-separator) !important;
-}
-
-html[${ATTR.ACTIVE}='1'][${ATTR.SITE_CLASS}='social'] :where(article, [role='article'], [data-testid='cellInnerDiv']) {
-  background-color: var(--holmeta-appearance-card-background) !important;
-  border-color: var(--holmeta-appearance-border-subtle) !important;
-}
-
-html[${ATTR.ACTIVE}='1'][${ATTR.SITE_CLASS}='docs_editor'] :where(code, pre, kbd, samp) {
-  background-color: color-mix(in srgb, var(--holmeta-appearance-panel-background) 85%, #000 15%) !important;
-}
-
-html[${ATTR.ACTIVE}='1'][${ATTR.SITE_CLASS}='ecommerce'] :where([class*='price'], [data-testid*='price']) {
-  color: var(--holmeta-appearance-text-primary) !important;
-}
-
-html[${ATTR.ACTIVE}='1'][${ATTR.SITE_CLASS}='ecommerce'] :where([class*='cart'], [class*='checkout'], [class*='buy'], [data-testid*='buy'])[${ATTR.SURFACE}='1'] {
-  background-color: var(--holmeta-appearance-card-background) !important;
-  border-color: var(--holmeta-appearance-border-subtle) !important;
-}
-
+/* X/Twitter adapter */
 html[${ATTR.ACTIVE}='1'][${ATTR.SITE}='x'] :is(
-  html,
-  body,
-  #react-root,
-  main,
-  [role='main'],
-  [data-testid='AppTabBar_Home_Link'],
-  [aria-label='Home timeline'],
-  [aria-label='Timeline: Your Home Timeline'],
-  [aria-label='Search and explore'],
-  [data-testid='primaryColumn'] > div
+  html, body, #react-root, [role='main'], [data-testid='primaryColumn'], [data-testid='primaryColumn'] > div
 ) {
   background-color: var(--holmeta-appearance-page-background) !important;
-  border-color: var(--holmeta-appearance-line-subtle) !important;
 }
 
 html[${ATTR.ACTIVE}='1'][${ATTR.SITE}='x'] :is(
   [data-testid='sidebarColumn'],
   [data-testid='sidebarColumn'] > div,
-  [data-testid='primaryColumn'],
-  [data-testid='primaryColumn'] > div,
   [data-testid='AppTabBar'],
   [data-testid='TopNavBar']
 ) {
   background-color: var(--holmeta-appearance-page-background-alt) !important;
-  border-color: var(--holmeta-appearance-line-subtle) !important;
 }
 
 html[${ATTR.ACTIVE}='1'][${ATTR.SITE}='x'] :is(
@@ -638,8 +310,6 @@ html[${ATTR.ACTIVE}='1'][${ATTR.SITE}='x'] :is(
   [data-testid='sidebarColumn'] [role='region'],
   [data-testid='sidebarColumn'] [data-testid='trend'],
   [data-testid='tweetTextarea_0-label'],
-  [data-testid='tweetTextarea_0'],
-  [data-testid='ScrollSnap-List'],
   [aria-label='Who to follow'],
   [aria-label='Subscribe to Premium'],
   [aria-label='Timeline: Trending now']
@@ -649,125 +319,11 @@ html[${ATTR.ACTIVE}='1'][${ATTR.SITE}='x'] :is(
 }
 
 html[${ATTR.ACTIVE}='1'][${ATTR.SITE}='x'] :is(
-  [data-testid='primaryColumn'] article:hover,
-  [data-testid='placementTracking']:hover
-) {
-  background-color: color-mix(
-    in srgb,
-    var(--holmeta-appearance-selected-background) 26%,
-    transparent
-  ) !important;
-}
-
-html[${ATTR.ACTIVE}='1'][${ATTR.SITE}='x'] :is(
-  [data-testid='sidebarColumn'] section:hover
-) {
-  background-color: var(--holmeta-appearance-card-background) !important;
-}
-
-html[${ATTR.ACTIVE}='1'][${ATTR.SITE}='x'] :is(
-  [data-testid='sidebarColumn'],
-  [data-testid='primaryColumn'],
-  [data-testid='AppTabBar'],
-  [data-testid='TopNavBar']
-) [style*='background-color: rgb(0' i] {
-  background-color: transparent !important;
-}
-
-/* Ensure X menus/dialogs/dropdowns are opaque (not transparent overlays). */
-html[${ATTR.ACTIVE}='1'][${ATTR.SITE}='x'] :is(
-  [role='dialog'],
-  [aria-modal='true'],
-  [data-testid*='Sheet' i],
-  [data-testid*='sheet' i],
-  [data-testid*='Dropdown' i],
-  [data-testid*='dropdown' i],
-  [data-testid*='typeahead' i],
-  [data-testid*='popover' i],
-  [data-testid*='HoverCard' i],
-  [data-testid='ScrollSnap-List'],
-  [role='tablist']
-) {
-  background-color: var(--holmeta-appearance-page-background-alt) !important;
-  border-color: var(--holmeta-appearance-line-subtle) !important;
-  backdrop-filter: none !important;
-  opacity: 1 !important;
-}
-
-html[${ATTR.ACTIVE}='1'][${ATTR.SITE}='x'][${ATTR.MODE}='dark'] :is(
-  [role='dialog'],
-  [aria-modal='true'],
-  [data-testid*='Sheet' i],
-  [data-testid*='sheet' i],
-  [data-testid*='Dropdown' i],
-  [data-testid*='dropdown' i],
-  [data-testid*='typeahead' i],
-  [data-testid*='popover' i],
-  [data-testid*='HoverCard' i],
-  [data-testid='ScrollSnap-List'],
-  [role='tablist']
-) :where(div, section, article, header, nav, aside, main, ul, li)[style*='background-color: rgba(' i]:not([${ATTR.MEDIA_SAFE}='1']):not([${ATTR.ACCENT_SAFE}='1']) {
-  background-color: var(--holmeta-appearance-page-background-alt) !important;
-  border-color: var(--holmeta-appearance-line-subtle) !important;
-  opacity: 1 !important;
-}
-
-html[${ATTR.ACTIVE}='1'][${ATTR.SITE}='x'][${ATTR.MODE}='dark'] :is(
-  [role='dialog'],
-  [aria-modal='true'],
-  [data-testid*='Sheet' i],
-  [data-testid*='sheet' i],
-  [data-testid*='Dropdown' i],
-  [data-testid*='dropdown' i],
-  [data-testid*='typeahead' i],
-  [data-testid*='popover' i],
-  [data-testid*='HoverCard' i],
-  [data-testid='ScrollSnap-List'],
-  [role='tablist']
-) :where(div, section, article, header, nav, aside, main)[style*='background-color: rgb(0' i]:not([${ATTR.MEDIA_SAFE}='1']):not([${ATTR.ACCENT_SAFE}='1']) {
-  background-color: var(--holmeta-appearance-page-background-alt) !important;
-  border-color: var(--holmeta-appearance-line-subtle) !important;
-}
-
-html[${ATTR.ACTIVE}='1'][${ATTR.SITE}='x'] :is(
-  [data-testid='SearchBox_Search_Input'],
-  [data-testid='SearchBox_Search_Input'] *,
   [data-testid='tweetTextarea_0'],
-  [data-testid='tweetTextarea_0'] *,
-  [data-testid='tweetButtonInline'],
-  [data-testid='tweetButtonInline'] *,
-  [data-testid='tweetButton'],
-  [data-testid='tweetButton'] *,
-  [data-testid='SideNav_NewTweet_Button'],
-  [data-testid='SideNav_NewTweet_Button'] *,
-  [data-testid='reply'],
-  [data-testid='reply'] *,
-  [data-testid='retweet'],
-  [data-testid='retweet'] *,
-  [data-testid='unretweet'],
-  [data-testid='unretweet'] *,
-  [data-testid='like'],
-  [data-testid='like'] *,
-  [data-testid='unlike'],
-  [data-testid='unlike'] *,
-  [data-testid='bookmark'],
-  [data-testid='bookmark'] *,
-  [data-testid='removeBookmark'],
-  [data-testid='removeBookmark'] *,
-  [data-testid='share'],
-  [data-testid='share'] *,
-  [data-testid='UserCell'] [role='button'],
-  [data-testid='UserCell'] [role='button'] *
-) {
-  color: var(--holmeta-appearance-text-primary) !important;
-  border-color: var(--holmeta-appearance-border-strong) !important;
-}
-
-html[${ATTR.ACTIVE}='1'][${ATTR.SITE}='x'] :is(
-  [data-testid='SearchBox_Search_Input'],
-  [data-testid='tweetTextarea_0']
+  [data-testid='SearchBox_Search_Input']
 ) {
   background-color: var(--holmeta-appearance-input-background) !important;
+  border-color: var(--holmeta-appearance-input-border) !important;
 }
 
 html[${ATTR.ACTIVE}='1'][${ATTR.SITE}='x'] :is(
@@ -776,9 +332,10 @@ html[${ATTR.ACTIVE}='1'][${ATTR.SITE}='x'] :is(
   [data-testid='SideNav_NewTweet_Button']
 ) {
   background-color: var(--holmeta-appearance-control-background) !important;
+  color: var(--holmeta-appearance-control-text) !important;
+  border-color: var(--holmeta-appearance-button-border) !important;
 }
 
-/* X inline action counters should remain icon/text-only, without boxed patches. */
 html[${ATTR.ACTIVE}='1'][${ATTR.SITE}='x'] :is(
   [data-testid='reply'],
   [data-testid='retweet'],
@@ -793,6 +350,7 @@ html[${ATTR.ACTIVE}='1'][${ATTR.SITE}='x'] :is(
   background-color: transparent !important;
   border-color: transparent !important;
   box-shadow: none !important;
+  color: var(--holmeta-appearance-text-primary) !important;
 }
 
 html[${ATTR.ACTIVE}='1'][${ATTR.SITE}='x'] :is(
@@ -806,317 +364,82 @@ html[${ATTR.ACTIVE}='1'][${ATTR.SITE}='x'] :is(
   [data-testid='share'],
   [data-testid='UserCell'] [role='button']
 ):is(:hover, :focus-visible, :active, [aria-pressed='true']) {
-  background-color: color-mix(
-    in srgb,
-    var(--holmeta-appearance-selected-background) 26%,
-    transparent
-  ) !important;
-  border-color: transparent !important;
-  box-shadow: none !important;
+  background-color: color-mix(in srgb, var(--holmeta-appearance-selected-background) 22%, transparent) !important;
 }
 
-html[${ATTR.ACTIVE}='1'][${ATTR.SITE}='youtube'] :is(
-  ytd-searchbox,
-  .ytSearchboxComponentHost,
-  .ytSearchboxComponentInputBox,
-  .ytSearchboxComponentSearchButton,
-  #search-form,
-  #search-icon-legacy
+html[${ATTR.ACTIVE}='1'][${ATTR.SITE}='x'] :is(
+  [role='dialog'],
+  [aria-modal='true'],
+  [data-testid*='Sheet' i],
+  [data-testid*='sheet' i],
+  [data-testid*='Dropdown' i],
+  [data-testid*='dropdown' i],
+  [data-testid*='typeahead' i],
+  [data-testid*='popover' i],
+  [data-testid*='HoverCard' i]
 ) {
-  background-color: var(--holmeta-appearance-input-background) !important;
-  color: var(--holmeta-appearance-text-primary) !important;
-  border-color: var(--holmeta-appearance-border-strong) !important;
+  background-color: var(--holmeta-appearance-page-background-alt) !important;
+  border-color: var(--holmeta-appearance-line-subtle) !important;
+  backdrop-filter: none !important;
 }
 
-html[${ATTR.ACTIVE}='1'][${ATTR.SITE}='github'] :is(
-  .Header,
-  .header-search-wrapper,
-  [data-target='qbsearch-input.inputButtonText'],
-  .Button
-) {
-  background-color: var(--holmeta-appearance-panel-background) !important;
-  color: var(--holmeta-appearance-text-primary) !important;
-  border-color: var(--holmeta-appearance-border-strong) !important;
-}
-
+/* Amazon adapter */
 html[${ATTR.ACTIVE}='1'][${ATTR.SITE}='amazon'] :is(
-  html,
-  body,
-  #a-page,
-  .a-page,
-  #pageContent,
-  #gw-layout,
-  #gw-card-layout,
-  #desktop-grid-1,
-  #desktop-grid-2,
-  #desktop-grid-3,
-  #desktop-grid-4,
-  #desktop-grid,
-  [id^='desktop-grid-'],
-  [id*='desktop-grid-'],
-  #desktop-hero,
-  #gw-desktop-herotator,
-  #gw-content,
-  #gw-main-container,
-  #gw-main,
-  #dp,
-  #search,
-  #searchTemplate,
-  #search-main-wrapper,
-  .s-main-slot,
-  .s-desktop-content
+  html, body, #a-page, .a-page, #pageContent, #gw-layout, #gw-card-layout, #gw-content, #gw-main-container, #gw-main,
+  #desktop-grid, #desktop-grid-1, #desktop-grid-2, #desktop-grid-3, #desktop-grid-4, [id^='desktop-grid-'], [id*='desktop-grid-'],
+  #search, #searchTemplate, #search-main-wrapper, .s-main-slot, .s-desktop-content
 ) {
   background-color: var(--holmeta-appearance-page-background) !important;
   color: var(--holmeta-appearance-text-primary) !important;
 }
 
 html[${ATTR.ACTIVE}='1'][${ATTR.SITE}='amazon'][${ATTR.MODE}='dark'] :is(
-  #a-page,
-  .a-page,
-  #pageContent,
-  #gw-layout,
-  #gw-card-layout,
-  #gw-content,
-  #gw-main-container,
-  #gw-main,
-  .a-section,
-  .a-container
-):not([${ATTR.MEDIA_SAFE}='1']) {
-  background-color: var(--holmeta-appearance-page-background) !important;
-  border-color: var(--holmeta-appearance-line-subtle) !important;
-}
-
-html[${ATTR.ACTIVE}='1'][${ATTR.SITE}='amazon'][${ATTR.MODE}='dark'] :is(
-  #pageContent,
-  #gw-layout,
-  #gw-main-container,
-  #gw-main,
-  #gw-card-layout,
-  #desktop-grid,
-  [id^='desktop-grid-'],
-  #search,
-  #searchTemplate,
-  #search-main-wrapper
-) > :where(div, section, article, main, aside, ul, li):not([${ATTR.MEDIA_SAFE}='1']):not([${ATTR.ACCENT_SAFE}='1']):not(:has(img, picture, video, canvas, iframe, object, embed)) {
-  background-color: var(--holmeta-appearance-page-background) !important;
-  border-color: var(--holmeta-appearance-line-subtle) !important;
-}
-
-/* Force Amazon's white structural homepage canvases into dark family (without touching media/cards). */
-html[${ATTR.ACTIVE}='1'][${ATTR.SITE}='amazon'][${ATTR.MODE}='dark'] :is(
-  #gw-layout,
-  #gw-content,
-  #gw-main-container,
-  #gw-main,
-  #gw-card-layout,
-  #desktop-grid,
-  #desktop-grid-1,
-  #desktop-grid-2,
-  #desktop-grid-3,
-  #desktop-grid-4,
-  [id^='desktop-grid-'],
-  [id*='desktop-grid-'],
-  .s-main-slot,
-  .s-desktop-content,
-  .a-page,
-  .a-container,
-  .a-section
-):not(:has(img, picture, video, canvas, iframe, object, embed)):not([${ATTR.MEDIA_SAFE}='1']) {
-  background-color: var(--holmeta-appearance-page-background) !important;
-  background-image: none !important;
-  border-color: var(--holmeta-appearance-line-subtle) !important;
-}
-
-html[${ATTR.ACTIVE}='1'][${ATTR.SITE}='amazon'][${ATTR.MODE}='dark'] :is(
-  #gw-layout,
-  #gw-content,
-  #gw-main-container,
-  #gw-main,
-  #gw-card-layout,
-  [id^='desktop-grid-'],
-  [id*='desktop-grid-'],
-  .s-main-slot,
-  .s-desktop-content
-) :where(div, section, article, main, aside, nav, header, footer)[style*='background-color: rgb(255' i]:not([${ATTR.MEDIA_SAFE}='1']):not([${ATTR.ACCENT_SAFE}='1']):not(:has(img, picture, video, canvas, iframe, object, embed)) {
+  #pageContent, #gw-layout, #gw-main-container, #gw-main, #gw-card-layout, #desktop-grid, [id^='desktop-grid-'], #search-main-wrapper
+) > :where(div, section, article, main, aside):not([${ATTR.MEDIA_SAFE}='1']):not([${ATTR.ACCENT_SAFE}='1']) {
   background-color: var(--holmeta-appearance-page-background) !important;
   border-color: var(--holmeta-appearance-line-subtle) !important;
 }
 
 html[${ATTR.ACTIVE}='1'][${ATTR.SITE}='amazon'] :is(
-  #nav-logo-sprites,
-  #nav-logo,
-  #nav-logo .nav-logo-link,
-  #nav-logo .nav-logo-base,
-  #nav-logo .nav-logo-tagline,
-  #nav-logo .nav-logo-ext,
-  #nav-logo .nav-logo-locale,
-  #nav-logo-sprites-background,
-  #nav-logo-sprites-icon
+  #nav-belt, #nav-main, #nav-subnav, #navbar, #nav-tools, #nav-xshop, #nav-xshop-container, #nav-swm-holiday, #nav-swmslot, #nav-swm-right, [id*='nav-swm']
 ) {
-  filter: none !important;
-  mix-blend-mode: normal !important;
-  color: inherit !important;
-  background-color: transparent !important;
-}
-
-html[${ATTR.ACTIVE}='1'][${ATTR.SITE}='amazon'] #nav-logo-sprites {
-  opacity: 1 !important;
-}
-
-html[${ATTR.ACTIVE}='1'][${ATTR.SITE}='amazon'] :is(
-  .a-dynamic-image,
-  .a-image-container,
-  .a-link-normal img,
-  .a-link-normal picture,
-  [data-image-latency],
-  [data-a-image-name],
-  .a-carousel-card img,
-  .a-carousel-card picture,
-  .a-spacing-none img,
-  .a-spacing-none picture
-) {
-  filter: none !important;
-  mix-blend-mode: normal !important;
-  opacity: 1 !important;
-  background-color: transparent !important;
-  border-color: transparent !important;
-}
-
-html[${ATTR.ACTIVE}='1'][${ATTR.SITE}='amazon'] :is(
-  .a-dynamic-image,
-  .a-image-container,
-  [data-image-latency],
-  [data-a-image-name]
-) * {
-  filter: none !important;
-}
-
-html[${ATTR.ACTIVE}='1'][${ATTR.SITE}='amazon'] :is(
-  #nav-belt,
-  #nav-main,
-  #nav-subnav,
-  #navbar,
-  #nav-tools,
-  #nav-xshop,
-  #nav-xshop-container,
-  #nav-swm-holiday,
-  #nav-swmslot,
-  #nav-swm-right,
-  [id*='nav-swm']
-) {
-  background-color: color-mix(
-    in srgb,
-    var(--holmeta-appearance-page-background) 78%,
-    var(--holmeta-appearance-elevated-background) 22%
-  ) !important;
+  background-color: var(--holmeta-appearance-nav-harmonized-background) !important;
   color: var(--holmeta-appearance-nav-harmonized-text) !important;
   border-color: var(--holmeta-appearance-line-subtle) !important;
 }
 
 html[${ATTR.ACTIVE}='1'][${ATTR.SITE}='amazon'] :is(
-  #nav-belt,
-  #nav-main,
-  #nav-subnav,
-  #nav-tools,
-  #nav-xshop
-) :is(a, span, strong, em, label, div) {
-  color: var(--holmeta-appearance-nav-harmonized-text) !important;
-}
-
-html[${ATTR.ACTIVE}='1'][${ATTR.SITE}='amazon'] :is(
-  #nav-search,
-  #nav-search-bar-form,
-  .nav-search-field,
-  #twotabsearchtextbox,
-  #searchDropdownBox,
-  #nav-search-submit-button
+  #nav-search, #nav-search-bar-form, .nav-search-field, #twotabsearchtextbox, #searchDropdownBox, #nav-search-submit-button
 ) {
   background-color: var(--holmeta-appearance-input-background) !important;
   color: var(--holmeta-appearance-text-primary) !important;
   border-color: var(--holmeta-appearance-input-border) !important;
 }
 
-html[${ATTR.ACTIVE}='1'][${ATTR.SITE}='amazon'] #twotabsearchtextbox::placeholder {
-  color: var(--holmeta-appearance-text-muted) !important;
-}
-
 html[${ATTR.ACTIVE}='1'][${ATTR.SITE}='amazon'] :is(
-  #nav-hamburger-menu,
-  #nav-cart,
-  #nav-link-accountList,
-  #nav-orders,
-  #icp-nav-flyout
+  #nav-logo-sprites, #nav-logo, #nav-logo .nav-logo-link, #nav-logo .nav-logo-base, #nav-logo .nav-logo-tagline, #nav-logo .nav-logo-ext, #nav-logo .nav-logo-locale
 ) {
+  filter: none !important;
+  mix-blend-mode: normal !important;
   background-color: transparent !important;
-  color: var(--holmeta-appearance-nav-harmonized-text) !important;
-  border-color: transparent !important;
 }
 
 html[${ATTR.ACTIVE}='1'][${ATTR.SITE}='amazon'] :is(
-  #nav-hamburger-menu,
-  #nav-cart,
-  #nav-link-accountList,
-  #nav-orders,
-  #icp-nav-flyout
-) :is(svg, i, [class*='icon' i], [class*='nav-icon' i]) {
-  color: var(--holmeta-appearance-nav-harmonized-text) !important;
-  fill: currentColor !important;
-  stroke: currentColor !important;
-}
-
-html[${ATTR.ACTIVE}='1'][${ATTR.SITE}='amazon'] :is(#nav-subnav, #nav-xshop) :is(a, .nav-a) {
+  .a-dynamic-image, .a-image-container, .a-link-normal img, .a-link-normal picture, [data-image-latency], [data-a-image-name], .a-carousel-card img, .a-carousel-card picture
+) {
+  filter: none !important;
+  mix-blend-mode: normal !important;
   background-color: transparent !important;
   border-color: transparent !important;
 }
 
-html[${ATTR.ACTIVE}='1'][${ATTR.SITE}='amazon'] :is(#nav-subnav, #nav-xshop) :is(a, .nav-a):hover,
-html[${ATTR.ACTIVE}='1'][${ATTR.SITE}='amazon'] :is(#nav-subnav, #nav-xshop) :is(a, .nav-a)[aria-current='page'] {
-  background-color: color-mix(in srgb, var(--holmeta-appearance-selected-background) 76%, transparent) !important;
-  border-color: var(--holmeta-appearance-line-subtle) !important;
-}
-
+/* Claude adapter */
 html[${ATTR.ACTIVE}='1'][${ATTR.SITE}='claude'] :is(
-  main,
-  [role='main'],
-  [class*='layout' i],
-  [class*='container' i],
-  [class*='pane' i],
-  [class*='panel' i],
-  [class*='thread' i],
-  [class*='composer' i],
-  [class*='sidebar' i],
-  [data-testid*='pane' i],
-  [data-testid*='panel' i],
-  [data-testid*='thread' i],
-  [data-testid*='composer' i]
+  main, [role='main'], [class*='layout' i], [class*='container' i], [class*='pane' i], [class*='panel' i], [class*='thread' i], [class*='composer' i], [class*='sidebar' i]
 ) {
-  background-color: color-mix(
-    in srgb,
-    var(--holmeta-appearance-page-background-alt) 86%,
-    var(--holmeta-appearance-panel-background) 14%
-  ) !important;
+  background-color: var(--holmeta-appearance-page-background-alt) !important;
   border-color: var(--holmeta-appearance-line-subtle) !important;
   box-shadow: none !important;
-}
-
-html[${ATTR.ACTIVE}='1'][${ATTR.SITE}='claude'] :where(
-  [class*='panel' i],
-  [class*='pane' i],
-  [class*='container' i],
-  [data-testid*='panel' i],
-  [data-testid*='pane' i]
-):not(button):not([type='button']):not([role='button']) {
-  background-image: none !important;
-  border-radius: inherit !important;
-}
-
-html[${ATTR.ACTIVE}='1']::before {
-  content: "";
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  z-index: 2147483638;
-  background: var(--holmeta-appearance-overlay-tint);
 }
 `;
   }
@@ -1159,6 +482,8 @@ html[${ATTR.ACTIVE}='1']::before {
     root.style.setProperty("--holmeta-appearance-dropdown-border", tokens.dropdownBorder || tokens.borderSubtle || tokens.borderSoft);
     root.style.setProperty("--holmeta-appearance-input-background", tokens.inputBackground || tokens.inputBg);
     root.style.setProperty("--holmeta-appearance-input-border", tokens.inputBorder || tokens.borderStrong || tokens.borderSoft);
+    root.style.setProperty("--holmeta-appearance-button-background", tokens.buttonBackground || tokens.controlBackground || tokens.buttonBg || tokens.elevatedBackground);
+    root.style.setProperty("--holmeta-appearance-button-text", tokens.buttonText || tokens.controlText || tokens.textPrimary);
     root.style.setProperty("--holmeta-appearance-button-border", tokens.buttonBorder || tokens.borderStrong || tokens.inputBorder);
     root.style.setProperty("--holmeta-appearance-selected-background", tokens.selectedBackground || tokens.selectedBg);
     root.style.setProperty("--holmeta-appearance-selected-text", tokens.selectedText || tokens.textPrimary);
@@ -1187,10 +512,10 @@ html[${ATTR.ACTIVE}='1']::before {
     root.style.setProperty("--holmeta-appearance-success", tokens.success || "#3da86b");
     root.style.setProperty("--holmeta-appearance-warning", tokens.warning || "#c77f00");
     root.style.setProperty("--holmeta-appearance-danger", tokens.danger || "#c42021");
-    root.style.setProperty("--holmeta-appearance-control-background", tokens.controlBackground || tokens.buttonBg);
-    root.style.setProperty("--holmeta-appearance-control-text", tokens.controlText || tokens.buttonText);
+    root.style.setProperty("--holmeta-appearance-control-background", tokens.controlBackground || tokens.buttonBg || tokens.elevatedBackground);
+    root.style.setProperty("--holmeta-appearance-control-text", tokens.controlText || tokens.buttonText || tokens.textPrimary);
     root.style.setProperty("--holmeta-appearance-focus-ring", tokens.focusRing || tokens.accentStrong || tokens.link);
-    root.style.setProperty("--holmeta-appearance-overlay-tint", tokens.overlayTint);
+    root.style.setProperty("--holmeta-appearance-overlay-tint", tokens.overlayTint || "rgba(0, 0, 0, 0)");
     root.style.setProperty("--holmeta-appearance-header-background", tokens.headerBackground || tokens.panelBackground || tokens.surface1);
     root.style.setProperty("--holmeta-appearance-nav-background", tokens.navBackground || tokens.sidebarBackground || tokens.surface1);
     root.style.setProperty("--holmeta-appearance-nav-harmonized-background", tokens.navHarmonizedBackground || tokens.navBackground || tokens.panelBackground || tokens.surface1);
@@ -1244,6 +569,8 @@ html[${ATTR.ACTIVE}='1']::before {
       "--holmeta-appearance-dropdown-border",
       "--holmeta-appearance-input-background",
       "--holmeta-appearance-input-border",
+      "--holmeta-appearance-button-background",
+      "--holmeta-appearance-button-text",
       "--holmeta-appearance-button-border",
       "--holmeta-appearance-selected-background",
       "--holmeta-appearance-selected-text",

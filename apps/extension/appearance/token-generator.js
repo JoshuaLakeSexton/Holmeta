@@ -145,7 +145,7 @@
       palette.background,
       isDark ? darkBg : lightBg,
       isDark
-        ? (0.11 + (strength * 0.06) + (moodLift * 0.72))
+        ? clamp(0.56 + (strength * 0.14) + ((1 - moodDepth) * 0.08), 0.52, 0.78)
         : (0.04 + (strength * 0.03) + (moodLift * 0.65))
     );
 
@@ -154,24 +154,24 @@
       pageBackground = mix(pageBackground, palette.background, 0.65);
     }
 
-    const pageBackgroundAlt = mix(pageBackground, isDark ? "#0c1014" : "#ffffff", (isDark ? 0.06 : 0.04) + (moodLift * 0.24));
-    const neutralStep = isDark
-      ? 0.02 + ((1 - moodDepth) * 0.03)
-      : 0;
+    const pageBackgroundAlt = isDark
+      ? mix(pageBackground, "#ffffff", clamp(0.030 + (adj.surfaceLift * 0.025), 0.024, 0.060))
+      : mix(pageBackground, "#ffffff", 0.04 + (moodLift * 0.24));
+    const neutralStep = isDark ? 0.01 + ((1 - moodDepth) * 0.02) : 0;
     const sidebarBackground = isDark
-      ? mix(pageBackground, "#ffffff", clamp(0.03 + (adj.surfaceLift * 0.05) + (moodLift * 0.18), 0.02, 0.10))
+      ? mix(pageBackground, "#ffffff", clamp(0.032 + (adj.surfaceLift * 0.030) + neutralStep, 0.028, 0.075))
       : mix(pageBackground, palette.accent, 0.07 + (adj.surfaceLift * 0.22) + (moodLift * 0.60));
     const sectionBackground = isDark
-      ? mix(pageBackground, "#ffffff", clamp(0.04 + (adj.surfaceLift * 0.06) + (moodLift * 0.20), 0.03, 0.12))
+      ? mix(pageBackground, "#ffffff", clamp(0.040 + (adj.surfaceLift * 0.035) + neutralStep, 0.034, 0.088))
       : mix(pageBackground, palette.accent, 0.06 + (adj.surfaceLift * 0.26) + (moodLift * 0.42));
     const panelBackground = isDark
-      ? mix(pageBackground, "#ffffff", clamp(0.05 + (adj.surfaceLift * 0.08) + (moodLift * 0.24), 0.04, 0.14))
+      ? mix(pageBackground, "#ffffff", clamp(0.050 + (adj.surfaceLift * 0.040) + neutralStep, 0.042, 0.102))
       : mix(pageBackground, palette.accent, 0.08 + (adj.surfaceLift * 0.44) + (moodLift * 0.48));
     const cardBackground = isDark
-      ? mix(pageBackground, "#ffffff", clamp(0.07 + (adj.surfaceLift * 0.10) + (moodLift * 0.28), 0.05, 0.16))
+      ? mix(pageBackground, "#ffffff", clamp(0.062 + (adj.surfaceLift * 0.045) + neutralStep, 0.052, 0.116))
       : mix(pageBackground, palette.accent, 0.11 + (adj.surfaceLift * 0.62) + (moodLift * 0.56));
     const elevatedBackground = isDark
-      ? mix(pageBackground, "#ffffff", clamp(0.10 + (adj.surfaceLift * 0.12) + (moodLift * 0.32), 0.08, 0.20))
+      ? mix(pageBackground, "#ffffff", clamp(0.078 + (adj.surfaceLift * 0.052) + neutralStep, 0.068, 0.136))
       : mix(pageBackground, palette.accent, 0.15 + (adj.surfaceLift * 0.74) + (moodLift * 0.62));
     const modalBackground = mix(elevatedBackground, isDark ? "#000000" : "#ffffff", isDark ? 0.10 : 0.08);
     const dropdownBackground = mix(panelBackground, isDark ? "#060606" : "#ffffff", isDark ? 0.10 : 0.08);
@@ -243,7 +243,7 @@
       ? mix(sidebarBackground, "#ffffff", 0.04)
       : mix(sidebarBackground, selectedAnchor, 0.07);
     const navHarmonizedBackground = isDark
-      ? mix(pageBackground, "#ffffff", 0.06)
+      ? pageBackgroundAlt
       : mix(pageBackground, selectedAnchor, 0.08);
     const navHarmonizedText = textPrimary;
     const headerMutedAccent = alpha(accent, isDark ? 0.22 : 0.18);
