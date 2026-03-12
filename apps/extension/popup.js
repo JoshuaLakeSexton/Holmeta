@@ -786,6 +786,19 @@
     const scheduleLabel = effective.scheduleMode === "system"
       ? "System"
       : (effective.scheduleMode === "sunset" ? "Sunset to Sunrise" : `${effective.scheduleStart} → ${effective.scheduleEnd}`);
+    const diagnosticsVariant = String(state.diagnostics?.readingVariant || "");
+    const activeVariantLabel = (() => {
+      if (!diagnosticsVariant) return "";
+      const key = diagnosticsVariant.replace("appearance_dark_", "").replace("appearance_light_", "");
+      return String(key || "")
+        .replaceAll("_", " ")
+        .split(" ")
+        .filter(Boolean)
+        .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+        .join(" ");
+    })();
+    const adaptiveReason = String(state.diagnostics?.readingAdaptiveReason || "");
+    const adaptiveApplied = Boolean(state.diagnostics?.readingAdaptiveApplied);
 
     const excluded = isReadingSiteExcluded();
     if (excluded) {
@@ -796,12 +809,15 @@
     const hostSuffix = state.currentHost ? ` on ${state.currentHost}` : "";
     if (effective.enabled) {
       if (effective.appearance === "auto") {
-        refs.readingThemeStatus.textContent = `Applying Auto${hostSuffix} · Dark ${darkLabel} / Light ${lightLabel} · ${scheduleLabel}.`;
+        const activeNow = activeVariantLabel ? ` · Active now: ${activeVariantLabel}` : "";
+        refs.readingThemeStatus.textContent = `Applying Auto${hostSuffix} · Dark ${darkLabel} / Light ${lightLabel} · ${scheduleLabel}${activeNow}.`;
       } else {
         refs.readingThemeStatus.textContent = `Applying ${effective.appearance === "dark" ? `Dark ${darkLabel}` : `Light ${lightLabel}`}${hostSuffix}.`;
       }
       if (siteProfile) {
         refs.readingThemeStatus.textContent += " This site uses its own override.";
+      } else if (effective.appearance === "auto" && adaptiveApplied) {
+        refs.readingThemeStatus.textContent += ` Adaptive tune: ${adaptiveReason.replace(/^auto-/, "")}.`;
       }
       return;
     }

@@ -138,7 +138,9 @@
         darkLightTheme: false,
         adaptiveSiteTheme: false
       },
-      clampReason: ""
+      clampReason: "",
+      readingAdaptiveApplied: false,
+      readingAdaptiveReason: ""
     },
     spotlightPoint: null,
     enabled: false,
@@ -666,6 +668,8 @@
       adaptiveSiteTheme: false
     };
     state.diagnostics.clampReason = "";
+    state.diagnostics.readingAdaptiveApplied = false;
+    state.diagnostics.readingAdaptiveReason = "";
   }
 
   function clearAdaptiveTheme() {
@@ -896,6 +900,81 @@
     }
     state.diagnostics.readingProfileSource = "global";
     return globalProfile;
+  }
+
+  function adaptiveVariantsForSiteType(siteType = "general") {
+    switch (String(siteType || "general")) {
+      case "dashboard_app":
+        return { darkVariant: "black", lightVariant: "white", reason: "dashboard" };
+      case "docs_code":
+        return { darkVariant: "grey", lightVariant: "off_white", reason: "docs" };
+      case "social":
+        return { darkVariant: "coal", lightVariant: "off_white", reason: "social" };
+      case "article":
+        return { darkVariant: "sepia", lightVariant: "warm", reason: "article" };
+      case "ecommerce":
+        return { darkVariant: "teal", lightVariant: "baby_blue", reason: "commerce" };
+      case "media":
+        return { darkVariant: "black", lightVariant: "off_white", reason: "media" };
+      default:
+        return { darkVariant: "coal", lightVariant: "white", reason: "general" };
+    }
+  }
+
+  function resolveAdaptiveReadingProfile(profile = {}, context = {}) {
+    const appearance = String(profile.appearance || "auto");
+    const source = String(context.source || "global");
+    if (appearance !== "auto" || source === "site") {
+      return {
+        profile: { ...profile },
+        applied: false,
+        reason: source === "site" ? "site-override" : "manual-mode"
+      };
+    }
+
+    const siteType = String(context.siteType || "general");
+    const pageTone = String(context.pageTone || "mixed");
+    const mode = String(profile.mode || "dark") === "light" ? "light" : "dark";
+    const map = adaptiveVariantsForSiteType(siteType);
+
+    let darkVariant = normalizeReadingDarkVariant(map.darkVariant, profile.darkVariant || "coal");
+    let lightVariant = normalizeReadingLightVariant(map.lightVariant, profile.lightVariant || "white");
+
+    // Already-dark pages should avoid over-aggressive dark palettes in auto mode.
+    if (mode === "dark" && pageTone === "dark") {
+      darkVariant = "coal";
+    }
+    if (mode === "light" && pageTone === "light") {
+      lightVariant = "white";
+    }
+
+    const next = {
+      ...profile,
+      darkVariant,
+      darkThemeVariant: darkVariant,
+      lightVariant,
+      lightThemeVariant: lightVariant,
+      preset: presetFromVariants(mode, darkVariant, lightVariant),
+      intensity: Math.round(clamp(
+        siteType === "media"
+          ? Math.min(profile.intensity ?? 44, 34)
+          : (siteType === "dashboard_app" || siteType === "docs_code")
+            ? Math.min(profile.intensity ?? 44, 46)
+            : (profile.intensity ?? 44),
+        20,
+        80
+      ))
+    };
+
+    const changed = next.darkVariant !== profile.darkVariant
+      || next.lightVariant !== profile.lightVariant
+      || next.intensity !== profile.intensity;
+
+    return {
+      profile: next,
+      applied: changed,
+      reason: `auto-${map.reason}`
+    };
   }
 
   function createDefaultAdaptiveProfile() {
@@ -1530,10 +1609,11 @@
     let adaptiveWeight = 1;
 
     if (adaptiveEnabled && readingEnabled) {
-      // Adaptive Site Theme takes priority over simple Appearance when both are enabled.
-      readingWeight = 0;
-      clampOverlayMax = Math.min(clampOverlayMax, 0.30);
-      clampReason = "adaptive-priority";
+      // Keep Day/Night Appearance active when Adaptive Site Theme is also enabled.
+      readingWeight = 0.62;
+      adaptiveWeight = 0.74;
+      clampOverlayMax = Math.min(clampOverlayMax, 0.34);
+      clampReason = "adaptive-coexist";
     }
 
     if (adaptiveEnabled && lightEnabled) {
@@ -1663,7 +1743,13 @@
     const pageTone = detectPageTone();
     const siteType = detectSiteType(host, media);
     const profile = pickProfile(lightSettings, host);
-    const readingProfile = pickReadingProfile(readingSettings, host);
+    const readingProfileBase = pickReadingProfile(readingSettings, host);
+    const readingAdaptive = resolveAdaptiveReadingProfile(readingProfileBase, {
+      siteType,
+      pageTone: pageTone.tone,
+      source: state.diagnostics.readingProfileSource
+    });
+    const readingProfile = readingAdaptive.profile;
     const adaptiveProfile = pickAdaptiveProfile(adaptiveSettings, host);
     if (profile.mode === "spotlight") profile.spotlightEnabled = true;
 
@@ -1846,6 +1932,8 @@
       : strategy;
     state.diagnostics.readingMode = readingTheme.mode;
     state.diagnostics.readingVariant = readingTheme.variant;
+    state.diagnostics.readingAdaptiveApplied = Boolean(readingAdaptive.applied);
+    state.diagnostics.readingAdaptiveReason = String(readingAdaptive.reason || "");
     state.diagnostics.readingAppearance = appearanceDiagnostics || null;
     state.diagnostics.pageTone = pageTone.tone;
     state.diagnostics.pageLuminance = pageTone.luminance;
