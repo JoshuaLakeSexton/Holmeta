@@ -701,7 +701,13 @@ html[${ATTR.ACTIVE}='1'][${ATTR.SITE}='x'] :is(
 html[${ATTR.ACTIVE}='1'][${ATTR.SITE}='x'] :is(
   [data-testid='tweetButtonInline'],
   [data-testid='tweetButton'],
-  [data-testid='SideNav_NewTweet_Button'],
+  [data-testid='SideNav_NewTweet_Button']
+) {
+  background-color: var(--holmeta-appearance-control-background) !important;
+}
+
+/* X inline action counters should remain icon/text-only, without boxed patches. */
+html[${ATTR.ACTIVE}='1'][${ATTR.SITE}='x'] :is(
   [data-testid='reply'],
   [data-testid='retweet'],
   [data-testid='unretweet'],
@@ -712,7 +718,29 @@ html[${ATTR.ACTIVE}='1'][${ATTR.SITE}='x'] :is(
   [data-testid='share'],
   [data-testid='UserCell'] [role='button']
 ) {
-  background-color: var(--holmeta-appearance-control-background) !important;
+  background-color: transparent !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+}
+
+html[${ATTR.ACTIVE}='1'][${ATTR.SITE}='x'] :is(
+  [data-testid='reply'],
+  [data-testid='retweet'],
+  [data-testid='unretweet'],
+  [data-testid='like'],
+  [data-testid='unlike'],
+  [data-testid='bookmark'],
+  [data-testid='removeBookmark'],
+  [data-testid='share'],
+  [data-testid='UserCell'] [role='button']
+):is(:hover, :focus-visible, :active, [aria-pressed='true']) {
+  background-color: color-mix(
+    in srgb,
+    var(--holmeta-appearance-selected-background) 26%,
+    transparent
+  ) !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
 }
 
 html[${ATTR.ACTIVE}='1'][${ATTR.SITE}='youtube'] :is(
