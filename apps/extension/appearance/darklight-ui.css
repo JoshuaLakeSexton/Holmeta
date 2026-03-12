@@ -1,20 +1,20 @@
 /* Holmeta on-page Day/Night widget visual tokens. */
 
 :root {
-  --hm-dl-widget-bg: linear-gradient(180deg, #181818, #111113);
-  --hm-dl-widget-border: rgba(255, 255, 255, 0.18);
+  --hm-dl-widget-bg: rgba(20, 17, 15, 0.96);
+  --hm-dl-widget-border: rgba(243, 243, 244, 0.2);
   --hm-dl-widget-text: #f3f3f4;
-  --hm-dl-widget-muted: #c7ccd4;
-  --hm-dl-widget-accent: #ff7d41;
-  --hm-dl-widget-accent-border: rgba(255, 175, 120, 0.55);
+  --hm-dl-widget-muted: #d9c5b2;
+  --hm-dl-widget-accent: #c42021;
+  --hm-dl-widget-accent-border: rgba(196, 32, 33, 0.72);
 }
 
 .hm-dl-shell {
   background: var(--hm-dl-widget-bg);
   border: 1px solid var(--hm-dl-widget-border);
   color: var(--hm-dl-widget-text);
-  border-radius: 10px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(255, 160, 122, 0.08) inset;
+  border-radius: 2px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.34);
 }
 
 .hm-dl-badge {
@@ -24,14 +24,14 @@
 }
 
 .hm-dl-btn {
-  background: #16181b;
+  background: rgba(20, 17, 15, 0.88);
   color: var(--hm-dl-widget-text);
-  border: 1px solid rgba(255, 255, 255, 0.22);
+  border: 1px solid rgba(243, 243, 244, 0.24);
 }
 
 .hm-dl-btn:hover {
-  background: #22262c;
-  border-color: rgba(255, 255, 255, 0.35);
+  background: rgba(52, 49, 45, 0.84);
+  border-color: rgba(243, 243, 244, 0.36);
 }
 
 .hm-dl-text {

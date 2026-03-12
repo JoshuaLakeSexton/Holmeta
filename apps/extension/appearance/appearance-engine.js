@@ -17,6 +17,8 @@
   }
 
   const IDS = stateRef.IDS;
+  const BOOT_STYLE_ID = "holmeta-appearance-boot-style-v1";
+  const BOOT_ATTR = "data-holmeta-appearance-boot";
 
   const state = {
     enabled: false,
@@ -81,6 +83,12 @@
     if (node.textContent !== css) {
       node.textContent = css;
     }
+  }
+
+  function clearBootStyle() {
+    const node = document.getElementById(BOOT_STYLE_ID);
+    if (node) node.remove();
+    document.documentElement?.removeAttribute(BOOT_ATTR);
   }
 
   function applyDynamic(root = document.documentElement) {
@@ -168,6 +176,7 @@
     }
 
     ensureStyle();
+    clearBootStyle();
 
     const host = getHost();
     const media = mediaGuard.countMedia(document);
@@ -261,6 +270,7 @@
 
     normalizer.clearRoot(root);
     remapper.clearRootTokens(root);
+    clearBootStyle();
 
     state.enabled = false;
     state.mode = "off";

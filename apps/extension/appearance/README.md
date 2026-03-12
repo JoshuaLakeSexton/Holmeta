@@ -4,6 +4,7 @@ This directory contains Holmeta's production Day / Night Appearance system.
 
 ## Runtime architecture
 
+- `init-theme-toggle.js`: `document_start` bootstrap that applies a minimal host-aware pre-theme to reduce flash before full engine hydration.
 - `palette-presets.js`: user-facing preset families (`Black`, `Coal`, `Iron ore`, `dark Brown`, `Grey`, `Sepia`, `Teal`, `dark Purple`, `dark Green`, and light families).
 - `token-generator.js`: derives full structural token sets from preset mood + site class.
 - `ui-surface-classifier.js`: finds themeable UI candidates.
@@ -13,6 +14,12 @@ This directory contains Holmeta's production Day / Night Appearance system.
 - `darklight-settings.js`: local/sync setting persistence for optional Day/Night floating widget state.
 - `darklight-engine.js`: action API (`toggle`, `setDark`, `setLight`, `setAuto`, `getState`, `resetSite`, `showWidget`, `hideWidget`, `excludeSite`).
 - `darklight-switch.js`: optional draggable in-page widget, closed Shadow DOM.
+
+## Holmeta-native UI guardrails
+
+- Keep Tool 2 inside the existing Holmeta popup visual system.
+- Avoid standalone gimmick visuals, loud gradients, or decorative celestial motifs.
+- Keep in-page widget secondary, compact, and muted. Popup remains primary control surface.
 
 ## Contrast rules (hard)
 

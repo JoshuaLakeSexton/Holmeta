@@ -80,6 +80,15 @@
         "<all_urls>"
       ],
       "js": [
+        "appearance/init-theme-toggle.js"
+      ],
+      "run_at": "document_start"
+    },
+    {
+      "matches": [
+        "<all_urls>"
+      ],
+      "js": [
         "appearance/palette-presets.js",
         "appearance/token-generator.js",
         "appearance/appearance-state.js",

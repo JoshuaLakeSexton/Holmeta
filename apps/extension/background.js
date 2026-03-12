@@ -2462,6 +2462,7 @@ function isRestrictedExtensionPageUrl(urlLike) {
 }
 
 const CONTENT_SCRIPT_FILES = [
+  "appearance/init-theme-toggle.js",
   "appearance/palette-presets.js",
   "appearance/token-generator.js",
   "appearance/appearance-state.js",
