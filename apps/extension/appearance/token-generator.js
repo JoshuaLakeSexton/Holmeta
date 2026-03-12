@@ -155,53 +155,60 @@
     }
 
     const pageBackgroundAlt = mix(pageBackground, isDark ? "#020202" : "#ffffff", (isDark ? 0.10 : 0.04) + (moodLift * 0.30));
-    const sidebarBackground = mix(
-      pageBackground,
-      isDark ? darkBg : palette.accent,
-      (isDark ? 0.06 : 0.07) + (adj.surfaceLift * 0.22) + (moodLift * 0.60)
-    );
-    const sectionBackground = mix(
-      pageBackground,
-      palette.accent,
-      (isDark ? 0.04 : 0.06) + (adj.surfaceLift * 0.26) + (moodLift * 0.42)
-    );
-    const panelBackground = mix(
-      pageBackground,
-      palette.accent,
-      (isDark ? 0.09 : 0.08) + (adj.surfaceLift * 0.44) + (moodLift * 0.48)
-    );
-    const cardBackground = mix(
-      pageBackground,
-      palette.accent,
-      (isDark ? 0.15 : 0.11) + (adj.surfaceLift * 0.62) + (moodLift * 0.56)
-    );
-    const elevatedBackground = mix(
-      pageBackground,
-      palette.accent,
-      (isDark ? 0.23 : 0.15) + (adj.surfaceLift * 0.74) + (moodLift * 0.62)
-    );
+    const neutralStep = isDark
+      ? 0.02 + ((1 - moodDepth) * 0.03)
+      : 0;
+    const sidebarBackground = isDark
+      ? mix(pageBackground, darkBg, 0.05 + neutralStep + (adj.surfaceLift * 0.08))
+      : mix(pageBackground, palette.accent, 0.07 + (adj.surfaceLift * 0.22) + (moodLift * 0.60));
+    const sectionBackground = isDark
+      ? mix(pageBackground, darkBg, 0.04 + neutralStep + (adj.surfaceLift * 0.10))
+      : mix(pageBackground, palette.accent, 0.06 + (adj.surfaceLift * 0.26) + (moodLift * 0.42));
+    const panelBackground = isDark
+      ? mix(pageBackground, darkBg, 0.08 + neutralStep + (adj.surfaceLift * 0.14))
+      : mix(pageBackground, palette.accent, 0.08 + (adj.surfaceLift * 0.44) + (moodLift * 0.48));
+    const cardBackground = isDark
+      ? mix(pageBackground, darkBg, 0.11 + neutralStep + (adj.surfaceLift * 0.18))
+      : mix(pageBackground, palette.accent, 0.11 + (adj.surfaceLift * 0.62) + (moodLift * 0.56));
+    const elevatedBackground = isDark
+      ? mix(pageBackground, darkBg, 0.15 + neutralStep + (adj.surfaceLift * 0.22))
+      : mix(pageBackground, palette.accent, 0.15 + (adj.surfaceLift * 0.74) + (moodLift * 0.62));
     const modalBackground = mix(elevatedBackground, isDark ? "#000000" : "#ffffff", isDark ? 0.10 : 0.08);
     const dropdownBackground = mix(panelBackground, isDark ? "#060606" : "#ffffff", isDark ? 0.10 : 0.08);
     const inputBackground = mix(cardBackground, isDark ? darkBg : lightBg, isDark ? 0.12 : 0.18);
-    const hoverBackground = mix(elevatedBackground, palette.accent, (isDark ? 0.16 : 0.12) + (strength * 0.08) + (moodLift * 0.20));
+    const hoverBackground = isDark
+      ? mix(elevatedBackground, "#ffffff", 0.05 + (strength * 0.03))
+      : mix(elevatedBackground, palette.accent, 0.12 + (strength * 0.08) + (moodLift * 0.20));
     const selectedAnchor = isDark ? palette.accent : (palette.selectedAccent || palette.accent);
-    const selectedBackground = mix(elevatedBackground, selectedAnchor, (isDark ? 0.30 : 0.22) + adj.accentBoost);
+    const selectedBackground = mix(
+      elevatedBackground,
+      selectedAnchor,
+      (isDark ? 0.18 : 0.22) + (adj.accentBoost * (isDark ? 0.5 : 1))
+    );
 
     // Keep Tool 2 typography neutral and high-contrast regardless of preset tint.
     const textPrimary = isDark ? "#F3F3F4" : "#111111";
     const textSecondary = isDark ? "#D5D6DA" : "#2A2A2A";
     const textMuted = isDark ? "#B8BAC2" : "#565962";
 
-    const borderSubtle = alpha(textPrimary, (isDark ? 0.07 : 0.15) + (adj.borderBoost * 0.35) + (contrastBias * 0.25));
-    const borderStrong = alpha(textPrimary, (isDark ? 0.14 : 0.24) + (adj.borderBoost * 0.45) + (contrastBias * 0.35));
-    const divider = alpha(textPrimary, (isDark ? 0.08 : 0.16) + (contrastBias * 0.30));
-    const lineSubtle = alpha(textPrimary, (isDark ? 0.06 : 0.12) + (contrastBias * 0.22));
-    const lineStrong = alpha(textPrimary, (isDark ? 0.12 : 0.20) + (contrastBias * 0.30));
-    const rowSeparator = alpha(textPrimary, (isDark ? 0.09 : 0.16) + (contrastBias * 0.28));
-    const tableHeader = mix(panelBackground, isDark ? "#000000" : "#ffffff", isDark ? 0.24 : 0.14);
-    const tableRow = mix(cardBackground, panelBackground, isDark ? 0.52 : 0.34);
-    const tableRowAlt = mix(tableRow, panelBackground, isDark ? 0.30 : 0.18);
-    const navItem = mix(sidebarBackground, palette.accent, 0.10 + (strength * 0.06));
+    const borderSubtle = alpha(
+      textPrimary,
+      (isDark ? 0.045 : 0.15) + (adj.borderBoost * (isDark ? 0.14 : 0.35)) + (contrastBias * 0.18)
+    );
+    const borderStrong = alpha(
+      textPrimary,
+      (isDark ? 0.075 : 0.24) + (adj.borderBoost * (isDark ? 0.18 : 0.45)) + (contrastBias * 0.22)
+    );
+    const divider = alpha(textPrimary, (isDark ? 0.05 : 0.16) + (contrastBias * 0.18));
+    const lineSubtle = alpha(textPrimary, (isDark ? 0.04 : 0.12) + (contrastBias * 0.16));
+    const lineStrong = alpha(textPrimary, (isDark ? 0.065 : 0.20) + (contrastBias * 0.22));
+    const rowSeparator = alpha(textPrimary, (isDark ? 0.055 : 0.16) + (contrastBias * 0.20));
+    const tableHeader = mix(panelBackground, isDark ? "#000000" : "#ffffff", isDark ? 0.16 : 0.14);
+    const tableRow = mix(cardBackground, panelBackground, isDark ? 0.66 : 0.34);
+    const tableRowAlt = mix(tableRow, panelBackground, isDark ? 0.12 : 0.18);
+    const navItem = isDark
+      ? mix(sidebarBackground, "#ffffff", 0.04 + (strength * 0.02))
+      : mix(sidebarBackground, palette.accent, 0.10 + (strength * 0.06));
 
     const accent = palette.accent;
     const accentSoft = alpha(accent, isDark ? 0.26 : 0.18);
@@ -210,20 +217,30 @@
     const iconPrimary = textPrimary;
     const iconMuted = textMuted;
     const inputBorder = borderStrong;
-    const buttonBackground = mix(elevatedBackground, palette.accent, (isDark ? 0.10 : 0.06) + (moodLift * 0.22));
+    const buttonBackground = isDark
+      ? mix(elevatedBackground, "#ffffff", 0.05 + (moodLift * 0.10))
+      : mix(elevatedBackground, palette.accent, 0.06 + (moodLift * 0.22));
     const buttonText = textPrimary;
     const buttonBorder = borderStrong;
-    const chipBackground = mix(cardBackground, accent, isDark ? 0.14 : 0.11);
-    const chipBorder = alpha(accent, isDark ? 0.32 : 0.28);
+    const chipBackground = isDark
+      ? mix(cardBackground, "#ffffff", 0.05)
+      : mix(cardBackground, accent, 0.11);
+    const chipBorder = alpha(accent, isDark ? 0.18 : 0.28);
     const chipText = textPrimary;
     const dropdownBorder = borderSubtle;
     const focusRing = alpha(accentStrong, 0.58);
     const success = isDark ? "#73d48d" : "#1b8f3b";
     const warning = isDark ? "#ffcf6b" : "#c77f00";
     const danger = isDark ? "#ff8e8e" : "#c42021";
-    const headerBackground = mix(panelBackground, selectedAnchor, isDark ? 0.10 : 0.08);
-    const navBackground = mix(sidebarBackground, selectedAnchor, isDark ? 0.10 : 0.07);
-    const navHarmonizedBackground = mix(pageBackground, selectedAnchor, isDark ? 0.12 : 0.08);
+    const headerBackground = isDark
+      ? mix(panelBackground, darkBg, 0.05)
+      : mix(panelBackground, selectedAnchor, 0.08);
+    const navBackground = isDark
+      ? mix(sidebarBackground, darkBg, 0.05)
+      : mix(sidebarBackground, selectedAnchor, 0.07);
+    const navHarmonizedBackground = isDark
+      ? mix(pageBackground, darkBg, 0.06)
+      : mix(pageBackground, selectedAnchor, 0.08);
     const navHarmonizedText = textPrimary;
     const headerMutedAccent = alpha(accent, isDark ? 0.22 : 0.18);
     const contrastTextOnDark = "#F7F7F8";

@@ -70,7 +70,7 @@ html[${ATTR.ACTIVE}='1'] [${ATTR.SURFACE}='1'][${ATTR.COMPONENT}='toolbar'] {
 }
 
 html[${ATTR.ACTIVE}='1'] [${ATTR.SURFACE}='1'][${ATTR.COMPONENT}='listitem'] {
-  background-color: var(--holmeta-appearance-table-row-background) !important;
+  background-color: color-mix(in srgb, var(--holmeta-appearance-table-row-background) 20%, transparent) !important;
 }
 
 html[${ATTR.ACTIVE}='1'] [${ATTR.SURFACE}='1'][${ATTR.COMPONENT}='table'] {
@@ -198,11 +198,11 @@ html[${ATTR.ACTIVE}='1'] :where(thead, th) {
 }
 
 html[${ATTR.ACTIVE}='1'] :where(tr:nth-child(odd), li:nth-child(odd), [role='row']:nth-child(odd)) {
-  background-color: color-mix(in srgb, var(--holmeta-appearance-table-row-background) 78%, transparent) !important;
+  background-color: color-mix(in srgb, var(--holmeta-appearance-table-row-background) 22%, transparent) !important;
 }
 
 html[${ATTR.ACTIVE}='1'] :where(tr:nth-child(even), [role='row']:nth-child(even)) {
-  background-color: color-mix(in srgb, var(--holmeta-appearance-table-row-alt) 72%, transparent) !important;
+  background-color: color-mix(in srgb, var(--holmeta-appearance-table-row-alt) 14%, transparent) !important;
 }
 
 html[${ATTR.ACTIVE}='1'] :where([class*='divider'], [class*='separator'], [data-testid*='divider']) {
@@ -305,28 +305,41 @@ html[${ATTR.ACTIVE}='1'][${ATTR.MODE}='dark'] :where(h1, h2, h3, h4, h5, h6, p, 
   color: var(--holmeta-appearance-contrast-on-dark) !important;
 }
 
+html[${ATTR.ACTIVE}='1'][${ATTR.MODE}='dark'] :where(main, section, article, aside, div, li, td, th, header, nav, footer, button, input, textarea, select)[style*='border-color: rgb(255' i],
+html[${ATTR.ACTIVE}='1'][${ATTR.MODE}='dark'] :where(main, section, article, aside, div, li, td, th, header, nav, footer, button, input, textarea, select)[style*='border-color:#fff' i],
+html[${ATTR.ACTIVE}='1'][${ATTR.MODE}='dark'] :where(main, section, article, aside, div, li, td, th, header, nav, footer, button, input, textarea, select)[style*='border-top-color: rgb(255' i],
+html[${ATTR.ACTIVE}='1'][${ATTR.MODE}='dark'] :where(main, section, article, aside, div, li, td, th, header, nav, footer, button, input, textarea, select)[style*='border-bottom-color: rgb(255' i] {
+  border-color: var(--holmeta-appearance-row-separator) !important;
+}
+
 html[${ATTR.ACTIVE}='1'][${ATTR.MODE}='light'] :where(h1, h2, h3, h4, h5, h6, p, span, label, a, button, li, td, th, strong, em, b, i)[style*='color: rgb(255' i],
 html[${ATTR.ACTIVE}='1'][${ATTR.MODE}='light'] :where(h1, h2, h3, h4, h5, h6, p, span, label, a, button, li, td, th, strong, em, b, i)[style*='color:#fff' i] {
   color: var(--holmeta-appearance-contrast-on-light) !important;
 }
 
 html[${ATTR.ACTIVE}='1'] [${ATTR.FORCE_TEXT}='light'],
-html[${ATTR.ACTIVE}='1'] [${ATTR.FORCE_TEXT}='light'] :where(a, p, span, strong, em, i, b, label, button, svg, path, circle, rect, polygon, line) {
+html[${ATTR.ACTIVE}='1'] [${ATTR.FORCE_TEXT}='light'] :where(a, p, span, strong, em, i, b, label, button, svg) {
   color: var(--holmeta-appearance-contrast-on-dark) !important;
 }
 
-html[${ATTR.ACTIVE}='1'] [${ATTR.FORCE_TEXT}='light'] :where(svg path, svg circle, svg rect, svg polygon, svg line) {
+html[${ATTR.ACTIVE}='1'] [${ATTR.FORCE_TEXT}='light'] :where(svg [fill]:not([fill='none'])) {
   fill: var(--holmeta-appearance-contrast-on-dark) !important;
+}
+
+html[${ATTR.ACTIVE}='1'] [${ATTR.FORCE_TEXT}='light'] :where(svg [stroke]:not([stroke='none'])) {
   stroke: var(--holmeta-appearance-contrast-on-dark) !important;
 }
 
 html[${ATTR.ACTIVE}='1'] [${ATTR.FORCE_TEXT}='dark'],
-html[${ATTR.ACTIVE}='1'] [${ATTR.FORCE_TEXT}='dark'] :where(a, p, span, strong, em, i, b, label, button, svg, path, circle, rect, polygon, line) {
+html[${ATTR.ACTIVE}='1'] [${ATTR.FORCE_TEXT}='dark'] :where(a, p, span, strong, em, i, b, label, button, svg) {
   color: var(--holmeta-appearance-contrast-on-light) !important;
 }
 
-html[${ATTR.ACTIVE}='1'] [${ATTR.FORCE_TEXT}='dark'] :where(svg path, svg circle, svg rect, svg polygon, svg line) {
+html[${ATTR.ACTIVE}='1'] [${ATTR.FORCE_TEXT}='dark'] :where(svg [fill]:not([fill='none'])) {
   fill: var(--holmeta-appearance-contrast-on-light) !important;
+}
+
+html[${ATTR.ACTIVE}='1'] [${ATTR.FORCE_TEXT}='dark'] :where(svg [stroke]:not([stroke='none'])) {
   stroke: var(--holmeta-appearance-contrast-on-light) !important;
 }
 
@@ -395,35 +408,62 @@ html[${ATTR.ACTIVE}='1'] svg:not([${ATTR.MEDIA_SAFE}]) {
   color: var(--holmeta-appearance-icon-primary) !important;
 }
 
-html[${ATTR.ACTIVE}='1'] :where(svg path, svg circle, svg rect, svg polygon, svg line):not([${ATTR.MEDIA_SAFE}] *) {
-  stroke: currentColor !important;
+html[${ATTR.ACTIVE}='1'] :where(svg [fill]:not([fill='none'])):not([${ATTR.MEDIA_SAFE}] *) {
   fill: currentColor !important;
 }
 
+html[${ATTR.ACTIVE}='1'] :where(svg [stroke]:not([stroke='none'])):not([${ATTR.MEDIA_SAFE}] *) {
+  stroke: currentColor !important;
+}
+
 /* Keep explicit contrast markers stronger than generic icon recoloring. */
-html[${ATTR.ACTIVE}='1'] [${ATTR.FORCE_TEXT}='light'] :where(svg, svg *, path, circle, rect, polygon, line) {
+html[${ATTR.ACTIVE}='1'] [${ATTR.FORCE_TEXT}='light'] :where(svg, svg *) {
   color: var(--holmeta-appearance-contrast-on-dark) !important;
+}
+
+html[${ATTR.ACTIVE}='1'] [${ATTR.FORCE_TEXT}='light'] :where(svg [fill]:not([fill='none'])) {
   fill: var(--holmeta-appearance-contrast-on-dark) !important;
+}
+
+html[${ATTR.ACTIVE}='1'] [${ATTR.FORCE_TEXT}='light'] :where(svg [stroke]:not([stroke='none'])) {
   stroke: var(--holmeta-appearance-contrast-on-dark) !important;
 }
 
-html[${ATTR.ACTIVE}='1'] [${ATTR.FORCE_TEXT}='dark'] :where(svg, svg *, path, circle, rect, polygon, line) {
+html[${ATTR.ACTIVE}='1'] [${ATTR.FORCE_TEXT}='dark'] :where(svg, svg *) {
   color: var(--holmeta-appearance-contrast-on-light) !important;
+}
+
+html[${ATTR.ACTIVE}='1'] [${ATTR.FORCE_TEXT}='dark'] :where(svg [fill]:not([fill='none'])) {
   fill: var(--holmeta-appearance-contrast-on-light) !important;
+}
+
+html[${ATTR.ACTIVE}='1'] [${ATTR.FORCE_TEXT}='dark'] :where(svg [stroke]:not([stroke='none'])) {
   stroke: var(--holmeta-appearance-contrast-on-light) !important;
 }
 
 html[${ATTR.ACTIVE}='1'] [${ATTR.LOGO_SVG}='light'],
 html[${ATTR.ACTIVE}='1'] [${ATTR.LOGO_SVG}='light'] * {
   color: var(--holmeta-appearance-logo-on-dark-text) !important;
+}
+
+html[${ATTR.ACTIVE}='1'] [${ATTR.LOGO_SVG}='light'] :where([fill]:not([fill='none'])) {
   fill: var(--holmeta-appearance-logo-on-dark-text) !important;
+}
+
+html[${ATTR.ACTIVE}='1'] [${ATTR.LOGO_SVG}='light'] :where([stroke]:not([stroke='none'])) {
   stroke: var(--holmeta-appearance-logo-on-dark-text) !important;
 }
 
 html[${ATTR.ACTIVE}='1'] [${ATTR.LOGO_SVG}='dark'],
 html[${ATTR.ACTIVE}='1'] [${ATTR.LOGO_SVG}='dark'] * {
   color: var(--holmeta-appearance-logo-on-light-text) !important;
+}
+
+html[${ATTR.ACTIVE}='1'] [${ATTR.LOGO_SVG}='dark'] :where([fill]:not([fill='none'])) {
   fill: var(--holmeta-appearance-logo-on-light-text) !important;
+}
+
+html[${ATTR.ACTIVE}='1'] [${ATTR.LOGO_SVG}='dark'] :where([stroke]:not([stroke='none'])) {
   stroke: var(--holmeta-appearance-logo-on-light-text) !important;
 }
 
