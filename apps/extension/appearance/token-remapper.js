@@ -614,6 +614,8 @@ html[${ATTR.ACTIVE}='1'][${ATTR.SITE}='x'] :is(
 html[${ATTR.ACTIVE}='1'][${ATTR.SITE}='x'] :is(
   [data-testid='sidebarColumn'],
   [data-testid='sidebarColumn'] > div,
+  [data-testid='primaryColumn'],
+  [data-testid='primaryColumn'] > div,
   [data-testid='AppTabBar'],
   [data-testid='TopNavBar']
 ) {
@@ -642,11 +644,7 @@ html[${ATTR.ACTIVE}='1'][${ATTR.SITE}='x'] :is(
   [aria-label='Subscribe to Premium'],
   [aria-label='Timeline: Trending now']
 ) {
-  background-color: color-mix(
-    in srgb,
-    var(--holmeta-appearance-page-background) 86%,
-    var(--holmeta-appearance-panel-background) 14%
-  ) !important;
+  background-color: var(--holmeta-appearance-card-background) !important;
   border-color: var(--holmeta-appearance-line-subtle) !important;
 }
 
@@ -673,7 +671,7 @@ html[${ATTR.ACTIVE}='1'][${ATTR.SITE}='x'] :is(
   [data-testid='AppTabBar'],
   [data-testid='TopNavBar']
 ) [style*='background-color: rgb(0' i] {
-  background-color: var(--holmeta-appearance-page-background-alt) !important;
+  background-color: transparent !important;
 }
 
 /* Ensure X menus/dialogs/dropdowns are opaque (not transparent overlays). */
@@ -707,11 +705,7 @@ html[${ATTR.ACTIVE}='1'][${ATTR.SITE}='x'][${ATTR.MODE}='dark'] :is(
   [data-testid*='popover' i],
   [data-testid*='HoverCard' i],
   [data-testid='ScrollSnap-List'],
-  [role='tablist'],
-  [data-testid='primaryColumn'],
-  [data-testid='sidebarColumn'],
-  [data-testid='AppTabBar'],
-  [data-testid='TopNavBar']
+  [role='tablist']
 ) :where(div, section, article, header, nav, aside, main, ul, li)[style*='background-color: rgba(' i]:not([${ATTR.MEDIA_SAFE}='1']):not([${ATTR.ACCENT_SAFE}='1']) {
   background-color: var(--holmeta-appearance-page-background-alt) !important;
   border-color: var(--holmeta-appearance-line-subtle) !important;
@@ -719,10 +713,17 @@ html[${ATTR.ACTIVE}='1'][${ATTR.SITE}='x'][${ATTR.MODE}='dark'] :is(
 }
 
 html[${ATTR.ACTIVE}='1'][${ATTR.SITE}='x'][${ATTR.MODE}='dark'] :is(
-  [data-testid='primaryColumn'],
-  [data-testid='sidebarColumn'],
-  [data-testid='AppTabBar'],
-  [data-testid='TopNavBar']
+  [role='dialog'],
+  [aria-modal='true'],
+  [data-testid*='Sheet' i],
+  [data-testid*='sheet' i],
+  [data-testid*='Dropdown' i],
+  [data-testid*='dropdown' i],
+  [data-testid*='typeahead' i],
+  [data-testid*='popover' i],
+  [data-testid*='HoverCard' i],
+  [data-testid='ScrollSnap-List'],
+  [role='tablist']
 ) :where(div, section, article, header, nav, aside, main)[style*='background-color: rgb(0' i]:not([${ATTR.MEDIA_SAFE}='1']):not([${ATTR.ACCENT_SAFE}='1']) {
   background-color: var(--holmeta-appearance-page-background-alt) !important;
   border-color: var(--holmeta-appearance-line-subtle) !important;
@@ -881,6 +882,22 @@ html[${ATTR.ACTIVE}='1'][${ATTR.SITE}='amazon'][${ATTR.MODE}='dark'] :is(
   .a-section,
   .a-container
 ):not([${ATTR.MEDIA_SAFE}='1']) {
+  background-color: var(--holmeta-appearance-page-background) !important;
+  border-color: var(--holmeta-appearance-line-subtle) !important;
+}
+
+html[${ATTR.ACTIVE}='1'][${ATTR.SITE}='amazon'][${ATTR.MODE}='dark'] :is(
+  #pageContent,
+  #gw-layout,
+  #gw-main-container,
+  #gw-main,
+  #gw-card-layout,
+  #desktop-grid,
+  [id^='desktop-grid-'],
+  #search,
+  #searchTemplate,
+  #search-main-wrapper
+) > :where(div, section, article, main, aside, ul, li):not([${ATTR.MEDIA_SAFE}='1']):not([${ATTR.ACCENT_SAFE}='1']):not(:has(img, picture, video, canvas, iframe, object, embed)) {
   background-color: var(--holmeta-appearance-page-background) !important;
   border-color: var(--holmeta-appearance-line-subtle) !important;
 }
