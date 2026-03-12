@@ -135,31 +135,12 @@ input[type="checkbox"] {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
+  gap: 0;
   padding-inline: 8px;
   text-transform: none;
   letter-spacing: 0.02em;
   font-size: 11px;
   min-height: 38px;
-}
-
-.reading-theme-buttons .mode-icon {
-  width: 15px;
-  height: 15px;
-  border: 1px solid rgba(243, 243, 244, 0.28);
-  border-radius: 2px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 9px;
-  letter-spacing: 0;
-  color: var(--muted);
-  background: rgba(20, 17, 15, 0.72);
-  flex: 0 0 15px;
-}
-
-.reading-theme-buttons button span:last-child {
-  white-space: nowrap;
 }
 
 .reading-mode-toggle button,
@@ -177,13 +158,6 @@ input[type="checkbox"] {
 
 .reading-theme-buttons button.is-active {
   color: var(--text);
-}
-
-.reading-theme-buttons button.is-active .mode-icon {
-  border-color: rgba(255, 179, 0, 0.9);
-  color: var(--text);
-  box-shadow: none;
-  background: rgba(255, 179, 0, 0.16);
 }
 
 .reading-schedule-row {

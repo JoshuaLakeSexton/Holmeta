@@ -193,7 +193,6 @@ html[${ATTR.ACTIVE}='1'] :where(input, textarea, select):focus-visible {
 
 html[${ATTR.ACTIVE}='1'] [${ATTR.SURFACE}='1'] [${ATTR.INNER}='1'] {
   background-color: transparent !important;
-  background-image: none !important;
   color: inherit !important;
   border-color: transparent !important;
   box-shadow: none !important;
@@ -348,6 +347,11 @@ html[${ATTR.ACTIVE}='1'] :where([class*='accordion'], details, summary, [aria-ex
 html[${ATTR.ACTIVE}='1'] :where([class*='panel'], [class*='card'], [class*='module'], [class*='tile'], [data-testid*='panel']) {
   background-color: var(--holmeta-appearance-card-background) !important;
   border-color: var(--holmeta-appearance-border-subtle) !important;
+}
+
+html[${ATTR.ACTIVE}='1'] :where([class*='panel'], [class*='card'], [class*='module'], [class*='tile'], [data-testid*='panel'])[${ATTR.MEDIA_SAFE}='1'] {
+  background-color: transparent !important;
+  border-color: transparent !important;
 }
 
 html[${ATTR.ACTIVE}='1'] :where([class*='search'], [role='search'], [class*='filter'], [class*='toolbar']) {
@@ -656,6 +660,23 @@ html[${ATTR.ACTIVE}='1'][${ATTR.SITE_CLASS}='ecommerce'][${ATTR.MODE}='dark'] :w
   border-color: var(--holmeta-appearance-border-subtle) !important;
 }
 
+html[${ATTR.ACTIVE}='1'][${ATTR.SITE_CLASS}='ecommerce'][${ATTR.MODE}='dark'] :where(
+  [class*='product'],
+  [class*='deal'],
+  [class*='offer'],
+  [class*='promo'],
+  [class*='recommend'],
+  [class*='carousel'],
+  [class*='widget'],
+  [class*='listing'],
+  [data-testid*='product'],
+  [data-component-type*='s-product'],
+  [id*='deal']
+)[${ATTR.MEDIA_SAFE}='1'] {
+  background-color: transparent !important;
+  border-color: transparent !important;
+}
+
 html[${ATTR.ACTIVE}='1'][${ATTR.SITE}='x'] :is(
   [data-testid='SearchBox_Search_Input'],
   [data-testid='SearchBox_Search_Input'] *,
@@ -736,6 +757,95 @@ html[${ATTR.ACTIVE}='1'][${ATTR.SITE}='github'] :is(
   background-color: var(--holmeta-appearance-panel-background) !important;
   color: var(--holmeta-appearance-text-primary) !important;
   border-color: var(--holmeta-appearance-border-strong) !important;
+}
+
+html[${ATTR.ACTIVE}='1'][${ATTR.SITE}='amazon'] :is(
+  html,
+  body,
+  #a-page,
+  #pageContent,
+  #gw-layout,
+  #gw-card-layout,
+  #desktop-grid-1,
+  #desktop-grid-2,
+  #desktop-grid-3,
+  #desktop-grid-4,
+  #desktop-grid,
+  #desktop-hero,
+  #gw-desktop-herotator,
+  #dp,
+  #search,
+  #searchTemplate,
+  #search-main-wrapper,
+  .s-main-slot,
+  .s-desktop-content
+) {
+  background-color: var(--holmeta-appearance-page-background) !important;
+  color: var(--holmeta-appearance-text-primary) !important;
+}
+
+html[${ATTR.ACTIVE}='1'][${ATTR.SITE}='amazon'] :is(
+  .a-cardui,
+  .a-box,
+  .s-card-container,
+  .sg-col-inner,
+  .s-result-item,
+  .s-widget-container,
+  [data-card-metrics-id],
+  [data-cel-widget],
+  [id^='CardInstance'],
+  [id^='anonCarousel']
+):not([${ATTR.MEDIA_SAFE}='1']) {
+  background-color: var(--holmeta-appearance-card-background) !important;
+  border-color: var(--holmeta-appearance-border-subtle) !important;
+  color: var(--holmeta-appearance-text-primary) !important;
+}
+
+html[${ATTR.ACTIVE}='1'][${ATTR.SITE}='amazon'] :is(
+  #nav-logo-sprites,
+  #nav-logo,
+  #nav-logo .nav-logo-link,
+  #nav-logo .nav-logo-base,
+  #nav-logo .nav-logo-tagline,
+  #nav-logo .nav-logo-ext,
+  #nav-logo .nav-logo-locale,
+  #nav-logo-sprites-background,
+  #nav-logo-sprites-icon
+) {
+  filter: none !important;
+  mix-blend-mode: normal !important;
+  color: inherit !important;
+  background-color: transparent !important;
+}
+
+html[${ATTR.ACTIVE}='1'][${ATTR.SITE}='amazon'] #nav-logo-sprites {
+  opacity: 1 !important;
+}
+
+html[${ATTR.ACTIVE}='1'][${ATTR.SITE}='amazon'] :is(
+  .a-dynamic-image,
+  .a-image-container,
+  .a-link-normal img,
+  .a-link-normal picture,
+  [data-image-latency],
+  [data-a-image-name],
+  .a-carousel-card img,
+  .a-carousel-card picture,
+  .a-spacing-none img,
+  .a-spacing-none picture
+) {
+  filter: none !important;
+  mix-blend-mode: normal !important;
+  opacity: 1 !important;
+}
+
+html[${ATTR.ACTIVE}='1'][${ATTR.SITE}='amazon'] :is(
+  .a-dynamic-image,
+  .a-image-container,
+  [data-image-latency],
+  [data-a-image-name]
+) * {
+  filter: none !important;
 }
 
 html[${ATTR.ACTIVE}='1'][${ATTR.SITE}='amazon'] :is(

@@ -104,6 +104,12 @@
     return "surface";
   }
 
+  function hasUrlBackgroundImage(style) {
+    if (!style) return false;
+    const raw = String(style.backgroundImage || "").toLowerCase();
+    return raw.includes("url(");
+  }
+
   function shouldPromoteInnerSurface(node, rootRect) {
     if (!(node instanceof Element)) return false;
     const rect = node.getBoundingClientRect?.();
@@ -116,8 +122,10 @@
     const hasBorder = style.borderStyle !== "none" && Number.parseFloat(String(style.borderTopWidth || "0")) > 0;
     const hasShadow = style.boxShadow !== "none";
     const hasBgImage = style.backgroundImage && style.backgroundImage !== "none";
+    const hasUrlBgImage = hasUrlBackgroundImage(style);
     const classText = String(node.className || "").toLowerCase();
     const semantic = /(surface|container|wrapper|panel|card|chip|badge|input|field|search|row|cell|button|accordion|summary|footer|checkout|buy|payment|installment|toolbar|filter)/.test(classText);
+    if (hasUrlBgImage && !semantic && !hasBorder) return false;
     return Boolean(hasBrightBg || hasBorder || semantic || hasShadow || (hasMidBg && hasBgImage));
   }
 
@@ -158,6 +166,12 @@
       for (const inner of componentWrappers) {
         if (!(inner instanceof Element)) continue;
         if (inner.closest(`[${ATTR.MEDIA_SAFE}]`)) continue;
+        const innerStyle = getComputedStyle(inner);
+        if (hasUrlBackgroundImage(innerStyle)) {
+          inner.setAttribute(ATTR.MEDIA_SAFE, "1");
+          classifier.markOwned(inner);
+          continue;
+        }
         if (shouldPromoteInnerSurface(inner, componentRect)) {
           inner.setAttribute(ATTR.SURFACE, "1");
           inner.setAttribute(ATTR.COMPONENT, componentType === "separator" ? "separator" : "surface");
@@ -183,6 +197,12 @@
         for (const node of anatomy) {
           if (!(node instanceof Element)) continue;
           if (node.closest(`[${ATTR.MEDIA_SAFE}]`)) continue;
+          const nodeStyle = getComputedStyle(node);
+          if (hasUrlBackgroundImage(nodeStyle)) {
+            node.setAttribute(ATTR.MEDIA_SAFE, "1");
+            classifier.markOwned(node);
+            continue;
+          }
           if (shouldPromoteInnerSurface(node, componentRect)) {
             node.setAttribute(ATTR.SURFACE, "1");
             node.setAttribute(ATTR.COMPONENT, componentType === "input" ? "input" : "button");
@@ -206,6 +226,7 @@
       if (!rect || rect.width < 32 || rect.height < 18) continue;
       if (rect.width > window.innerWidth * 0.995 && rect.height > window.innerHeight * 0.995) continue;
       const style = getComputedStyle(node);
+      if (hasUrlBackgroundImage(style)) continue;
       const lum = parseBackgroundLuminance(style);
       if (!Number.isFinite(lum) || lum < 0.74) continue;
       node.setAttribute(ATTR.SURFACE, "1");
@@ -314,6 +335,12 @@
         for (const inner of inners) {
           if (!(inner instanceof Element)) continue;
           if (inner.closest(`[${ATTR.MEDIA_SAFE}]`)) continue;
+          const innerStyle = getComputedStyle(inner);
+          if (hasUrlBackgroundImage(innerStyle)) {
+            inner.setAttribute(ATTR.MEDIA_SAFE, "1");
+            classifier.markOwned(inner);
+            continue;
+          }
           inner.setAttribute(ATTR.INNER, "1");
           classifier.markOwned(inner);
           wrappers += 1;
@@ -342,6 +369,21 @@
             : "button"
         );
         classifier.markOwned(control);
+      }
+
+      const amazonLogos = document.querySelectorAll([
+        "#nav-logo",
+        "#nav-logo-sprites",
+        "#nav-logo .nav-logo-link",
+        "#nav-logo .nav-logo-base",
+        "#nav-logo .nav-logo-tagline",
+        "#nav-logo .nav-logo-ext",
+        "#nav-logo .nav-logo-locale"
+      ].join(","));
+      for (const logo of amazonLogos) {
+        if (!(logo instanceof Element)) continue;
+        logo.setAttribute(ATTR.MEDIA_SAFE, "1");
+        classifier.markOwned(logo);
       }
     }
 
@@ -373,6 +415,7 @@
 
       const area = rect.width * rect.height;
       const style = getComputedStyle(node);
+      if (hasUrlBackgroundImage(style)) continue;
       const bgLum = parseBackgroundLuminance(style);
       if (!Number.isFinite(bgLum)) continue;
       const classText = String(node.className || "").toLowerCase();
