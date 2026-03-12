@@ -693,8 +693,13 @@ html[${ATTR.ACTIVE}='1'][${ATTR.SITE}='amazon'] :is(
   #desktop-grid-3,
   #desktop-grid-4,
   #desktop-grid,
+  [id^='desktop-grid-'],
+  [id*='desktop-grid-'],
   #desktop-hero,
   #gw-desktop-herotator,
+  #gw-content,
+  #gw-main-container,
+  #gw-main,
   #dp,
   #search,
   #searchTemplate,
@@ -707,20 +712,18 @@ html[${ATTR.ACTIVE}='1'][${ATTR.SITE}='amazon'] :is(
 }
 
 html[${ATTR.ACTIVE}='1'][${ATTR.SITE}='amazon'] :is(
-  .a-cardui,
-  .a-box,
-  .s-card-container,
-  .sg-col-inner,
-  .s-result-item,
-  .s-widget-container,
-  [data-card-metrics-id],
-  [data-cel-widget],
-  [id^='CardInstance'],
-  [id^='anonCarousel']
-):not([${ATTR.MEDIA_SAFE}='1']) {
-  background-color: var(--holmeta-appearance-card-background) !important;
-  border-color: var(--holmeta-appearance-border-subtle) !important;
-  color: var(--holmeta-appearance-text-primary) !important;
+  .a-cardui:has(img),
+  .a-box:has(img),
+  .s-card-container:has(img),
+  .sg-col-inner:has(img),
+  [data-card-metrics-id]:has(img),
+  [data-cel-widget]:has(img),
+  [id^='CardInstance']:has(img),
+  [id^='anonCarousel']:has(img)
+) {
+  background-color: revert !important;
+  border-color: revert !important;
+  color: revert !important;
 }
 
 html[${ATTR.ACTIVE}='1'][${ATTR.SITE}='amazon'] :is(
@@ -759,6 +762,8 @@ html[${ATTR.ACTIVE}='1'][${ATTR.SITE}='amazon'] :is(
   filter: none !important;
   mix-blend-mode: normal !important;
   opacity: 1 !important;
+  background-color: transparent !important;
+  border-color: transparent !important;
 }
 
 html[${ATTR.ACTIVE}='1'][${ATTR.SITE}='amazon'] :is(
@@ -777,9 +782,17 @@ html[${ATTR.ACTIVE}='1'][${ATTR.SITE}='amazon'] :is(
   #navbar,
   #nav-tools,
   #nav-xshop,
-  #nav-xshop-container
+  #nav-xshop-container,
+  #nav-swm-holiday,
+  #nav-swmslot,
+  #nav-swm-right,
+  [id*='nav-swm']
 ) {
-  background-color: var(--holmeta-appearance-nav-harmonized-background) !important;
+  background-color: color-mix(
+    in srgb,
+    var(--holmeta-appearance-page-background) 86%,
+    var(--holmeta-appearance-elevated-background) 14%
+  ) !important;
   color: var(--holmeta-appearance-nav-harmonized-text) !important;
   border-color: var(--holmeta-appearance-line-subtle) !important;
 }

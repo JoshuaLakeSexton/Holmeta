@@ -192,6 +192,19 @@
     classifier.markOwned(node);
   }
 
+  function isImageHeavySurface(node) {
+    if (!(node instanceof Element)) return false;
+    const mediaNodes = node.querySelectorAll("img, picture, video, canvas");
+    if (mediaNodes.length === 0) return false;
+    const rect = node.getBoundingClientRect?.();
+    if (!rect || rect.width < 40 || rect.height < 40) return false;
+    if (mediaNodes.length >= 3) return true;
+    const classText = String(node.className || "").toLowerCase();
+    const semanticMediaCard = /(hero|carousel|promo|deal|card|tile|widget|gallery|image|banner)/.test(classText);
+    const textLen = String(node.textContent || "").trim().length;
+    return semanticMediaCard && mediaNodes.length >= 1 && textLen <= 420;
+  }
+
   function normalizeRoot(root = document.documentElement, options = {}) {
     if (!classifier || !mediaGuard) return { components: 0, wrappers: 0, media: 0 };
 
@@ -219,6 +232,14 @@
       }
 
       const componentType = classifier.classifyComponent(componentRoot);
+      if (
+        (componentType === "card" || componentType === "panel" || componentType === "surface")
+        && isImageHeavySurface(componentRoot)
+      ) {
+        componentRoot.setAttribute(ATTR.MEDIA_SAFE, "1");
+        classifier.markOwned(componentRoot);
+        continue;
+      }
       componentRoot.setAttribute(ATTR.SURFACE, "1");
       componentRoot.setAttribute(ATTR.COMPONENT, componentType);
       classifier.markOwned(componentRoot);
@@ -497,6 +518,7 @@
       if (!(node instanceof Element)) continue;
       if (node.closest(`[${ATTR.MEDIA_SAFE}]`)) continue;
       if (node.closest(`[${ATTR.ACCENT_SAFE}]`)) continue;
+      if (isImageHeavySurface(node)) continue;
       const rect = node.getBoundingClientRect?.();
       if (!rect || rect.width < 24 || rect.height < 18) continue;
       if ((rect.width * rect.height) < 6000) continue;
