@@ -2475,6 +2475,9 @@ const CONTENT_SCRIPT_FILES = [
   "appearance/site-rules.js",
   "appearance/token-remapper.js",
   "appearance/appearance-engine.js",
+  "appearance/darklight-settings.js",
+  "appearance/darklight-engine.js",
+  "appearance/darklight-switch.js",
   "light/engine.js",
   "translate/engine.js",
   "content.js"
@@ -4972,6 +4975,82 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           return;
         }
         lastError = diagnosticAttempt.error || lastError;
+      }
+
+      sendResponse({ ok: false, error: lastError });
+      return;
+    }
+
+    if (type === "holmeta:daynight-action") {
+      const action = String(message.action || "").trim();
+      if (!action) {
+        sendResponse({ ok: false, error: "missing_action" });
+        return;
+      }
+
+      const payload = message.payload && typeof message.payload === "object"
+        ? message.payload
+        : {};
+
+      const candidateTabIds = [];
+      const requestedTabId = Number(message.tabId || 0);
+      if (Number.isInteger(requestedTabId) && requestedTabId > 0) {
+        candidateTabIds.push(requestedTabId);
+      }
+
+      const senderTabId = Number(sender?.tab?.id || 0);
+      const senderUrl = String(sender?.tab?.url || "");
+      if (
+        Number.isInteger(senderTabId)
+        && senderTabId > 0
+        && /^https?:/i.test(senderUrl)
+        && !candidateTabIds.includes(senderTabId)
+      ) {
+        candidateTabIds.push(senderTabId);
+      }
+
+      const tabs = await tabsQuery({ active: true, currentWindow: true });
+      const activeTab = tabs.find((candidate) => Number.isInteger(candidate?.id) && /^https?:/i.test(String(candidate?.url || "")));
+      const activeTabId = Number(activeTab?.id || 0);
+      if (Number.isInteger(activeTabId) && activeTabId > 0 && !candidateTabIds.includes(activeTabId)) {
+        candidateTabIds.push(activeTabId);
+      }
+
+      if (!candidateTabIds.length) {
+        sendResponse({ ok: false, error: "invalid_tab" });
+        return;
+      }
+
+      let lastError = "daynight_action_failed";
+      for (const tabId of candidateTabIds) {
+        // eslint-disable-next-line no-await-in-loop
+        let result = await sendTab(tabId, {
+          type: "holmeta:darklight-action",
+          action,
+          payload
+        }, { frameId: 0 });
+
+        if (!result.ok && isMissingReceiverError(result.error)) {
+          // eslint-disable-next-line no-await-in-loop
+          const ready = await ensureContentScriptReady(tabId);
+          if (!ready.ok) {
+            lastError = ready.error || "inject_failed";
+            continue;
+          }
+          // eslint-disable-next-line no-await-in-loop
+          result = await sendTab(tabId, {
+            type: "holmeta:darklight-action",
+            action,
+            payload
+          }, { frameId: 0 });
+        }
+
+        if (result.ok && result.res?.ok) {
+          sendResponse({ ok: true, tabId, result: result.res });
+          return;
+        }
+
+        lastError = result.error || result.res?.error || lastError;
       }
 
       sendResponse({ ok: false, error: lastError });

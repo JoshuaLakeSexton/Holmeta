@@ -3792,6 +3792,7 @@
     if (!state.settings) return;
 
     applyLightEngine();
+    globalThis.HolmetaDarklightSwitch?.refreshState?.();
     applyCosmeticFiltering();
     applyMorphing(Boolean(state.licensePremium && state.settings.advanced?.morphing));
     globalThis.HolmetaTranslateEngine?.applyState?.({ settings: state.settings.translate || {} });
@@ -3811,6 +3812,7 @@
 
   chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     const type = String(message?.type || "");
+    const actionOnly = !type && String(message?.action || "").trim();
 
     if (type === "holmeta:ping") {
       sendResponse({
@@ -3847,6 +3849,19 @@
       Promise.resolve(handler(message))
         .then((result) => sendResponse(result || { ok: false, error: "translate_empty_response" }))
         .catch((error) => sendResponse({ ok: false, error: String(error?.message || "translate_handler_failed") }));
+      return true;
+    }
+
+    if (type === "holmeta:darklight-action" || actionOnly) {
+      const handler = globalThis.HolmetaDarklightEngine?.handleAction;
+      if (typeof handler !== "function") {
+        sendResponse({ ok: false, error: "darklight_engine_unavailable" });
+        return false;
+      }
+      const action = String(message?.action || "").trim();
+      Promise.resolve(handler({ action, payload: message?.payload || {} }))
+        .then((result) => sendResponse(result || { ok: false, error: "darklight_action_empty_response" }))
+        .catch((error) => sendResponse({ ok: false, error: String(error?.message || "darklight_action_failed") }));
       return true;
     }
 

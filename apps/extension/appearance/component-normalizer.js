@@ -317,10 +317,17 @@
       const style = getComputedStyle(node);
       const bgLum = parseBackgroundLuminance(style);
       if (!Number.isFinite(bgLum)) continue;
+      const classText = String(node.className || "").toLowerCase();
+      const semanticBlock = /(product|deal|offer|promo|recommend|carousel|widget|listing|result|buybox|checkout|cart|module|card|panel)/.test(classText);
+      const hasVisualSignal = (
+        style.boxShadow !== "none"
+        || (style.borderStyle !== "none" && Number.parseFloat(String(style.borderTopWidth || "0")) > 0)
+      );
+      const isMidSurface = area > 1200 && (semanticBlock || hasVisualSignal);
 
       if (mode === "dark") {
         const isLargeStructural = area > (viewportArea * 0.02) || (rect.width > window.innerWidth * 0.65 && rect.height > 26);
-        if (isLargeStructural && bgLum > 0.66) {
+        if ((isLargeStructural || isMidSurface) && bgLum > 0.62) {
           node.setAttribute(ATTR.SURFACE, "1");
           node.setAttribute(ATTR.COMPONENT, classifySurfaceNode(node));
           classifier.markOwned(node);
@@ -328,7 +335,7 @@
         }
       } else {
         const isLargeStructural = area > (viewportArea * 0.03);
-        if (isLargeStructural && bgLum < 0.18) {
+        if ((isLargeStructural || isMidSurface) && bgLum < 0.24) {
           node.setAttribute(ATTR.SURFACE, "1");
           node.setAttribute(ATTR.COMPONENT, classifySurfaceNode(node));
           classifier.markOwned(node);

@@ -93,6 +93,9 @@
         "appearance/site-rules.js",
         "appearance/token-remapper.js",
         "appearance/appearance-engine.js",
+        "appearance/darklight-settings.js",
+        "appearance/darklight-engine.js",
+        "appearance/darklight-switch.js",
         "light/engine.js",
         "translate/engine.js",
         "content.js"

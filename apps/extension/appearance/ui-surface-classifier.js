@@ -72,6 +72,17 @@
     "[class*='payment']",
     "[class*='summary']",
     "[class*='installment']",
+    "[class*='product']",
+    "[class*='deal']",
+    "[class*='offer']",
+    "[class*='promo']",
+    "[class*='recommend']",
+    "[class*='carousel']",
+    "[class*='widget']",
+    "[class*='grid']",
+    "[data-component-type*='product']",
+    "[data-component-type*='s-product']",
+    "[data-testid*='product']",
     "[class*='surface']",
     "[class*='module']",
     "[class*='tile']",
@@ -156,6 +167,9 @@
     if (/checkout|buy|cart|payment|installment|order-summary|purchase/.test(className)) {
       return "buy_panel";
     }
+    if (/product|deal|offer|promo|recommend|carousel|widget|merch|grid-item|result-item|listing/.test(className)) {
+      return "card";
+    }
     if (/toolbar|filterbar|filter-row/.test(className)) {
       return "toolbar";
     }
@@ -224,7 +238,7 @@
 
     const interactiveTag = /^(button|a|input|textarea|select)$/i.test(tag);
     const interactiveRole = /button|tab|menuitem|option|switch|textbox|search/.test(role);
-    const semanticClass = /(button|btn|card|panel|module|tile|input|field|chip|pill|menu|nav|toolbar|header|footer|accordion|summary|modal|dialog|search|sidebar|table|row|checkout|buy|payment|cart|installment)/.test(classText);
+    const semanticClass = /(button|btn|card|panel|module|tile|input|field|chip|pill|menu|nav|toolbar|header|footer|accordion|summary|modal|dialog|search|sidebar|table|row|checkout|buy|payment|cart|installment|product|deal|offer|promo|recommend|carousel|widget|listing)/.test(classText);
 
     const styleSignal = hasVisualSurface(style);
 

@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Holmeta Day/Night Demo</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --bg: #ffffff;
+        --surface: #f7f7f8;
+        --elev: #ffffff;
+        --text: #111111;
+        --muted: #5f6470;
+        --line: rgba(10, 12, 16, 0.14);
+        --accent: #0f6dff;
+      }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--text);
+        font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+      }
+      header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 14px 18px;
+        border-bottom: 1px solid var(--line);
+        background: #16a34a;
+        color: #111;
+      }
+      .layout {
+        display: grid;
+        grid-template-columns: 240px 1fr;
+        min-height: calc(100vh - 58px);
+      }
+      nav {
+        border-right: 1px solid var(--line);
+        background: var(--surface);
+        padding: 12px;
+      }
+      nav button,
+      .toolbar button,
+      .cta {
+        border: 1px solid var(--line);
+        background: var(--elev);
+        color: inherit;
+        border-radius: 10px;
+        padding: 8px 10px;
+      }
+      main {
+        padding: 20px;
+        display: grid;
+        gap: 14px;
+      }
+      .toolbar,
+      .card,
+      .deal,
+      .accordion,
+      footer {
+        border: 1px solid var(--line);
+        background: var(--surface);
+        border-radius: 12px;
+        padding: 14px;
+      }
+      .deal {
+        background: #fff;
+      }
+      .logo {
+        font-weight: 900;
+        letter-spacing: 0.1em;
+      }
+      .search {
+        display: flex;
+        gap: 8px;
+      }
+      .search input {
+        flex: 1;
+        border: 1px solid var(--line);
+        border-radius: 9px;
+        padding: 8px 10px;
+        background: #fff;
+        color: #111;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+      th,
+      td {
+        border-bottom: 1px solid var(--line);
+        padding: 8px;
+        text-align: left;
+      }
+      .muted {
+        color: var(--muted);
+      }
+      .media {
+        width: 100%;
+        border-radius: 10px;
+        display: block;
+      }
+      .cta {
+        background: var(--accent);
+        color: #fff;
+        border-color: color-mix(in srgb, var(--accent) 65%, #000);
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <div class="logo">HOLMETA DEMO</div>
+      <div>Source-colored header + dark wordmark stress test</div>
+    </header>
+    <div class="layout">
+      <nav>
+        <p class="muted">Navigation</p>
+        <button>Home</button>
+        <button>Deals</button>
+        <button>Orders</button>
+      </nav>
+      <main>
+        <section class="toolbar">
+          <div class="search">
+            <input value="search query" />
+            <button>Filter</button>
+            <button class="cta">Apply</button>
+          </div>
+        </section>
+        <section class="deal">
+          <h2>Commerce module (white-origin)</h2>
+          <p class="muted">Should be fully translated in dark mode.</p>
+          <img class="media" src="https://picsum.photos/900/280" alt="Media should remain preserved" />
+        </section>
+        <section class="card">
+          <h3>Table + separators</h3>
+          <table>
+            <thead><tr><th>Plan</th><th>Status</th><th>Price</th></tr></thead>
+            <tbody>
+              <tr><td>Focus</td><td>Active</td><td>$9</td></tr>
+              <tr><td>Pro</td><td>Trialing</td><td>$19</td></tr>
+              <tr><td>Elite</td><td>Past due</td><td>$39</td></tr>
+            </tbody>
+          </table>
+        </section>
+        <section class="accordion">
+          <h3>Accordion row shell</h3>
+          <p class="muted">Use this for border/separator harmony checks.</p>
+        </section>
+        <footer>
+          Footer link-grid shell for structure translation checks.
+        </footer>
+      </main>
+    </div>
+  </body>
+</html>

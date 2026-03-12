@@ -1,0 +1,39 @@
+/* Holmeta on-page Day/Night widget visual tokens. */
+
+:root {
+  --hm-dl-widget-bg: linear-gradient(180deg, #181818, #111113);
+  --hm-dl-widget-border: rgba(255, 255, 255, 0.18);
+  --hm-dl-widget-text: #f3f3f4;
+  --hm-dl-widget-muted: #c7ccd4;
+  --hm-dl-widget-accent: #ff7d41;
+  --hm-dl-widget-accent-border: rgba(255, 175, 120, 0.55);
+}
+
+.hm-dl-shell {
+  background: var(--hm-dl-widget-bg);
+  border: 1px solid var(--hm-dl-widget-border);
+  color: var(--hm-dl-widget-text);
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(255, 160, 122, 0.08) inset;
+}
+
+.hm-dl-badge {
+  background: color-mix(in srgb, var(--hm-dl-widget-accent) 12%, transparent);
+  border: 1px solid var(--hm-dl-widget-accent-border);
+  color: #ffd8c0;
+}
+
+.hm-dl-btn {
+  background: #16181b;
+  color: var(--hm-dl-widget-text);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+}
+
+.hm-dl-btn:hover {
+  background: #22262c;
+  border-color: rgba(255, 255, 255, 0.35);
+}
+
+.hm-dl-text {
+  color: var(--hm-dl-widget-muted);
+}

@@ -262,6 +262,54 @@ html[${ATTR.ACTIVE}='1'][${ATTR.MODE}='dark'] :where(
   color: var(--holmeta-appearance-nav-harmonized-text) !important;
 }
 
+html[${ATTR.ACTIVE}='1'][${ATTR.MODE}='light'] :where(
+  header,
+  [role='banner'],
+  nav,
+  [class*='header'],
+  [class*='navbar'],
+  [class*='menu-bar'],
+  [class*='topbar'],
+  [class*='appbar'],
+  [data-testid*='header']
+) {
+  background-color: var(--holmeta-appearance-nav-harmonized-background) !important;
+  color: var(--holmeta-appearance-nav-harmonized-text) !important;
+  border-color: var(--holmeta-appearance-line-subtle) !important;
+}
+
+html[${ATTR.ACTIVE}='1'][${ATTR.MODE}='light'] :where(
+  header,
+  [role='banner'],
+  nav,
+  [class*='header'],
+  [class*='navbar'],
+  [class*='menu-bar'],
+  [class*='topbar'],
+  [class*='appbar'],
+  [data-testid*='header']
+) :where(a, p, span, strong, em, i, b, label, button) {
+  color: var(--holmeta-appearance-nav-harmonized-text) !important;
+}
+
+/* Hard fallback: kill surviving inline white slabs and inline black text in dark mode. */
+html[${ATTR.ACTIVE}='1'][${ATTR.MODE}='dark'] :where(main, section, article, aside, div, li, td, th, header, nav, footer)[style*='background-color: rgb(255' i],
+html[${ATTR.ACTIVE}='1'][${ATTR.MODE}='dark'] :where(main, section, article, aside, div, li, td, th, header, nav, footer)[style*='background-color:#fff' i],
+html[${ATTR.ACTIVE}='1'][${ATTR.MODE}='dark'] :where(main, section, article, aside, div, li, td, th, header, nav, footer)[style*='background:#fff' i] {
+  background-color: var(--holmeta-appearance-card-background) !important;
+  border-color: var(--holmeta-appearance-border-subtle) !important;
+}
+
+html[${ATTR.ACTIVE}='1'][${ATTR.MODE}='dark'] :where(h1, h2, h3, h4, h5, h6, p, span, label, a, button, li, td, th, strong, em, b, i)[style*='color: rgb(0' i],
+html[${ATTR.ACTIVE}='1'][${ATTR.MODE}='dark'] :where(h1, h2, h3, h4, h5, h6, p, span, label, a, button, li, td, th, strong, em, b, i)[style*='color:#000' i] {
+  color: var(--holmeta-appearance-contrast-on-dark) !important;
+}
+
+html[${ATTR.ACTIVE}='1'][${ATTR.MODE}='light'] :where(h1, h2, h3, h4, h5, h6, p, span, label, a, button, li, td, th, strong, em, b, i)[style*='color: rgb(255' i],
+html[${ATTR.ACTIVE}='1'][${ATTR.MODE}='light'] :where(h1, h2, h3, h4, h5, h6, p, span, label, a, button, li, td, th, strong, em, b, i)[style*='color:#fff' i] {
+  color: var(--holmeta-appearance-contrast-on-light) !important;
+}
+
 html[${ATTR.ACTIVE}='1'] [${ATTR.FORCE_TEXT}='light'],
 html[${ATTR.ACTIVE}='1'] [${ATTR.FORCE_TEXT}='light'] :where(a, p, span, strong, em, i, b, label, button, svg, path, circle, rect, polygon, line) {
   color: var(--holmeta-appearance-contrast-on-dark) !important;
@@ -413,6 +461,24 @@ html[${ATTR.ACTIVE}='1'][${ATTR.SITE_CLASS}='ecommerce'] :where([class*='price']
 
 html[${ATTR.ACTIVE}='1'][${ATTR.SITE_CLASS}='ecommerce'] :where([class*='cart'], [class*='checkout'], [class*='buy'], [data-testid*='buy']) {
   background-color: var(--holmeta-appearance-card-background) !important;
+  border-color: var(--holmeta-appearance-border-subtle) !important;
+}
+
+html[${ATTR.ACTIVE}='1'][${ATTR.SITE_CLASS}='ecommerce'][${ATTR.MODE}='dark'] :where(
+  [class*='product'],
+  [class*='deal'],
+  [class*='offer'],
+  [class*='promo'],
+  [class*='recommend'],
+  [class*='carousel'],
+  [class*='widget'],
+  [class*='listing'],
+  [data-testid*='product'],
+  [data-component-type*='s-product'],
+  [id*='deal']
+) {
+  background-color: var(--holmeta-appearance-card-background) !important;
+  color: var(--holmeta-appearance-text-primary) !important;
   border-color: var(--holmeta-appearance-border-subtle) !important;
 }
 

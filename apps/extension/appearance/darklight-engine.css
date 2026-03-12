@@ -1,0 +1,70 @@
+/* Holmeta Day/Night Appearance engine reference stylesheet.
+   Runtime injection currently uses token-remapper.js; this file mirrors
+   the token-driven model for demo/testing and future extraction. */
+
+:root {
+  --hm-dl-page-bg: #121212;
+  --hm-dl-surface: #1b1b1c;
+  --hm-dl-card: #232325;
+  --hm-dl-elevated: #2c2d31;
+  --hm-dl-text: #f3f3f4;
+  --hm-dl-text-muted: #b8bac2;
+  --hm-dl-border: rgba(243, 243, 244, 0.12);
+  --hm-dl-divider: rgba(243, 243, 244, 0.08);
+  --hm-dl-accent: #7e57c2;
+  --hm-dl-selected: rgba(126, 87, 194, 0.26);
+}
+
+html[data-holmeta-appearance-active='1'] {
+  background: var(--hm-dl-page-bg);
+  color: var(--hm-dl-text);
+}
+
+html[data-holmeta-appearance-active='1'] body {
+  background: var(--hm-dl-page-bg);
+  color: var(--hm-dl-text);
+}
+
+html[data-holmeta-appearance-active='1'] :where(main, section, article, nav, header, aside, footer) {
+  border-color: var(--hm-dl-border);
+}
+
+html[data-holmeta-appearance-active='1'] :where(.card, [class*='card'], [class*='panel'], [class*='module']) {
+  background: var(--hm-dl-card);
+  border-color: var(--hm-dl-border);
+}
+
+html[data-holmeta-appearance-active='1'] :where(button, [role='button'], [role='tab']) {
+  background: var(--hm-dl-surface);
+  color: var(--hm-dl-text);
+  border-color: var(--hm-dl-border);
+}
+
+html[data-holmeta-appearance-active='1'] :where(button, [role='button'], [role='tab']):hover,
+html[data-holmeta-appearance-active='1'] :where(button, [role='button'], [role='tab'])[aria-selected='true'] {
+  background: var(--hm-dl-selected);
+  border-color: color-mix(in srgb, var(--hm-dl-accent) 45%, var(--hm-dl-border));
+}
+
+html[data-holmeta-appearance-active='1'] :where(input, textarea, select, [role='textbox']) {
+  background: var(--hm-dl-elevated);
+  color: var(--hm-dl-text);
+  border-color: var(--hm-dl-border);
+}
+
+html[data-holmeta-appearance-active='1'] :where(hr, [role='separator']) {
+  border-color: var(--hm-dl-divider);
+}
+
+html[data-holmeta-appearance-active='1'] :where(th, td, tr) {
+  border-color: var(--hm-dl-divider);
+}
+
+html[data-holmeta-appearance-active='1'] :where(a, a:visited) {
+  color: color-mix(in srgb, var(--hm-dl-text) 88%, var(--hm-dl-accent));
+}
+
+/* Safety reminders: do not recolor meaningful media surfaces. */
+html[data-holmeta-appearance-active='1'] :where(img, video, canvas, iframe, object, embed) {
+  filter: none !important;
+}

@@ -91,6 +91,8 @@
     readingThemeThisSiteEnabled: document.getElementById("readingThemeThisSiteEnabled"),
     readingThemeExcludeSite: document.getElementById("readingThemeExcludeSite"),
     readingThemeStatus: document.getElementById("readingThemeStatus"),
+    readingThemeShowWidget: document.getElementById("readingThemeShowWidget"),
+    readingThemeHideWidget: document.getElementById("readingThemeHideWidget"),
 
     adaptiveThemeEnabled: document.getElementById("adaptiveThemeEnabled"),
     adaptiveThemeMode: document.getElementById("adaptiveThemeMode"),
@@ -808,6 +810,8 @@
     refs.readingThemeScheduleEnd.disabled = effective.appearance !== "auto" || effective.scheduleMode !== "custom";
     setChecked(refs.readingThemeThisSiteEnabled, Boolean(siteProfile));
     setChecked(refs.readingThemeExcludeSite, isReadingSiteExcluded());
+    if (refs.readingThemeShowWidget) refs.readingThemeShowWidget.disabled = !state.currentHost;
+    if (refs.readingThemeHideWidget) refs.readingThemeHideWidget.disabled = !state.currentHost;
 
     const darkLabel = readingVariantLabel("dark", darkVariant);
     const lightLabel = readingVariantLabel("light", lightVariant);
@@ -1698,6 +1702,35 @@
     return response;
   }
 
+  async function runDayNightAction(action, payload = {}, successText = "") {
+    const tab = await queryCurrentTab();
+    const tabId = Number(tab?.id || 0);
+    if (!Number.isInteger(tabId) || tabId <= 0) {
+      toast("Appearance action unavailable on this page.");
+      return { ok: false, error: "invalid_tab" };
+    }
+
+    const response = await sendMessage({
+      type: "holmeta:daynight-action",
+      tabId,
+      action: String(action || ""),
+      payload
+    });
+
+    if (!response?.ok) {
+      toast(`Appearance action failed: ${response?.error || "unknown"}`);
+      return { ok: false, error: response?.error || "daynight_action_failed" };
+    }
+
+    if (response.result?.settings) {
+      state.app.settings = response.result.settings;
+      render();
+    }
+
+    if (successText) toast(successText);
+    return response;
+  }
+
   async function refreshDiagnostics() {
     const tab = await queryCurrentTab();
     const tabId = Number(tab?.id || 0);
@@ -2291,6 +2324,12 @@
 
     refs.readingThemeThisSiteEnabled.addEventListener("change", (e) => setReadingSiteOverride(e.target.checked));
     refs.readingThemeExcludeSite.addEventListener("change", (e) => setReadingExcludeSite(e.target.checked));
+    refs.readingThemeShowWidget?.addEventListener("click", async () => {
+      await runDayNightAction("showWidget", {}, "Appearance widget shown on this site.");
+    });
+    refs.readingThemeHideWidget?.addEventListener("click", async () => {
+      await runDayNightAction("hideWidget", {}, "Appearance widget hidden on this site.");
+    });
 
     refs.adaptiveThemeEnabled.addEventListener("change", (e) => queuePatch({ adaptiveSiteTheme: { enabled: e.target.checked } }));
     refs.adaptiveThemeMode.addEventListener("change", (e) => queueAdaptivePatch({ mode: String(e.target.value || "smart_dark") }));
