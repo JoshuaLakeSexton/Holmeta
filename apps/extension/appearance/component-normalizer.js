@@ -287,6 +287,64 @@
       }
     }
 
+    if (/(\.|^)amazon\./.test(host)) {
+      const amazonStructural = document.querySelectorAll([
+        "#nav-belt",
+        "#nav-main",
+        "#nav-subnav",
+        "#navbar",
+        "#nav-tools",
+        "#nav-xshop",
+        "#nav-xshop-container",
+        "#nav-search",
+        "#nav-search-bar-form"
+      ].join(","));
+
+      for (const block of amazonStructural) {
+        if (!(block instanceof Element)) continue;
+        if (block.closest(`[${ATTR.MEDIA_SAFE}]`)) continue;
+        block.setAttribute(ATTR.SURFACE, "1");
+        block.setAttribute(
+          ATTR.COMPONENT,
+          block.matches("#nav-search, #nav-search-bar-form") ? "input" : classifySurfaceNode(block)
+        );
+        classifier.markOwned(block);
+
+        const inners = block.querySelectorAll("div, span, label, strong, em, b, i");
+        for (const inner of inners) {
+          if (!(inner instanceof Element)) continue;
+          if (inner.closest(`[${ATTR.MEDIA_SAFE}]`)) continue;
+          inner.setAttribute(ATTR.INNER, "1");
+          classifier.markOwned(inner);
+          wrappers += 1;
+        }
+      }
+
+      const amazonControls = document.querySelectorAll([
+        "#twotabsearchtextbox",
+        "#searchDropdownBox",
+        "#nav-search-submit-button",
+        "#nav-hamburger-menu",
+        "#nav-cart",
+        "#nav-link-accountList",
+        "#nav-orders",
+        "#icp-nav-flyout"
+      ].join(","));
+
+      for (const control of amazonControls) {
+        if (!(control instanceof Element)) continue;
+        if (control.closest(`[${ATTR.MEDIA_SAFE}]`)) continue;
+        control.setAttribute(ATTR.SURFACE, "1");
+        control.setAttribute(
+          ATTR.COMPONENT,
+          control.matches("#twotabsearchtextbox, #searchDropdownBox, #nav-search-submit-button")
+            ? "input"
+            : "button"
+        );
+        classifier.markOwned(control);
+      }
+    }
+
     return {
       components: components.length,
       wrappers: wrappers + residualCount,

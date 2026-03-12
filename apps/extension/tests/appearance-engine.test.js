@@ -236,4 +236,7 @@ test("token remapper enforces explicit light/dark foreground markers", () => {
   assert.ok(css.includes("[data-holmeta-logo-wordmark='dark']"), "missing logo wordmark dark rule");
   assert.ok(css.includes("--holmeta-appearance-contrast-on-dark"), "missing contrast-on-dark var usage");
   assert.ok(css.includes("--holmeta-appearance-contrast-on-light"), "missing contrast-on-light var usage");
+  assert.ok(css.includes("[data-holmeta-appearance-site='amazon']"), "missing amazon site harmonization rules");
+  assert.ok(css.includes("[data-holmeta-appearance-site='claude']"), "missing claude site smoothing rules");
+  assert.ok(css.includes(":where([role='button'])"), "missing role button smoothing rule");
 });

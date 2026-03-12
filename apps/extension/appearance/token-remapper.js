@@ -211,20 +211,75 @@ html[${ATTR.ACTIVE}='1'] :where(input, textarea, select, [role='textbox'], [type
   border-color: var(--holmeta-appearance-input-border) !important;
 }
 
-html[${ATTR.ACTIVE}='1'] :where(button, [role='button'], [role='tab']) {
+html[${ATTR.ACTIVE}='1'] :where(
+  button,
+  [type='button'],
+  [type='submit'],
+  [type='reset'],
+  [${ATTR.COMPONENT}='button'],
+  [${ATTR.COMPONENT}='input'],
+  [role='tab']
+) {
   background-color: var(--holmeta-appearance-control-background) !important;
   color: var(--holmeta-appearance-text-primary) !important;
   border-color: var(--holmeta-appearance-button-border) !important;
 }
 
-html[${ATTR.ACTIVE}='1'] :where(button, [role='button'], [role='tab']):hover,
-html[${ATTR.ACTIVE}='1'] :where(button, [role='button'], [role='tab']):focus-visible,
-html[${ATTR.ACTIVE}='1'] :where(button, [role='button'], [role='tab'])[aria-current='page'],
-html[${ATTR.ACTIVE}='1'] :where(button, [role='button'], [role='tab'])[aria-selected='true'],
-html[${ATTR.ACTIVE}='1'] :where(button, [role='button'], [role='tab']).active {
+html[${ATTR.ACTIVE}='1'] :where(
+  button,
+  [type='button'],
+  [type='submit'],
+  [type='reset'],
+  [${ATTR.COMPONENT}='button'],
+  [role='tab']
+):hover,
+html[${ATTR.ACTIVE}='1'] :where(
+  button,
+  [type='button'],
+  [type='submit'],
+  [type='reset'],
+  [${ATTR.COMPONENT}='button'],
+  [role='tab']
+):focus-visible,
+html[${ATTR.ACTIVE}='1'] :where(
+  button,
+  [type='button'],
+  [type='submit'],
+  [type='reset'],
+  [${ATTR.COMPONENT}='button'],
+  [role='tab']
+)[aria-current='page'],
+html[${ATTR.ACTIVE}='1'] :where(
+  button,
+  [type='button'],
+  [type='submit'],
+  [type='reset'],
+  [${ATTR.COMPONENT}='button'],
+  [role='tab']
+)[aria-selected='true'],
+html[${ATTR.ACTIVE}='1'] :where(
+  button,
+  [type='button'],
+  [type='submit'],
+  [type='reset'],
+  [${ATTR.COMPONENT}='button'],
+  [role='tab']
+).active {
   background-color: var(--holmeta-appearance-selected-background) !important;
   color: var(--holmeta-appearance-selected-text) !important;
   border-color: var(--holmeta-appearance-accent-strong) !important;
+}
+
+/* Keep generic role=button elements readable without forcing boxed patches. */
+html[${ATTR.ACTIVE}='1'] :where([role='button']) {
+  background-color: transparent !important;
+  border-color: transparent !important;
+  color: var(--holmeta-appearance-text-primary) !important;
+}
+
+html[${ATTR.ACTIVE}='1'] :where([role='button'][aria-selected='true'], [role='button'][aria-current='page'], [role='button'][aria-pressed='true']) {
+  background-color: color-mix(in srgb, var(--holmeta-appearance-selected-background) 72%, transparent) !important;
+  border-color: var(--holmeta-appearance-border-subtle) !important;
 }
 
 html[${ATTR.ACTIVE}='1'] :where(p, li, dt, dd, label, td, figcaption, blockquote) {
@@ -681,6 +736,117 @@ html[${ATTR.ACTIVE}='1'][${ATTR.SITE}='github'] :is(
   background-color: var(--holmeta-appearance-panel-background) !important;
   color: var(--holmeta-appearance-text-primary) !important;
   border-color: var(--holmeta-appearance-border-strong) !important;
+}
+
+html[${ATTR.ACTIVE}='1'][${ATTR.SITE}='amazon'] :is(
+  #nav-belt,
+  #nav-main,
+  #nav-subnav,
+  #navbar,
+  #nav-tools,
+  #nav-xshop,
+  #nav-xshop-container
+) {
+  background-color: var(--holmeta-appearance-nav-harmonized-background) !important;
+  color: var(--holmeta-appearance-nav-harmonized-text) !important;
+  border-color: var(--holmeta-appearance-line-subtle) !important;
+}
+
+html[${ATTR.ACTIVE}='1'][${ATTR.SITE}='amazon'] :is(
+  #nav-belt,
+  #nav-main,
+  #nav-subnav,
+  #nav-tools,
+  #nav-xshop
+) :is(a, span, strong, em, label, div) {
+  color: var(--holmeta-appearance-nav-harmonized-text) !important;
+}
+
+html[${ATTR.ACTIVE}='1'][${ATTR.SITE}='amazon'] :is(
+  #nav-search,
+  #nav-search-bar-form,
+  .nav-search-field,
+  #twotabsearchtextbox,
+  #searchDropdownBox,
+  #nav-search-submit-button
+) {
+  background-color: var(--holmeta-appearance-input-background) !important;
+  color: var(--holmeta-appearance-text-primary) !important;
+  border-color: var(--holmeta-appearance-input-border) !important;
+}
+
+html[${ATTR.ACTIVE}='1'][${ATTR.SITE}='amazon'] #twotabsearchtextbox::placeholder {
+  color: var(--holmeta-appearance-text-muted) !important;
+}
+
+html[${ATTR.ACTIVE}='1'][${ATTR.SITE}='amazon'] :is(
+  #nav-hamburger-menu,
+  #nav-cart,
+  #nav-link-accountList,
+  #nav-orders,
+  #icp-nav-flyout
+) {
+  background-color: transparent !important;
+  color: var(--holmeta-appearance-nav-harmonized-text) !important;
+  border-color: transparent !important;
+}
+
+html[${ATTR.ACTIVE}='1'][${ATTR.SITE}='amazon'] :is(
+  #nav-hamburger-menu,
+  #nav-cart,
+  #nav-link-accountList,
+  #nav-orders,
+  #icp-nav-flyout
+) :is(svg, i, [class*='icon' i], [class*='nav-icon' i]) {
+  color: var(--holmeta-appearance-nav-harmonized-text) !important;
+  fill: currentColor !important;
+  stroke: currentColor !important;
+}
+
+html[${ATTR.ACTIVE}='1'][${ATTR.SITE}='amazon'] :is(#nav-subnav, #nav-xshop) :is(a, .nav-a) {
+  background-color: transparent !important;
+  border-color: transparent !important;
+}
+
+html[${ATTR.ACTIVE}='1'][${ATTR.SITE}='amazon'] :is(#nav-subnav, #nav-xshop) :is(a, .nav-a):hover,
+html[${ATTR.ACTIVE}='1'][${ATTR.SITE}='amazon'] :is(#nav-subnav, #nav-xshop) :is(a, .nav-a)[aria-current='page'] {
+  background-color: color-mix(in srgb, var(--holmeta-appearance-selected-background) 76%, transparent) !important;
+  border-color: var(--holmeta-appearance-line-subtle) !important;
+}
+
+html[${ATTR.ACTIVE}='1'][${ATTR.SITE}='claude'] :is(
+  main,
+  [role='main'],
+  [class*='layout' i],
+  [class*='container' i],
+  [class*='pane' i],
+  [class*='panel' i],
+  [class*='thread' i],
+  [class*='composer' i],
+  [class*='sidebar' i],
+  [data-testid*='pane' i],
+  [data-testid*='panel' i],
+  [data-testid*='thread' i],
+  [data-testid*='composer' i]
+) {
+  background-color: color-mix(
+    in srgb,
+    var(--holmeta-appearance-page-background-alt) 86%,
+    var(--holmeta-appearance-panel-background) 14%
+  ) !important;
+  border-color: var(--holmeta-appearance-line-subtle) !important;
+  box-shadow: none !important;
+}
+
+html[${ATTR.ACTIVE}='1'][${ATTR.SITE}='claude'] :where(
+  [class*='panel' i],
+  [class*='pane' i],
+  [class*='container' i],
+  [data-testid*='panel' i],
+  [data-testid*='pane' i]
+):not(button):not([type='button']):not([role='button']) {
+  background-image: none !important;
+  border-radius: inherit !important;
 }
 
 html[${ATTR.ACTIVE}='1']::before {

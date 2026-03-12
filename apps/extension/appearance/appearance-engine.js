@@ -61,6 +61,8 @@
     if (safeHost === "github.com" || safeHost.endsWith(".github.com")) return "github";
     if (safeHost === "notion.so" || safeHost.endsWith(".notion.so")) return "notion";
     if (safeHost === "figma.com" || safeHost.endsWith(".figma.com")) return "figma";
+    if (/(\.|^)amazon\./.test(safeHost)) return "amazon";
+    if (safeHost === "claude.ai" || safeHost.endsWith(".claude.ai")) return "claude";
     return "generic";
   }
 
