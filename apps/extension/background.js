@@ -2444,8 +2444,10 @@ function isRestrictedExtensionPageUrl(urlLike) {
 
 const CONTENT_SCRIPT_FILES = [
   "appearance/palette-presets.js",
+  "appearance/token-generator.js",
   "appearance/appearance-state.js",
   "appearance/theme-detector.js",
+  "appearance/site-classifier.js",
   "appearance/media-guard.js",
   "appearance/ui-surface-classifier.js",
   "appearance/component-normalizer.js",
