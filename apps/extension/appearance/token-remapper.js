@@ -596,6 +596,68 @@ html[${ATTR.ACTIVE}='1'][${ATTR.SITE_CLASS}='ecommerce'] :where([class*='cart'],
 }
 
 html[${ATTR.ACTIVE}='1'][${ATTR.SITE}='x'] :is(
+  html,
+  body,
+  #react-root,
+  main,
+  [role='main'],
+  [data-testid='AppTabBar_Home_Link'],
+  [aria-label='Home timeline'],
+  [aria-label='Timeline: Your Home Timeline'],
+  [aria-label='Search and explore'],
+  [data-testid='primaryColumn'] > div
+) {
+  background-color: var(--holmeta-appearance-page-background) !important;
+  border-color: var(--holmeta-appearance-line-subtle) !important;
+}
+
+html[${ATTR.ACTIVE}='1'][${ATTR.SITE}='x'] :is(
+  [data-testid='sidebarColumn'],
+  [data-testid='sidebarColumn'] > div,
+  [data-testid='AppTabBar'],
+  [data-testid='TopNavBar']
+) {
+  background-color: var(--holmeta-appearance-section-background) !important;
+  border-color: var(--holmeta-appearance-line-subtle) !important;
+}
+
+html[${ATTR.ACTIVE}='1'][${ATTR.SITE}='x'] :is(
+  [data-testid='primaryColumn'] article,
+  [data-testid='cellInnerDiv'],
+  [data-testid='tweet'],
+  [data-testid='placementTracking'],
+  [data-testid='sidebarColumn'] section,
+  [data-testid='sidebarColumn'] [role='region'],
+  [data-testid='sidebarColumn'] [data-testid='trend'],
+  [data-testid='tweetTextarea_0-label'],
+  [data-testid='tweetTextarea_0'],
+  [data-testid='ScrollSnap-List'],
+  [aria-label='Who to follow'],
+  [aria-label='Subscribe to Premium'],
+  [aria-label='Timeline: Trending now']
+) {
+  background-color: var(--holmeta-appearance-panel-background) !important;
+  border-color: var(--holmeta-appearance-line-subtle) !important;
+}
+
+html[${ATTR.ACTIVE}='1'][${ATTR.SITE}='x'] :is(
+  [data-testid='primaryColumn'] article:hover,
+  [data-testid='sidebarColumn'] section:hover,
+  [data-testid='placementTracking']:hover
+) {
+  background-color: var(--holmeta-appearance-card-background) !important;
+}
+
+html[${ATTR.ACTIVE}='1'][${ATTR.SITE}='x'] :is(
+  [data-testid='sidebarColumn'],
+  [data-testid='primaryColumn'],
+  [data-testid='AppTabBar'],
+  [data-testid='TopNavBar']
+) [style*='background-color: rgb(0' i] {
+  background-color: var(--holmeta-appearance-panel-background) !important;
+}
+
+html[${ATTR.ACTIVE}='1'][${ATTR.SITE}='x'] :is(
   [data-testid='SearchBox_Search_Input'],
   [data-testid='SearchBox_Search_Input'] *,
   [data-testid='tweetTextarea_0'],
