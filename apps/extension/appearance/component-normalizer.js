@@ -9,7 +9,11 @@
     COMPONENT: "data-holmeta-ui-component",
     INNER: "data-holmeta-ui-inner",
     OWNED: "data-holmeta-appearance-owned",
-    MEDIA_SAFE: "data-holmeta-media-safe"
+    MEDIA_SAFE: "data-holmeta-media-safe",
+    FORCE_TEXT: "data-holmeta-force-text",
+    LOGO_WORDMARK: "data-holmeta-logo-wordmark",
+    LOGO_SAFE_BG: "data-holmeta-logo-safe-bg",
+    LOGO_SVG: "data-holmeta-logo-svg"
   };
 
   function parseBackgroundLuminance(style) {
@@ -26,6 +30,41 @@
       return s <= 0.03928 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4;
     };
     return (0.2126 * toLin(parts[0])) + (0.7152 * toLin(parts[1])) + (0.0722 * toLin(parts[2]));
+  }
+
+  function parseColorLuminance(style, key = "color") {
+    if (!style) return null;
+    const raw = String(style[key] || "");
+    const match = raw.match(/rgba?\(([^)]+)\)/i);
+    if (!match) return null;
+    const parts = match[1].split(",").map((part) => Number(String(part).trim()));
+    if (parts.length < 3 || parts.slice(0, 3).some((n) => !Number.isFinite(n))) return null;
+    const alpha = Number.isFinite(parts[3]) ? parts[3] : 1;
+    if (alpha <= 0.02) return null;
+    const toLin = (value) => {
+      const s = Math.max(0, Math.min(255, value)) / 255;
+      return s <= 0.03928 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4;
+    };
+    return (0.2126 * toLin(parts[0])) + (0.7152 * toLin(parts[1])) + (0.0722 * toLin(parts[2]));
+  }
+
+  function isLogoElement(node) {
+    if (!(node instanceof Element)) return false;
+    if (node.matches("img[alt*='logo' i], [class*='logo' i], [id*='logo' i], [data-testid*='logo' i], [aria-label*='logo' i]")) return true;
+    const text = String(node.textContent || "").trim();
+    if (text.length > 0 && text.length < 26 && /(logo|brand|wordmark|home)/i.test(String(node.className || ""))) return true;
+    return false;
+  }
+
+  function classifySurfaceNode(node) {
+    if (!(node instanceof Element)) return "surface";
+    const tag = node.tagName.toLowerCase();
+    const classText = String(node.className || "").toLowerCase();
+    if (tag === "header" || node.getAttribute("role") === "banner" || /header|topbar|appbar|navbar|menu-bar/.test(classText)) return "header";
+    if (tag === "nav" || node.getAttribute("role") === "navigation" || /nav|menu|sidebar|toolbar/.test(classText)) return "nav";
+    if (tag === "footer" || node.getAttribute("role") === "contentinfo" || /footer|legal-links/.test(classText)) return "footer";
+    if (tag === "details" || tag === "summary" || /accordion|collapse|expand/.test(classText)) return "accordion";
+    return "surface";
   }
 
   function shouldPromoteInnerSurface(node, rootRect) {
@@ -218,13 +257,126 @@
     };
   }
 
+  function coherencePass(root = document.documentElement, options = {}) {
+    if (!(root instanceof Element)) return { forcedSurfaces: 0, forcedText: 0, logos: 0 };
+
+    const mode = String(options.mode || "dark");
+    const darkMode = mode === "dark";
+    const maxNodes = Number.isFinite(Number(options.maxNodes)) ? Math.max(80, Number(options.maxNodes)) : 520;
+    const viewportArea = Math.max(1, window.innerWidth * window.innerHeight);
+    const candidates = root.querySelectorAll("body, main, [role='main'], header, nav, footer, section, article, aside, div, li, td, th, summary");
+
+    let forcedSurfaces = 0;
+    let forcedText = 0;
+    let logos = 0;
+
+    for (const node of candidates) {
+      if (forcedSurfaces >= maxNodes) break;
+      if (!(node instanceof Element)) continue;
+      if (node.closest(`[${ATTR.MEDIA_SAFE}]`)) continue;
+      const rect = node.getBoundingClientRect?.();
+      if (!rect || rect.width < 24 || rect.height < 18) continue;
+
+      const area = rect.width * rect.height;
+      const style = getComputedStyle(node);
+      const bgLum = parseBackgroundLuminance(style);
+      if (!Number.isFinite(bgLum)) continue;
+
+      if (darkMode) {
+        const isLargeStructural = area > (viewportArea * 0.02) || (rect.width > window.innerWidth * 0.65 && rect.height > 26);
+        if (isLargeStructural && bgLum > 0.66) {
+          node.setAttribute(ATTR.SURFACE, "1");
+          node.setAttribute(ATTR.COMPONENT, classifySurfaceNode(node));
+          classifier.markOwned(node);
+          forcedSurfaces += 1;
+        }
+      } else {
+        const isLargeStructural = area > (viewportArea * 0.03);
+        if (isLargeStructural && bgLum < 0.18) {
+          node.setAttribute(ATTR.SURFACE, "1");
+          node.setAttribute(ATTR.COMPONENT, classifySurfaceNode(node));
+          classifier.markOwned(node);
+          forcedSurfaces += 1;
+        }
+      }
+    }
+
+    const textNodes = root.querySelectorAll("h1,h2,h3,h4,h5,h6,p,span,label,a,button,small,li,td,th,strong,em");
+    for (const node of textNodes) {
+      if (forcedText >= maxNodes) break;
+      if (!(node instanceof Element)) continue;
+      if (node.closest(`[${ATTR.MEDIA_SAFE}]`)) continue;
+      const surface = node.closest(`[${ATTR.SURFACE}='1']`);
+      if (!surface) continue;
+      const nodeStyle = getComputedStyle(node);
+      const surfaceStyle = getComputedStyle(surface);
+      const textLum = parseColorLuminance(nodeStyle, "color");
+      const bgLum = parseBackgroundLuminance(surfaceStyle);
+      if (!Number.isFinite(textLum) || !Number.isFinite(bgLum)) continue;
+
+      if ((darkMode && bgLum < 0.30 && textLum < 0.25) || (!darkMode && bgLum > 0.70 && textLum > 0.74)) {
+        node.setAttribute(ATTR.FORCE_TEXT, "1");
+        classifier.markOwned(node);
+        forcedText += 1;
+      }
+    }
+
+    const logoCandidates = root.querySelectorAll("[class*='logo' i], [id*='logo' i], [data-testid*='logo' i], [aria-label*='logo' i], img[alt*='logo' i], svg[class*='logo' i], [class*='brand' i]");
+    for (const node of logoCandidates) {
+      if (logos >= 120) break;
+      if (!(node instanceof Element)) continue;
+      if (!isLogoElement(node)) continue;
+      if (node.closest(`[${ATTR.MEDIA_SAFE}]`) && node.tagName.toLowerCase() !== "svg") continue;
+
+      const rect = node.getBoundingClientRect?.();
+      if (!rect || rect.width < 28 || rect.height < 10 || rect.width > 460 || rect.height > 140) continue;
+
+      const hostSurface = node.closest("header, nav, [role='banner'], [class*='header'], [class*='nav'], [class*='topbar']") || node.parentElement;
+      const style = getComputedStyle(node);
+      const textLum = parseColorLuminance(style, "color");
+      const surfaceLum = hostSurface ? parseBackgroundLuminance(getComputedStyle(hostSurface)) : null;
+
+      if (darkMode) {
+        if (node.tagName.toLowerCase() === "svg" && Number.isFinite(surfaceLum) && surfaceLum < 0.34) {
+          node.setAttribute(ATTR.LOGO_SVG, "1");
+          classifier.markOwned(node);
+          logos += 1;
+          continue;
+        }
+        if (Number.isFinite(surfaceLum) && surfaceLum < 0.34 && Number.isFinite(textLum) && textLum < 0.28) {
+          node.setAttribute(ATTR.LOGO_WORDMARK, "1");
+          classifier.markOwned(node);
+          logos += 1;
+        }
+        if (node.tagName.toLowerCase() === "img" && hostSurface instanceof Element && Number.isFinite(surfaceLum) && surfaceLum < 0.30) {
+          hostSurface.setAttribute(ATTR.LOGO_SAFE_BG, "1");
+          classifier.markOwned(hostSurface);
+          logos += 1;
+        }
+      }
+    }
+
+    return { forcedSurfaces, forcedText, logos };
+  }
+
   function clearRoot(root = document.documentElement) {
     classifier?.clearOwned?.(root);
     mediaGuard?.clearMarks?.(root);
+    if (!(root instanceof Element)) return;
+    const extra = root.querySelectorAll(
+      `[${ATTR.FORCE_TEXT}], [${ATTR.LOGO_WORDMARK}], [${ATTR.LOGO_SAFE_BG}], [${ATTR.LOGO_SVG}]`
+    );
+    for (const node of extra) {
+      node.removeAttribute(ATTR.FORCE_TEXT);
+      node.removeAttribute(ATTR.LOGO_WORDMARK);
+      node.removeAttribute(ATTR.LOGO_SAFE_BG);
+      node.removeAttribute(ATTR.LOGO_SVG);
+    }
   }
 
   globalThis.HolmetaAppearanceNormalizer = {
     normalizeRoot,
+    coherencePass,
     clearRoot
   };
 })();

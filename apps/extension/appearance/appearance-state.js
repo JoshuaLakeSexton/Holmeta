@@ -18,7 +18,11 @@
     COMPONENT: "data-holmeta-ui-component",
     INNER: "data-holmeta-ui-inner",
     OWNED: "data-holmeta-appearance-owned",
-    MEDIA_SAFE: "data-holmeta-media-safe"
+    MEDIA_SAFE: "data-holmeta-media-safe",
+    FORCE_TEXT: "data-holmeta-force-text",
+    LOGO_WORDMARK: "data-holmeta-logo-wordmark",
+    LOGO_SAFE_BG: "data-holmeta-logo-safe-bg",
+    LOGO_SVG: "data-holmeta-logo-svg"
   };
 
   const DARK_VARIANTS = new Set(

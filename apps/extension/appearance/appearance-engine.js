@@ -22,6 +22,7 @@
     enabled: false,
     mode: "off",
     compatibilityMode: "normal",
+    tokens: null,
     diagnostics: {
       active: false,
       mode: "off",
@@ -34,6 +35,9 @@
       components: 0,
       wrappers: 0,
       media: 0,
+      forcedSurfaces: 0,
+      forcedText: 0,
+      logoFixes: 0,
       reason: "idle"
     },
     dynamic: null,
@@ -92,9 +96,17 @@
       maxComponents: maxByMode[state.compatibilityMode] || 3000,
       host
     });
+    const coherence = normalizer.coherencePass?.(root, {
+      mode: state.mode,
+      tokens: state.tokens,
+      maxNodes: state.compatibilityMode === "media-safe" ? 180 : 520
+    }) || { forcedSurfaces: 0, forcedText: 0, logos: 0 };
     state.diagnostics.components = result.components;
     state.diagnostics.wrappers = result.wrappers;
     state.diagnostics.media = result.media;
+    state.diagnostics.forcedSurfaces = coherence.forcedSurfaces || 0;
+    state.diagnostics.forcedText = coherence.forcedText || 0;
+    state.diagnostics.logoFixes = coherence.logos || 0;
   }
 
   function ensureDynamic() {
@@ -204,6 +216,7 @@
     state.mode = mode;
     state.enabled = true;
     state.compatibilityMode = compatibility.mode;
+    state.tokens = tokens;
     state.diagnostics = {
       active: true,
       mode,
@@ -216,6 +229,9 @@
       components: 0,
       wrappers: 0,
       media: 0,
+      forcedSurfaces: 0,
+      forcedText: 0,
+      logoFixes: 0,
       reason: resolved.usingSiteOverride ? "site-override" : (compatibility.reason || "applied")
     };
 
@@ -249,6 +265,7 @@
     state.enabled = false;
     state.mode = "off";
     state.compatibilityMode = "normal";
+    state.tokens = null;
     state.diagnostics = {
       active: false,
       mode: "off",
@@ -261,6 +278,9 @@
       components: 0,
       wrappers: 0,
       media: 0,
+      forcedSurfaces: 0,
+      forcedText: 0,
+      logoFixes: 0,
       reason: "cleared"
     };
 

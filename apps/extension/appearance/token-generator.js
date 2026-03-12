@@ -190,6 +190,16 @@
     const success = isDark ? "#73d48d" : "#1b8f3b";
     const warning = isDark ? "#ffcf6b" : "#c77f00";
     const danger = isDark ? "#ff8e8e" : "#c42021";
+    const headerBackground = mix(panelBackground, selectedAnchor, isDark ? 0.10 : 0.08);
+    const navBackground = mix(sidebarBackground, selectedAnchor, isDark ? 0.10 : 0.07);
+    const navHarmonizedBackground = mix(pageBackground, selectedAnchor, isDark ? 0.12 : 0.08);
+    const navHarmonizedText = textPrimary;
+    const headerMutedAccent = alpha(accent, isDark ? 0.22 : 0.18);
+    const lowContrastFixText = isDark ? "#F7F7F8" : "#16181C";
+    const logoSafeBackground = isDark
+      ? mix(pageBackground, "#ffffff", 0.14)
+      : mix(pageBackground, "#ffffff", 0.06);
+    const logoOnDarkText = isDark ? "#F5F6F8" : textPrimary;
 
     // Strongly reduce veil overlays to keep crisp light mode and rich dark mode.
     let overlayTint = alpha(isDark ? "#000000" : "#ffffff", isDark ? 0.006 : 0.002);
@@ -247,6 +257,14 @@
       warning,
       danger,
       overlayTint,
+      headerBackground,
+      navBackground,
+      navHarmonizedBackground,
+      navHarmonizedText,
+      headerMutedAccent,
+      lowContrastFixText,
+      logoSafeBackground,
+      logoOnDarkText,
 
       // Compatibility aliases to preserve existing remapper usage.
       pageBase: pageBackground,

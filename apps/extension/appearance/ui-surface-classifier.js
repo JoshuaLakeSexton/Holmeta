@@ -26,6 +26,7 @@
     "[role='search']",
     "[role='listitem']",
     "[role='navigation']",
+    "[role='banner']",
     "[role='contentinfo']",
     "[role='region']",
     "header",
@@ -145,6 +146,9 @@
     }
     if (tag === "footer" || role === "contentinfo" || /footer|contentinfo|legal-links/.test(className)) {
       return "footer";
+    }
+    if (tag === "header" || role === "banner" || /header|topbar|appbar|navbar|menu-bar/.test(className)) {
+      return "header";
     }
     if (tag === "details" || tag === "summary" || expanded === "true" || expanded === "false" || /accordion|collapse|expand|disclosure/.test(className)) {
       return "accordion";

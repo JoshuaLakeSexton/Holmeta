@@ -11,7 +11,11 @@
     SURFACE: "data-holmeta-ui-surface",
     COMPONENT: "data-holmeta-ui-component",
     INNER: "data-holmeta-ui-inner",
-    MEDIA_SAFE: "data-holmeta-media-safe"
+    MEDIA_SAFE: "data-holmeta-media-safe",
+    FORCE_TEXT: "data-holmeta-force-text",
+    LOGO_WORDMARK: "data-holmeta-logo-wordmark",
+    LOGO_SAFE_BG: "data-holmeta-logo-safe-bg",
+    LOGO_SVG: "data-holmeta-logo-svg"
   };
 
   function cssText() {
@@ -42,6 +46,12 @@ html[${ATTR.ACTIVE}='1'] [${ATTR.SURFACE}='1'][${ATTR.COMPONENT}='buy_panel'] {
 
 html[${ATTR.ACTIVE}='1'] [${ATTR.SURFACE}='1'][${ATTR.COMPONENT}='nav'] {
   background-color: var(--holmeta-appearance-sidebar-background) !important;
+}
+
+html[${ATTR.ACTIVE}='1'] [${ATTR.SURFACE}='1'][${ATTR.COMPONENT}='header'] {
+  background-color: var(--holmeta-appearance-header-background) !important;
+  color: var(--holmeta-appearance-nav-harmonized-text) !important;
+  border-color: var(--holmeta-appearance-line-subtle) !important;
 }
 
 html[${ATTR.ACTIVE}='1'] [${ATTR.SURFACE}='1'][${ATTR.COMPONENT}='footer'] {
@@ -220,6 +230,59 @@ html[${ATTR.ACTIVE}='1'] :where([class*='panel'], [class*='card'], [class*='modu
 
 html[${ATTR.ACTIVE}='1'] :where([class*='search'], [role='search'], [class*='filter'], [class*='toolbar']) {
   border-color: var(--holmeta-appearance-line-subtle) !important;
+}
+
+html[${ATTR.ACTIVE}='1'][${ATTR.MODE}='dark'] :where(
+  header,
+  [role='banner'],
+  nav,
+  [class*='header'],
+  [class*='navbar'],
+  [class*='menu-bar'],
+  [class*='topbar'],
+  [class*='appbar'],
+  [data-testid*='header']
+) {
+  background-color: var(--holmeta-appearance-nav-harmonized-background) !important;
+  color: var(--holmeta-appearance-nav-harmonized-text) !important;
+  border-color: var(--holmeta-appearance-line-subtle) !important;
+}
+
+html[${ATTR.ACTIVE}='1'][${ATTR.MODE}='dark'] :where(
+  header,
+  [role='banner'],
+  nav,
+  [class*='header'],
+  [class*='navbar'],
+  [class*='menu-bar'],
+  [class*='topbar'],
+  [class*='appbar'],
+  [data-testid*='header']
+) :where(a, p, span, strong, em, i, b, label, button) {
+  color: var(--holmeta-appearance-nav-harmonized-text) !important;
+}
+
+html[${ATTR.ACTIVE}='1'][${ATTR.MODE}='dark'] [${ATTR.FORCE_TEXT}='1'] {
+  color: var(--holmeta-appearance-low-contrast-fix-text) !important;
+}
+
+html[${ATTR.ACTIVE}='1'][${ATTR.MODE}='dark'] [${ATTR.LOGO_WORDMARK}='1'] {
+  color: var(--holmeta-appearance-logo-on-dark-text) !important;
+  text-shadow: 0 0 0.5px color-mix(in srgb, var(--holmeta-appearance-logo-on-dark-text) 45%, transparent) !important;
+}
+
+html[${ATTR.ACTIVE}='1'][${ATTR.MODE}='dark'] [${ATTR.LOGO_SVG}='1'],
+html[${ATTR.ACTIVE}='1'][${ATTR.MODE}='dark'] [${ATTR.LOGO_SVG}='1'] * {
+  fill: var(--holmeta-appearance-logo-on-dark-text) !important;
+  stroke: var(--holmeta-appearance-logo-on-dark-text) !important;
+  color: var(--holmeta-appearance-logo-on-dark-text) !important;
+}
+
+html[${ATTR.ACTIVE}='1'][${ATTR.MODE}='dark'] [${ATTR.LOGO_SAFE_BG}='1'] {
+  background-color: var(--holmeta-appearance-logo-safe-background) !important;
+  border: 1px solid var(--holmeta-appearance-line-subtle) !important;
+  border-radius: 6px !important;
+  padding: 2px 6px !important;
 }
 
 html[${ATTR.ACTIVE}='1'] svg:not([${ATTR.MEDIA_SAFE}]) {
@@ -409,6 +472,14 @@ html[${ATTR.ACTIVE}='1']::before {
     root.style.setProperty("--holmeta-appearance-control-text", tokens.controlText || tokens.buttonText);
     root.style.setProperty("--holmeta-appearance-focus-ring", tokens.focusRing || tokens.accentStrong || tokens.link);
     root.style.setProperty("--holmeta-appearance-overlay-tint", tokens.overlayTint);
+    root.style.setProperty("--holmeta-appearance-header-background", tokens.headerBackground || tokens.panelBackground || tokens.surface1);
+    root.style.setProperty("--holmeta-appearance-nav-background", tokens.navBackground || tokens.sidebarBackground || tokens.surface1);
+    root.style.setProperty("--holmeta-appearance-nav-harmonized-background", tokens.navHarmonizedBackground || tokens.navBackground || tokens.panelBackground || tokens.surface1);
+    root.style.setProperty("--holmeta-appearance-nav-harmonized-text", tokens.navHarmonizedText || tokens.textPrimary);
+    root.style.setProperty("--holmeta-appearance-header-muted-accent", tokens.headerMutedAccent || tokens.accentSoft || tokens.lineSubtle);
+    root.style.setProperty("--holmeta-appearance-low-contrast-fix-text", tokens.lowContrastFixText || tokens.textPrimary);
+    root.style.setProperty("--holmeta-appearance-logo-safe-background", tokens.logoSafeBackground || tokens.cardBackground || tokens.surface2);
+    root.style.setProperty("--holmeta-appearance-logo-on-dark-text", tokens.logoOnDarkText || tokens.textPrimary);
 
     root.setAttribute(ATTR.ACTIVE, "1");
     root.setAttribute(ATTR.MODE, tokens.mode === "light" ? "light" : "dark");
@@ -471,7 +542,15 @@ html[${ATTR.ACTIVE}='1']::before {
       "--holmeta-appearance-control-background",
       "--holmeta-appearance-control-text",
       "--holmeta-appearance-focus-ring",
-      "--holmeta-appearance-overlay-tint"
+      "--holmeta-appearance-overlay-tint",
+      "--holmeta-appearance-header-background",
+      "--holmeta-appearance-nav-background",
+      "--holmeta-appearance-nav-harmonized-background",
+      "--holmeta-appearance-nav-harmonized-text",
+      "--holmeta-appearance-header-muted-accent",
+      "--holmeta-appearance-low-contrast-fix-text",
+      "--holmeta-appearance-logo-safe-background",
+      "--holmeta-appearance-logo-on-dark-text"
     ];
     for (const key of keys) {
       root.style.removeProperty(key);

@@ -817,6 +817,11 @@
     })();
     const adaptiveReason = String(state.diagnostics?.readingAdaptiveReason || "");
     const adaptiveApplied = Boolean(state.diagnostics?.readingAdaptiveApplied);
+    const appearanceDiagnostics = state.diagnostics?.readingAppearance || null;
+    const compatLabel = appearanceDiagnostics?.compatibilityMode || "normal";
+    const coherenceSummary = appearanceDiagnostics
+      ? ` · Harmonize: ${compatLabel} · Coherence fixes: ${Number(appearanceDiagnostics.forcedSurfaces || 0) + Number(appearanceDiagnostics.forcedText || 0) + Number(appearanceDiagnostics.logoFixes || 0)}`
+      : "";
 
     const excluded = isReadingSiteExcluded();
     if (excluded) {
@@ -828,9 +833,9 @@
     if (effective.enabled) {
       if (effective.appearance === "auto") {
         const activeNow = activeVariantLabel ? ` · Active now: ${activeVariantLabel}` : "";
-        refs.readingThemeStatus.textContent = `[Auto] Applying Auto${hostSuffix} · Dark ${darkLabel} / Light ${lightLabel} · ${scheduleLabel}${activeNow}.`;
+        refs.readingThemeStatus.textContent = `[Auto] Applying Auto${hostSuffix} · Dark ${darkLabel} / Light ${lightLabel} · ${scheduleLabel}${activeNow}${coherenceSummary}.`;
       } else {
-        refs.readingThemeStatus.textContent = `[${effective.appearance === "dark" ? "Dark" : "Light"}] Applying ${effective.appearance === "dark" ? `Dark ${darkLabel}` : `Light ${lightLabel}`}${hostSuffix}.`;
+        refs.readingThemeStatus.textContent = `[${effective.appearance === "dark" ? "Dark" : "Light"}] Applying ${effective.appearance === "dark" ? `Dark ${darkLabel}` : `Light ${lightLabel}`}${hostSuffix}${coherenceSummary}.`;
       }
       if (siteProfile) {
         refs.readingThemeStatus.textContent += " This site uses its own override.";
