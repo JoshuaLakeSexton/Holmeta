@@ -1732,14 +1732,11 @@
       }
     }
 
-    // Tool 2 (Day / Night Appearance) should be the primary page transform.
-    // Keep only a subtle comfort overlay when Light Filter Tool is off.
+    // Tool 2 (Day / Night Appearance) owns structural theming.
+    // Do not add an extra veil when only appearance is enabled.
     if (readingThemeEnabled && !filterEnabled) {
-      overlayOpacity = clamp(
-        overlayOpacity * 0.38,
-        0,
-        readingTheme.mode === "dark" ? 0.16 : 0.10
-      );
+      overlayOpacity = 0;
+      overlayBg = "rgba(0, 0, 0, 1)";
       pageFilter = "none";
     }
 

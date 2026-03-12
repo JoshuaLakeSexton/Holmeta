@@ -52,6 +52,7 @@ test("appearance state tokens map to selected palette values", () => {
   const context = createContext();
   const appearanceDir = path.join(__dirname, "..", "appearance");
   loadScript(context, path.join(appearanceDir, "palette-presets.js"));
+  loadScript(context, path.join(appearanceDir, "token-generator.js"));
   loadScript(context, path.join(appearanceDir, "appearance-state.js"));
 
   const state = context.HolmetaAppearanceState;
@@ -60,18 +61,76 @@ test("appearance state tokens map to selected palette values", () => {
   const darkTokens = state.toTokens({
     mode: "dark",
     darkVariant: "brown",
-    intensity: 50
+    intensity: 50,
+    siteClass: "dashboard",
+    pageTone: "light",
+    compatibilityMode: "normal"
   });
-  assert.equal(darkTokens.pageBase, "#3E2723");
+  assert.equal(darkTokens.mode, "dark");
   assert.equal(darkTokens.textPrimary, "#FFF8E1");
+  assert.equal(darkTokens.accent, "#6D4C41");
+  assert.ok(darkTokens.cardBackground, "token generator should emit cardBackground");
+  assert.ok(darkTokens.sidebarBackground, "token generator should emit sidebarBackground");
+  const requiredKeys = [
+    "pageBackground",
+    "pageBackgroundAlt",
+    "sidebarBackground",
+    "sectionBackground",
+    "panelBackground",
+    "cardBackground",
+    "elevatedBackground",
+    "inputBackground",
+    "inputBorder",
+    "buttonBackground",
+    "buttonText",
+    "buttonBorder",
+    "hoverBackground",
+    "selectedBackground",
+    "selectedText",
+    "divider",
+    "lineSubtle",
+    "lineStrong",
+    "rowSeparator",
+    "tableHeaderBackground",
+    "tableRowBackground",
+    "tableRowAlt",
+    "iconPrimary",
+    "iconMuted",
+    "textPrimary",
+    "textSecondary",
+    "textMuted",
+    "textOnAccent",
+    "accent",
+    "accentSoft",
+    "accentStrong",
+    "chipBackground",
+    "chipBorder",
+    "chipText",
+    "modalBackground",
+    "dropdownBackground",
+    "dropdownBorder",
+    "focusRing",
+    "success",
+    "warning",
+    "danger"
+  ];
+  for (const key of requiredKeys) {
+    assert.ok(typeof darkTokens[key] === "string" && darkTokens[key].length > 0, `missing token key ${key}`);
+  }
 
   const lightTokens = state.toTokens({
     mode: "light",
     lightVariant: "baby_blue",
-    intensity: 45
+    intensity: 45,
+    siteClass: "content",
+    pageTone: "mixed",
+    compatibilityMode: "normal"
   });
-  assert.equal(lightTokens.pageBase, "#E3F2FD");
+  assert.equal(lightTokens.mode, "light");
   assert.equal(lightTokens.textPrimary, "#0D47A1");
+  assert.equal(lightTokens.accent, "#42A5F5");
+  assert.ok(lightTokens.panelBackground, "token generator should emit panelBackground");
+  assert.ok(lightTokens.inputBackground, "token generator should emit inputBackground");
 });
 
 test("site rules resolve exclusion and per-site override precedence", () => {
@@ -103,4 +162,18 @@ test("site rules resolve exclusion and per-site override precedence", () => {
   assert.equal(withOverride.usingSiteOverride, true);
   assert.equal(withOverride.profile.appearance, "light");
   assert.equal(withOverride.profile.lightVariant, "warm");
+});
+
+test("site classifier maps key hosts and fallback types", () => {
+  const context = createContext();
+  const appearanceDir = path.join(__dirname, "..", "appearance");
+  loadScript(context, path.join(appearanceDir, "site-classifier.js"));
+
+  const classifier = context.HolmetaAppearanceSiteClassifier;
+  assert.ok(classifier, "HolmetaAppearanceSiteClassifier should exist");
+
+  assert.equal(classifier.classify({ host: "x.com", siteType: "general" }).siteClass, "social");
+  assert.equal(classifier.classify({ host: "stripe.com", siteType: "general" }).siteClass, "dashboard");
+  assert.equal(classifier.classify({ host: "example.com", siteType: "docs_code" }).siteClass, "docs_editor");
+  assert.equal(classifier.classify({ host: "example.com", siteType: "article" }).siteClass, "content");
 });

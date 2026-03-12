@@ -9,8 +9,9 @@
   const compat = globalThis.HolmetaAppearanceCompatibility;
   const mediaGuard = globalThis.HolmetaAppearanceMediaGuard;
   const siteRules = globalThis.HolmetaAppearanceSiteRules;
+  const siteClassifier = globalThis.HolmetaAppearanceSiteClassifier;
 
-  if (!stateRef || !detector || !remapper || !normalizer || !dynamicProcessorLib || !compat || !mediaGuard || !siteRules) {
+  if (!stateRef || !detector || !remapper || !normalizer || !dynamicProcessorLib || !compat || !mediaGuard || !siteRules || !siteClassifier) {
     console.error("[Holmeta appearance] dependency_missing");
     return;
   }
@@ -28,6 +29,7 @@
       pageTone: "mixed",
       luminance: 0.5,
       siteType: "general",
+      siteClass: "general",
       compatibilityMode: "normal",
       components: 0,
       wrappers: 0,
@@ -152,6 +154,12 @@
     const media = mediaGuard.countMedia(document);
     const pageTone = detector.detectTone();
     const siteType = detector.detectSiteType(host, media);
+    const classification = siteClassifier.classify({
+      host,
+      siteType,
+      pageTone
+    });
+    const siteClass = classification.siteClass || "general";
     const compatibility = compat.resolveCompatibility({
       host,
       siteType,
@@ -165,20 +173,26 @@
       return { ...state.diagnostics };
     }
 
-    const intensity = Number(effectiveProfile.intensity ?? 46);
+    const requestedIntensity = Number(effectiveProfile.intensity ?? 46);
+    let intensity = requestedIntensity;
+    if (compatibility.mode === "minimal") intensity = Math.min(intensity, 42);
+    if (compatibility.mode === "app-safe") intensity = Math.min(intensity, 54);
+    if (compatibility.mode === "media-safe") intensity = Math.min(intensity, 36);
+    if (mode === "dark" && pageTone.tone === "dark") intensity = Math.min(intensity, 38);
+    if (mode === "light" && pageTone.tone === "light") intensity = Math.min(intensity, 40);
+
     const tokens = stateRef.toTokens({
       mode,
       darkVariant: stateRef.normalizeDarkVariant(effectiveProfile.darkVariant || effectiveProfile.darkThemeVariant || "coal"),
       lightVariant: stateRef.normalizeLightVariant(effectiveProfile.lightVariant || effectiveProfile.lightThemeVariant || "white"),
-      intensity
+      intensity,
+      siteClass,
+      pageTone: pageTone.tone,
+      compatibilityMode: compatibility.mode
     });
 
-    if (compatibility.mode === "minimal") {
-      tokens.overlayTint = stateRef.alpha(mode === "dark" ? "#000000" : "#ffffff", 0.02);
-    }
-
     const siteKey = siteKeyFromHost(host);
-    remapper.applyRootTokens(root, tokens, compatibility.mode, siteKey);
+    remapper.applyRootTokens(root, tokens, compatibility.mode, siteKey, siteClass);
 
     state.mode = mode;
     state.enabled = true;
@@ -190,6 +204,7 @@
       pageTone: pageTone.tone,
       luminance: pageTone.luminance,
       siteType,
+      siteClass,
       compatibilityMode: compatibility.mode,
       components: 0,
       wrappers: 0,
@@ -234,6 +249,7 @@
       pageTone: "mixed",
       luminance: 0.5,
       siteType: "general",
+      siteClass: "general",
       compatibilityMode: "normal",
       components: 0,
       wrappers: 0,

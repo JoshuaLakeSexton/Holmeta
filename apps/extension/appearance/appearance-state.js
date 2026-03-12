@@ -2,6 +2,7 @@
   if (globalThis.HolmetaAppearanceState) return;
 
   const paletteLib = globalThis.HolmetaAppearancePalettes || null;
+  const tokenGenerator = globalThis.HolmetaAppearanceTokenGenerator || null;
 
   const IDS = {
     STYLE: "holmeta-appearance-style-v1"
@@ -12,6 +13,7 @@
     MODE: "data-holmeta-appearance-mode",
     COMPAT: "data-holmeta-appearance-compat",
     SITE: "data-holmeta-appearance-site",
+    SITE_CLASS: "data-holmeta-site-class",
     SURFACE: "data-holmeta-ui-surface",
     COMPONENT: "data-holmeta-ui-component",
     INNER: "data-holmeta-ui-inner",
@@ -96,7 +98,27 @@
     return LIGHT_VARIANTS.has(key) ? key : fallback;
   }
 
-  function toTokens({ mode = "dark", darkVariant = "coal", lightVariant = "white", intensity = 46 }) {
+  function toTokens({
+    mode = "dark",
+    darkVariant = "coal",
+    lightVariant = "white",
+    intensity = 46,
+    siteClass = "general",
+    pageTone = "mixed",
+    compatibilityMode = "normal"
+  }) {
+    if (tokenGenerator?.generateTokens) {
+      return tokenGenerator.generateTokens({
+        mode,
+        darkVariant: normalizeDarkVariant(darkVariant, "coal"),
+        lightVariant: normalizeLightVariant(lightVariant, "white"),
+        intensity,
+        siteClass,
+        pageTone,
+        compatibilityMode
+      });
+    }
+
     if (paletteLib?.toTokens) {
       return paletteLib.toTokens({
         mode,

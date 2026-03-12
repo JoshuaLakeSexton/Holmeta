@@ -121,6 +121,9 @@
     const hasManyInputs = document.querySelectorAll("input, textarea, select, [contenteditable='true']").length > 35;
     const hasSidebar = Boolean(document.querySelector("aside, [role='navigation'], .sidebar, .side-nav, [data-testid*='sidebar']"));
 
+    if (/x\.com|twitter\.com|reddit|facebook|instagram|linkedin|threads|discord|forum|community/.test(joined)) {
+      return "social";
+    }
     if (/youtube|vimeo|twitch|netflix|primevideo|hulu/.test(joined) || Number(media.mediaCount || 0) >= 3) {
       return "media";
     }

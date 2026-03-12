@@ -14,7 +14,7 @@
 
   const CANDIDATE_SELECTOR = [
     "button",
-    "a",
+    "a[role='button']",
     "input",
     "textarea",
     "select",
@@ -25,14 +25,13 @@
     "[role='textbox']",
     "[role='search']",
     "[role='listitem']",
+    "[role='navigation']",
     "header",
     "nav",
     "aside",
-    "main",
-    "section",
-    "article",
     "dialog",
     "form",
+    "hr",
     "table",
     "tr",
     "th",
@@ -49,13 +48,13 @@
     "[class*='menu']",
     "[class*='input']",
     "[class*='search']",
-    "[class*='searchbox']",
-    "[class*='ytSearchboxComponent']",
-    "ytd-searchbox",
     "[class*='toolbar']",
-    "[class*='TopBar']",
-    "[class*='Nav']",
-    "[class*='Sidebar']",
+    "[class*='nav']",
+    "[class*='sidebar']",
+    "[class*='drawer']",
+    "[class*='modal']",
+    "[class*='dialog']",
+    "[class*='tab']",
     "[data-testid*='button']",
     "[data-testid*='Button']",
     "[data-testid*='card']",
@@ -66,7 +65,6 @@
     "[data-testid*='search']",
     "[data-testid*='tweetButton']",
     "[data-testid*='SideNav']",
-    "[data-testid*='cellInnerDiv']",
     "[data-testid='reply']",
     "[data-testid='retweet']",
     "[data-testid='unretweet']",
@@ -76,11 +74,11 @@
     "[data-testid='removeBookmark']",
     "[data-testid='share']",
     "[data-testid='tweetTextarea_0']",
-    "[data-testid='tweetButton']",
+    "[data-testid='SearchBox_Search_Input']",
     "[data-testid='primaryColumn'] [role='button']"
   ].join(",");
 
-  const WRAPPER_SELECTOR = "div, span, label, strong, em, small, b, i";
+  const WRAPPER_SELECTOR = "div, span, label, strong, em, small, b, i, p";
 
   function looksHidden(el, style) {
     if (!el || !style) return true;
@@ -104,7 +102,6 @@
     if (looksHidden(el, style)) return false;
 
     if (style.position === "fixed" && el.id && /holmeta/i.test(el.id)) return false;
-
     return true;
   }
 
@@ -112,7 +109,7 @@
     if (!style) return false;
     const hasBg = style.backgroundColor && style.backgroundColor !== "rgba(0, 0, 0, 0)" && style.backgroundColor !== "transparent";
     const hasBorder = style.borderStyle !== "none" && Number(style.borderTopWidth || 0) > 0;
-    const hasRadius = Number(String(style.borderRadius || "0").replace("px", "")) > 0;
+    const hasRadius = Number.parseFloat(String(style.borderRadius || "0")) > 0;
     const hasShadow = style.boxShadow !== "none";
     return Boolean(hasBg || hasBorder || hasRadius || hasShadow);
   }
@@ -126,16 +123,28 @@
     if (tag === "input" || tag === "textarea" || tag === "select" || role === "textbox" || role === "search" || /search|input|field/.test(className)) {
       return "input";
     }
-    if (tag === "button" || role === "button" || /button|btn|pill|chip|toggle/.test(className)) {
+    if (tag === "hr" || role === "separator" || /separator|divider/.test(className)) {
+      return "separator";
+    }
+    if (tag === "table" || tag === "tr" || tag === "th" || tag === "td" || /table|row|cell/.test(className)) {
+      return "table";
+    }
+    if (/chip|badge|tag|pill/.test(className)) {
+      return "chip";
+    }
+    if (/dropdown|popover|menuitem|listbox|select/.test(className)) {
+      return "dropdown";
+    }
+    if (tag === "button" || role === "button" || /button|btn|pill|chip|toggle|cta/.test(className)) {
       return "button";
     }
-    if (tag === "a" && /btn|button|pill|chip/.test(className)) {
+    if (tag === "a" && /btn|button|pill|chip|cta/.test(className)) {
       return "button";
     }
-    if (tag === "nav" || role === "navigation" || /nav|menu|toolbar/.test(className)) {
+    if (tag === "nav" || role === "navigation" || role === "tablist" || /nav|menu|toolbar|sidebar|header/.test(className)) {
       return "nav";
     }
-    if (tag === "article" || /card|panel|modal|dialog|drawer/.test(className)) {
+    if (tag === "article" || tag === "dialog" || /card|panel|modal|dialog|drawer|surface/.test(className)) {
       return "card";
     }
     if (tag === "li" || role === "listitem") {
@@ -158,24 +167,36 @@
       || style.display.includes("grid")
       || style.display === "block"
       || style.display === "inline-flex"
-      || style.display === "inline-block";
+      || style.display === "inline-block"
+      || style.display === "table"
+      || style.display === "table-row";
 
     if (!sizeOk || !structured) return false;
 
-    const interactiveTag = /^(button|a|input|textarea|select)$/i.test(el.tagName);
-    const interactiveRole = /button|tab|menuitem|option|switch|textbox|search/.test(String(el.getAttribute("role") || ""));
+    const tag = el.tagName.toLowerCase();
+    const role = String(el.getAttribute("role") || "").toLowerCase();
     const classText = String(el.className || "").toLowerCase();
-    const semanticClass = /(button|btn|card|panel|input|field|chip|pill|menu|nav|toolbar|header|footer|modal|dialog|search|searchbox|ytsearchbox)/.test(classText);
+
+    const huge = rect.width > (window.innerWidth * 0.96) && rect.height > (window.innerHeight * 0.72);
+    const structuralShell = /^(header|nav|aside|dialog|table|tr|th|td)$/i.test(tag)
+      || /navigation|tablist|menu/.test(role)
+      || /(sidebar|toolbar|header|drawer|modal|dialog|table|row)/.test(classText);
+    if (huge && !structuralShell) return false;
+
+    const interactiveTag = /^(button|a|input|textarea|select)$/i.test(tag);
+    const interactiveRole = /button|tab|menuitem|option|switch|textbox|search/.test(role);
+    const semanticClass = /(button|btn|card|panel|input|field|chip|pill|menu|nav|toolbar|header|footer|modal|dialog|search|sidebar|table|row)/.test(classText);
 
     const styleSignal = hasVisualSurface(style);
 
-    return interactiveTag || interactiveRole || semanticClass || styleSignal;
+    return interactiveTag || interactiveRole || semanticClass || styleSignal || structuralShell;
   }
 
   function resolveComponentRoot(startNode) {
     if (!(startNode instanceof Element)) return null;
     let node = startNode;
     let best = isComponentRootCandidate(node) ? node : null;
+
     for (let depth = 0; depth < 5; depth += 1) {
       const parent = node.parentElement;
       if (!parent || parent === document.documentElement || parent === document.body) break;
@@ -183,12 +204,19 @@
         node = parent;
         continue;
       }
+
       const rect = parent.getBoundingClientRect?.();
       if (!rect || rect.width < 20 || rect.height < 14) break;
-      if (rect.width > window.innerWidth * 0.95 && rect.height > window.innerHeight * 0.95) break;
+
+      const classText = String(parent.className || "").toLowerCase();
+      const shell = /^(header|nav|aside|dialog|table|tr|th|td)$/i.test(parent.tagName)
+        || /(sidebar|toolbar|header|drawer|modal|dialog|table|row)/.test(classText);
+
+      if (!shell && rect.width > window.innerWidth * 0.92 && rect.height > window.innerHeight * 0.60) break;
       if (isComponentRootCandidate(parent)) best = parent;
       node = parent;
     }
+
     return best || (isThemeable(startNode) ? startNode : null);
   }
 
@@ -205,9 +233,11 @@
       if (out.length >= limit) break;
       if (!(node instanceof Element)) continue;
       if (!isThemeable(node)) continue;
+
       const rootNode = resolveComponentRoot(node);
       if (!rootNode) continue;
       if (seen.has(rootNode)) continue;
+
       seen.add(rootNode);
       out.push(rootNode);
     }
@@ -217,23 +247,30 @@
 
   function collectInnerWrappers(componentRoot, max = 28, options = {}) {
     if (!(componentRoot instanceof Element)) return [];
+
     const wrappers = [];
     const aggressive = Boolean(options.aggressive);
     const rootRect = componentRoot.getBoundingClientRect?.() || { width: 0, height: 0 };
     const nodes = componentRoot.querySelectorAll(WRAPPER_SELECTOR);
+
     for (const node of nodes) {
       if (wrappers.length >= max) break;
       if (!(node instanceof Element)) continue;
       if (node.closest(`[${ATTR.MEDIA_SAFE}]`)) continue;
+
       const rect = node.getBoundingClientRect?.();
       if (!rect || rect.width < 2 || rect.height < 2) continue;
+      if (rootRect.width > 0 && rect.width > rootRect.width * 0.98 && rect.height > rootRect.height * 0.95) continue;
+
       const style = getComputedStyle(node);
       const classText = String(node.className || "").toLowerCase();
-      const semantic = /(inner|label|content|text|icon|button|btn|pill|chip|search|input|field|control|surface)/.test(classText);
-      if (!aggressive && !semantic && !hasVisualSurface(style)) continue;
-      if (aggressive && style.position === "absolute" && rootRect.width > 0 && rect.width > rootRect.width * 0.95) continue;
+      const semantic = /(inner|label|content|text|icon|button|btn|pill|chip|search|input|field|control|surface|value|badge)/.test(classText);
+      const styleSignal = hasVisualSurface(style);
+
+      if (!aggressive && !semantic && !styleSignal) continue;
       wrappers.push(node);
     }
+
     return wrappers;
   }
 
@@ -246,6 +283,7 @@
     if (!(root instanceof Element || root instanceof Document)) return;
     const base = root instanceof Document ? root.documentElement : root;
     if (!base) return;
+
     const nodes = base.querySelectorAll(`[${ATTR.OWNED}]`);
     for (const node of nodes) {
       node.removeAttribute(ATTR.OWNED);

@@ -33,6 +33,15 @@
       };
     }
 
+    if (siteType === "social") {
+      return {
+        mode: "normal",
+        clamp: 0.78,
+        skipLargeSurfaces: false,
+        reason: "social-feed"
+      };
+    }
+
     if (pageTone.tone === "dark") {
       return {
         mode: "minimal",
