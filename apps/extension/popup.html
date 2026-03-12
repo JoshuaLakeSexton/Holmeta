@@ -91,38 +91,6 @@
           </div>
         </div>
 
-        <div class="field-row">
-          <label class="switch" title="Use opaque page surfaces instead of translucent/glass backgrounds.">
-            <input id="readingThemeOpaqueBackground" type="checkbox" />
-            <span>Use opaque window background</span>
-          </label>
-        </div>
-
-        <div class="field-row">
-          <label class="switch" title="Use pointer cursor on interactive elements for clearer affordance.">
-            <input id="readingThemePointerCursors" type="checkbox" />
-            <span>Use pointer cursors</span>
-          </label>
-        </div>
-
-        <div class="field-row reading-theme-font-row">
-          <label for="readingThemeSansSize">Sans font family</label>
-          <div class="row reading-theme-font-controls">
-            <input id="readingThemeSansSize" type="number" min="10" max="24" step="1" aria-label="Appearance sans font size" />
-            <span class="micro">px</span>
-            <input id="readingThemeSansFamily" type="text" aria-label="Appearance sans font stack" />
-          </div>
-        </div>
-
-        <div class="field-row reading-theme-font-row">
-          <label for="readingThemeCodeSize">Code font</label>
-          <div class="row reading-theme-font-controls">
-            <input id="readingThemeCodeSize" type="number" min="10" max="24" step="1" aria-label="Appearance code font size" />
-            <span class="micro">px</span>
-            <input id="readingThemeCodeFamily" type="text" aria-label="Appearance code font stack" />
-          </div>
-        </div>
-
         <div class="field-row reading-theme-selects">
           <label for="readingThemeDarkVariant">Dark type</label>
           <select id="readingThemeDarkVariant" aria-label="Appearance dark variant">
@@ -168,7 +136,7 @@
           </div>
         </div>
 
-        <div class="row actions-row alert-types">
+        <div class="row actions-row reading-theme-site-actions">
           <label class="switch" title="Enable Reading Theme override for this host">
             <input id="readingThemeThisSiteEnabled" type="checkbox" />
             <span>This site override</span>
@@ -181,10 +149,42 @@
 
         <p id="readingThemeStatus" class="micro">Appearance is off. Toggle On to apply Light / Dark / Auto.</p>
 
-        <div class="row actions-row">
-          <button id="readingThemeShowWidget" class="ghost" type="button">Show on-page widget</button>
-          <button id="readingThemeHideWidget" class="ghost" type="button">Hide widget</button>
-        </div>
+        <details class="inline-advanced reading-theme-advanced">
+          <summary>Advanced</summary>
+          <div class="field-row reading-theme-switch-row">
+            <label class="switch" title="Use opaque page surfaces instead of translucent/glass backgrounds.">
+              <input id="readingThemeOpaqueBackground" type="checkbox" />
+              <span>Opaque background</span>
+            </label>
+            <label class="switch" title="Use pointer cursor on interactive elements for clearer affordance.">
+              <input id="readingThemePointerCursors" type="checkbox" />
+              <span>Pointer cursors</span>
+            </label>
+          </div>
+
+          <div class="field-row reading-theme-font-row">
+            <label for="readingThemeSansSize">UI font</label>
+            <div class="row reading-theme-font-controls">
+              <input id="readingThemeSansSize" type="number" min="10" max="24" step="1" aria-label="Appearance sans font size" />
+              <span class="micro">px</span>
+              <input id="readingThemeSansFamily" type="text" aria-label="Appearance sans font stack" />
+            </div>
+          </div>
+
+          <div class="field-row reading-theme-font-row">
+            <label for="readingThemeCodeSize">Code font</label>
+            <div class="row reading-theme-font-controls">
+              <input id="readingThemeCodeSize" type="number" min="10" max="24" step="1" aria-label="Appearance code font size" />
+              <span class="micro">px</span>
+              <input id="readingThemeCodeFamily" type="text" aria-label="Appearance code font stack" />
+            </div>
+          </div>
+
+          <div class="row actions-row reading-theme-widget-row">
+            <button id="readingThemeShowWidget" class="ghost" type="button">Show on-page widget</button>
+            <button id="readingThemeHideWidget" class="ghost" type="button">Hide widget</button>
+          </div>
+        </details>
       </section>
 
       <section class="panel core" id="lightPanel">
