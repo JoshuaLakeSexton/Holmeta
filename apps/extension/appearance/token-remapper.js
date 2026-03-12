@@ -30,6 +30,22 @@ html[${ATTR.ACTIVE}='1'] body {
   color: var(--holmeta-appearance-text-primary) !important;
 }
 
+html[${ATTR.ACTIVE}='1'][${ATTR.MODE}='dark'] :is(
+  body > div,
+  body > main,
+  body > section,
+  body > article,
+  body > [role='main'],
+  body > [id='root'],
+  body > [id='app'],
+  body > [class*='layout' i],
+  body > [class*='page' i],
+  body > [class*='shell' i]
+) {
+  background-color: var(--holmeta-appearance-page-background-alt) !important;
+  border-color: var(--holmeta-appearance-line-subtle) !important;
+}
+
 html[${ATTR.ACTIVE}='1'] [${ATTR.SURFACE}='1'] {
   background-color: var(--holmeta-appearance-panel-background) !important;
   color: var(--holmeta-appearance-text-primary) !important;
@@ -197,11 +213,11 @@ html[${ATTR.ACTIVE}='1'] :where(thead, th) {
   color: var(--holmeta-appearance-text-primary) !important;
 }
 
-html[${ATTR.ACTIVE}='1'] :where(tr:nth-child(odd), li:nth-child(odd), [role='row']:nth-child(odd)) {
+html[${ATTR.ACTIVE}='1'] :where(table tr:nth-child(odd), [role='row']:nth-child(odd), [${ATTR.COMPONENT}='listitem']:nth-child(odd)) {
   background-color: color-mix(in srgb, var(--holmeta-appearance-table-row-background) 22%, transparent) !important;
 }
 
-html[${ATTR.ACTIVE}='1'] :where(tr:nth-child(even), [role='row']:nth-child(even)) {
+html[${ATTR.ACTIVE}='1'] :where(table tr:nth-child(even), [role='row']:nth-child(even), [${ATTR.COMPONENT}='listitem']:nth-child(even)) {
   background-color: color-mix(in srgb, var(--holmeta-appearance-table-row-alt) 14%, transparent) !important;
 }
 
@@ -294,14 +310,25 @@ html[${ATTR.ACTIVE}='1'][${ATTR.MODE}='light'] :where(
 
 /* Hard fallback: kill surviving inline white slabs and inline black text in dark mode. */
 html[${ATTR.ACTIVE}='1'][${ATTR.MODE}='dark'] :where(main, section, article, aside, div, li, td, th, header, nav, footer)[style*='background-color: rgb(255' i],
+html[${ATTR.ACTIVE}='1'][${ATTR.MODE}='dark'] :where(main, section, article, aside, div, li, td, th, header, nav, footer)[style*='background-color: rgb(25' i],
+html[${ATTR.ACTIVE}='1'][${ATTR.MODE}='dark'] :where(main, section, article, aside, div, li, td, th, header, nav, footer)[style*='background-color: rgb(24' i],
+html[${ATTR.ACTIVE}='1'][${ATTR.MODE}='dark'] :where(main, section, article, aside, div, li, td, th, header, nav, footer)[style*='background-color: rgba(255' i],
 html[${ATTR.ACTIVE}='1'][${ATTR.MODE}='dark'] :where(main, section, article, aside, div, li, td, th, header, nav, footer)[style*='background-color:#fff' i],
-html[${ATTR.ACTIVE}='1'][${ATTR.MODE}='dark'] :where(main, section, article, aside, div, li, td, th, header, nav, footer)[style*='background:#fff' i] {
+html[${ATTR.ACTIVE}='1'][${ATTR.MODE}='dark'] :where(main, section, article, aside, div, li, td, th, header, nav, footer)[style*='background:#fff' i],
+html[${ATTR.ACTIVE}='1'][${ATTR.MODE}='dark'] :where(main, section, article, aside, div, li, td, th, header, nav, footer)[style*='background: rgb(25' i],
+html[${ATTR.ACTIVE}='1'][${ATTR.MODE}='dark'] :where(main, section, article, aside, div, li, td, th, header, nav, footer)[style*='background: rgb(24' i] {
   background-color: var(--holmeta-appearance-card-background) !important;
   border-color: var(--holmeta-appearance-border-subtle) !important;
 }
 
 html[${ATTR.ACTIVE}='1'][${ATTR.MODE}='dark'] :where(h1, h2, h3, h4, h5, h6, p, span, label, a, button, li, td, th, strong, em, b, i)[style*='color: rgb(0' i],
-html[${ATTR.ACTIVE}='1'][${ATTR.MODE}='dark'] :where(h1, h2, h3, h4, h5, h6, p, span, label, a, button, li, td, th, strong, em, b, i)[style*='color:#000' i] {
+html[${ATTR.ACTIVE}='1'][${ATTR.MODE}='dark'] :where(h1, h2, h3, h4, h5, h6, p, span, label, a, button, li, td, th, strong, em, b, i)[style*='color: rgb(1' i],
+html[${ATTR.ACTIVE}='1'][${ATTR.MODE}='dark'] :where(h1, h2, h3, h4, h5, h6, p, span, label, a, button, li, td, th, strong, em, b, i)[style*='color: rgb(2' i],
+html[${ATTR.ACTIVE}='1'][${ATTR.MODE}='dark'] :where(h1, h2, h3, h4, h5, h6, p, span, label, a, button, li, td, th, strong, em, b, i)[style*='color: rgb(3' i],
+html[${ATTR.ACTIVE}='1'][${ATTR.MODE}='dark'] :where(h1, h2, h3, h4, h5, h6, p, span, label, a, button, li, td, th, strong, em, b, i)[style*='color:#000' i],
+html[${ATTR.ACTIVE}='1'][${ATTR.MODE}='dark'] :where(h1, h2, h3, h4, h5, h6, p, span, label, a, button, li, td, th, strong, em, b, i)[style*='color:#111' i],
+html[${ATTR.ACTIVE}='1'][${ATTR.MODE}='dark'] :where(h1, h2, h3, h4, h5, h6, p, span, label, a, button, li, td, th, strong, em, b, i)[style*='color:#222' i],
+html[${ATTR.ACTIVE}='1'][${ATTR.MODE}='dark'] :where(h1, h2, h3, h4, h5, h6, p, span, label, a, button, li, td, th, strong, em, b, i)[style*='color:#333' i] {
   color: var(--holmeta-appearance-contrast-on-dark) !important;
 }
 
@@ -406,6 +433,7 @@ html[${ATTR.ACTIVE}='1'] [${ATTR.LOGO_SAFE_BG}='1'] {
 
 html[${ATTR.ACTIVE}='1'] svg:not([${ATTR.MEDIA_SAFE}]) {
   color: var(--holmeta-appearance-icon-primary) !important;
+  opacity: 0.92 !important;
 }
 
 html[${ATTR.ACTIVE}='1'] :where(svg [fill]:not([fill='none'])):not([${ATTR.MEDIA_SAFE}] *) {

@@ -193,16 +193,20 @@
 
     const borderSubtle = alpha(
       textPrimary,
-      (isDark ? 0.045 : 0.15) + (adj.borderBoost * (isDark ? 0.14 : 0.35)) + (contrastBias * 0.18)
+      isDark
+        ? clamp(0.028 + (adj.borderBoost * 0.10) + (contrastBias * 0.08), 0.022, 0.070)
+        : ((0.15) + (adj.borderBoost * 0.35) + (contrastBias * 0.18))
     );
     const borderStrong = alpha(
       textPrimary,
-      (isDark ? 0.075 : 0.24) + (adj.borderBoost * (isDark ? 0.18 : 0.45)) + (contrastBias * 0.22)
+      isDark
+        ? clamp(0.050 + (adj.borderBoost * 0.13) + (contrastBias * 0.12), 0.040, 0.095)
+        : ((0.24) + (adj.borderBoost * 0.45) + (contrastBias * 0.22))
     );
-    const divider = alpha(textPrimary, (isDark ? 0.05 : 0.16) + (contrastBias * 0.18));
-    const lineSubtle = alpha(textPrimary, (isDark ? 0.04 : 0.12) + (contrastBias * 0.16));
-    const lineStrong = alpha(textPrimary, (isDark ? 0.065 : 0.20) + (contrastBias * 0.22));
-    const rowSeparator = alpha(textPrimary, (isDark ? 0.055 : 0.16) + (contrastBias * 0.20));
+    const divider = alpha(textPrimary, isDark ? 0.032 + (contrastBias * 0.10) : (0.16 + (contrastBias * 0.18)));
+    const lineSubtle = alpha(textPrimary, isDark ? 0.026 + (contrastBias * 0.08) : (0.12 + (contrastBias * 0.16)));
+    const lineStrong = alpha(textPrimary, isDark ? 0.042 + (contrastBias * 0.10) : (0.20 + (contrastBias * 0.22)));
+    const rowSeparator = alpha(textPrimary, isDark ? 0.038 + (contrastBias * 0.10) : (0.16 + (contrastBias * 0.20)));
     const tableHeader = mix(panelBackground, isDark ? "#000000" : "#ffffff", isDark ? 0.16 : 0.14);
     const tableRow = mix(cardBackground, panelBackground, isDark ? 0.66 : 0.34);
     const tableRowAlt = mix(tableRow, panelBackground, isDark ? 0.12 : 0.18);
@@ -214,7 +218,7 @@
     const accentSoft = alpha(accent, isDark ? 0.26 : 0.18);
     const accentStrong = mix(accent, isDark ? "#ffffff" : "#0d47a1", isDark ? 0.12 : 0.10);
     const textOnAccent = isDark ? "#0E0E10" : "#ffffff";
-    const iconPrimary = textPrimary;
+    const iconPrimary = isDark ? mix(textPrimary, textSecondary, 0.52) : textPrimary;
     const iconMuted = textMuted;
     const inputBorder = borderStrong;
     const buttonBackground = isDark

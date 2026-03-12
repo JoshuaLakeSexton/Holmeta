@@ -52,6 +52,7 @@
               <option value="cinema_soft">Cinema Soft</option>
               <option value="mint_calm">Mint Calm</option>
               <option value="red_overlay">Red Overlay</option>
+              <option value="near_infrared">Near Infrared (Power)</option>
               <option value="red_mono">Red Monochrome</option>
               <option value="red_lock">Red Spectrum Lock</option>
               <option value="gray_warm">Grayscale + Warm</option>
@@ -166,7 +167,7 @@
 
       <section id="optPanelAppearance" class="panel">
         <h2>2) Dark / Light Theme</h2>
-        <p class="muted">Simple page reading theme. Independent from Light Filters and Adaptive Site Theme.</p>
+        <p class="muted">Simple page appearance theme. Independent from the Light Filter Tool.</p>
         <div class="grid cols-4">
           <label class="switch-row"><input id="optReadingEnabled" type="checkbox" />Enabled</label>
           <label>Appearance
@@ -219,64 +220,6 @@
 
         <label>Per-site profiles JSON (advanced)
           <textarea id="optReadingSiteProfiles" rows="6" placeholder='{"github.com":{"enabled":true,"appearance":"dark","scheduleMode":"custom","schedule":{"start":"20:00","end":"06:00"}}}'></textarea>
-        </label>
-      </section>
-
-      <section id="optPanelAdaptive" class="panel">
-        <h2>3) Adaptive Site Theme</h2>
-        <p class="muted">Advanced site transformation engine. Independent from Reading Theme and Light Filters.</p>
-        <div class="grid cols-4">
-          <label class="switch-row"><input id="optAdaptiveEnabled" type="checkbox" />Enabled</label>
-          <label>Mode
-            <select id="optAdaptiveMode">
-              <option value="smart_dark">Smart Dark</option>
-              <option value="smart_light">Smart Light</option>
-              <option value="minimal_dark">Minimal Dark</option>
-              <option value="minimal_light">Minimal Light</option>
-              <option value="code_focus_dark">Code Focus Dark</option>
-              <option value="soft_contrast">Soft Contrast</option>
-            </select>
-          </label>
-          <label>Preset
-            <select id="optAdaptivePreset">
-              <option value="balanced">Balanced</option>
-              <option value="comfort">Comfort</option>
-              <option value="clarity">Clarity</option>
-            </select>
-          </label>
-          <label>Intensity
-            <input id="optAdaptiveIntensity" type="range" min="0" max="100" step="1" />
-          </label>
-          <label>Strategy
-            <select id="optAdaptiveStrategy">
-              <option value="auto">Auto</option>
-              <option value="css_variables">CSS Variables</option>
-              <option value="semantic_recolor">Semantic Recolor</option>
-              <option value="minimal_surface">Minimal Surface</option>
-              <option value="compatibility">Compatibility</option>
-              <option value="app_safe">App-safe</option>
-            </select>
-          </label>
-          <label>Compatibility
-            <select id="optAdaptiveCompatibility">
-              <option value="normal">Normal</option>
-              <option value="minimal">Minimal</option>
-              <option value="app-safe">App-safe</option>
-              <option value="media-safe">Media-safe</option>
-              <option value="code-safe">Code-safe</option>
-            </select>
-          </label>
-          <label class="switch-row"><input id="optAdaptiveThisSiteEnabled" type="checkbox" />This site override</label>
-          <label class="switch-row"><input id="optAdaptiveExcludeSite" type="checkbox" />Exclude this site</label>
-          <p id="optAdaptiveHostStatus" class="muted">Active host: unavailable</p>
-        </div>
-
-        <label>Excluded hosts (one per line)
-          <textarea id="optAdaptiveExclusions" rows="4" placeholder="youtube.com"></textarea>
-        </label>
-
-        <label>Per-site profiles JSON (advanced)
-          <textarea id="optAdaptiveSiteProfiles" rows="6" placeholder='{"github.com":{"enabled":true,"mode":"code_focus_dark","preset":"clarity","strategy":"app_safe","compatibilityMode":"code-safe","intensity":52}}'></textarea>
         </label>
       </section>
 

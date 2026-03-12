@@ -28,6 +28,7 @@
     "cinema_soft",
     "mint_calm",
     "red_overlay",
+    "near_infrared",
     "red_mono",
     "red_lock",
     "gray_warm",
@@ -424,6 +425,7 @@
     const maybeColorCritical = /(figma|photopea|canva|pixlr)/i.test(host);
 
     if (profile.mode === "spotlight") return "overlay";
+    if (profile.mode === "near_infrared") return "overlay";
     if (profile.videoSafe) return "overlay";
     if (profile.mode === "red_lock") return media.mediaCount > 0 ? "overlay" : "hybrid";
     if (profile.mode === "red_mono") return media.canvasCount > 0 ? "overlay" : "hybrid";
@@ -1043,7 +1045,7 @@
     };
   }
 
-  function pickAdaptiveProfile(adaptiveSettings, host) {
+  function _pickAdaptiveProfile(adaptiveSettings, host) {
     const fallback = createDefaultAdaptiveProfile();
     const settings = adaptiveSettings && typeof adaptiveSettings === "object" ? adaptiveSettings : {};
     const globalProfile = normalizeAdaptiveProfile(settings, fallback);
@@ -1059,7 +1061,7 @@
     return globalProfile;
   }
 
-  function adaptiveThemeForProfile(profile = {}, pageTone = { tone: "mixed" }, siteType = "general") {
+  function _adaptiveThemeForProfile(profile = {}, pageTone = { tone: "mixed" }, siteType = "general") {
     const mode = String(profile.mode || "smart_dark");
     const tone = pageTone.tone || "mixed";
     const intensity = clamp(profile.intensity, 0, 100) / 100;
@@ -1292,6 +1294,11 @@
         overlayBg = `rgba(${Math.max(210, tintR)}, ${Math.round(clamp(tintG * 0.45, 0, 110))}, ${Math.round(clamp(tintB * 0.35, 0, 90))}, 1)`;
         overlayOpacity = 0.10 + (i * 0.56) + (d * 0.16) + (blueCut * 0.14);
         filter = `brightness(${(b - (i * 0.12)).toFixed(3)}) contrast(${(1 - (c * 0.20)).toFixed(3)}) saturate(${(Math.max(0.25, sat - (i * 0.24))).toFixed(3)})`;
+        break;
+      case "near_infrared":
+        overlayBg = "rgba(178, 10, 4, 1)";
+        overlayOpacity = 0.26 + (i * 0.46) + (d * 0.12) + (blueCut * 0.20);
+        filter = `grayscale(0.64) sepia(1) hue-rotate(-58deg) saturate(${(2.8 + (i * 0.9) + (blueCut * 0.5)).toFixed(3)}) brightness(${(b - (i * 0.20)).toFixed(3)}) contrast(${(1.06 - (c * 0.24)).toFixed(3)})`;
         break;
       case "red_mono":
         overlayBg = `rgba(${Math.max(220, tintR)}, ${Math.round(clamp(tintG * 0.2, 0, 62))}, ${Math.round(clamp(tintB * 0.14, 0, 48))}, 1)`;
@@ -1660,11 +1667,17 @@
     const tone = pageTone.tone || "mixed";
     const darkPage = tone === "dark";
 
-    if (mode === "red_overlay" || mode === "red_mono" || mode === "red_lock") {
+    if (mode === "red_overlay" || mode === "near_infrared" || mode === "red_mono" || mode === "red_lock") {
       return {
-        overlayFactor: darkPage ? 0.12 : 0.22,
-        overlayBg: mode === "red_lock" ? "rgba(186, 28, 22, 1)" : "rgba(194, 46, 34, 1)",
-        filter: `saturate(${(0.90 - (intensityFactor * 0.08)).toFixed(3)})`
+        overlayFactor: mode === "near_infrared"
+          ? (darkPage ? 0.08 : 0.16)
+          : (darkPage ? 0.12 : 0.22),
+        overlayBg: mode === "red_lock"
+          ? "rgba(186, 28, 22, 1)"
+          : (mode === "near_infrared" ? "rgba(168, 18, 10, 1)" : "rgba(194, 46, 34, 1)"),
+        filter: mode === "near_infrared"
+          ? `grayscale(${(0.24 + (intensityFactor * 0.18)).toFixed(3)}) saturate(${(0.84 - (intensityFactor * 0.10)).toFixed(3)})`
+          : `saturate(${(0.90 - (intensityFactor * 0.08)).toFixed(3)})`
       };
     }
 
@@ -1833,15 +1846,13 @@
         ? Object.fromEntries(legacyLight.excludedHosts.map((host) => [normalizeHost(host), true]))
         : {}
     };
-    const adaptiveSettings = settings.adaptiveSiteTheme || {};
     const effective = payload.effective || {};
     const debugEnabled = Boolean(payload.meta?.debug);
 
     const host = getHost();
     const filterExcluded = Boolean(lightSettings.excludedSites?.[host] || (Array.isArray(lightSettings.excludedHosts) && lightSettings.excludedHosts.map(normalizeHost).includes(host)));
     const readingExcluded = Boolean(readingSettings.excludedSites?.[host] || (Array.isArray(readingSettings.excludedHosts) && readingSettings.excludedHosts.map(normalizeHost).includes(host)));
-    const adaptiveExcluded = Boolean(adaptiveSettings.excludedSites?.[host] || (Array.isArray(adaptiveSettings.excludedHosts) && adaptiveSettings.excludedHosts.map(normalizeHost).includes(host)));
-    const excluded = filterExcluded && readingExcluded && adaptiveExcluded;
+    const excluded = filterExcluded && readingExcluded;
 
     const media = countMedia();
     state.diagnostics.host = host;
@@ -1863,12 +1874,18 @@
       source: state.diagnostics.readingProfileSource
     });
     const readingProfile = readingAdaptive.profile;
-    const adaptiveProfile = pickAdaptiveProfile(adaptiveSettings, host);
+    const adaptiveProfile = {
+      enabled: false,
+      mode: "off",
+      preset: "off",
+      strategy: "none",
+      compatibilityMode: "normal"
+    };
     if (profile.mode === "spotlight") profile.spotlightEnabled = true;
 
     const filterEnabled = Boolean(baseEnabled && runtimeEnabled && !filterExcluded);
     const readingThemeEnabled = Boolean(readingProfile.enabled && !readingExcluded);
-    const adaptiveEnabled = Boolean(adaptiveProfile.enabled && !adaptiveExcluded);
+    const adaptiveEnabled = false;
 
     updateSystemAppearanceListener(
       readingThemeEnabled
@@ -1893,9 +1910,7 @@
     const readingTheme = readingThemeEnabled
       ? readingThemeForProfile(readingProfile, pageTone)
       : { mode: "off", variant: "off", overlayBg: style.overlayBg, overlayOpacity: 0, maxOverlayOpacity: 0.62, filter: "none" };
-    const adaptiveTheme = adaptiveEnabled
-      ? adaptiveThemeForProfile(adaptiveProfile, pageTone, siteType)
-      : null;
+    const adaptiveTheme = null;
     const resolved = resolveEffectiveVisualProfile({
       pageTone,
       siteType,
@@ -1995,7 +2010,7 @@
       globalThis.HolmetaAppearanceEngine?.clear?.();
     }
 
-    document.documentElement.classList.toggle("holmeta-light-active", filterEnabled || adaptiveEnabled);
+    document.documentElement.classList.toggle("holmeta-light-active", filterEnabled);
     document.documentElement.classList.toggle("holmeta-reading-theme", readingThemeEnabled);
     document.documentElement.classList.remove("holmeta-reading-minimal");
     document.documentElement.classList.toggle("holmeta-reading-dark", readingThemeEnabled && readingTheme.mode === "dark");

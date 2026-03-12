@@ -61,6 +61,7 @@ const LIGHT_FILTER_MODES = [
   "cinema_soft",
   "mint_calm",
   "red_overlay",
+  "near_infrared",
   "red_mono",
   "red_lock",
   "gray_warm",
@@ -687,7 +688,7 @@ function createDefaultReadingThemeSettings() {
 function createDefaultLightFilterSettings() {
   return {
     enabled: false,
-    mode: "warm", // warm | amber | candle | paper | cool_focus | sunset_glow | moonlight | deep_night | dusk_rose | amber_focus | cocoa_night | ocean_dim | slate_mono | cinema_soft | mint_calm | red_overlay | red_mono | red_lock | gray_warm | dim | spotlight | grayscale | custom
+    mode: "warm", // warm | amber | candle | paper | cool_focus | sunset_glow | moonlight | deep_night | dusk_rose | amber_focus | cocoa_night | ocean_dim | slate_mono | cinema_soft | mint_calm | red_overlay | near_infrared | red_mono | red_lock | gray_warm | dim | spotlight | grayscale | custom
     spectrumPreset: "balanced",
     intensity: 45,
     dim: 18,
@@ -1615,7 +1616,7 @@ function createDefaultState() {
       adaptiveSiteTheme: createDefaultAdaptiveSiteThemeSettings(),
       light: {
         enabled: false,
-        mode: "warm", // warm | amber | candle | paper | cool_focus | sunset_glow | moonlight | deep_night | dusk_rose | amber_focus | cocoa_night | ocean_dim | slate_mono | cinema_soft | mint_calm | red_overlay | red_mono | red_lock | gray_warm | dim | spotlight | grayscale | custom
+        mode: "warm", // warm | amber | candle | paper | cool_focus | sunset_glow | moonlight | deep_night | dusk_rose | amber_focus | cocoa_night | ocean_dim | slate_mono | cinema_soft | mint_calm | red_overlay | near_infrared | red_mono | red_lock | gray_warm | dim | spotlight | grayscale | custom
         readingModeEnabled: true, // toggle for dark/light reading layer
         readingMode: "dark", // dark | light
         darkThemeVariant: "black", // black | brown | gray

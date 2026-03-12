@@ -4,7 +4,6 @@
   const popup = [
     { id: "lightPanel", title: "Light Filter Tool" },
     { id: "readingThemePanel", title: "Day / Night Appearance" },
-    { id: "adaptiveThemePanel", title: "Adaptive Site Theme" },
     { id: "blockerPanel", title: "Site Blocker Tool" },
     { id: "alertsPanel", title: "Health Alert Popups" },
     { id: "deepWorkFold", title: "Deep Work Protocol", headingTag: "summary" },
@@ -24,7 +23,6 @@
   const options = [
     { id: "optPanelLight", title: "Light Filter Tool" },
     { id: "optPanelAppearance", title: "Day / Night Appearance" },
-    { id: "optPanelAdaptive", title: "Adaptive Site Theme" },
     { id: "optPanelBlocker", title: "Site Blocker Tool" },
     { id: "optPanelTunnel", title: "Secure Tunnel" },
     { id: "optPanelAlerts", title: "Health Alert Popups" },

@@ -944,6 +944,7 @@
   }
 
   function renderAdaptiveTheme() {
+    if (!refs.adaptiveThemeStatus) return;
     const adaptive = getAdaptiveThemeState();
     const siteProfile = getAdaptiveSiteProfile();
     const effective = {
@@ -961,7 +962,7 @@
     setInputValue(refs.adaptiveThemeStrategy, effective.strategy);
     setInputValue(refs.adaptiveThemeCompatibility, effective.compatibilityMode);
     setInputValue(refs.adaptiveThemeIntensity, effective.intensity);
-    refs.adaptiveThemeIntensityValue.textContent = `${effective.intensity}%`;
+    if (refs.adaptiveThemeIntensityValue) refs.adaptiveThemeIntensityValue.textContent = `${effective.intensity}%`;
     setChecked(refs.adaptiveThemeThisSiteEnabled, Boolean(siteProfile));
     setChecked(refs.adaptiveThemeExcludeSite, isAdaptiveSiteExcluded());
 
@@ -2331,18 +2332,20 @@
       await runDayNightAction("hideWidget", {}, "Appearance widget hidden on this site.");
     });
 
-    refs.adaptiveThemeEnabled.addEventListener("change", (e) => queuePatch({ adaptiveSiteTheme: { enabled: e.target.checked } }));
-    refs.adaptiveThemeMode.addEventListener("change", (e) => queueAdaptivePatch({ mode: String(e.target.value || "smart_dark") }));
-    refs.adaptiveThemePreset.addEventListener("change", (e) => queueAdaptivePatch({ preset: String(e.target.value || "balanced") }));
-    refs.adaptiveThemeStrategy.addEventListener("change", (e) => queueAdaptivePatch({ strategy: String(e.target.value || "auto") }));
-    refs.adaptiveThemeCompatibility.addEventListener("change", (e) => queueAdaptivePatch({ compatibilityMode: String(e.target.value || "normal") }));
-    refs.adaptiveThemeIntensity.addEventListener("input", (e) => {
-      const value = Math.max(0, Math.min(100, Number(e.target.value || 52)));
-      refs.adaptiveThemeIntensityValue.textContent = `${value}%`;
-      queueAdaptivePatch({ intensity: value });
-    });
-    refs.adaptiveThemeThisSiteEnabled.addEventListener("change", (e) => setAdaptiveSiteOverride(e.target.checked));
-    refs.adaptiveThemeExcludeSite.addEventListener("change", (e) => setAdaptiveExcludeSite(e.target.checked));
+    if (refs.adaptiveThemeEnabled) {
+      refs.adaptiveThemeEnabled.addEventListener("change", (e) => queuePatch({ adaptiveSiteTheme: { enabled: e.target.checked } }));
+      refs.adaptiveThemeMode?.addEventListener("change", (e) => queueAdaptivePatch({ mode: String(e.target.value || "smart_dark") }));
+      refs.adaptiveThemePreset?.addEventListener("change", (e) => queueAdaptivePatch({ preset: String(e.target.value || "balanced") }));
+      refs.adaptiveThemeStrategy?.addEventListener("change", (e) => queueAdaptivePatch({ strategy: String(e.target.value || "auto") }));
+      refs.adaptiveThemeCompatibility?.addEventListener("change", (e) => queueAdaptivePatch({ compatibilityMode: String(e.target.value || "normal") }));
+      refs.adaptiveThemeIntensity?.addEventListener("input", (e) => {
+        const value = Math.max(0, Math.min(100, Number(e.target.value || 52)));
+        if (refs.adaptiveThemeIntensityValue) refs.adaptiveThemeIntensityValue.textContent = `${value}%`;
+        queueAdaptivePatch({ intensity: value });
+      });
+      refs.adaptiveThemeThisSiteEnabled?.addEventListener("change", (e) => setAdaptiveSiteOverride(e.target.checked));
+      refs.adaptiveThemeExcludeSite?.addEventListener("change", (e) => setAdaptiveExcludeSite(e.target.checked));
+    }
 
     refs.lightEnabled.addEventListener("change", (e) => queuePatch({ lightFilter: { enabled: e.target.checked } }));
     refs.lightMode.addEventListener("change", (e) => queueLightPatch({ mode: e.target.value }));
@@ -2389,7 +2392,7 @@
       state.app = response.state;
       await refreshDiagnostics();
       render();
-      toast(`Saved 3-system profile for ${state.currentHost}`);
+      toast(`Saved site profile for ${state.currentHost}`);
     });
 
     refs.copyGlobalToSite.addEventListener("click", () => {
@@ -2399,10 +2402,8 @@
       }
       const light = getLightFilterState();
       const reading = getReadingThemeState();
-      const adaptive = getAdaptiveThemeState();
       const lightMap = { ...(light.perSiteOverrides || light.siteProfiles || {}) };
       const readingMap = { ...(reading.perSiteOverrides || reading.siteProfiles || {}) };
-      const adaptiveMap = { ...(adaptive.perSiteOverrides || adaptive.siteProfiles || {}) };
       lightMap[state.currentHost] = {
         enabled: true,
         ...currentLightPatchFromUI()
@@ -2411,16 +2412,11 @@
         enabled: true,
         ...currentReadingPatchFromUI()
       };
-      adaptiveMap[state.currentHost] = {
-        enabled: true,
-        ...currentAdaptivePatchFromUI()
-      };
       queuePatch({
         lightFilter: { perSiteOverrides: lightMap },
-        readingTheme: { perSiteOverrides: readingMap },
-        adaptiveSiteTheme: { perSiteOverrides: adaptiveMap }
+        readingTheme: { perSiteOverrides: readingMap }
       });
-      toast(`Copied global profiles to ${state.currentHost}`);
+      toast(`Copied global visual profiles to ${state.currentHost}`);
     });
 
     refs.resetSiteOverrides.addEventListener("click", async () => {

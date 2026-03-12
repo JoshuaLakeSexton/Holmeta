@@ -326,8 +326,8 @@
       const isMidSurface = area > 1200 && (semanticBlock || hasVisualSignal);
 
       if (mode === "dark") {
-        const isLargeStructural = area > (viewportArea * 0.02) || (rect.width > window.innerWidth * 0.65 && rect.height > 26);
-        if ((isLargeStructural || isMidSurface) && bgLum > 0.62) {
+        const isLargeStructural = area > (viewportArea * 0.012) || (rect.width > window.innerWidth * 0.55 && rect.height > 22);
+        if ((isLargeStructural || isMidSurface) && bgLum > 0.54) {
           node.setAttribute(ATTR.SURFACE, "1");
           node.setAttribute(ATTR.COMPONENT, classifySurfaceNode(node));
           classifier.markOwned(node);

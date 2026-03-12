@@ -183,6 +183,7 @@
             <option value="cinema_soft">Cinema Soft</option>
             <option value="mint_calm">Mint Calm</option>
             <option value="red_overlay">Red Overlay</option>
+            <option value="near_infrared">Near Infrared (Power)</option>
             <option value="red_mono">Red Monochrome</option>
             <option value="red_lock">Red Spectrum Lock</option>
             <option value="gray_warm">Grayscale + Warm</option>
@@ -322,86 +323,6 @@
             </select>
           </div>
         </details>
-      </section>
-
-      <section class="panel core" id="adaptiveThemePanel">
-        <div class="section-head">
-          <h2>4) Adaptive Site Theme</h2>
-          <label class="switch" aria-label="Toggle adaptive site theme">
-            <input id="adaptiveThemeEnabled" type="checkbox" />
-            <span>On</span>
-          </label>
-        </div>
-
-        <div class="field-row">
-          <label for="adaptiveThemeMode">Mode</label>
-          <select id="adaptiveThemeMode" aria-label="Adaptive site theme mode">
-            <option value="smart_dark">Smart Dark</option>
-            <option value="smart_light">Smart Light</option>
-            <option value="minimal_dark">Minimal Dark</option>
-            <option value="minimal_light">Minimal Light</option>
-            <option value="code_focus_dark">Code Focus Dark</option>
-            <option value="soft_contrast">Soft Contrast</option>
-          </select>
-        </div>
-
-        <div class="field-row">
-          <label for="adaptiveThemePreset">Preset</label>
-          <select id="adaptiveThemePreset" aria-label="Adaptive site theme preset">
-            <option value="balanced">Balanced</option>
-            <option value="comfort">Comfort</option>
-            <option value="clarity">Clarity</option>
-          </select>
-        </div>
-
-        <div class="field-row">
-          <label for="adaptiveThemeIntensity">Adaptive Intensity</label>
-          <div class="range-wrap">
-            <input id="adaptiveThemeIntensity" type="range" min="0" max="100" step="1" />
-            <span id="adaptiveThemeIntensityValue" class="value">52%</span>
-          </div>
-        </div>
-
-        <div class="row actions-row alert-types">
-          <label class="switch" title="Enable Adaptive Site Theme override for this host">
-            <input id="adaptiveThemeThisSiteEnabled" type="checkbox" />
-            <span>This site override</span>
-          </label>
-          <label class="switch" title="Exclude this host from Adaptive Site Theme">
-            <input id="adaptiveThemeExcludeSite" type="checkbox" />
-            <span>Exclude site</span>
-          </label>
-        </div>
-
-        <details class="inline-advanced">
-          <summary>Advanced</summary>
-          <div class="field-row">
-            <label for="adaptiveThemeStrategy">Strategy</label>
-            <select id="adaptiveThemeStrategy" aria-label="Adaptive strategy">
-              <option value="auto">Auto</option>
-              <option value="css_variables">CSS Variables</option>
-              <option value="semantic_recolor">Semantic Recolor</option>
-              <option value="minimal_surface">Minimal Surface</option>
-              <option value="compatibility">Compatibility</option>
-              <option value="app_safe">App-safe</option>
-            </select>
-          </div>
-
-          <div class="field-row">
-            <label for="adaptiveThemeCompatibility">Compatibility</label>
-            <select id="adaptiveThemeCompatibility" aria-label="Adaptive compatibility mode">
-              <option value="normal">Normal</option>
-              <option value="minimal">Minimal</option>
-              <option value="app-safe">App-safe</option>
-              <option value="media-safe">Media-safe</option>
-              <option value="code-safe">Code-safe</option>
-            </select>
-          </div>
-        </details>
-
-        <p id="adaptiveThemeStatus" class="micro">
-          Adaptive Site Theme is the advanced smart transformation engine.
-        </p>
       </section>
 
       <section class="panel compact" id="sharedVisualActionsPanel">

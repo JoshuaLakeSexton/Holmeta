@@ -107,7 +107,7 @@
     const coherence = normalizer.coherencePass?.(root, {
       mode: state.mode,
       tokens: state.tokens,
-      maxNodes: state.compatibilityMode === "media-safe" ? 180 : 520
+      maxNodes: state.compatibilityMode === "media-safe" ? 220 : 840
     }) || { forcedSurfaces: 0, forcedText: 0, logos: 0 };
     state.diagnostics.components = result.components;
     state.diagnostics.wrappers = result.wrappers;
