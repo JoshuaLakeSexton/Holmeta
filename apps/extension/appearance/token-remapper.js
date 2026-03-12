@@ -617,7 +617,7 @@ html[${ATTR.ACTIVE}='1'][${ATTR.SITE}='x'] :is(
   [data-testid='AppTabBar'],
   [data-testid='TopNavBar']
 ) {
-  background-color: var(--holmeta-appearance-section-background) !important;
+  background-color: var(--holmeta-appearance-page-background-alt) !important;
   border-color: var(--holmeta-appearance-line-subtle) !important;
 }
 
@@ -642,7 +642,11 @@ html[${ATTR.ACTIVE}='1'][${ATTR.SITE}='x'] :is(
   [aria-label='Subscribe to Premium'],
   [aria-label='Timeline: Trending now']
 ) {
-  background-color: var(--holmeta-appearance-panel-background) !important;
+  background-color: color-mix(
+    in srgb,
+    var(--holmeta-appearance-page-background) 86%,
+    var(--holmeta-appearance-panel-background) 14%
+  ) !important;
   border-color: var(--holmeta-appearance-line-subtle) !important;
 }
 
@@ -669,7 +673,7 @@ html[${ATTR.ACTIVE}='1'][${ATTR.SITE}='x'] :is(
   [data-testid='AppTabBar'],
   [data-testid='TopNavBar']
 ) [style*='background-color: rgb(0' i] {
-  background-color: var(--holmeta-appearance-panel-background) !important;
+  background-color: var(--holmeta-appearance-page-background-alt) !important;
 }
 
 html[${ATTR.ACTIVE}='1'][${ATTR.SITE}='x'][${ATTR.MODE}='dark'] :is(
@@ -678,7 +682,7 @@ html[${ATTR.ACTIVE}='1'][${ATTR.SITE}='x'][${ATTR.MODE}='dark'] :is(
   [data-testid='AppTabBar'],
   [data-testid='TopNavBar']
 ) :where(div, section, article, header, nav, aside, main)[style*='background-color: rgb(0' i]:not([${ATTR.MEDIA_SAFE}='1']):not([${ATTR.ACCENT_SAFE}='1']) {
-  background-color: var(--holmeta-appearance-section-background) !important;
+  background-color: var(--holmeta-appearance-page-background-alt) !important;
   border-color: var(--holmeta-appearance-line-subtle) !important;
 }
 
@@ -835,6 +839,46 @@ html[${ATTR.ACTIVE}='1'][${ATTR.SITE}='amazon'][${ATTR.MODE}='dark'] :is(
   .a-section,
   .a-container
 ):not([${ATTR.MEDIA_SAFE}='1']) {
+  background-color: var(--holmeta-appearance-page-background) !important;
+  border-color: var(--holmeta-appearance-line-subtle) !important;
+}
+
+/* Force Amazon's white structural homepage canvases into dark family (without touching media/cards). */
+html[${ATTR.ACTIVE}='1'][${ATTR.SITE}='amazon'][${ATTR.MODE}='dark'] :is(
+  #gw-layout,
+  #gw-content,
+  #gw-main-container,
+  #gw-main,
+  #gw-card-layout,
+  #desktop-grid,
+  #desktop-grid-1,
+  #desktop-grid-2,
+  #desktop-grid-3,
+  #desktop-grid-4,
+  [id^='desktop-grid-'],
+  [id*='desktop-grid-'],
+  .s-main-slot,
+  .s-desktop-content,
+  .a-page,
+  .a-container,
+  .a-section
+):not(:has(img, picture, video, canvas, iframe, object, embed)):not([${ATTR.MEDIA_SAFE}='1']) {
+  background-color: var(--holmeta-appearance-page-background) !important;
+  background-image: none !important;
+  border-color: var(--holmeta-appearance-line-subtle) !important;
+}
+
+html[${ATTR.ACTIVE}='1'][${ATTR.SITE}='amazon'][${ATTR.MODE}='dark'] :is(
+  #gw-layout,
+  #gw-content,
+  #gw-main-container,
+  #gw-main,
+  #gw-card-layout,
+  [id^='desktop-grid-'],
+  [id*='desktop-grid-'],
+  .s-main-slot,
+  .s-desktop-content
+) :where(div, section, article, main, aside, nav, header, footer)[style*='background-color: rgb(255' i]:not([${ATTR.MEDIA_SAFE}='1']):not([${ATTR.ACCENT_SAFE}='1']):not(:has(img, picture, video, canvas, iframe, object, embed)) {
   background-color: var(--holmeta-appearance-page-background) !important;
   border-color: var(--holmeta-appearance-line-subtle) !important;
 }
