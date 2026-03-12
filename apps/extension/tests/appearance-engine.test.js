@@ -35,8 +35,9 @@ test("appearance presets include required dark and light variants", () => {
   const darkIds = palettes.darkPresets.map((preset) => preset.id);
   const lightIds = palettes.lightPresets.map((preset) => preset.id);
   assert.equal(JSON.stringify(darkIds), JSON.stringify([
-    "coal",
     "black",
+    "coal",
+    "iron_ore",
     "brown",
     "grey",
     "sepia",
@@ -51,6 +52,25 @@ test("appearance presets include required dark and light variants", () => {
     "soft_green",
     "baby_blue",
     "light_brown"
+  ]));
+  assert.equal(JSON.stringify(palettes.darkPresets.map((preset) => preset.label)), JSON.stringify([
+    "Black",
+    "Coal",
+    "Iron ore",
+    "dark Brown",
+    "Grey",
+    "Sepia",
+    "Teal",
+    "dark Purple",
+    "dark Green"
+  ]));
+  assert.equal(JSON.stringify(palettes.lightPresets.map((preset) => preset.label)), JSON.stringify([
+    "White",
+    "Warm",
+    "Beige",
+    "Soft Green",
+    "Baby Blue",
+    "Light Brown"
   ]));
 });
 

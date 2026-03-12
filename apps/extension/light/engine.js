@@ -70,8 +70,9 @@
   ]);
 
   const READING_DARK_VARIANTS = new Set([
-    "coal",
     "black",
+    "coal",
+    "iron_ore",
     "brown",
     "grey",
     "sepia",
@@ -88,8 +89,9 @@
     "light_brown"
   ]);
   const READING_PRESETS = new Set([
-    "coal",
     "black",
+    "coal",
+    "iron_ore",
     "brown",
     "grey",
     "sepia",
@@ -788,6 +790,11 @@
 
   function normalizeReadingDarkVariant(value, fallback = "coal") {
     const raw = String(value || "").trim().toLowerCase();
+    if (raw === "iron ore") return "iron_ore";
+    if (raw === "coal-black" || raw === "coal -black") return "coal";
+    if (raw === "dark brown") return "brown";
+    if (raw === "dark purple") return "purple";
+    if (raw === "dark green") return "forest_green";
     if (raw === "gray") return "grey";
     if (raw === "dim_slate") return "grey";
     if (raw === "gentle_night") return "brown";
@@ -806,6 +813,7 @@
 
   function darkVariantFromPreset(preset, fallback = "coal") {
     const key = String(preset || "").trim().toLowerCase();
+    if (key === "iron ore") return "iron_ore";
     if (READING_DARK_VARIANTS.has(key)) return key;
     if (key === "soft_black") return "coal";
     if (key === "dim_slate") return "grey";
@@ -830,7 +838,7 @@
     return {
       enabled: false,
       appearance: "auto", // light | dark | auto
-      darkVariant: "coal", // coal | black | brown | grey | sepia | teal | purple | forest_green
+      darkVariant: "coal", // black | coal | iron_ore | brown | grey | sepia | teal | purple | forest_green
       darkThemeVariant: "black",
       lightVariant: "white", // white | warm | off_white | soft_green | baby_blue | light_brown
       lightThemeVariant: "white",
@@ -1396,8 +1404,8 @@
         coal: {
           bg: "#121212",
           surface: "#181818",
-          fg: "#E0E0E0",
-          muted: "#BDBDBD",
+          fg: "#F3F3F4",
+          muted: "#CDD2DB",
           link: "#9EA7B5",
           border: "rgba(66, 66, 66, 0.55)",
           controlBg: "#424242",
@@ -1406,18 +1414,28 @@
         black: {
           bg: "#000000",
           surface: "#0A0A0A",
-          fg: "#BDBDBD",
-          muted: "#A3A3A3",
+          fg: "#F3F3F4",
+          muted: "#CDD2DB",
           link: "#D0D0D0",
           border: "rgba(44, 44, 44, 0.55)",
           controlBg: "#1B1B1B",
           overlayBg: "rgba(0, 0, 0, 1)"
         },
+        iron_ore: {
+          bg: "#161A1F",
+          surface: "#1E242B",
+          fg: "#F3F3F4",
+          muted: "#CDD2DB",
+          link: "#D9E0EA",
+          border: "rgba(78, 86, 97, 0.58)",
+          controlBg: "#313842",
+          overlayBg: "rgba(9, 12, 16, 1)"
+        },
         brown: {
           bg: "#3E2723",
           surface: "#4A302B",
-          fg: "#FFF8E1",
-          muted: "#E6D7B9",
+          fg: "#F3F3F4",
+          muted: "#CDD2DB",
           link: "#F2DFC8",
           border: "rgba(109, 76, 65, 0.60)",
           controlBg: "#6D4C41",
@@ -1426,8 +1444,8 @@
         grey: {
           bg: "#424242",
           surface: "#4E4E4E",
-          fg: "#FFFFFF",
-          muted: "#F3F3F3",
+          fg: "#F3F3F4",
+          muted: "#CDD2DB",
           link: "#ECECEC",
           border: "rgba(117, 117, 117, 0.62)",
           controlBg: "#757575",
@@ -1436,8 +1454,8 @@
         sepia: {
           bg: "#5C3317",
           surface: "#694022",
-          fg: "#F4EBD0",
-          muted: "#E3D8B7",
+          fg: "#F3F3F4",
+          muted: "#CDD2DB",
           link: "#F0D5A7",
           border: "rgba(166, 124, 82, 0.62)",
           controlBg: "#A67C52",
@@ -1446,8 +1464,8 @@
         teal: {
           bg: "#004D40",
           surface: "#00695C",
-          fg: "#E0F2F1",
-          muted: "#C4E8E5",
+          fg: "#F3F3F4",
+          muted: "#CDD2DB",
           link: "#BDF0E9",
           border: "rgba(0, 150, 136, 0.60)",
           controlBg: "#009688",
@@ -1456,8 +1474,8 @@
         purple: {
           bg: "#311B92",
           surface: "#4527A0",
-          fg: "#E1BEE7",
-          muted: "#D8B3DE",
+          fg: "#F3F3F4",
+          muted: "#CDD2DB",
           link: "#D7C4F0",
           border: "rgba(126, 87, 194, 0.62)",
           controlBg: "#7E57C2",
@@ -1466,8 +1484,8 @@
         forest_green: {
           bg: "#1B5E20",
           surface: "#2E7D32",
-          fg: "#E8F5E9",
-          muted: "#D6ECD7",
+          fg: "#F3F3F4",
+          muted: "#CDD2DB",
           link: "#CFEFD1",
           border: "rgba(76, 175, 80, 0.60)",
           controlBg: "#4CAF50",
@@ -1490,6 +1508,7 @@
       const variantBoostMap = {
         coal: 0.07,
         black: 0.10,
+        iron_ore: 0.08,
         brown: 0.07,
         grey: 0.06,
         sepia: 0.06,
@@ -1799,7 +1818,7 @@
         end: String(legacyLight.schedule?.end || "06:00")
       },
       mode: legacyLight.readingMode === "light" ? "light" : "dark",
-      darkVariant: ["black", "brown", "gray", "grey", "coal", "sepia", "teal", "purple", "forest_green"].includes(String(legacyLight.darkThemeVariant || ""))
+      darkVariant: ["black", "brown", "gray", "grey", "coal", "iron_ore", "sepia", "teal", "purple", "forest_green"].includes(String(legacyLight.darkThemeVariant || ""))
         ? normalizeReadingDarkVariant(String(legacyLight.darkThemeVariant || ""), "coal")
         : "coal",
       lightVariant: ["white", "warm", "gray", "off_white", "soft_green", "baby_blue", "light_brown"].includes(String(legacyLight.lightThemeVariant || ""))

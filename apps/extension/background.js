@@ -82,8 +82,9 @@ const LIGHT_FILTER_SPECTRUM_PRESETS = [
 ];
 
 const READING_THEME_PRESETS = [
-  "coal",
   "black",
+  "coal",
+  "iron_ore",
   "brown",
   "grey",
   "sepia",
@@ -663,7 +664,7 @@ function createDefaultReadingThemeSettings() {
   return {
     enabled: false,
     appearance: "auto", // light | dark | auto
-    darkVariant: "coal", // coal | black | brown | grey | sepia | teal | purple | forest_green
+    darkVariant: "coal", // black | coal | iron_ore | brown | grey | sepia | teal | purple | forest_green
     darkThemeVariant: "black",
     lightVariant: "white", // white | warm | off_white | soft_green | baby_blue | light_brown
     lightThemeVariant: "white",
@@ -765,11 +766,16 @@ function readingPresetFromLegacy(mode, darkVariant, lightVariant) {
 
 function normalizeReadingDarkVariant(value, fallback = "coal") {
   const raw = String(value || "").trim().toLowerCase();
+  if (raw === "iron ore") return "iron_ore";
+  if (raw === "coal-black" || raw === "coal -black") return "coal";
+  if (raw === "dark brown") return "brown";
+  if (raw === "dark purple") return "purple";
+  if (raw === "dark green") return "forest_green";
   if (raw === "gray") return "grey";
   if (raw === "dim_slate") return "grey";
   if (raw === "gentle_night") return "brown";
   if (raw === "soft_black") return "coal";
-  if (["coal", "black", "brown", "grey", "sepia", "teal", "purple", "forest_green"].includes(raw)) return raw;
+  if (["black", "coal", "iron_ore", "brown", "grey", "sepia", "teal", "purple", "forest_green"].includes(raw)) return raw;
   return fallback;
 }
 
@@ -785,7 +791,8 @@ function normalizeReadingLightVariant(value, fallback = "white") {
 
 function darkVariantFromPreset(preset, fallback = "coal") {
   const key = String(preset || "").trim().toLowerCase();
-  if (["coal", "black", "brown", "grey", "sepia", "teal", "purple", "forest_green"].includes(key)) return key;
+  if (key === "iron ore") return "iron_ore";
+  if (["black", "coal", "iron_ore", "brown", "grey", "sepia", "teal", "purple", "forest_green"].includes(key)) return key;
   if (key === "soft_black") return "coal";
   if (key === "dim_slate") return "grey";
   if (key === "gentle_night") return "brown";
@@ -1104,6 +1111,8 @@ function readingThemeToLegacyVariants(reading = {}) {
   if (explicitDark && explicitLight) {
     const darkThemeVariant = ["brown", "sepia"].includes(explicitDark)
       ? "brown"
+      : (explicitDark === "iron_ore")
+        ? "black"
       : (explicitDark === "grey" ? "gray" : "black");
     const lightThemeVariant = explicitLight === "off_white"
       ? "gray"

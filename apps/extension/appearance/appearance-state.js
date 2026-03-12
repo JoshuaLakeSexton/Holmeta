@@ -27,8 +27,9 @@
 
   const DARK_VARIANTS = new Set(
     Object.keys(paletteLib?.darkMap || {
-      coal: 1,
       black: 1,
+      coal: 1,
+      iron_ore: 1,
       brown: 1,
       grey: 1,
       sepia: 1,

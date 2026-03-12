@@ -39,80 +39,107 @@
 
   const darkPresets = [
     {
-      id: "coal",
-      label: "Coal -Black",
-      modeType: "dark",
-      background: "#121212",
-      textPrimary: "#E0E0E0",
-      accent: "#424242"
-    },
-    {
       id: "black",
-      label: "Iron ore",
+      label: "Black",
       modeType: "dark",
       background: "#000000",
-      textPrimary: "#BDBDBD",
-      accent: "#2A2A2A"
+      textPrimary: "#F3F3F4",
+      accent: "#2A2A2A",
+      mood: { depth: 0.98, warmth: 0.02, contrast: 0.97 }
+    },
+    {
+      id: "coal",
+      label: "Coal",
+      modeType: "dark",
+      background: "#121212",
+      textPrimary: "#F3F3F4",
+      accent: "#424242",
+      mood: { depth: 0.90, warmth: 0.06, contrast: 0.94 }
+    },
+    {
+      id: "iron_ore",
+      label: "Iron ore",
+      modeType: "dark",
+      background: "#161A1F",
+      textPrimary: "#F3F3F4",
+      accent: "#4E5661",
+      mood: { depth: 0.92, warmth: 0.04, contrast: 0.95 }
     },
     {
       id: "brown",
       label: "dark Brown",
       modeType: "dark",
       background: "#3E2723",
-      textPrimary: "#FFF8E1",
-      accent: "#6D4C41"
+      textPrimary: "#F3F3F4",
+      accent: "#6D4C41",
+      mood: { depth: 0.84, warmth: 0.36, contrast: 0.93 }
     },
     {
       id: "grey",
       label: "Grey",
       modeType: "dark",
       background: "#424242",
-      textPrimary: "#FFFFFF",
-      accent: "#757575"
+      textPrimary: "#F3F3F4",
+      accent: "#757575",
+      mood: { depth: 0.82, warmth: 0.08, contrast: 0.92 }
     },
     {
       id: "sepia",
       label: "Sepia",
       modeType: "dark",
       background: "#5C3317",
-      textPrimary: "#F4EBD0",
-      accent: "#A67C52"
+      textPrimary: "#F3F3F4",
+      accent: "#A67C52",
+      mood: { depth: 0.80, warmth: 0.42, contrast: 0.90 }
     },
     {
       id: "teal",
       label: "Teal",
       modeType: "dark",
       background: "#004D40",
-      textPrimary: "#E0F2F1",
-      accent: "#009688"
+      textPrimary: "#F3F3F4",
+      accent: "#009688",
+      mood: { depth: 0.86, warmth: 0.06, contrast: 0.93 }
     },
     {
       id: "purple",
       label: "dark Purple",
       modeType: "dark",
       background: "#311B92",
-      textPrimary: "#E1BEE7",
-      accent: "#7E57C2"
+      textPrimary: "#F3F3F4",
+      accent: "#7E57C2",
+      mood: { depth: 0.88, warmth: 0.12, contrast: 0.94 }
     },
     {
       id: "forest_green",
       label: "dark Green",
       modeType: "dark",
       background: "#1B5E20",
-      textPrimary: "#E8F5E9",
-      accent: "#4CAF50"
+      textPrimary: "#F3F3F4",
+      accent: "#4CAF50",
+      mood: { depth: 0.84, warmth: 0.10, contrast: 0.92 }
     }
-  ].map((preset) => ({
-    ...preset,
-    surface: mix(preset.background, "#101010", 0.16),
-    elevatedSurface: mix(preset.background, preset.accent, 0.20),
-    textSecondary: mix(preset.textPrimary, "#8f8f8f", 0.30),
-    border: alpha(preset.textPrimary, 0.24),
-    selectedAccent: mix(preset.accent, "#ffd27a", 0.34),
-    inputBackground: mix(preset.background, preset.accent, 0.20),
-    buttonBackground: mix(preset.background, preset.accent, 0.28),
-    buttonText: preset.textPrimary
-  }));
+  ].map((preset) => {
+    const depth = clamp(Number(preset.mood?.depth ?? 0.9), 0, 1);
+    const warmth = clamp(Number(preset.mood?.warmth ?? 0.1), 0, 1);
+    const contrast = clamp(Number(preset.mood?.contrast ?? 0.94), 0, 1);
+    const surfaceLift = 0.12 + ((1 - depth) * 0.10) + (warmth * 0.03);
+    const elevatedLift = 0.18 + ((1 - depth) * 0.12) + (warmth * 0.04);
+    const inputLift = 0.14 + ((1 - depth) * 0.10) + (warmth * 0.02);
+    const buttonLift = 0.22 + ((1 - depth) * 0.12) + (warmth * 0.02);
+    const textSecondaryMix = 0.20 + ((1 - contrast) * 0.24);
+    return {
+      ...preset,
+      surface: mix(preset.background, preset.accent, surfaceLift),
+      elevatedSurface: mix(preset.background, preset.accent, elevatedLift),
+      textSecondary: mix(preset.textPrimary, "#AEB4C0", textSecondaryMix),
+      border: alpha(preset.textPrimary, 0.16 + ((1 - depth) * 0.10)),
+      selectedAccent: mix(preset.accent, "#E8EDF8", 0.16 + ((1 - depth) * 0.16)),
+      inputBackground: mix(preset.background, preset.accent, inputLift),
+      buttonBackground: mix(preset.background, preset.accent, buttonLift),
+      buttonText: "#F3F3F4"
+    };
+  });
 
   const lightPresets = [
     {
@@ -121,7 +148,8 @@
       modeType: "light",
       background: "#FFFFFF",
       textPrimary: "#000000",
-      accent: "#2196F3"
+      accent: "#2196F3",
+      mood: { depth: 0.06, warmth: 0.04, contrast: 0.96 }
     },
     {
       id: "warm",
@@ -129,7 +157,8 @@
       modeType: "light",
       background: "#FFFDE7",
       textPrimary: "#3E2723",
-      accent: "#FFB300"
+      accent: "#FFB300",
+      mood: { depth: 0.12, warmth: 0.32, contrast: 0.92 }
     },
     {
       id: "off_white",
@@ -137,7 +166,8 @@
       modeType: "light",
       background: "#FAFAFA",
       textPrimary: "#212121",
-      accent: "#757575"
+      accent: "#757575",
+      mood: { depth: 0.10, warmth: 0.18, contrast: 0.94 }
     },
     {
       id: "soft_green",
@@ -145,7 +175,8 @@
       modeType: "light",
       background: "#E8F5E9",
       textPrimary: "#1B5E20",
-      accent: "#66BB6A"
+      accent: "#66BB6A",
+      mood: { depth: 0.14, warmth: 0.14, contrast: 0.93 }
     },
     {
       id: "baby_blue",
@@ -153,7 +184,8 @@
       modeType: "light",
       background: "#E3F2FD",
       textPrimary: "#0D47A1",
-      accent: "#42A5F5"
+      accent: "#42A5F5",
+      mood: { depth: 0.12, warmth: 0.08, contrast: 0.94 }
     },
     {
       id: "light_brown",
@@ -161,25 +193,41 @@
       modeType: "light",
       background: "#D7CCC8",
       textPrimary: "#4E342E",
-      accent: "#A1887F"
+      accent: "#A1887F",
+      mood: { depth: 0.18, warmth: 0.24, contrast: 0.91 }
     }
-  ].map((preset) => ({
-    ...preset,
-    surface: mix(preset.background, "#ffffff", 0.09),
-    elevatedSurface: mix(preset.background, preset.accent, 0.13),
-    textSecondary: mix(preset.textPrimary, "#4a4a4a", 0.20),
-    border: alpha(preset.textPrimary, 0.20),
-    selectedAccent: mix(preset.accent, "#0d0d0d", 0.10),
-    inputBackground: mix(preset.background, "#ffffff", 0.16),
-    buttonBackground: mix(preset.background, preset.accent, 0.21),
-    buttonText: preset.textPrimary
-  }));
+  ].map((preset) => {
+    const depth = clamp(Number(preset.mood?.depth ?? 0.12), 0, 1);
+    const warmth = clamp(Number(preset.mood?.warmth ?? 0.1), 0, 1);
+    const contrast = clamp(Number(preset.mood?.contrast ?? 0.94), 0, 1);
+    const surfaceLift = 0.08 + (depth * 0.08);
+    const elevatedLift = 0.10 + (depth * 0.14) + (warmth * 0.04);
+    const inputLift = 0.12 + (depth * 0.10);
+    const buttonLift = 0.16 + (depth * 0.14) + (warmth * 0.06);
+    const textSecondaryMix = 0.16 + ((1 - contrast) * 0.22);
+    return {
+      ...preset,
+      surface: mix(preset.background, "#ffffff", surfaceLift),
+      elevatedSurface: mix(preset.background, preset.accent, elevatedLift),
+      textSecondary: mix(preset.textPrimary, "#4A4A4A", textSecondaryMix),
+      border: alpha(preset.textPrimary, 0.16 + (depth * 0.08)),
+      selectedAccent: mix(preset.accent, "#0D0D0D", 0.10 + (depth * 0.06)),
+      inputBackground: mix(preset.background, "#ffffff", inputLift),
+      buttonBackground: mix(preset.background, preset.accent, buttonLift),
+      buttonText: preset.textPrimary
+    };
+  });
 
   const darkMap = Object.fromEntries(darkPresets.map((preset) => [preset.id, preset]));
   const lightMap = Object.fromEntries(lightPresets.map((preset) => [preset.id, preset]));
 
   function normalizeDarkVariant(value, fallback = "coal") {
     const key = String(value || "").trim().toLowerCase();
+    if (key === "iron ore") return "iron_ore";
+    if (key === "coal-black" || key === "coal -black") return "coal";
+    if (key === "dark brown") return "brown";
+    if (key === "dark purple") return "purple";
+    if (key === "dark green") return "forest_green";
     if (key === "gray") return "grey";
     if (darkMap[key]) return key;
     return darkMap[fallback] ? fallback : "coal";

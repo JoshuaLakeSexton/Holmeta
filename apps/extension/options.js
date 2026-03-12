@@ -409,11 +409,16 @@
 
   function normalizeReadingDarkVariant(value, fallback = "coal") {
     const raw = String(value || "").trim().toLowerCase();
+    if (raw === "iron ore") return "iron_ore";
+    if (raw === "coal-black" || raw === "coal -black") return "coal";
+    if (raw === "dark brown") return "brown";
+    if (raw === "dark purple") return "purple";
+    if (raw === "dark green") return "forest_green";
     if (raw === "gray") return "grey";
     if (raw === "dim_slate") return "grey";
     if (raw === "gentle_night") return "brown";
     if (raw === "soft_black") return "coal";
-    return ["coal", "black", "brown", "grey", "sepia", "teal", "purple", "forest_green"].includes(raw)
+    return ["black", "coal", "iron_ore", "brown", "grey", "sepia", "teal", "purple", "forest_green"].includes(raw)
       ? raw
       : fallback;
   }
@@ -431,7 +436,8 @@
 
   function darkVariantFromPreset(preset, fallback = "coal") {
     const key = String(preset || "").trim().toLowerCase();
-    if (["coal", "black", "brown", "grey", "sepia", "teal", "purple", "forest_green"].includes(key)) return key;
+    if (key === "iron ore") return "iron_ore";
+    if (["black", "coal", "iron_ore", "brown", "grey", "sepia", "teal", "purple", "forest_green"].includes(key)) return key;
     if (key === "soft_black") return "coal";
     if (key === "dim_slate") return "grey";
     if (key === "gentle_night") return "brown";

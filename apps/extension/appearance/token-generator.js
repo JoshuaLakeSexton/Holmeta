@@ -124,18 +124,29 @@
     const siteClass = String(input.siteClass || "general");
     const compat = String(input.compatibilityMode || "normal");
     const palette = resolvePalette(mode, input.darkVariant, input.lightVariant);
+    const moodDepth = clamp(
+      Number(palette.mood?.depth ?? (mode === "dark" ? 0.9 : 0.12)),
+      0,
+      1
+    );
+    const moodWarmth = clamp(Number(palette.mood?.warmth ?? 0.1), 0, 1);
+    const moodContrast = clamp(Number(palette.mood?.contrast ?? 0.94), 0, 1);
     const adj = siteClassAdjustments(siteClass, mode, strength);
 
     const isDark = mode === "dark";
     const darkBg = "#070707";
     const lightBg = "#ffffff";
+    const moodLift = isDark
+      ? ((1 - moodDepth) * 0.05) + (moodWarmth * 0.015)
+      : (moodDepth * 0.04) + (moodWarmth * 0.012);
+    const contrastBias = (1 - moodContrast) * 0.06;
 
     let pageBackground = mix(
       palette.background,
       isDark ? darkBg : lightBg,
       isDark
-        ? (0.17 + (strength * 0.08))
-        : (0.04 + (strength * 0.03))
+        ? (0.17 + (strength * 0.08) + moodLift)
+        : (0.04 + (strength * 0.03) + (moodLift * 0.65))
     );
 
     // Keep already-dark pages conservative on dark mode to avoid muddy stacking.
@@ -143,16 +154,36 @@
       pageBackground = mix(pageBackground, palette.background, 0.65);
     }
 
-    const pageBackgroundAlt = mix(pageBackground, isDark ? "#020202" : "#ffffff", isDark ? 0.10 : 0.04);
-    const sidebarBackground = mix(pageBackground, isDark ? darkBg : palette.accent, isDark ? 0.06 + (adj.surfaceLift * 0.22) : adj.surfaceLift);
-    const sectionBackground = mix(pageBackground, palette.accent, (isDark ? 0.04 : 0.06) + (adj.surfaceLift * 0.26));
-    const panelBackground = mix(pageBackground, palette.accent, (isDark ? 0.09 : 0.08) + (adj.surfaceLift * 0.44));
-    const cardBackground = mix(pageBackground, palette.accent, (isDark ? 0.15 : 0.11) + (adj.surfaceLift * 0.62));
-    const elevatedBackground = mix(pageBackground, palette.accent, (isDark ? 0.23 : 0.15) + (adj.surfaceLift * 0.74));
+    const pageBackgroundAlt = mix(pageBackground, isDark ? "#020202" : "#ffffff", (isDark ? 0.10 : 0.04) + (moodLift * 0.30));
+    const sidebarBackground = mix(
+      pageBackground,
+      isDark ? darkBg : palette.accent,
+      (isDark ? 0.06 : 0.07) + (adj.surfaceLift * 0.22) + (moodLift * 0.60)
+    );
+    const sectionBackground = mix(
+      pageBackground,
+      palette.accent,
+      (isDark ? 0.04 : 0.06) + (adj.surfaceLift * 0.26) + (moodLift * 0.42)
+    );
+    const panelBackground = mix(
+      pageBackground,
+      palette.accent,
+      (isDark ? 0.09 : 0.08) + (adj.surfaceLift * 0.44) + (moodLift * 0.48)
+    );
+    const cardBackground = mix(
+      pageBackground,
+      palette.accent,
+      (isDark ? 0.15 : 0.11) + (adj.surfaceLift * 0.62) + (moodLift * 0.56)
+    );
+    const elevatedBackground = mix(
+      pageBackground,
+      palette.accent,
+      (isDark ? 0.23 : 0.15) + (adj.surfaceLift * 0.74) + (moodLift * 0.62)
+    );
     const modalBackground = mix(elevatedBackground, isDark ? "#000000" : "#ffffff", isDark ? 0.10 : 0.08);
     const dropdownBackground = mix(panelBackground, isDark ? "#060606" : "#ffffff", isDark ? 0.10 : 0.08);
     const inputBackground = mix(cardBackground, isDark ? darkBg : lightBg, isDark ? 0.12 : 0.18);
-    const hoverBackground = mix(elevatedBackground, palette.accent, (isDark ? 0.16 : 0.12) + (strength * 0.08));
+    const hoverBackground = mix(elevatedBackground, palette.accent, (isDark ? 0.16 : 0.12) + (strength * 0.08) + (moodLift * 0.20));
     const selectedAnchor = isDark ? palette.accent : (palette.selectedAccent || palette.accent);
     const selectedBackground = mix(elevatedBackground, selectedAnchor, (isDark ? 0.30 : 0.22) + adj.accentBoost);
 
@@ -161,12 +192,12 @@
     const textSecondary = isDark ? "#D5D6DA" : "#2A2A2A";
     const textMuted = isDark ? "#B8BAC2" : "#565962";
 
-    const borderSubtle = alpha(textPrimary, (isDark ? 0.07 : 0.15) + (adj.borderBoost * 0.35));
-    const borderStrong = alpha(textPrimary, (isDark ? 0.14 : 0.24) + (adj.borderBoost * 0.45));
-    const divider = alpha(textPrimary, isDark ? 0.08 : 0.16);
-    const lineSubtle = alpha(textPrimary, isDark ? 0.06 : 0.12);
-    const lineStrong = alpha(textPrimary, isDark ? 0.12 : 0.20);
-    const rowSeparator = alpha(textPrimary, isDark ? 0.09 : 0.16);
+    const borderSubtle = alpha(textPrimary, (isDark ? 0.07 : 0.15) + (adj.borderBoost * 0.35) + (contrastBias * 0.25));
+    const borderStrong = alpha(textPrimary, (isDark ? 0.14 : 0.24) + (adj.borderBoost * 0.45) + (contrastBias * 0.35));
+    const divider = alpha(textPrimary, (isDark ? 0.08 : 0.16) + (contrastBias * 0.30));
+    const lineSubtle = alpha(textPrimary, (isDark ? 0.06 : 0.12) + (contrastBias * 0.22));
+    const lineStrong = alpha(textPrimary, (isDark ? 0.12 : 0.20) + (contrastBias * 0.30));
+    const rowSeparator = alpha(textPrimary, (isDark ? 0.09 : 0.16) + (contrastBias * 0.28));
     const tableHeader = mix(panelBackground, isDark ? "#000000" : "#ffffff", isDark ? 0.24 : 0.14);
     const tableRow = mix(cardBackground, panelBackground, isDark ? 0.52 : 0.34);
     const tableRowAlt = mix(tableRow, panelBackground, isDark ? 0.30 : 0.18);
@@ -179,7 +210,7 @@
     const iconPrimary = textPrimary;
     const iconMuted = textMuted;
     const inputBorder = borderStrong;
-    const buttonBackground = mix(elevatedBackground, palette.accent, isDark ? 0.10 : 0.06);
+    const buttonBackground = mix(elevatedBackground, palette.accent, (isDark ? 0.10 : 0.06) + (moodLift * 0.22));
     const buttonText = textPrimary;
     const buttonBorder = borderStrong;
     const chipBackground = mix(cardBackground, accent, isDark ? 0.14 : 0.11);

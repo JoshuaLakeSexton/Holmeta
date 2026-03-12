@@ -476,8 +476,9 @@
   }
 
   const READING_DARK_VARIANTS = [
-    "coal",
     "black",
+    "coal",
+    "iron_ore",
     "brown",
     "grey",
     "sepia",
@@ -496,8 +497,9 @@
   ];
 
   const READING_DARK_LABELS = {
-    coal: "Coal -Black",
-    black: "Iron ore",
+    black: "Black",
+    coal: "Coal",
+    iron_ore: "Iron ore",
     brown: "dark Brown",
     grey: "Grey",
     sepia: "Sepia",
@@ -517,12 +519,17 @@
 
   function normalizeReadingDarkVariant(value, fallback = "coal") {
     const raw = String(value || "").trim().toLowerCase();
+    if (raw === "iron ore") return "iron_ore";
+    if (raw === "coal-black" || raw === "coal -black") return "coal";
+    if (raw === "dark brown") return "brown";
+    if (raw === "dark purple") return "purple";
+    if (raw === "dark green") return "forest_green";
     if (raw === "gray") return "grey";
     if (raw === "dim_slate") return "grey";
     if (raw === "gentle_night") return "brown";
     if (raw === "soft_black") return "coal";
     if (READING_DARK_VARIANTS.includes(raw)) return raw;
-    if (raw === "black" || raw === "brown" || raw === "grey") return raw;
+    if (raw === "black" || raw === "brown" || raw === "grey" || raw === "iron_ore") return raw;
     return fallback;
   }
 
@@ -539,6 +546,7 @@
 
   function darkVariantFromPreset(preset, fallback = "coal") {
     const key = String(preset || "").trim().toLowerCase();
+    if (key === "iron ore") return "iron_ore";
     if (READING_DARK_VARIANTS.includes(key)) return key;
     if (key === "soft_black") return "coal";
     if (key === "dim_slate") return "grey";
@@ -573,8 +581,9 @@
       return lightLevels[lightVariant] || 70;
     }
     const darkLevels = {
-      coal: 78,
       black: 84,
+      coal: 78,
+      iron_ore: 80,
       brown: 76,
       grey: 74,
       sepia: 74,
