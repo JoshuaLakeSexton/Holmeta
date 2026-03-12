@@ -262,24 +262,82 @@ html[${ATTR.ACTIVE}='1'][${ATTR.MODE}='dark'] :where(
   color: var(--holmeta-appearance-nav-harmonized-text) !important;
 }
 
-html[${ATTR.ACTIVE}='1'][${ATTR.MODE}='dark'] [${ATTR.FORCE_TEXT}='1'] {
-  color: var(--holmeta-appearance-low-contrast-fix-text) !important;
+html[${ATTR.ACTIVE}='1'] [${ATTR.FORCE_TEXT}='light'],
+html[${ATTR.ACTIVE}='1'] [${ATTR.FORCE_TEXT}='light'] :where(a, p, span, strong, em, i, b, label, button, svg, path, circle, rect, polygon, line) {
+  color: var(--holmeta-appearance-contrast-on-dark) !important;
 }
 
-html[${ATTR.ACTIVE}='1'][${ATTR.MODE}='dark'] [${ATTR.LOGO_WORDMARK}='1'] {
+html[${ATTR.ACTIVE}='1'] [${ATTR.FORCE_TEXT}='light'] :where(svg path, svg circle, svg rect, svg polygon, svg line) {
+  fill: var(--holmeta-appearance-contrast-on-dark) !important;
+  stroke: var(--holmeta-appearance-contrast-on-dark) !important;
+}
+
+html[${ATTR.ACTIVE}='1'] [${ATTR.FORCE_TEXT}='dark'],
+html[${ATTR.ACTIVE}='1'] [${ATTR.FORCE_TEXT}='dark'] :where(a, p, span, strong, em, i, b, label, button, svg, path, circle, rect, polygon, line) {
+  color: var(--holmeta-appearance-contrast-on-light) !important;
+}
+
+html[${ATTR.ACTIVE}='1'] [${ATTR.FORCE_TEXT}='dark'] :where(svg path, svg circle, svg rect, svg polygon, svg line) {
+  fill: var(--holmeta-appearance-contrast-on-light) !important;
+  stroke: var(--holmeta-appearance-contrast-on-light) !important;
+}
+
+html[${ATTR.ACTIVE}='1'] [${ATTR.LOGO_WORDMARK}='light'] {
   color: var(--holmeta-appearance-logo-on-dark-text) !important;
   text-shadow: 0 0 0.5px color-mix(in srgb, var(--holmeta-appearance-logo-on-dark-text) 45%, transparent) !important;
 }
 
-html[${ATTR.ACTIVE}='1'][${ATTR.MODE}='dark'] [${ATTR.LOGO_SVG}='1'],
-html[${ATTR.ACTIVE}='1'][${ATTR.MODE}='dark'] [${ATTR.LOGO_SVG}='1'] * {
+html[${ATTR.ACTIVE}='1'] [${ATTR.LOGO_WORDMARK}='dark'] {
+  color: var(--holmeta-appearance-logo-on-light-text) !important;
+  text-shadow: none !important;
+}
+
+html[${ATTR.ACTIVE}='1'] [${ATTR.LOGO_SVG}='light'],
+html[${ATTR.ACTIVE}='1'] [${ATTR.LOGO_SVG}='light'] * {
   fill: var(--holmeta-appearance-logo-on-dark-text) !important;
   stroke: var(--holmeta-appearance-logo-on-dark-text) !important;
   color: var(--holmeta-appearance-logo-on-dark-text) !important;
 }
 
-html[${ATTR.ACTIVE}='1'][${ATTR.MODE}='dark'] [${ATTR.LOGO_SAFE_BG}='1'] {
-  background-color: var(--holmeta-appearance-logo-safe-background) !important;
+html[${ATTR.ACTIVE}='1'] [${ATTR.LOGO_SVG}='dark'],
+html[${ATTR.ACTIVE}='1'] [${ATTR.LOGO_SVG}='dark'] * {
+  fill: var(--holmeta-appearance-logo-on-light-text) !important;
+  stroke: var(--holmeta-appearance-logo-on-light-text) !important;
+  color: var(--holmeta-appearance-logo-on-light-text) !important;
+}
+
+html[${ATTR.ACTIVE}='1'] [${ATTR.LOGO_SAFE_BG}='light'] {
+  background-color: var(--holmeta-appearance-logo-safe-background-light) !important;
+  border: 1px solid var(--holmeta-appearance-line-subtle) !important;
+  border-radius: 6px !important;
+  padding: 2px 6px !important;
+}
+
+html[${ATTR.ACTIVE}='1'] [${ATTR.LOGO_SAFE_BG}='dark'] {
+  background-color: var(--holmeta-appearance-logo-safe-background-dark) !important;
+  border: 1px solid var(--holmeta-appearance-line-subtle) !important;
+  border-radius: 6px !important;
+  padding: 2px 6px !important;
+}
+
+/* Backward compatibility for older marker values from previous passes. */
+html[${ATTR.ACTIVE}='1'] [${ATTR.FORCE_TEXT}='1'] {
+  color: var(--holmeta-appearance-low-contrast-fix-text) !important;
+}
+
+html[${ATTR.ACTIVE}='1'] [${ATTR.LOGO_WORDMARK}='1'] {
+  color: var(--holmeta-appearance-logo-on-dark-text) !important;
+}
+
+html[${ATTR.ACTIVE}='1'] [${ATTR.LOGO_SVG}='1'],
+html[${ATTR.ACTIVE}='1'] [${ATTR.LOGO_SVG}='1'] * {
+  fill: var(--holmeta-appearance-logo-on-dark-text) !important;
+  stroke: var(--holmeta-appearance-logo-on-dark-text) !important;
+  color: var(--holmeta-appearance-logo-on-dark-text) !important;
+}
+
+html[${ATTR.ACTIVE}='1'] [${ATTR.LOGO_SAFE_BG}='1'] {
+  background-color: var(--holmeta-appearance-logo-safe-background-light) !important;
   border: 1px solid var(--holmeta-appearance-line-subtle) !important;
   border-radius: 6px !important;
   padding: 2px 6px !important;
@@ -292,6 +350,33 @@ html[${ATTR.ACTIVE}='1'] svg:not([${ATTR.MEDIA_SAFE}]) {
 html[${ATTR.ACTIVE}='1'] :where(svg path, svg circle, svg rect, svg polygon, svg line):not([${ATTR.MEDIA_SAFE}] *) {
   stroke: currentColor !important;
   fill: currentColor !important;
+}
+
+/* Keep explicit contrast markers stronger than generic icon recoloring. */
+html[${ATTR.ACTIVE}='1'] [${ATTR.FORCE_TEXT}='light'] :where(svg, svg *, path, circle, rect, polygon, line) {
+  color: var(--holmeta-appearance-contrast-on-dark) !important;
+  fill: var(--holmeta-appearance-contrast-on-dark) !important;
+  stroke: var(--holmeta-appearance-contrast-on-dark) !important;
+}
+
+html[${ATTR.ACTIVE}='1'] [${ATTR.FORCE_TEXT}='dark'] :where(svg, svg *, path, circle, rect, polygon, line) {
+  color: var(--holmeta-appearance-contrast-on-light) !important;
+  fill: var(--holmeta-appearance-contrast-on-light) !important;
+  stroke: var(--holmeta-appearance-contrast-on-light) !important;
+}
+
+html[${ATTR.ACTIVE}='1'] [${ATTR.LOGO_SVG}='light'],
+html[${ATTR.ACTIVE}='1'] [${ATTR.LOGO_SVG}='light'] * {
+  color: var(--holmeta-appearance-logo-on-dark-text) !important;
+  fill: var(--holmeta-appearance-logo-on-dark-text) !important;
+  stroke: var(--holmeta-appearance-logo-on-dark-text) !important;
+}
+
+html[${ATTR.ACTIVE}='1'] [${ATTR.LOGO_SVG}='dark'],
+html[${ATTR.ACTIVE}='1'] [${ATTR.LOGO_SVG}='dark'] * {
+  color: var(--holmeta-appearance-logo-on-light-text) !important;
+  fill: var(--holmeta-appearance-logo-on-light-text) !important;
+  stroke: var(--holmeta-appearance-logo-on-light-text) !important;
 }
 
 html[${ATTR.ACTIVE}='1'] [${ATTR.MEDIA_SAFE}='1'],
@@ -478,8 +563,12 @@ html[${ATTR.ACTIVE}='1']::before {
     root.style.setProperty("--holmeta-appearance-nav-harmonized-text", tokens.navHarmonizedText || tokens.textPrimary);
     root.style.setProperty("--holmeta-appearance-header-muted-accent", tokens.headerMutedAccent || tokens.accentSoft || tokens.lineSubtle);
     root.style.setProperty("--holmeta-appearance-low-contrast-fix-text", tokens.lowContrastFixText || tokens.textPrimary);
-    root.style.setProperty("--holmeta-appearance-logo-safe-background", tokens.logoSafeBackground || tokens.cardBackground || tokens.surface2);
+    root.style.setProperty("--holmeta-appearance-contrast-on-dark", tokens.contrastTextOnDark || tokens.logoOnDarkText || "#F7F7F8");
+    root.style.setProperty("--holmeta-appearance-contrast-on-light", tokens.contrastTextOnLight || tokens.logoOnLightText || "#15181C");
+    root.style.setProperty("--holmeta-appearance-logo-safe-background-light", tokens.logoSafeBackgroundLight || tokens.logoSafeBackground || "#FFFFFF");
+    root.style.setProperty("--holmeta-appearance-logo-safe-background-dark", tokens.logoSafeBackgroundDark || "#11151B");
     root.style.setProperty("--holmeta-appearance-logo-on-dark-text", tokens.logoOnDarkText || tokens.textPrimary);
+    root.style.setProperty("--holmeta-appearance-logo-on-light-text", tokens.logoOnLightText || "#15181C");
 
     root.setAttribute(ATTR.ACTIVE, "1");
     root.setAttribute(ATTR.MODE, tokens.mode === "light" ? "light" : "dark");
@@ -549,8 +638,12 @@ html[${ATTR.ACTIVE}='1']::before {
       "--holmeta-appearance-nav-harmonized-text",
       "--holmeta-appearance-header-muted-accent",
       "--holmeta-appearance-low-contrast-fix-text",
-      "--holmeta-appearance-logo-safe-background",
-      "--holmeta-appearance-logo-on-dark-text"
+      "--holmeta-appearance-contrast-on-dark",
+      "--holmeta-appearance-contrast-on-light",
+      "--holmeta-appearance-logo-safe-background-light",
+      "--holmeta-appearance-logo-safe-background-dark",
+      "--holmeta-appearance-logo-on-dark-text",
+      "--holmeta-appearance-logo-on-light-text"
     ];
     for (const key of keys) {
       root.style.removeProperty(key);

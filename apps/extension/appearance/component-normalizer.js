@@ -16,36 +16,73 @@
     LOGO_SVG: "data-holmeta-logo-svg"
   };
 
-  function parseBackgroundLuminance(style) {
-    if (!style) return null;
-    const raw = String(style.backgroundColor || "");
+  function parseRgba(rawColor) {
+    const raw = String(rawColor || "").trim();
     const match = raw.match(/rgba?\(([^)]+)\)/i);
     if (!match) return null;
     const parts = match[1].split(",").map((part) => Number(String(part).trim()));
     if (parts.length < 3 || parts.slice(0, 3).some((n) => !Number.isFinite(n))) return null;
-    const alpha = Number.isFinite(parts[3]) ? parts[3] : 1;
-    if (alpha <= 0.02) return null;
+    return {
+      r: Math.max(0, Math.min(255, parts[0])),
+      g: Math.max(0, Math.min(255, parts[1])),
+      b: Math.max(0, Math.min(255, parts[2])),
+      a: Number.isFinite(parts[3]) ? Math.max(0, Math.min(1, parts[3])) : 1
+    };
+  }
+
+  function luminanceFromRgb(rgb) {
+    if (!rgb) return null;
     const toLin = (value) => {
       const s = Math.max(0, Math.min(255, value)) / 255;
       return s <= 0.03928 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4;
     };
-    return (0.2126 * toLin(parts[0])) + (0.7152 * toLin(parts[1])) + (0.0722 * toLin(parts[2]));
+    return (0.2126 * toLin(rgb.r)) + (0.7152 * toLin(rgb.g)) + (0.0722 * toLin(rgb.b));
+  }
+
+  function parseBackgroundLuminance(style) {
+    if (!style) return null;
+    const rgba = parseRgba(style.backgroundColor);
+    if (!rgba || rgba.a <= 0.02) return null;
+    return luminanceFromRgb(rgba);
   }
 
   function parseColorLuminance(style, key = "color") {
     if (!style) return null;
-    const raw = String(style[key] || "");
-    const match = raw.match(/rgba?\(([^)]+)\)/i);
-    if (!match) return null;
-    const parts = match[1].split(",").map((part) => Number(String(part).trim()));
-    if (parts.length < 3 || parts.slice(0, 3).some((n) => !Number.isFinite(n))) return null;
-    const alpha = Number.isFinite(parts[3]) ? parts[3] : 1;
-    if (alpha <= 0.02) return null;
-    const toLin = (value) => {
-      const s = Math.max(0, Math.min(255, value)) / 255;
-      return s <= 0.03928 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4;
-    };
-    return (0.2126 * toLin(parts[0])) + (0.7152 * toLin(parts[1])) + (0.0722 * toLin(parts[2]));
+    const rgba = parseRgba(style[key]);
+    if (!rgba || rgba.a <= 0.02) return null;
+    return luminanceFromRgb(rgba);
+  }
+
+  function resolveEffectiveBackgroundLuminance(node, root = document.documentElement, maxDepth = 12) {
+    if (!(node instanceof Element)) return null;
+    let depth = 0;
+    let current = node;
+    while (current && depth <= maxDepth) {
+      const style = getComputedStyle(current);
+      const lum = parseBackgroundLuminance(style);
+      if (Number.isFinite(lum)) return lum;
+      current = current.parentElement;
+      depth += 1;
+    }
+    const body = document.body instanceof Element ? document.body : null;
+    const bodyLum = body ? parseBackgroundLuminance(getComputedStyle(body)) : null;
+    if (Number.isFinite(bodyLum)) return bodyLum;
+    const rootLum = root instanceof Element ? parseBackgroundLuminance(getComputedStyle(root)) : null;
+    return Number.isFinite(rootLum) ? rootLum : null;
+  }
+
+  function preferredContrastByBackground(bgLum) {
+    if (!Number.isFinite(bgLum)) return null;
+    if (bgLum <= 0.45) return "light";
+    if (bgLum >= 0.62) return "dark";
+    return null;
+  }
+
+  function shouldForceContrast(fgLum, preferred) {
+    if (!Number.isFinite(fgLum) || !preferred) return false;
+    if (preferred === "light") return fgLum < 0.50;
+    if (preferred === "dark") return fgLum > 0.62;
+    return false;
   }
 
   function isLogoElement(node) {
@@ -261,7 +298,6 @@
     if (!(root instanceof Element)) return { forcedSurfaces: 0, forcedText: 0, logos: 0 };
 
     const mode = String(options.mode || "dark");
-    const darkMode = mode === "dark";
     const maxNodes = Number.isFinite(Number(options.maxNodes)) ? Math.max(80, Number(options.maxNodes)) : 520;
     const viewportArea = Math.max(1, window.innerWidth * window.innerHeight);
     const candidates = root.querySelectorAll("body, main, [role='main'], header, nav, footer, section, article, aside, div, li, td, th, summary");
@@ -282,7 +318,7 @@
       const bgLum = parseBackgroundLuminance(style);
       if (!Number.isFinite(bgLum)) continue;
 
-      if (darkMode) {
+      if (mode === "dark") {
         const isLargeStructural = area > (viewportArea * 0.02) || (rect.width > window.innerWidth * 0.65 && rect.height > 26);
         if (isLargeStructural && bgLum > 0.66) {
           node.setAttribute(ATTR.SURFACE, "1");
@@ -301,21 +337,35 @@
       }
     }
 
-    const textNodes = root.querySelectorAll("h1,h2,h3,h4,h5,h6,p,span,label,a,button,small,li,td,th,strong,em");
+    const headerBlocks = root.querySelectorAll(
+      "header, nav, [role='banner'], [role='navigation'], [class*='header' i], [class*='navbar' i], [class*='topbar' i], [class*='menu-bar' i], [class*='appbar' i]"
+    );
+    for (const block of headerBlocks) {
+      if (forcedText >= maxNodes) break;
+      if (!(block instanceof Element)) continue;
+      if (block.closest(`[${ATTR.MEDIA_SAFE}]`)) continue;
+      const bgLum = resolveEffectiveBackgroundLuminance(block, root);
+      const preferred = preferredContrastByBackground(bgLum);
+      if (!preferred) continue;
+      block.setAttribute(ATTR.FORCE_TEXT, preferred);
+      classifier.markOwned(block);
+      forcedText += 1;
+    }
+
+    const textNodes = root.querySelectorAll("h1,h2,h3,h4,h5,h6,p,span,label,a,button,small,li,td,th,strong,em,i,b,[role='button'],[role='tab'],svg,[class*='icon' i]");
     for (const node of textNodes) {
       if (forcedText >= maxNodes) break;
       if (!(node instanceof Element)) continue;
       if (node.closest(`[${ATTR.MEDIA_SAFE}]`)) continue;
-      const surface = node.closest(`[${ATTR.SURFACE}='1']`);
-      if (!surface) continue;
       const nodeStyle = getComputedStyle(node);
-      const surfaceStyle = getComputedStyle(surface);
-      const textLum = parseColorLuminance(nodeStyle, "color");
-      const bgLum = parseBackgroundLuminance(surfaceStyle);
-      if (!Number.isFinite(textLum) || !Number.isFinite(bgLum)) continue;
-
-      if ((darkMode && bgLum < 0.30 && textLum < 0.25) || (!darkMode && bgLum > 0.70 && textLum > 0.74)) {
-        node.setAttribute(ATTR.FORCE_TEXT, "1");
+      const textLum = node.tagName.toLowerCase() === "svg"
+        ? (parseColorLuminance(nodeStyle, "fill") ?? parseColorLuminance(nodeStyle, "color"))
+        : parseColorLuminance(nodeStyle, "color");
+      const bgLum = resolveEffectiveBackgroundLuminance(node, root);
+      const preferred = preferredContrastByBackground(bgLum);
+      if (!preferred) continue;
+      if (shouldForceContrast(textLum, preferred)) {
+        node.setAttribute(ATTR.FORCE_TEXT, preferred);
         classifier.markOwned(node);
         forcedText += 1;
       }
@@ -334,25 +384,34 @@
       const hostSurface = node.closest("header, nav, [role='banner'], [class*='header'], [class*='nav'], [class*='topbar']") || node.parentElement;
       const style = getComputedStyle(node);
       const textLum = parseColorLuminance(style, "color");
-      const surfaceLum = hostSurface ? parseBackgroundLuminance(getComputedStyle(hostSurface)) : null;
+      const surfaceLum = hostSurface ? resolveEffectiveBackgroundLuminance(hostSurface, root) : resolveEffectiveBackgroundLuminance(node, root);
+      const preferred = preferredContrastByBackground(surfaceLum);
+      if (!preferred) continue;
 
-      if (darkMode) {
-        if (node.tagName.toLowerCase() === "svg" && Number.isFinite(surfaceLum) && surfaceLum < 0.34) {
-          node.setAttribute(ATTR.LOGO_SVG, "1");
-          classifier.markOwned(node);
-          logos += 1;
-          continue;
-        }
-        if (Number.isFinite(surfaceLum) && surfaceLum < 0.34 && Number.isFinite(textLum) && textLum < 0.28) {
-          node.setAttribute(ATTR.LOGO_WORDMARK, "1");
+      if (node.tagName.toLowerCase() === "svg") {
+        if (shouldForceContrast(textLum, preferred)) {
+          node.setAttribute(ATTR.LOGO_SVG, preferred);
           classifier.markOwned(node);
           logos += 1;
         }
-        if (node.tagName.toLowerCase() === "img" && hostSurface instanceof Element && Number.isFinite(surfaceLum) && surfaceLum < 0.30) {
-          hostSurface.setAttribute(ATTR.LOGO_SAFE_BG, "1");
+        continue;
+      }
+
+      if (node.tagName.toLowerCase() === "img") {
+        if (hostSurface instanceof Element && (surfaceLum <= 0.34 || surfaceLum >= 0.72)) {
+          // Last-resort container when logo image cannot be recolored safely.
+          hostSurface.setAttribute(ATTR.LOGO_SAFE_BG, preferred === "light" ? "light" : "dark");
+          hostSurface.setAttribute(ATTR.FORCE_TEXT, preferred);
           classifier.markOwned(hostSurface);
           logos += 1;
         }
+        continue;
+      }
+
+      if (shouldForceContrast(textLum, preferred)) {
+        node.setAttribute(ATTR.LOGO_WORDMARK, preferred);
+        classifier.markOwned(node);
+        logos += 1;
       }
     }
 

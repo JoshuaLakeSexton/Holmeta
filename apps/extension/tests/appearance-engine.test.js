@@ -144,8 +144,13 @@ test("appearance state tokens map to selected palette values", () => {
     "navHarmonizedText",
     "headerMutedAccent",
     "lowContrastFixText",
+    "contrastTextOnDark",
+    "contrastTextOnLight",
     "logoSafeBackground",
+    "logoSafeBackgroundLight",
+    "logoSafeBackgroundDark",
     "logoOnDarkText",
+    "logoOnLightText",
     "focusRing",
     "success",
     "warning",
@@ -213,4 +218,22 @@ test("site classifier maps key hosts and fallback types", () => {
   assert.equal(classifier.classify({ host: "stripe.com", siteType: "general" }).siteClass, "dashboard");
   assert.equal(classifier.classify({ host: "example.com", siteType: "docs_code" }).siteClass, "docs_editor");
   assert.equal(classifier.classify({ host: "example.com", siteType: "article" }).siteClass, "content");
+});
+
+test("token remapper enforces explicit light/dark foreground markers", () => {
+  const context = createContext();
+  const appearanceDir = path.join(__dirname, "..", "appearance");
+  loadScript(context, path.join(appearanceDir, "appearance-state.js"));
+  loadScript(context, path.join(appearanceDir, "token-remapper.js"));
+
+  const remapper = context.HolmetaAppearanceTokenRemapper;
+  assert.ok(remapper, "HolmetaAppearanceTokenRemapper should exist");
+  const css = remapper.cssText();
+
+  assert.ok(css.includes("[data-holmeta-force-text='light']"), "missing force-text light rule");
+  assert.ok(css.includes("[data-holmeta-force-text='dark']"), "missing force-text dark rule");
+  assert.ok(css.includes("[data-holmeta-logo-wordmark='light']"), "missing logo wordmark light rule");
+  assert.ok(css.includes("[data-holmeta-logo-wordmark='dark']"), "missing logo wordmark dark rule");
+  assert.ok(css.includes("--holmeta-appearance-contrast-on-dark"), "missing contrast-on-dark var usage");
+  assert.ok(css.includes("--holmeta-appearance-contrast-on-light"), "missing contrast-on-light var usage");
 });
