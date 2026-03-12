@@ -98,7 +98,7 @@
     if (!(node instanceof Element)) return "surface";
     const tag = node.tagName.toLowerCase();
     const classText = String(node.className || "").toLowerCase();
-    if (tag === "header" || node.getAttribute("role") === "banner" || /header|topbar|appbar|navbar|menu-bar/.test(classText)) return "header";
+    if (tag === "header" || node.getAttribute("role") === "banner" || /topbar|appbar|navbar|menu-bar|masthead|site-nav/.test(classText)) return "header";
     if (tag === "nav" || node.getAttribute("role") === "navigation" || /nav|menu|sidebar|toolbar/.test(classText)) return "nav";
     if (tag === "footer" || node.getAttribute("role") === "contentinfo" || /footer|legal-links/.test(classText)) return "footer";
     if (tag === "details" || tag === "summary" || /accordion|collapse|expand/.test(classText)) return "accordion";

@@ -145,7 +145,7 @@
     if (tag === "footer" || role === "contentinfo" || /footer|contentinfo|legal-links/.test(className)) {
       return "footer";
     }
-    if (tag === "header" || role === "banner" || /header|topbar|appbar|navbar|menu-bar/.test(className)) {
+    if (tag === "header" || role === "banner" || /topbar|appbar|navbar|menu-bar|masthead|site-nav/.test(className)) {
       return "header";
     }
     if (tag === "details" || tag === "summary" || expanded === "true" || expanded === "false" || /accordion|collapse|expand|disclosure/.test(className)) {
@@ -220,7 +220,7 @@
     const huge = rect.width > (window.innerWidth * 0.96) && rect.height > (window.innerHeight * 0.72);
     const structuralShell = /^(header|nav|aside|dialog|table|tr|th|td)$/i.test(tag)
       || /navigation|tablist|menu/.test(role)
-      || /(sidebar|toolbar|header|drawer|modal|dialog|table|row)/.test(classText);
+      || /(sidebar|toolbar|topbar|navbar|appbar|drawer|modal|dialog|table|row)/.test(classText);
     if (huge && !structuralShell) return false;
 
     const interactiveTag = /^(button|a|input|textarea|select)$/i.test(tag);
@@ -250,7 +250,7 @@
 
       const classText = String(parent.className || "").toLowerCase();
       const shell = /^(header|nav|aside|dialog|table|tr|th|td)$/i.test(parent.tagName)
-        || /(sidebar|toolbar|header|drawer|modal|dialog|table|row)/.test(classText);
+        || /(sidebar|toolbar|topbar|navbar|appbar|drawer|modal|dialog|table|row)/.test(classText);
 
       if (!shell && rect.width > window.innerWidth * 0.92 && rect.height > window.innerHeight * 0.60) break;
       if (isComponentRootCandidate(parent)) best = parent;

@@ -336,12 +336,11 @@ html[${ATTR.ACTIVE}='1'][${ATTR.MODE}='dark'] :where(
   header,
   [role='banner'],
   nav,
-  [class*='header'],
   [class*='navbar'],
   [class*='menu-bar'],
   [class*='topbar'],
   [class*='appbar'],
-  [data-testid*='header']
+  [class*='masthead']
 ) {
   background-color: var(--holmeta-appearance-nav-harmonized-background) !important;
   color: var(--holmeta-appearance-nav-harmonized-text) !important;
@@ -352,12 +351,11 @@ html[${ATTR.ACTIVE}='1'][${ATTR.MODE}='dark'] :where(
   header,
   [role='banner'],
   nav,
-  [class*='header'],
   [class*='navbar'],
   [class*='menu-bar'],
   [class*='topbar'],
   [class*='appbar'],
-  [data-testid*='header']
+  [class*='masthead']
 ) :where(a, p, span, strong, em, i, b, label, button) {
   color: var(--holmeta-appearance-nav-harmonized-text) !important;
 }
@@ -366,12 +364,11 @@ html[${ATTR.ACTIVE}='1'][${ATTR.MODE}='light'] :where(
   header,
   [role='banner'],
   nav,
-  [class*='header'],
   [class*='navbar'],
   [class*='menu-bar'],
   [class*='topbar'],
   [class*='appbar'],
-  [data-testid*='header']
+  [class*='masthead']
 ) {
   background-color: var(--holmeta-appearance-nav-harmonized-background) !important;
   color: var(--holmeta-appearance-nav-harmonized-text) !important;
@@ -382,12 +379,11 @@ html[${ATTR.ACTIVE}='1'][${ATTR.MODE}='light'] :where(
   header,
   [role='banner'],
   nav,
-  [class*='header'],
   [class*='navbar'],
   [class*='menu-bar'],
   [class*='topbar'],
   [class*='appbar'],
-  [data-testid*='header']
+  [class*='masthead']
 ) :where(a, p, span, strong, em, i, b, label, button) {
   color: var(--holmeta-appearance-nav-harmonized-text) !important;
 }
@@ -727,6 +723,30 @@ html[${ATTR.ACTIVE}='1'][${ATTR.SITE}='amazon'] :is(
 }
 
 html[${ATTR.ACTIVE}='1'][${ATTR.SITE}='amazon'] :is(
+  .a-cardui:has(img),
+  .a-box:has(img),
+  .s-card-container:has(img),
+  [data-card-metrics-id]:has(img),
+  [data-cel-widget]:has(img),
+  [id^='CardInstance']:has(img)
+) :is(
+  [class*='header' i],
+  [class*='title' i],
+  h1,
+  h2,
+  h3,
+  h4,
+  .a-color-base,
+  .a-link-normal,
+  .a-size-base,
+  .a-size-large
+) {
+  background-color: transparent !important;
+  color: revert !important;
+  text-shadow: none !important;
+}
+
+html[${ATTR.ACTIVE}='1'][${ATTR.SITE}='amazon'] :is(
   #nav-logo-sprites,
   #nav-logo,
   #nav-logo .nav-logo-link,
@@ -790,8 +810,8 @@ html[${ATTR.ACTIVE}='1'][${ATTR.SITE}='amazon'] :is(
 ) {
   background-color: color-mix(
     in srgb,
-    var(--holmeta-appearance-page-background) 86%,
-    var(--holmeta-appearance-elevated-background) 14%
+    var(--holmeta-appearance-page-background) 78%,
+    var(--holmeta-appearance-elevated-background) 22%
   ) !important;
   color: var(--holmeta-appearance-nav-harmonized-text) !important;
   border-color: var(--holmeta-appearance-line-subtle) !important;
