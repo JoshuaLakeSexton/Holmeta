@@ -26,12 +26,19 @@
     "[role='search']",
     "[role='listitem']",
     "[role='navigation']",
+    "[role='contentinfo']",
+    "[role='region']",
     "header",
+    "footer",
     "nav",
     "aside",
+    "section",
     "dialog",
     "form",
     "hr",
+    "details",
+    "summary",
+    "[aria-expanded]",
     "table",
     "tr",
     "th",
@@ -55,6 +62,18 @@
     "[class*='modal']",
     "[class*='dialog']",
     "[class*='tab']",
+    "[class*='accordion']",
+    "[class*='footer']",
+    "[class*='contentinfo']",
+    "[class*='buy']",
+    "[class*='checkout']",
+    "[class*='cart']",
+    "[class*='payment']",
+    "[class*='summary']",
+    "[class*='installment']",
+    "[class*='surface']",
+    "[class*='module']",
+    "[class*='tile']",
     "[data-testid*='button']",
     "[data-testid*='Button']",
     "[data-testid*='card']",
@@ -119,9 +138,22 @@
     const tag = el.tagName.toLowerCase();
     const role = String(el.getAttribute("role") || "").toLowerCase();
     const className = String(el.className || "").toLowerCase();
+    const expanded = String(el.getAttribute("aria-expanded") || "").toLowerCase();
 
     if (tag === "input" || tag === "textarea" || tag === "select" || role === "textbox" || role === "search" || /search|input|field/.test(className)) {
       return "input";
+    }
+    if (tag === "footer" || role === "contentinfo" || /footer|contentinfo|legal-links/.test(className)) {
+      return "footer";
+    }
+    if (tag === "details" || tag === "summary" || expanded === "true" || expanded === "false" || /accordion|collapse|expand|disclosure/.test(className)) {
+      return "accordion";
+    }
+    if (/checkout|buy|cart|payment|installment|order-summary|purchase/.test(className)) {
+      return "buy_panel";
+    }
+    if (/toolbar|filterbar|filter-row/.test(className)) {
+      return "toolbar";
     }
     if (tag === "hr" || role === "separator" || /separator|divider/.test(className)) {
       return "separator";
@@ -144,7 +176,10 @@
     if (tag === "nav" || role === "navigation" || role === "tablist" || /nav|menu|toolbar|sidebar|header/.test(className)) {
       return "nav";
     }
-    if (tag === "article" || tag === "dialog" || /card|panel|modal|dialog|drawer|surface/.test(className)) {
+    if (tag === "article" || tag === "dialog" || tag === "section" || /card|panel|modal|dialog|drawer|surface|module|tile|summary/.test(className)) {
+      return "panel";
+    }
+    if (/card/.test(className)) {
       return "card";
     }
     if (tag === "li" || role === "listitem") {
@@ -185,7 +220,7 @@
 
     const interactiveTag = /^(button|a|input|textarea|select)$/i.test(tag);
     const interactiveRole = /button|tab|menuitem|option|switch|textbox|search/.test(role);
-    const semanticClass = /(button|btn|card|panel|input|field|chip|pill|menu|nav|toolbar|header|footer|modal|dialog|search|sidebar|table|row)/.test(classText);
+    const semanticClass = /(button|btn|card|panel|module|tile|input|field|chip|pill|menu|nav|toolbar|header|footer|accordion|summary|modal|dialog|search|sidebar|table|row|checkout|buy|payment|cart|installment)/.test(classText);
 
     const styleSignal = hasVisualSurface(style);
 
@@ -264,7 +299,7 @@
 
       const style = getComputedStyle(node);
       const classText = String(node.className || "").toLowerCase();
-      const semantic = /(inner|label|content|text|icon|button|btn|pill|chip|search|input|field|control|surface|value|badge)/.test(classText);
+      const semantic = /(inner|label|content|text|icon|button|btn|pill|chip|search|input|field|control|surface|value|badge|segment|slot|summary|section)/.test(classText);
       const styleSignal = hasVisualSurface(style);
 
       if (!aggressive && !semantic && !styleSignal) continue;

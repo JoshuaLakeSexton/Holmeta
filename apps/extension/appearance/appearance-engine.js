@@ -81,8 +81,15 @@
 
   function applyDynamic(root = document.documentElement) {
     const host = getHost();
+    const maxByMode = {
+      "media-safe": 900,
+      minimal: 1800,
+      "app-safe": 3400,
+      "code-safe": 3000,
+      normal: 3200
+    };
     const result = normalizer.normalizeRoot(root, {
-      maxComponents: state.compatibilityMode === "media-safe" ? 900 : 2800,
+      maxComponents: maxByMode[state.compatibilityMode] || 3000,
       host
     });
     state.diagnostics.components = result.components;

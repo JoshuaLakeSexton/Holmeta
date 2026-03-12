@@ -55,16 +55,16 @@
     const dark = mode === "dark";
     const light = !dark;
     const common = {
-      surfaceLift: dark ? 0.14 : 0.08,
-      borderBoost: dark ? 0.02 : 0.04,
+      surfaceLift: dark ? 0.18 : 0.09,
+      borderBoost: dark ? 0.01 : 0.04,
       accentBoost: 0
     };
 
     if (siteClass === "dashboard") {
       return {
         ...common,
-        surfaceLift: dark ? 0.18 : 0.11,
-        borderBoost: dark ? 0.08 : 0.10,
+        surfaceLift: dark ? 0.24 : 0.12,
+        borderBoost: dark ? 0.04 : 0.10,
         accentBoost: 0.04 + (strength * 0.03)
       };
     }
@@ -72,8 +72,8 @@
     if (siteClass === "social") {
       return {
         ...common,
-        surfaceLift: dark ? 0.16 : 0.09,
-        borderBoost: dark ? 0.05 : 0.07,
+        surfaceLift: dark ? 0.22 : 0.10,
+        borderBoost: dark ? 0.03 : 0.07,
         accentBoost: 0.03 + (strength * 0.03)
       };
     }
@@ -81,8 +81,8 @@
     if (siteClass === "docs_editor") {
       return {
         ...common,
-        surfaceLift: dark ? 0.12 : 0.07,
-        borderBoost: dark ? 0.04 : 0.07,
+        surfaceLift: dark ? 0.16 : 0.08,
+        borderBoost: dark ? 0.02 : 0.07,
         accentBoost: light ? -0.01 : 0
       };
     }
@@ -90,8 +90,8 @@
     if (siteClass === "content") {
       return {
         ...common,
-        surfaceLift: dark ? 0.13 : 0.09,
-        borderBoost: dark ? 0.03 : 0.06,
+        surfaceLift: dark ? 0.17 : 0.10,
+        borderBoost: dark ? 0.02 : 0.06,
         accentBoost: 0.01
       };
     }
@@ -99,8 +99,8 @@
     if (siteClass === "ecommerce") {
       return {
         ...common,
-        surfaceLift: dark ? 0.17 : 0.11,
-        borderBoost: dark ? 0.06 : 0.09,
+        surfaceLift: dark ? 0.23 : 0.12,
+        borderBoost: dark ? 0.04 : 0.09,
         accentBoost: 0.05
       };
     }
@@ -108,8 +108,8 @@
     if (siteClass === "media" || siteClass === "app_shell") {
       return {
         ...common,
-        surfaceLift: dark ? 0.10 : 0.06,
-        borderBoost: dark ? 0.02 : 0.04,
+        surfaceLift: dark ? 0.14 : 0.07,
+        borderBoost: dark ? 0.01 : 0.04,
         accentBoost: 0
       };
     }
@@ -134,8 +134,8 @@
       palette.background,
       isDark ? darkBg : lightBg,
       isDark
-        ? (0.10 + (strength * 0.07))
-        : (0.05 + (strength * 0.05))
+        ? (0.17 + (strength * 0.08))
+        : (0.04 + (strength * 0.03))
     );
 
     // Keep already-dark pages conservative on dark mode to avoid muddy stacking.
@@ -143,33 +143,33 @@
       pageBackground = mix(pageBackground, palette.background, 0.65);
     }
 
-    const pageBackgroundAlt = mix(pageBackground, isDark ? "#020202" : "#ffffff", isDark ? 0.08 : 0.05);
-    const sidebarBackground = mix(pageBackground, isDark ? darkBg : palette.accent, adj.surfaceLift);
-    const sectionBackground = mix(pageBackground, palette.accent, 0.07 + (adj.surfaceLift * 0.34));
-    const panelBackground = mix(pageBackground, palette.accent, 0.09 + (adj.surfaceLift * 0.42));
-    const cardBackground = mix(pageBackground, palette.accent, 0.12 + (adj.surfaceLift * 0.58));
-    const elevatedBackground = mix(pageBackground, palette.accent, 0.18 + (adj.surfaceLift * 0.64));
+    const pageBackgroundAlt = mix(pageBackground, isDark ? "#020202" : "#ffffff", isDark ? 0.10 : 0.04);
+    const sidebarBackground = mix(pageBackground, isDark ? darkBg : palette.accent, isDark ? 0.06 + (adj.surfaceLift * 0.22) : adj.surfaceLift);
+    const sectionBackground = mix(pageBackground, palette.accent, (isDark ? 0.04 : 0.06) + (adj.surfaceLift * 0.26));
+    const panelBackground = mix(pageBackground, palette.accent, (isDark ? 0.09 : 0.08) + (adj.surfaceLift * 0.44));
+    const cardBackground = mix(pageBackground, palette.accent, (isDark ? 0.15 : 0.11) + (adj.surfaceLift * 0.62));
+    const elevatedBackground = mix(pageBackground, palette.accent, (isDark ? 0.23 : 0.15) + (adj.surfaceLift * 0.74));
     const modalBackground = mix(elevatedBackground, isDark ? "#000000" : "#ffffff", isDark ? 0.10 : 0.08);
     const dropdownBackground = mix(panelBackground, isDark ? "#060606" : "#ffffff", isDark ? 0.10 : 0.08);
     const inputBackground = mix(cardBackground, isDark ? darkBg : lightBg, isDark ? 0.12 : 0.18);
-    const hoverBackground = mix(elevatedBackground, palette.accent, 0.12 + (strength * 0.08));
+    const hoverBackground = mix(elevatedBackground, palette.accent, (isDark ? 0.16 : 0.12) + (strength * 0.08));
     const selectedAnchor = isDark ? palette.accent : (palette.selectedAccent || palette.accent);
-    const selectedBackground = mix(elevatedBackground, selectedAnchor, 0.24 + adj.accentBoost);
+    const selectedBackground = mix(elevatedBackground, selectedAnchor, (isDark ? 0.30 : 0.22) + adj.accentBoost);
 
     // Keep Tool 2 typography neutral and high-contrast regardless of preset tint.
     const textPrimary = isDark ? "#F3F3F4" : "#111111";
     const textSecondary = isDark ? "#D5D6DA" : "#2A2A2A";
     const textMuted = isDark ? "#B8BAC2" : "#565962";
 
-    const borderSubtle = alpha(textPrimary, (isDark ? 0.12 : 0.18) + (adj.borderBoost * 0.8));
-    const borderStrong = alpha(textPrimary, (isDark ? 0.22 : 0.30) + (adj.borderBoost * 0.9));
-    const divider = alpha(textPrimary, isDark ? 0.14 : 0.18);
-    const lineSubtle = alpha(textPrimary, isDark ? 0.10 : 0.14);
-    const lineStrong = alpha(textPrimary, isDark ? 0.18 : 0.24);
-    const rowSeparator = alpha(textPrimary, isDark ? 0.13 : 0.19);
-    const tableHeader = mix(panelBackground, isDark ? "#000000" : "#ffffff", isDark ? 0.16 : 0.12);
-    const tableRow = mix(cardBackground, panelBackground, 0.38);
-    const tableRowAlt = mix(tableRow, panelBackground, 0.22);
+    const borderSubtle = alpha(textPrimary, (isDark ? 0.07 : 0.15) + (adj.borderBoost * 0.35));
+    const borderStrong = alpha(textPrimary, (isDark ? 0.14 : 0.24) + (adj.borderBoost * 0.45));
+    const divider = alpha(textPrimary, isDark ? 0.08 : 0.16);
+    const lineSubtle = alpha(textPrimary, isDark ? 0.06 : 0.12);
+    const lineStrong = alpha(textPrimary, isDark ? 0.12 : 0.20);
+    const rowSeparator = alpha(textPrimary, isDark ? 0.09 : 0.16);
+    const tableHeader = mix(panelBackground, isDark ? "#000000" : "#ffffff", isDark ? 0.24 : 0.14);
+    const tableRow = mix(cardBackground, panelBackground, isDark ? 0.52 : 0.34);
+    const tableRowAlt = mix(tableRow, panelBackground, isDark ? 0.30 : 0.18);
     const navItem = mix(sidebarBackground, palette.accent, 0.10 + (strength * 0.06));
 
     const accent = palette.accent;
@@ -179,11 +179,11 @@
     const iconPrimary = textPrimary;
     const iconMuted = textMuted;
     const inputBorder = borderStrong;
-    const buttonBackground = elevatedBackground;
+    const buttonBackground = mix(elevatedBackground, palette.accent, isDark ? 0.10 : 0.06);
     const buttonText = textPrimary;
     const buttonBorder = borderStrong;
-    const chipBackground = mix(cardBackground, accent, isDark ? 0.16 : 0.13);
-    const chipBorder = alpha(accent, isDark ? 0.42 : 0.34);
+    const chipBackground = mix(cardBackground, accent, isDark ? 0.14 : 0.11);
+    const chipBorder = alpha(accent, isDark ? 0.32 : 0.28);
     const chipText = textPrimary;
     const dropdownBorder = borderSubtle;
     const focusRing = alpha(accentStrong, 0.58);
@@ -192,7 +192,7 @@
     const danger = isDark ? "#ff8e8e" : "#c42021";
 
     // Strongly reduce veil overlays to keep crisp light mode and rich dark mode.
-    let overlayTint = alpha(isDark ? "#000000" : "#ffffff", isDark ? 0.010 : 0.004);
+    let overlayTint = alpha(isDark ? "#000000" : "#ffffff", isDark ? 0.006 : 0.002);
     if (compat === "media-safe") overlayTint = alpha(isDark ? "#000000" : "#ffffff", isDark ? 0.006 : 0.002);
     if (compat === "minimal" || compat === "app-safe") {
       overlayTint = alpha(isDark ? "#000000" : "#ffffff", isDark ? 0.008 : 0.003);

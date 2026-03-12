@@ -28,6 +28,7 @@
     if (
       /(^|\.)(youtube\.com|vimeo\.com|twitch\.tv|spotify\.com|soundcloud\.com)$/.test(safeHost)
       || /(^|\.)(netflix\.com|hulu\.com|primevideo\.com)$/.test(safeHost)
+      || /(^|\.)(espn\.com|bleacherreport\.com|theathletic\.com)$/.test(safeHost)
     ) {
       return { siteClass: "media", reason: "media-host" };
     }
@@ -37,6 +38,12 @@
       || /(^|\.)(target\.com|bestbuy\.com)$/.test(safeHost)
     ) {
       return { siteClass: "ecommerce", reason: "commerce-host" };
+    }
+
+    if (
+      /(^|\.)(wikipedia\.org|nytimes\.com|bbc\.com|cnn\.com|theguardian\.com)$/.test(safeHost)
+    ) {
+      return { siteClass: "content", reason: "content-host" };
     }
 
     return { siteClass: "general", reason: "default-host" };

@@ -18,6 +18,12 @@ function createContext() {
   return context;
 }
 
+function alphaFromRgba(value) {
+  const match = String(value || "").match(/rgba?\([^,]+,[^,]+,[^,]+,\s*([0-9.]+)\s*\)/i);
+  if (!match) return 1;
+  return Number(match[1]);
+}
+
 test("appearance presets include required dark and light variants", () => {
   const context = createContext();
   const appearanceDir = path.join(__dirname, "..", "appearance");
@@ -71,6 +77,9 @@ test("appearance state tokens map to selected palette values", () => {
   assert.equal(darkTokens.accent, "#6D4C41");
   assert.ok(darkTokens.cardBackground, "token generator should emit cardBackground");
   assert.ok(darkTokens.sidebarBackground, "token generator should emit sidebarBackground");
+  assert.ok(alphaFromRgba(darkTokens.lineSubtle) <= 0.12, "dark lineSubtle should stay quiet");
+  assert.ok(alphaFromRgba(darkTokens.rowSeparator) <= 0.14, "dark row separators should be softened");
+  assert.ok(alphaFromRgba(darkTokens.borderStrong) <= 0.20, "dark borderStrong should avoid harsh white outlines");
   const requiredKeys = [
     "pageBackground",
     "pageBackgroundAlt",

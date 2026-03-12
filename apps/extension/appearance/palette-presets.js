@@ -40,7 +40,7 @@
   const darkPresets = [
     {
       id: "coal",
-      label: "Coal",
+      label: "Coal -Black",
       modeType: "dark",
       background: "#121212",
       textPrimary: "#E0E0E0",
@@ -48,7 +48,7 @@
     },
     {
       id: "black",
-      label: "Black",
+      label: "Iron ore",
       modeType: "dark",
       background: "#000000",
       textPrimary: "#BDBDBD",
@@ -56,7 +56,7 @@
     },
     {
       id: "brown",
-      label: "Brown",
+      label: "dark Brown",
       modeType: "dark",
       background: "#3E2723",
       textPrimary: "#FFF8E1",
@@ -88,7 +88,7 @@
     },
     {
       id: "purple",
-      label: "Purple",
+      label: "dark Purple",
       modeType: "dark",
       background: "#311B92",
       textPrimary: "#E1BEE7",
@@ -96,7 +96,7 @@
     },
     {
       id: "forest_green",
-      label: "Forest Green",
+      label: "dark Green",
       modeType: "dark",
       background: "#1B5E20",
       textPrimary: "#E8F5E9",
@@ -133,7 +133,7 @@
     },
     {
       id: "off_white",
-      label: "Off White",
+      label: "Beige",
       modeType: "light",
       background: "#FAFAFA",
       textPrimary: "#212121",

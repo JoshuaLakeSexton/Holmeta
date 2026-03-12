@@ -34,12 +34,29 @@ html[${ATTR.ACTIVE}='1'] [${ATTR.SURFACE}='1'] {
 }
 
 html[${ATTR.ACTIVE}='1'] [${ATTR.SURFACE}='1'][${ATTR.COMPONENT}='card'],
-html[${ATTR.ACTIVE}='1'] [${ATTR.SURFACE}='1'][${ATTR.COMPONENT}='surface'] {
+html[${ATTR.ACTIVE}='1'] [${ATTR.SURFACE}='1'][${ATTR.COMPONENT}='surface'],
+html[${ATTR.ACTIVE}='1'] [${ATTR.SURFACE}='1'][${ATTR.COMPONENT}='panel'],
+html[${ATTR.ACTIVE}='1'] [${ATTR.SURFACE}='1'][${ATTR.COMPONENT}='buy_panel'] {
   background-color: var(--holmeta-appearance-card-background) !important;
 }
 
 html[${ATTR.ACTIVE}='1'] [${ATTR.SURFACE}='1'][${ATTR.COMPONENT}='nav'] {
   background-color: var(--holmeta-appearance-sidebar-background) !important;
+}
+
+html[${ATTR.ACTIVE}='1'] [${ATTR.SURFACE}='1'][${ATTR.COMPONENT}='footer'] {
+  background-color: var(--holmeta-appearance-section-background) !important;
+  border-color: var(--holmeta-appearance-line-subtle) !important;
+}
+
+html[${ATTR.ACTIVE}='1'] [${ATTR.SURFACE}='1'][${ATTR.COMPONENT}='accordion'] {
+  background-color: var(--holmeta-appearance-panel-background) !important;
+  border-color: var(--holmeta-appearance-row-separator) !important;
+}
+
+html[${ATTR.ACTIVE}='1'] [${ATTR.SURFACE}='1'][${ATTR.COMPONENT}='toolbar'] {
+  background-color: var(--holmeta-appearance-section-background) !important;
+  border-color: var(--holmeta-appearance-line-subtle) !important;
 }
 
 html[${ATTR.ACTIVE}='1'] [${ATTR.SURFACE}='1'][${ATTR.COMPONENT}='listitem'] {
@@ -77,6 +94,7 @@ html[${ATTR.ACTIVE}='1'] [${ATTR.SURFACE}='1'][${ATTR.COMPONENT}='button'] {
   background-color: var(--holmeta-appearance-control-background) !important;
   color: var(--holmeta-appearance-control-text) !important;
   border-color: var(--holmeta-appearance-button-border) !important;
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--holmeta-appearance-line-subtle) 40%, transparent) !important;
 }
 
 html[${ATTR.ACTIVE}='1'] [${ATTR.SURFACE}='1'][${ATTR.COMPONENT}='button']:hover,
@@ -96,18 +114,18 @@ html[${ATTR.ACTIVE}='1'] :where(input, textarea, select):focus-visible {
   outline-offset: 1px !important;
 }
 
-html[${ATTR.ACTIVE}='1'] [${ATTR.SURFACE}='1'] :is([${ATTR.INNER}='1'], div, span, p, strong, em, b, i, label, small) {
+html[${ATTR.ACTIVE}='1'] [${ATTR.SURFACE}='1'] [${ATTR.INNER}='1'] {
   background-color: transparent !important;
   background-image: none !important;
   color: inherit !important;
-  border-color: var(--holmeta-appearance-line-subtle) !important;
+  border-color: transparent !important;
   box-shadow: none !important;
 }
 
-html[${ATTR.ACTIVE}='1'] [${ATTR.SURFACE}='1'] :is(div, span, p, strong, em, b, i, label, small)::before,
-html[${ATTR.ACTIVE}='1'] [${ATTR.SURFACE}='1'] :is(div, span, p, strong, em, b, i, label, small)::after {
+html[${ATTR.ACTIVE}='1'] [${ATTR.SURFACE}='1'] [${ATTR.INNER}='1']::before,
+html[${ATTR.ACTIVE}='1'] [${ATTR.SURFACE}='1'] [${ATTR.INNER}='1']::after {
   background-color: transparent !important;
-  border-color: inherit !important;
+  border-color: transparent !important;
 }
 
 html[${ATTR.ACTIVE}='1'] :where(input, textarea, select, [role='textbox'], [type='search']) {
@@ -117,11 +135,23 @@ html[${ATTR.ACTIVE}='1'] :where(input, textarea, select, [role='textbox'], [type
 }
 
 html[${ATTR.ACTIVE}='1'] :where(button, [role='button'], [role='tab']) {
+  background-color: var(--holmeta-appearance-control-background) !important;
   color: var(--holmeta-appearance-text-primary) !important;
+  border-color: var(--holmeta-appearance-button-border) !important;
+}
+
+html[${ATTR.ACTIVE}='1'] :where(button, [role='button'], [role='tab']):hover,
+html[${ATTR.ACTIVE}='1'] :where(button, [role='button'], [role='tab']):focus-visible,
+html[${ATTR.ACTIVE}='1'] :where(button, [role='button'], [role='tab'])[aria-current='page'],
+html[${ATTR.ACTIVE}='1'] :where(button, [role='button'], [role='tab'])[aria-selected='true'],
+html[${ATTR.ACTIVE}='1'] :where(button, [role='button'], [role='tab']).active {
+  background-color: var(--holmeta-appearance-selected-background) !important;
+  color: var(--holmeta-appearance-selected-text) !important;
+  border-color: var(--holmeta-appearance-accent-strong) !important;
 }
 
 html[${ATTR.ACTIVE}='1'] :where(p, li, dt, dd, label, td, figcaption, blockquote) {
-  color: var(--holmeta-appearance-text-secondary) !important;
+  color: var(--holmeta-appearance-text-primary) !important;
 }
 
 html[${ATTR.ACTIVE}='1'] :where([role='tab'][aria-selected='true'], [aria-current='page']) {
@@ -170,6 +200,28 @@ html[${ATTR.ACTIVE}='1'] :where([class*='divider'], [class*='separator'], [data-
   background-color: transparent !important;
 }
 
+html[${ATTR.ACTIVE}='1'] :where([class*='footer'], footer, [role='contentinfo']) {
+  background-color: var(--holmeta-appearance-section-background) !important;
+  border-color: var(--holmeta-appearance-line-subtle) !important;
+}
+
+html[${ATTR.ACTIVE}='1'] :where([class*='accordion'], [data-testid*='accordion'], details, summary, [aria-expanded]) {
+  border-color: var(--holmeta-appearance-row-separator) !important;
+}
+
+html[${ATTR.ACTIVE}='1'] :where([class*='accordion'], details, summary, [aria-expanded='true']) {
+  background-color: color-mix(in srgb, var(--holmeta-appearance-card-background) 88%, transparent) !important;
+}
+
+html[${ATTR.ACTIVE}='1'] :where([class*='panel'], [class*='card'], [class*='module'], [class*='tile'], [data-testid*='panel']) {
+  background-color: var(--holmeta-appearance-card-background) !important;
+  border-color: var(--holmeta-appearance-border-subtle) !important;
+}
+
+html[${ATTR.ACTIVE}='1'] :where([class*='search'], [role='search'], [class*='filter'], [class*='toolbar']) {
+  border-color: var(--holmeta-appearance-line-subtle) !important;
+}
+
 html[${ATTR.ACTIVE}='1'] svg:not([${ATTR.MEDIA_SAFE}]) {
   color: var(--holmeta-appearance-icon-primary) !important;
 }
@@ -191,7 +243,11 @@ html[${ATTR.ACTIVE}='1'] :where(video, img, picture, canvas, iframe, embed, obje
 }
 
 html[${ATTR.ACTIVE}='1'][${ATTR.SITE_CLASS}='dashboard'] [${ATTR.SURFACE}='1'] {
-  border-color: var(--holmeta-appearance-line-strong) !important;
+  border-color: var(--holmeta-appearance-row-separator) !important;
+}
+
+html[${ATTR.ACTIVE}='1'][${ATTR.SITE_CLASS}='dashboard'] :where(th, td, tr, [role='row']) {
+  border-color: var(--holmeta-appearance-row-separator) !important;
 }
 
 html[${ATTR.ACTIVE}='1'][${ATTR.SITE_CLASS}='social'] :where(article, [role='article'], [data-testid='cellInnerDiv']) {
@@ -205,6 +261,11 @@ html[${ATTR.ACTIVE}='1'][${ATTR.SITE_CLASS}='docs_editor'] :where(code, pre, kbd
 
 html[${ATTR.ACTIVE}='1'][${ATTR.SITE_CLASS}='ecommerce'] :where([class*='price'], [data-testid*='price']) {
   color: var(--holmeta-appearance-text-primary) !important;
+}
+
+html[${ATTR.ACTIVE}='1'][${ATTR.SITE_CLASS}='ecommerce'] :where([class*='cart'], [class*='checkout'], [class*='buy'], [data-testid*='buy']) {
+  background-color: var(--holmeta-appearance-card-background) !important;
+  border-color: var(--holmeta-appearance-border-subtle) !important;
 }
 
 html[${ATTR.ACTIVE}='1'][${ATTR.SITE}='x'] :is(

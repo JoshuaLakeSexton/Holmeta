@@ -495,6 +495,26 @@
     "light_brown"
   ];
 
+  const READING_DARK_LABELS = {
+    coal: "Coal -Black",
+    black: "Iron ore",
+    brown: "dark Brown",
+    grey: "Grey",
+    sepia: "Sepia",
+    teal: "Teal",
+    purple: "dark Purple",
+    forest_green: "dark Green"
+  };
+
+  const READING_LIGHT_LABELS = {
+    white: "White",
+    warm: "Warm",
+    off_white: "Beige",
+    soft_green: "Soft Green",
+    baby_blue: "Baby Blue",
+    light_brown: "Light Brown"
+  };
+
   function normalizeReadingDarkVariant(value, fallback = "coal") {
     const raw = String(value || "").trim().toLowerCase();
     if (raw === "gray") return "grey";
@@ -567,6 +587,11 @@
 
   function getAdaptiveThemeState() {
     return state.app?.settings?.adaptiveSiteTheme || {};
+  }
+
+  function readingVariantLabel(mode, variant) {
+    if (mode === "light") return READING_LIGHT_LABELS[variant] || variant;
+    return READING_DARK_LABELS[variant] || variant;
   }
 
   function getLightSiteProfile() {
@@ -775,14 +800,8 @@
     setChecked(refs.readingThemeThisSiteEnabled, Boolean(siteProfile));
     setChecked(refs.readingThemeExcludeSite, isReadingSiteExcluded());
 
-    const titleize = (value) => String(value || "")
-      .replaceAll("_", " ")
-      .split(" ")
-      .filter(Boolean)
-      .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-      .join(" ");
-    const darkLabel = titleize(darkVariant);
-    const lightLabel = titleize(lightVariant);
+    const darkLabel = readingVariantLabel("dark", darkVariant);
+    const lightLabel = readingVariantLabel("light", lightVariant);
     const scheduleLabel = effective.scheduleMode === "system"
       ? "System"
       : (effective.scheduleMode === "sunset" ? "Sunset to Sunrise" : `${effective.scheduleStart} → ${effective.scheduleEnd}`);
@@ -790,19 +809,18 @@
     const activeVariantLabel = (() => {
       if (!diagnosticsVariant) return "";
       const key = diagnosticsVariant.replace("appearance_dark_", "").replace("appearance_light_", "");
-      return String(key || "")
-        .replaceAll("_", " ")
-        .split(" ")
-        .filter(Boolean)
-        .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-        .join(" ");
+      if (!key) return "";
+      if (diagnosticsVariant.startsWith("appearance_light_")) {
+        return readingVariantLabel("light", key);
+      }
+      return readingVariantLabel("dark", key);
     })();
     const adaptiveReason = String(state.diagnostics?.readingAdaptiveReason || "");
     const adaptiveApplied = Boolean(state.diagnostics?.readingAdaptiveApplied);
 
     const excluded = isReadingSiteExcluded();
     if (excluded) {
-      refs.readingThemeStatus.textContent = "This site is excluded from appearance changes.";
+      refs.readingThemeStatus.textContent = "[Excluded] This site is excluded from appearance changes.";
       return;
     }
 
@@ -810,9 +828,9 @@
     if (effective.enabled) {
       if (effective.appearance === "auto") {
         const activeNow = activeVariantLabel ? ` · Active now: ${activeVariantLabel}` : "";
-        refs.readingThemeStatus.textContent = `Applying Auto${hostSuffix} · Dark ${darkLabel} / Light ${lightLabel} · ${scheduleLabel}${activeNow}.`;
+        refs.readingThemeStatus.textContent = `[Auto] Applying Auto${hostSuffix} · Dark ${darkLabel} / Light ${lightLabel} · ${scheduleLabel}${activeNow}.`;
       } else {
-        refs.readingThemeStatus.textContent = `Applying ${effective.appearance === "dark" ? `Dark ${darkLabel}` : `Light ${lightLabel}`}${hostSuffix}.`;
+        refs.readingThemeStatus.textContent = `[${effective.appearance === "dark" ? "Dark" : "Light"}] Applying ${effective.appearance === "dark" ? `Dark ${darkLabel}` : `Light ${lightLabel}`}${hostSuffix}.`;
       }
       if (siteProfile) {
         refs.readingThemeStatus.textContent += " This site uses its own override.";
@@ -822,7 +840,7 @@
       return;
     }
 
-    refs.readingThemeStatus.textContent = "Appearance is off. Toggle On to apply Light / Dark / Auto.";
+    refs.readingThemeStatus.textContent = "[Off] Appearance is off. Toggle On to apply Light / Dark / Auto.";
   }
 
   function renderLight() {

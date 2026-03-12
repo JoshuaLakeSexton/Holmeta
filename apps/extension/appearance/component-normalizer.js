@@ -36,10 +36,13 @@
     const style = getComputedStyle(node);
     const bgLum = parseBackgroundLuminance(style);
     const hasBrightBg = Number.isFinite(bgLum) && bgLum > 0.78;
+    const hasMidBg = Number.isFinite(bgLum) && bgLum > 0.58;
     const hasBorder = style.borderStyle !== "none" && Number.parseFloat(String(style.borderTopWidth || "0")) > 0;
+    const hasShadow = style.boxShadow !== "none";
+    const hasBgImage = style.backgroundImage && style.backgroundImage !== "none";
     const classText = String(node.className || "").toLowerCase();
-    const semantic = /(surface|container|wrapper|panel|card|chip|badge|input|field|search|row|cell|button)/.test(classText);
-    return Boolean(hasBrightBg || hasBorder || semantic);
+    const semantic = /(surface|container|wrapper|panel|card|chip|badge|input|field|search|row|cell|button|accordion|summary|footer|checkout|buy|payment|installment|toolbar|filter)/.test(classText);
+    return Boolean(hasBrightBg || hasBorder || semantic || hasShadow || (hasMidBg && hasBgImage));
   }
 
   function normalizeRoot(root = document.documentElement, options = {}) {
@@ -63,10 +66,17 @@
       componentRoot.setAttribute(ATTR.COMPONENT, componentType);
       classifier.markOwned(componentRoot);
 
-      const maxWrappers = componentType === "button" || componentType === "input" ? 72 : 32;
+      const maxWrappers = componentType === "button" || componentType === "input"
+        ? 72
+        : (componentType === "accordion" || componentType === "table" || componentType === "footer" || componentType === "buy_panel" ? 48 : 32);
       const componentRect = componentRoot.getBoundingClientRect?.() || { width: 0, height: 0 };
       const componentWrappers = classifier.collectInnerWrappers(componentRoot, maxWrappers, {
-        aggressive: componentType === "button" || componentType === "input" || componentType === "nav"
+        aggressive: componentType === "button"
+          || componentType === "input"
+          || componentType === "nav"
+          || componentType === "accordion"
+          || componentType === "footer"
+          || componentType === "buy_panel"
       });
 
       for (const inner of componentWrappers) {
@@ -83,7 +93,14 @@
       }
 
       // Normalize common split-control anatomy (button + nested wrappers + pseudo wrappers).
-      if (componentType === "button" || componentType === "input") {
+      if (
+        componentType === "button"
+        || componentType === "input"
+        || componentType === "accordion"
+        || componentType === "buy_panel"
+        || componentType === "footer"
+        || componentType === "toolbar"
+      ) {
         const anatomy = componentRoot.querySelectorAll(
           ":scope > div, :scope > span, :scope > label, :scope > p, :scope > strong, :scope > em, :scope > i, :scope > b"
         );
@@ -100,6 +117,25 @@
           wrappers += 1;
         }
       }
+    }
+
+    const residualCandidates = root.querySelectorAll("section, article, aside, footer, header, div, li, td, th, summary");
+    let residualCount = 0;
+    for (const node of residualCandidates) {
+      if (residualCount >= 360) break;
+      if (!(node instanceof Element)) continue;
+      if (node.closest(`[${ATTR.MEDIA_SAFE}]`)) continue;
+      if (node.hasAttribute(ATTR.SURFACE)) continue;
+      const rect = node.getBoundingClientRect?.();
+      if (!rect || rect.width < 32 || rect.height < 18) continue;
+      if (rect.width > window.innerWidth * 0.995 && rect.height > window.innerHeight * 0.995) continue;
+      const style = getComputedStyle(node);
+      const lum = parseBackgroundLuminance(style);
+      if (!Number.isFinite(lum) || lum < 0.74) continue;
+      node.setAttribute(ATTR.SURFACE, "1");
+      node.setAttribute(ATTR.COMPONENT, "surface");
+      classifier.markOwned(node);
+      residualCount += 1;
     }
 
     if (host === "x.com" || host.endsWith(".x.com") || host === "twitter.com" || host.endsWith(".twitter.com")) {
@@ -177,7 +213,7 @@
 
     return {
       components: components.length,
-      wrappers,
+      wrappers: wrappers + residualCount,
       media: mediaCount
     };
   }
