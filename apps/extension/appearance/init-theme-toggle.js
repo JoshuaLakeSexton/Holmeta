@@ -9,9 +9,9 @@
   const ATTR_BOOT = "data-holmeta-appearance-boot";
 
   const DARK_PALETTES = {
-    black: { page: "#09090B", surface: "#121216", text: "#F3F3F4", line: "rgba(243,243,244,0.12)" },
-    coal: { page: "#121212", surface: "#1A1B1F", text: "#F3F3F4", line: "rgba(243,243,244,0.12)" },
-    iron_ore: { page: "#161A1F", surface: "#20242B", text: "#F3F3F4", line: "rgba(243,243,244,0.12)" },
+    black: { page: "#101419", surface: "#171d24", text: "#F3F3F4", line: "rgba(243,243,244,0.12)" },
+    coal: { page: "#161b21", surface: "#1f2730", text: "#F3F3F4", line: "rgba(243,243,244,0.12)" },
+    iron_ore: { page: "#1b2128", surface: "#262f39", text: "#F3F3F4", line: "rgba(243,243,244,0.12)" },
     brown: { page: "#1C1513", surface: "#2A201D", text: "#F3F3F4", line: "rgba(243,243,244,0.12)" },
     grey: { page: "#202224", surface: "#2A2D30", text: "#F3F3F4", line: "rgba(243,243,244,0.12)" },
     sepia: { page: "#22160F", surface: "#332116", text: "#F3F3F4", line: "rgba(243,243,244,0.12)" },
@@ -101,15 +101,10 @@ html[${ATTR_BOOT}='1'] body {
   background-color: ${palette.page} !important;
   color: ${palette.text} !important;
 }
-html[${ATTR_BOOT}='1'] :where(main, section, article, aside, nav, header, footer, [role='main'], [role='navigation']) {
-  background-color: ${palette.surface} !important;
-  color: ${palette.text} !important;
-  border-color: ${palette.line} !important;
-}
 html[${ATTR_BOOT}='1'] :where(h1, h2, h3, h4, h5, h6, p, span, label, a, li, td, th, button, strong) {
   color: ${palette.text} !important;
 }
-html[${ATTR_BOOT}='1'] :where(hr, [role='separator'], table, tr, th, td) {
+html[${ATTR_BOOT}='1'] :where(hr, [role='separator']) {
   border-color: ${palette.line} !important;
 }
 `;

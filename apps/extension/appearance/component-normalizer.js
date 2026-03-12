@@ -144,6 +144,12 @@
     for (const componentRoot of components) {
       if (!(componentRoot instanceof Element)) continue;
       if (componentRoot.closest(`[${ATTR.MEDIA_SAFE}]`)) continue;
+      const componentStyle = getComputedStyle(componentRoot);
+      if (hasUrlBackgroundImage(componentStyle)) {
+        componentRoot.setAttribute(ATTR.MEDIA_SAFE, "1");
+        classifier.markOwned(componentRoot);
+        continue;
+      }
 
       const componentType = classifier.classifyComponent(componentRoot);
       componentRoot.setAttribute(ATTR.SURFACE, "1");
@@ -218,12 +224,13 @@
     const residualCandidates = root.querySelectorAll("section, article, aside, footer, header, div, li, td, th, summary");
     let residualCount = 0;
     for (const node of residualCandidates) {
-      if (residualCount >= 360) break;
+      if (residualCount >= 140) break;
       if (!(node instanceof Element)) continue;
       if (node.closest(`[${ATTR.MEDIA_SAFE}]`)) continue;
       if (node.hasAttribute(ATTR.SURFACE)) continue;
       const rect = node.getBoundingClientRect?.();
       if (!rect || rect.width < 32 || rect.height < 18) continue;
+      if ((rect.width * rect.height) < 7200) continue;
       if (rect.width > window.innerWidth * 0.995 && rect.height > window.innerHeight * 0.995) continue;
       const style = getComputedStyle(node);
       if (hasUrlBackgroundImage(style)) continue;
@@ -398,7 +405,7 @@
     if (!(root instanceof Element)) return { forcedSurfaces: 0, forcedText: 0, logos: 0 };
 
     const mode = String(options.mode || "dark");
-    const maxNodes = Number.isFinite(Number(options.maxNodes)) ? Math.max(80, Number(options.maxNodes)) : 520;
+    const maxNodes = Number.isFinite(Number(options.maxNodes)) ? Math.max(80, Number(options.maxNodes)) : 360;
     const viewportArea = Math.max(1, window.innerWidth * window.innerHeight);
     const candidates = root.querySelectorAll("body, main, [role='main'], header, nav, footer, section, article, aside, div, li, td, th, summary");
 
@@ -412,6 +419,7 @@
       if (node.closest(`[${ATTR.MEDIA_SAFE}]`)) continue;
       const rect = node.getBoundingClientRect?.();
       if (!rect || rect.width < 24 || rect.height < 18) continue;
+      if ((rect.width * rect.height) < 6000) continue;
 
       const area = rect.width * rect.height;
       const style = getComputedStyle(node);
