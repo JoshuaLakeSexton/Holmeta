@@ -676,6 +676,48 @@ html[${ATTR.ACTIVE}='1'][${ATTR.SITE}='x'] :is(
   background-color: var(--holmeta-appearance-page-background-alt) !important;
 }
 
+/* Ensure X menus/dialogs/dropdowns are opaque (not transparent overlays). */
+html[${ATTR.ACTIVE}='1'][${ATTR.SITE}='x'] :is(
+  [role='dialog'],
+  [aria-modal='true'],
+  [data-testid*='Sheet' i],
+  [data-testid*='sheet' i],
+  [data-testid*='Dropdown' i],
+  [data-testid*='dropdown' i],
+  [data-testid*='typeahead' i],
+  [data-testid*='popover' i],
+  [data-testid*='HoverCard' i],
+  [data-testid='ScrollSnap-List'],
+  [role='tablist']
+) {
+  background-color: var(--holmeta-appearance-page-background-alt) !important;
+  border-color: var(--holmeta-appearance-line-subtle) !important;
+  backdrop-filter: none !important;
+  opacity: 1 !important;
+}
+
+html[${ATTR.ACTIVE}='1'][${ATTR.SITE}='x'][${ATTR.MODE}='dark'] :is(
+  [role='dialog'],
+  [aria-modal='true'],
+  [data-testid*='Sheet' i],
+  [data-testid*='sheet' i],
+  [data-testid*='Dropdown' i],
+  [data-testid*='dropdown' i],
+  [data-testid*='typeahead' i],
+  [data-testid*='popover' i],
+  [data-testid*='HoverCard' i],
+  [data-testid='ScrollSnap-List'],
+  [role='tablist'],
+  [data-testid='primaryColumn'],
+  [data-testid='sidebarColumn'],
+  [data-testid='AppTabBar'],
+  [data-testid='TopNavBar']
+) :where(div, section, article, header, nav, aside, main, ul, li)[style*='background-color: rgba(' i]:not([${ATTR.MEDIA_SAFE}='1']):not([${ATTR.ACCENT_SAFE}='1']) {
+  background-color: var(--holmeta-appearance-page-background-alt) !important;
+  border-color: var(--holmeta-appearance-line-subtle) !important;
+  opacity: 1 !important;
+}
+
 html[${ATTR.ACTIVE}='1'][${ATTR.SITE}='x'][${ATTR.MODE}='dark'] :is(
   [data-testid='primaryColumn'],
   [data-testid='sidebarColumn'],
