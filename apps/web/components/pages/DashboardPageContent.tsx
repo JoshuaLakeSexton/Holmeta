@@ -15,11 +15,11 @@ const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "/.netlify/functions";
 const PLAN_COPY_DEFAULT: Record<PlanKey, { title: string; detail: string }> = {
   monthly_a: {
     title: "HOLMETA PREMIUM",
-    detail: "$2/mo · 3-day trial"
+    detail: "$2/mo · full command center access"
   },
   yearly: {
     title: "HOLMETA YEARLY",
-    detail: "Yearly billing"
+    detail: "Yearly billing · best for daily use"
   }
 };
 
@@ -93,16 +93,16 @@ export function DashboardPageContent({ locale = "en" }: DashboardPageProps) {
   return (
     <main className="shell">
       <Panel as="header">
-        <p className="hm-kicker">{t(messages, "dashboard.kicker", "TRIAL CHECKOUT")}</p>
-        <h1 className="hm-title">{t(messages, "dashboard.title", "start your 3-day trial")}</h1>
+        <p className="hm-kicker">{t(messages, "dashboard.kicker", "COMMAND CENTER ACCESS")}</p>
+        <h1 className="hm-title">{t(messages, "dashboard.title", "pick the Holmeta plan that fits your browser workflow")}</h1>
         <p className="hm-meta">
-          {t(messages, "dashboard.body", "Keep your flow simple: checkout first, reveal your license on success, then download and activate the extension.")}
+          {t(messages, "dashboard.body", "One subscription unlocks adaptive appearance, light filters, alerts, meditation, site insight, translation, screenshot tools, and the local vault.")}
         </p>
         <p className="hm-meta">{statusLine}</p>
       </Panel>
 
       <Panel>
-        <h2 className="hm-subtitle">{t(messages, "dashboard.selectPlan", "Select Plan")}</h2>
+        <h2 className="hm-subtitle">{t(messages, "dashboard.selectPlan", "Choose your access plan")}</h2>
         <div className="hm-plan-grid hm-plan-grid--two">
           {(Object.keys(planCopy) as PlanKey[]).map((key) => {
             const plan = planCopy[key];
@@ -131,7 +131,7 @@ export function DashboardPageContent({ locale = "en" }: DashboardPageProps) {
       </Panel>
 
       <Panel>
-        <h2 className="hm-subtitle">{t(messages, "dashboard.afterCheckout", "After Checkout")}</h2>
+        <h2 className="hm-subtitle">{t(messages, "dashboard.afterCheckout", "What happens next")}</h2>
         <ol className="hm-protocol-grid">
           {[0, 1, 2].map((index) => (
             <li key={index}>

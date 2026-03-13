@@ -52,7 +52,7 @@ export function TermsPageContent({ locale = "en" }: TermsPageProps) {
           {t(messages, "termsPage.contact", "Contact")}: <a href={`mailto:${t(messages, "common.contactEmail", "reach@holmeta.com")}`}>{t(messages, "common.contactEmail", "reach@holmeta.com")}</a>
         </p>
         <div className="hm-cta-row">
-          <Button href={pathWithLocale(locale, "/privacy")}>{t(messages, "termsPage.openPrivacy", "Open Privacy")}</Button>
+          <Button href={pathWithLocale(locale, "/privacy")}>{t(messages, "termsPage.openPrivacy", "Read Privacy")}</Button>
           <Button href={pathWithLocale(locale, "/dashboard/subscribe")} variant="primary">{t(messages, "common.trialCta", "Start 3-Day Trial")}</Button>
         </div>
       </Panel>

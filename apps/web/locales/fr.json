@@ -1,0 +1,400 @@
+{
+  "meta": {
+    "title": "HOLMETA",
+    "description": "Holmeta est un kit navigateur holistique pour le confort, la concentration, l’analyse et le contrôle local."
+  },
+  "language": {
+    "label": "Langue",
+    "switcherAria": "Changer de langue"
+  },
+  "common": {
+    "brand": "HOLMETA",
+    "trialCta": "Commencer l’essai de 3 jours",
+    "watchDemo": "Voir la démo de 30 s",
+    "seeHowItWorks": "Voir comment ça marche",
+    "readPrivacy": "Lire la politique de confidentialité",
+    "readTerms": "Lire les conditions",
+    "back": "Retour",
+    "home": "Accueil",
+    "contactEmail": "reach@holmeta.com",
+    "quickNavigation": "Navigation rapide"
+  },
+  "home": {
+    "nav": {
+      "features": "Fonctionnalités",
+      "howItWorks": "Comment ça marche",
+      "privacy": "Confidentialité",
+      "pricing": "Tarifs",
+      "faq": "FAQ"
+    },
+    "kicker": "BRIEFING MISSION",
+    "title": "Le kit navigateur holistique pour celles et ceux qui vivent dans leurs onglets.",
+    "subtitle": "Holmeta réunit l’apparence adaptative, le filtrage lumineux intensif, les alertes santé, la méditation, Site Insight, la traduction et un coffre local dans un seul centre de commande.",
+    "supportLine": "Uniquement dans le navigateur. Local d’abord. Un seul centre de commande. Résiliable à tout moment.",
+    "proof": [
+      "Jour / Nuit adaptatif + filtre lumineux",
+      "Alertes santé + popups de méditation",
+      "Site Insight + coffre local"
+    ],
+    "demo": {
+      "kicker": "DÉMO EN 30 SECONDES",
+      "summary": "Découvrez le contrôle d’apparence, le flux d’alerte et les outils du centre de commande Holmeta dans une démonstration rapide.",
+      "unsupported": "Votre navigateur ne prend pas en charge la vidéo de démonstration."
+    },
+    "trust": {
+      "kicker": "CONÇU POUR LES PERSONNES QUI VIVENT DANS LEURS ONGLETS",
+      "items": [
+        "Boîte à outils de navigateur holistique",
+        "Paramètres locaux par défaut",
+        "Une extension, plusieurs outils"
+      ]
+    },
+    "why": {
+      "kicker": "POURQUOI HOLMETA",
+      "title": "Ce que Holmeta vous apporte dans une seule extension",
+      "items": [
+        {
+          "title": "Façonnez la page autour de vous",
+          "body": "Utilisez le Jour / Nuit adaptatif et des préréglages de filtre lumineux plus puissants pour calmer les sites trop clairs, chaotiques ou incohérents."
+        },
+        {
+          "title": "Protégez votre concentration et votre récupération",
+          "body": "Lancez des sessions de deep work, des alertes santé et des popups de méditation qui vous aident à vous recentrer sans quitter le navigateur."
+        },
+        {
+          "title": "Gardez le contexte à portée de main",
+          "body": "Ouvrez Site Insight, la traduction, la capture d’écran et le coffre local depuis le même centre de commande Holmeta."
+        }
+      ]
+    },
+    "how": {
+      "kicker": "COMMENT ÇA MARCHE",
+      "title": "Comment fonctionne Holmeta",
+      "steps": [
+        "Commencez votre essai de 3 jours",
+        "Téléchargez l’extension",
+        "Activez les outils dont vous avez besoin depuis un seul centre de commande en moins d’une minute"
+      ],
+      "body": "Pas de pile d’extensions séparées. Holmeta est pensé comme un kit navigateur holistique que vous pouvez régler site par site."
+    },
+    "pricing": {
+      "kicker": "TARIFS",
+      "title": "Des tarifs simples",
+      "planTitle": "HOLMETA PREMIUM — 2 $/MOIS",
+      "bullets": [
+        "Adaptive Day / Night Appearance avec modes sombre, clair et ADAPT",
+        "Préréglages Light Filter avec réglage plus poussé par site",
+        "Sessions de deep work, alertes santé et popups de méditation",
+        "Outils Site Insight, traduction, capture et coffre local",
+        "Essai de 3 jours, résiliation à tout moment"
+      ],
+      "foot": "Un abonnement clair. Pas de publicité, pas de revente de données, pas d’empilement d’extensions séparées."
+    },
+    "privacy": {
+      "kicker": "CONFIDENTIALITÉ",
+      "title": "Conçu comme une boîte à outils locale avant tout",
+      "body": "Holmeta fonctionne là où vous travaillez : dans le navigateur. Les contrôles sensibles, les données du coffre et la plupart des outils restent proches de la page et locaux à votre configuration.",
+      "bullets": [
+        "Local par défaut",
+        "Conçu uniquement pour le navigateur",
+        "Résiliable à tout moment",
+        "Aucun modèle économique publicitaire"
+      ]
+    },
+    "faq": {
+      "kicker": "FAQ",
+      "title": "Questions fréquentes",
+      "items": [
+        {
+          "q": "Pourquoi Holmeta est-il payant ?",
+          "a": "Holmeta est une boîte à outils de navigateur holistique avec des mises à jour continues, des contrôles locaux respectueux de la vie privée et sans modèle financé par la publicité. À 2 $/mois, il remplace des utilitaires dispersés par un centre de commande plus calme."
+        },
+        {
+          "q": "Qu’est-ce qui est inclus dans Holmeta ?",
+          "a": "Holmeta inclut actuellement Adaptive Day / Night Appearance, Light Filter Tool, les contrôles de deep work, les alertes santé, les popups de méditation, Site Insight, la traduction, les outils de capture et un coffre local chiffré."
+        },
+        {
+          "q": "Holmeta fonctionne-t-il à l’échelle du système ?",
+          "a": "Holmeta v1 est volontairement limité au navigateur."
+        },
+        {
+          "q": "Que se passe-t-il pendant l’essai ?",
+          "a": "Vous avez accès aux fonctions Premium pendant 3 jours. Résiliez quand vous voulez."
+        },
+        {
+          "q": "Quelles données stockez-vous ?",
+          "a": "Les informations de facturation et de licence nécessaires pour déverrouiller Premium. Les contrôles principaux de navigation tournent localement dans votre extension."
+        },
+        {
+          "q": "Quels navigateurs sont pris en charge ?",
+          "a": "Les navigateurs Chromium pour le moment. Le support s’élargira avec la distribution sur les stores."
+        }
+      ]
+    },
+    "footer": {
+      "status": "Statut / Changelog",
+      "privacy": "Confidentialité",
+      "terms": "Conditions",
+      "contact": "Contact"
+    },
+    "aria": {
+      "homeLink": "Accueil HOLMETA",
+      "primaryNavigation": "Navigation principale",
+      "demoPreview": "Aperçu de la démo Holmeta",
+      "proofStrip": "Bandeau de preuve",
+      "trustMarkers": "Marqueurs de confiance",
+      "footerLinks": "Liens du pied de page",
+      "premiumCard": "Tarification Holmeta Premium"
+    }
+  },
+  "pricingPage": {
+    "subtitle": "Accès complet à Holmeta avec un abonnement simple. Apparence adaptative, filtres, alertes, Site Insight et coffre restent dans le même centre de commande.",
+    "monthlyLabel": "MENSUEL",
+    "yearlyLabel": "ANNUEL",
+    "perMonth": "mois",
+    "perYear": "an",
+    "yearlyNote": "Vous préférez la facturation annuelle ? Vous pouvez la choisir au moment du paiement.",
+    "openCheckout": "Commencer le paiement",
+    "footer": "Les prix peuvent varier selon la région. Stripe affiche le montant final avant confirmation.",
+    "aria": {
+      "premiumCard": "Tarification Holmeta Premium",
+      "yearlyCard": "Tarification Holmeta annuelle"
+    }
+  },
+  "dashboard": {
+    "kicker": "ACCÈS AU CENTRE DE COMMANDE",
+    "title": "choisissez l’offre Holmeta adaptée à votre façon de travailler",
+    "body": "Un seul abonnement déverrouille l’apparence adaptative, les filtres lumineux, les alertes, la méditation, Site Insight, la traduction, les captures et le coffre local.",
+    "statusReady": "STATUT : PRÊT À DÉMARRER L’ESSAI DE 3 JOURS",
+    "statusCreating": "STATUT : CRÉATION DE LA SESSION DE PAIEMENT",
+    "statusFailed": "STATUT : ÉCHEC DU PAIEMENT ({message})",
+    "selectPlan": "Choisissez votre plan d’accès",
+    "afterCheckout": "Les prochaines étapes",
+    "steps": [
+      "Ouvrez /billing/success avec votre identifiant de session de paiement.",
+      "Affichez et copiez votre clé de licence à usage unique.",
+      "Téléchargez l’extension, collez la clé puis activez les outils souhaités."
+    ],
+    "plans": {
+      "monthly_a": {
+        "title": "HOLMETA PREMIUM",
+        "detail": "2 $/mois · accès complet au centre de commande"
+      },
+      "yearly": {
+        "title": "HOLMETA ANNUEL",
+        "detail": "Facturation annuelle · idéal au quotidien"
+      }
+    }
+  },
+  "subscribe": {
+    "kicker": "DÉVERROUILLER HOLMETA",
+    "title": "choisissez votre offre Holmeta puis passez sur Stripe",
+    "body": "Commencez dans Stripe Checkout. La page Billing Success révèle votre clé de licence et vous mène directement au téléchargement puis à l’activation.",
+    "statusReady": "STATUT : PRÊT À DÉMARRER L’ESSAI DE 3 JOURS",
+    "statusOpening": "STATUT : OUVERTURE DU CHECKOUT {plan}",
+    "statusFailed": "STATUT : ÉCHEC DU PAIEMENT ({message})",
+    "alreadyCheckedOut": "J’AI DÉJÀ TERMINÉ LE CHECKOUT",
+    "plans": {
+      "monthly_a": {
+        "label": "HOLMETA PREMIUM",
+        "detail": "2 $/mois",
+        "note": "Accès complet au centre de commande"
+      },
+      "yearly": {
+        "label": "HOLMETA ANNUEL",
+        "detail": "Facturation annuelle",
+        "note": "Idéal pour un usage quotidien"
+      }
+    },
+    "creating": "CRÉATION DE LA SESSION…",
+    "startTrial": "COMMENCER L’ESSAI DE 3 JOURS"
+  },
+  "billingSuccess": {
+    "kicker": "PAIEMENT RÉUSSI",
+    "title": "votre clé de licence Holmeta",
+    "body": "Conservez cette clé. Elle active Holmeta dans l’extension et vous ouvre tous les outils Premium.",
+    "statusReady": "STATUT : PRÊT",
+    "statusSessionRequired": "STATUT : ID DE SESSION REQUIS",
+    "statusFetching": "STATUT : RÉCUPÉRATION DE LA CLÉ DE LICENCE",
+    "statusAlreadyRevealed": "STATUT : LA LICENCE A DÉJÀ ÉTÉ AFFICHÉE POUR CETTE SESSION",
+    "statusLicenseReady": "STATUT : LICENCE PRÊTE",
+    "statusLicenseFailed": "STATUT : ÉCHEC DE RÉCUPÉRATION DE LA LICENCE ({message})",
+    "statusLicenseCopied": "STATUT : LICENCE COPIÉE",
+    "statusCopyFailed": "STATUT : ÉCHEC DE LA COPIE",
+    "statusOpeningPortal": "STATUT : OUVERTURE DU PORTAIL DE FACTURATION",
+    "statusPortalFailed": "STATUT : ÉCHEC DU PORTAIL ({message})",
+    "statusVerifyingDownload": "STATUT : VÉRIFICATION DE L’ACCÈS AU TÉLÉCHARGEMENT",
+    "statusDownloadStarted": "STATUT : TÉLÉCHARGEMENT DÉMARRÉ",
+    "statusDownloadFailed": "STATUT : ÉCHEC DU TÉLÉCHARGEMENT ({message})",
+    "sessionLabel": "ID DE SESSION DE PAIEMENT",
+    "licenseBox": "CLÉ DE LICENCE",
+    "notRevealed": "PAS ENCORE AFFICHÉE",
+    "reveal": "Révéler la licence",
+    "manage": "Gérer la facturation",
+    "help": "Aide remboursement / annulation",
+    "copy": "Copier la licence",
+    "download": "Télécharger l’extension",
+    "openDownload": "Ouvrir la page de téléchargement",
+    "activateTitle": "Activez Holmeta en moins d’une minute",
+    "activateSteps": [
+      "Téléchargez et chargez l’extension dans votre navigateur.",
+      "Ouvrez la popup de l’extension et allez dans le déverrouillage Premium.",
+      "Collez votre clé de licence puis cliquez sur Activer.",
+      "Revenez à l’extension et activez les outils souhaités."
+    ]
+  },
+  "download": {
+    "kicker": "INSTALLER HOLMETA",
+    "title": "téléchargez Holmeta et déverrouillez votre boîte à outils navigateur",
+    "flowKicker": "PARCOURS",
+    "flowTitle": "Paiement → clé → téléchargement",
+    "flowBody": "Si vous n’avez pas encore lancé le checkout, commencez d’abord votre essai de 3 jours. Si vous avez déjà payé, vérifiez votre accès avec votre identifiant de session ou votre clé de licence pour déverrouiller le téléchargement.",
+    "storesKicker": "NAVIGATEURS PRIS EN CHARGE",
+    "protectedKicker": "TÉLÉCHARGEMENT D’EXTENSION VÉRIFIÉ",
+    "manualKicker": "INSTALLATION MANUELLE (CHROMIUM)",
+    "manualBody": "Après téléchargement : décompressez le fichier zip → ouvrez chrome://extensions → activez le mode développeur → cliquez sur Charger l’extension non empaquetée → choisissez le dossier contenant manifest.json.",
+    "detected": "Navigateur détecté",
+    "recommended": "Store recommandé",
+    "statusEnter": "STATUT : SAISISSEZ UN ID DE SESSION OU UNE LICENCE POUR DÉVERROUILLER LE TÉLÉCHARGEMENT",
+    "statusNeedInput": "STATUT : SAISISSEZ L’ID DE SESSION OU LA CLÉ DE LICENCE",
+    "statusVerifying": "STATUT : VÉRIFICATION DE L’ESSAI OU DE L’ABONNEMENT",
+    "statusNoEntitlement": "STATUT : AUCUN ESSAI OU ABONNEMENT ACTIF TROUVÉ",
+    "statusDownloadFailed": "STATUT : ÉCHEC DU TÉLÉCHARGEMENT ({message})",
+    "statusEmpty": "STATUT : RÉPONSE DE TÉLÉCHARGEMENT VIDE",
+    "statusStarted": "STATUT : TÉLÉCHARGEMENT DÉMARRÉ",
+    "notDetected": "Non détecté",
+    "chooseBrowser": "Choisissez votre navigateur",
+    "storeChromium": "Chrome / Edge",
+    "storeFirefox": "Firefox",
+    "storeSafari": "Safari",
+    "installStore": "Installer depuis le store",
+    "storeMissing": "Lien du store non configuré",
+    "downloadButton": "Vérifier puis télécharger l’extension",
+    "downloadVerifying": "Vérification…",
+    "sessionLabel": "ID DE SESSION DE PAIEMENT",
+    "licenseLabel": "CLÉ DE LICENCE (ALTERNATIVE)",
+    "choiceLabels": {
+      "chromium": "Chrome / Edge / Brave / Vivaldi / Arc",
+      "firefox": "Firefox",
+      "safari": "Safari"
+    }
+  },
+  "billingHelp": {
+    "kicker": "SUPPORT FACTURATION",
+    "title": "licence, annulation et remboursements",
+    "body": "Besoin d’aide après paiement ? Utilisez cette page pour récupérer votre clé, annuler via Stripe ou demander un examen de remboursement.",
+    "quickActions": "Actions rapides",
+    "recover": "Récupérer la clé de licence",
+    "readTerms": "Lire les conditions de facturation",
+    "cancelTitle": "Comment résilier",
+    "cancelSteps": [
+      "Ouvrez /billing/success avec votre session_id de paiement.",
+      "Cliquez sur Gérer la facturation pour ouvrir le portail Stripe.",
+      "Dans Stripe, choisissez Annuler l’abonnement."
+    ],
+    "refundTitle": "Demandes de remboursement",
+    "refundBody": "Les demandes de remboursement sont étudiées au cas par cas. Indiquez votre session de paiement et la raison afin d’accélérer la revue.",
+    "contactLabel": "Contact",
+    "subjectLabel": "Objet",
+    "subject": "DEMANDE DE REMBOURSEMENT HOLMETA",
+    "includeLabel": "Inclure",
+    "includeBody": "ID de session, date d’achat et bref résumé du problème"
+  },
+  "billingCancel": {
+    "kicker": "PAIEMENT ANNULÉ",
+    "title": "aucun paiement n’a été effectué",
+    "body": "Quand vous serez prêt, relancez le paiement et démarrez votre essai de 3 jours.",
+    "help": "Aide facturation"
+  },
+  "privacyPage": {
+    "kicker": "POLITIQUE DE CONFIDENTIALITÉ",
+    "title": "Approche confidentialité de Holmeta",
+    "effective": "Date d’effet : 2 mars 2026",
+    "storeTitle": "Ce que nous stockons",
+    "store": [
+      "Les paramètres de l’extension et les journaux de rappel sont stockés localement dans votre navigateur par défaut.",
+      "Les enregistrements Stripe et les hachages de licence sont stockés côté serveur pour les abonnements et les vérifications de déverrouillage.",
+      "L’état des droits (essai/actif/inactif) est stocké pour déverrouiller les fonctions payantes."
+    ],
+    "notStoreTitle": "Ce que nous ne stockons pas",
+    "notStore": [
+      "Pas de keylogging.",
+      "Aucune vente de données personnelles.",
+      "Aucune collecte du contenu des pages pour l’analyse publicitaire."
+    ],
+    "processingTitle": "Autorisations et traitement",
+    "processing": [
+      "Les filtres d’écran et overlays de rappel tournent dans le navigateur.",
+      "L’accès à la caméra est optionnel et demandé uniquement si le mode posture webcam est activé.",
+      "La facturation, le contrôle de téléchargement et les vérifications de licence passent par des fonctions serveur sécurisées."
+    ],
+    "contact": "Contact",
+    "openTerms": "Lire les conditions d’utilisation"
+  },
+  "termsPage": {
+    "kicker": "CONDITIONS D’UTILISATION",
+    "title": "Conditions d’utilisation Holmeta",
+    "effective": "Date d’effet : 2 mars 2026",
+    "scopeTitle": "Périmètre du service",
+    "scope": [
+      "Holmeta fournit une boîte à outils holistique basée sur le navigateur pour le confort, la concentration, la récupération, l’analyse et les flux utilitaires.",
+      "Holmeta ne constitue ni un avis médical, ni un diagnostic, ni un traitement.",
+      "Certaines fonctions nécessitent un abonnement actif."
+    ],
+    "billingTitle": "Facturation et essais",
+    "billing": [
+      "Le tarif Premium est de 2 $ par mois.",
+      "La facturation annuelle est également disponible lorsqu’elle est proposée sur la page d’abonnement.",
+      "Les conditions d’essai sont affichées dans Stripe Checkout.",
+      "Vous pouvez gérer, résilier ou demander un remboursement via le support de facturation et le portail Stripe."
+    ],
+    "acceptableTitle": "Utilisation acceptable",
+    "acceptable": [
+      "N’utilisez pas le service à des fins illégales.",
+      "N’essayez pas d’abuser des systèmes de facturation, de licence ou de droits d’accès.",
+      "Utilisez le service à votre discrétion conformément aux politiques du navigateur et de la plateforme."
+    ],
+    "contact": "Contact",
+    "openPrivacy": "Lire la politique de confidentialité"
+  },
+  "statusPage": {
+    "kicker": "STATUT SYSTÈME",
+    "title": "État des versions Holmeta",
+    "operational": "STATUT : OPÉRATIONNEL",
+    "monitoring": "SURVEILLANCE : ACTIVÉE (JOURNAUX DE FONCTION + ERREURS CLIENT)",
+    "updated": "Dernière mise à jour : 10 mars 2026",
+    "recent": "Changelog récent",
+    "changelog": [
+      {
+        "date": "2026-03-10",
+        "id": "HM-2026-03-10-A",
+        "summary": "Renforcement des filtres lumineux : le rendu lecture sombre/clair utilise désormais une stratégie sûre avec limitation des tons de page pour éviter les pages illisibles."
+      },
+      {
+        "date": "2026-03-10",
+        "id": "HM-2026-03-10-B",
+        "summary": "Passe de vérification en production : contrôle des variables Netlify, smoke tests de checkout mensuel + annuel, contrôle d’accès au téléchargement et validation de la synchronisation du zip de l’extension."
+      },
+      {
+        "date": "2026-03-04",
+        "id": "HM-2026-03-04-B",
+        "summary": "Renforcement de la mise en ligne : téléchargement d’extension protégé, activation sans connexion, et vérifications d’idempotence webhook."
+      },
+      {
+        "date": "2026-03-04",
+        "id": "HM-2026-03-04-A",
+        "summary": "Simplification des plans : monthly_a + yearly uniquement dans le checkout, la validation et les scripts smoke."
+      },
+      {
+        "date": "2026-02-25",
+        "id": "HM-2026-02-25-B",
+        "summary": "Pipeline Netlify stabilisé avec synchronisation du zip de l’extension et garde d’intégrité CSS."
+      },
+      {
+        "date": "2026-02-24",
+        "id": "HM-2026-02-24-C",
+        "summary": "La structure de la page d’accueil a été mise à jour au format mission briefing avec un flux de téléchargement adapté au navigateur."
+      }
+    ]
+  }
+}

@@ -13,8 +13,8 @@ type PlanKey = "monthly_a" | "yearly";
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "/.netlify/functions";
 
 const DEFAULT_PLANS: Array<{ key: PlanKey; label: string; detail: string; note: string }> = [
-  { key: "monthly_a", label: "HOLMETA PREMIUM", detail: "$2/mo", note: "Includes 3-day trial" },
-  { key: "yearly", label: "HOLMETA YEARLY", detail: "Yearly billing", note: "Best for daily users" }
+  { key: "monthly_a", label: "HOLMETA PREMIUM", detail: "$2/mo", note: "Full command center access" },
+  { key: "yearly", label: "HOLMETA YEARLY", detail: "Yearly billing", note: "Best for daily command-center use" }
 ];
 
 function apiUrl(path: string): string {
@@ -87,10 +87,10 @@ export function DashboardSubscribePageContent({ locale = "en" }: DashboardSubscr
   return (
     <main className="shell">
       <Panel>
-        <p className="hm-kicker">{t(messages, "subscribe.kicker", "START 3-DAY TRIAL")}</p>
-        <h1 className="hm-title">{t(messages, "subscribe.title", "pick your plan and continue to checkout")}</h1>
+        <p className="hm-kicker">{t(messages, "subscribe.kicker", "UNLOCK HOLMETA")}</p>
+        <h1 className="hm-title">{t(messages, "subscribe.title", "choose your Holmeta plan and continue to Stripe")}</h1>
         <p className="hm-meta">
-          {t(messages, "subscribe.body", "Trial starts in Stripe Checkout. After payment, you land on Billing Success to reveal license and download.")}
+          {t(messages, "subscribe.body", "Start in Stripe Checkout. Billing Success reveals your license key and moves you straight into download and activation.")}
         </p>
         <p className="hm-meta">{statusLine}</p>
 

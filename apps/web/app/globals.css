@@ -79,6 +79,8 @@ a {
   line-height: var(--lh-tight);
   letter-spacing: var(--ls-head);
   text-transform: uppercase;
+  overflow-wrap: anywhere;
+  text-wrap: balance;
 }
 
 @keyframes hm-neon-pulse {
@@ -198,6 +200,11 @@ button.primary:hover {
     gap: var(--s-1);
   }
 
+  [dir="rtl"] .hm-web-nav {
+    left: var(--s-2);
+    right: auto;
+  }
+
   .hm-web-nav-btn--mini {
     min-width: 64px;
     min-height: 30px;
@@ -212,6 +219,8 @@ button.primary:hover {
   line-height: var(--lh-tight);
   letter-spacing: var(--ls-head);
   text-transform: uppercase;
+  overflow-wrap: anywhere;
+  text-wrap: balance;
 }
 
 .hm-lede {
@@ -435,19 +444,20 @@ html {
   font-size: var(--fs-2);
   text-transform: uppercase;
   letter-spacing: var(--ls-meta);
+  overflow-wrap: anywhere;
 }
 
 .hm-nav-links {
   display: flex;
-  flex-wrap: nowrap;
+  flex-wrap: wrap;
   gap: var(--s-1);
   align-items: center;
+  justify-content: center;
   min-width: 0;
   font-family: var(--ff-mono);
   font-size: var(--fs-1);
   text-transform: uppercase;
   letter-spacing: var(--ls-meta);
-  white-space: nowrap;
 }
 
 .hm-nav-links a,
@@ -457,7 +467,9 @@ html {
   min-height: 32px;
   display: inline-flex;
   align-items: center;
-  white-space: nowrap;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  text-align: center;
 }
 
 .hm-nav-links a:hover,
@@ -486,6 +498,21 @@ html {
   flex: 0 0 auto;
 }
 
+.hm-locale-switch {
+  display: inline-grid;
+  gap: 6px;
+  min-width: 168px;
+}
+
+.hm-locale-switch.is-compact {
+  min-width: 116px;
+}
+
+.hm-locale-switch select {
+  width: 100%;
+  max-width: 100%;
+}
+
 .hm-lang-menu {
   position: relative;
   flex: 0 0 auto;
@@ -496,16 +523,17 @@ html {
   background: rgba(20, 17, 15, 0.72);
   color: var(--c-text);
   min-height: 40px;
-  min-width: 44px;
+  min-width: 72px;
   padding: 0 var(--s-2);
   font-family: var(--ff-mono);
-  font-size: 18px;
+  font-size: 12px;
   line-height: 1;
   letter-spacing: var(--ls-meta);
   list-style: none;
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  gap: 8px;
   cursor: pointer;
 }
 
@@ -519,11 +547,23 @@ html {
   box-shadow: var(--focus-ring);
 }
 
+.hm-lang-menu-code {
+  font-size: 11px;
+  letter-spacing: 0.14em;
+}
+
+.hm-lang-menu-caret {
+  font-size: 11px;
+  opacity: 0.72;
+}
+
 .hm-lang-menu-list {
   position: absolute;
   right: 0;
   top: calc(100% + var(--s-1));
-  min-width: 170px;
+  min-width: 220px;
+  width: max-content;
+  max-width: min(280px, calc(100vw - var(--s-6)));
   display: none;
   border: 1px solid var(--c-border);
   background: rgba(18, 15, 13, 0.98);
@@ -539,15 +579,18 @@ html {
 
 .hm-lang-menu-item {
   border: 1px solid transparent;
-  min-height: 34px;
-  padding: 0 var(--s-2);
+  min-height: 40px;
+  padding: 6px var(--s-2);
   display: inline-flex;
   align-items: center;
+  justify-content: flex-start;
   color: var(--c-text);
   font-family: var(--ff-mono);
   font-size: 12px;
   letter-spacing: 0.06em;
-  white-space: nowrap;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  line-height: 1.35;
 }
 
 .hm-lang-menu-item:hover {
@@ -713,6 +756,57 @@ html {
   letter-spacing: var(--ls-meta);
 }
 
+[dir="rtl"] .hm-web-nav {
+  left: var(--s-3);
+  right: auto;
+}
+
+[dir="rtl"] .hm-home :where(.hm-kicker, .hm-title, .hm-subtitle, .hm-lede, .hm-meta, .hm-list, .hm-protocol-grid, .hm-footer) {
+  text-align: right;
+}
+
+[dir="rtl"] .hm-nav-links {
+  justify-content: flex-end;
+}
+
+[dir="rtl"] .hm-nav-actions {
+  justify-content: flex-start;
+}
+
+[dir="rtl"] .hm-lang-menu-list {
+  left: 0;
+  right: auto;
+}
+
+[dir="rtl"] .hm-lang-menu-item {
+  justify-content: flex-end;
+  text-align: right;
+}
+
+[dir="rtl"] .hm-list {
+  padding-left: var(--s-2);
+  padding-right: 24px;
+}
+
+[dir="rtl"] .hm-list--ordered {
+  padding-left: var(--s-2);
+  padding-right: 28px;
+}
+
+[dir="rtl"] .hm-protocol-grid {
+  padding-left: var(--s-3);
+  padding-right: var(--s-5);
+}
+
+[dir="rtl"] .hm-protocol-grid li {
+  padding-left: var(--s-2);
+  padding-right: 0;
+}
+
+[dir="rtl"] .hm-field-row {
+  grid-template-columns: minmax(0, 1fr) 200px;
+}
+
 @media (max-width: 1024px) {
   .hm-top-nav {
     grid-template-columns: 1fr;
@@ -757,6 +851,10 @@ html {
     padding: var(--s-3) var(--s-4);
   }
 
+  .hm-locale-switch {
+    min-width: 132px;
+  }
+
   .hm-status-grid,
   .hm-split-grid,
   .hm-feature-grid {
@@ -789,5 +887,9 @@ html {
   .hm-nav-links a,
   .hm-footer a {
     min-height: 30px;
+  }
+
+  .hm-lang-menu-list {
+    min-width: min(240px, calc(100vw - var(--s-4)));
   }
 }

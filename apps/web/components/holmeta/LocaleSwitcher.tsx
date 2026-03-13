@@ -33,9 +33,13 @@ export function LocaleSwitcher({ compact = false }: LocaleSwitcherProps) {
   return (
     <label className={`hm-locale-switch ${compact ? "is-compact" : ""}`.trim()} aria-label={t(messages, "language.switcherAria", "Switch language")}>
       {!compact ? <span className="hm-label">{t(messages, "language.label", "Language")}</span> : null}
-      <select value={activeLocale} onChange={(event) => onChange(normalizeLocale(event.target.value))}>
+      <select
+        value={activeLocale}
+        onChange={(event) => onChange(normalizeLocale(event.target.value))}
+        dir={activeLocale === "ar" ? "rtl" : "ltr"}
+      >
         {SUPPORTED_LOCALES.map((locale) => (
-          <option key={locale} value={locale}>
+          <option key={locale} value={locale} lang={locale} dir={locale === "ar" ? "rtl" : "ltr"}>
             {localeDisplayName(locale)}
           </option>
         ))}

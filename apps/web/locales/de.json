@@ -1,0 +1,400 @@
+{
+  "meta": {
+    "title": "HOLMETA",
+    "description": "Holmeta ist ein ganzheitliches Browser-Kit für Komfort, Fokus, Einblick und lokale Kontrolle."
+  },
+  "language": {
+    "label": "Sprache",
+    "switcherAria": "Sprache wechseln"
+  },
+  "common": {
+    "brand": "HOLMETA",
+    "trialCta": "3-Tage-Test starten",
+    "watchDemo": "30-Sek.-Demo ansehen",
+    "seeHowItWorks": "So funktioniert es",
+    "readPrivacy": "Datenschutz lesen",
+    "readTerms": "AGB lesen",
+    "back": "Zurück",
+    "home": "Start",
+    "contactEmail": "reach@holmeta.com",
+    "quickNavigation": "Schnellnavigation"
+  },
+  "home": {
+    "nav": {
+      "features": "Funktionen",
+      "howItWorks": "So funktioniert’s",
+      "privacy": "Datenschutz",
+      "pricing": "Preise",
+      "faq": "FAQ"
+    },
+    "kicker": "LAGEBESPRECHUNG",
+    "title": "Das ganzheitliche Browser-Kit für Menschen, die in Tabs leben.",
+    "subtitle": "Holmeta bündelt adaptive Darstellung, intensives Lichtfiltern, Gesundheitswarnungen, Meditation, Site Insight, Übersetzung und einen lokalen Tresor in einer einzigen Kommandozentrale.",
+    "supportLine": "Nur im Browser. Lokal zuerst. Eine Kommandozentrale. Jederzeit kündbar.",
+    "proof": [
+      "Adaptiver Tag / Nacht + Light Filter",
+      "Gesundheitswarnungen + Meditations-Popups",
+      "Site Insight + lokaler Tresor"
+    ],
+    "demo": {
+      "kicker": "DEMO IN 30 SEKUNDEN",
+      "summary": "Erleben Sie Darstellungssteuerung, Alert-Ablauf und Holmeta-Command-Center-Tools in einer kurzen Demo.",
+      "unsupported": "Ihr Browser unterstützt das Demo-Video nicht."
+    },
+    "trust": {
+      "kicker": "FÜR MENSCHEN GEMACHT, DIE IN TABS LEBEN",
+      "items": [
+        "Ganzheitliches Browser-Kit",
+        "Lokale Standardwerte",
+        "Eine Erweiterung, viele Werkzeuge"
+      ]
+    },
+    "why": {
+      "kicker": "WARUM HOLMETA",
+      "title": "Was Holmeta in einer einzigen Erweiterung bietet",
+      "items": [
+        {
+          "title": "Passen Sie die Seite an sich an",
+          "body": "Nutzen Sie Adaptive Day / Night Appearance und stärkere Light-Filter-Presets, um helle, chaotische oder inkonsistente Websites zu beruhigen."
+        },
+        {
+          "title": "Schützen Sie Fokus und Erholung",
+          "body": "Starten Sie Deep-Work-Sessions, Gesundheitswarnungen und Meditations-Popups, die Ihnen beim Neustart helfen, ohne den Browser zu verlassen."
+        },
+        {
+          "title": "Kontext griffbereit halten",
+          "body": "Öffnen Sie Site Insight, Übersetzung, Screenshots und den lokalen Tresor aus derselben Holmeta-Kommandozentrale."
+        }
+      ]
+    },
+    "how": {
+      "kicker": "SO FUNKTIONIERT ES",
+      "title": "So funktioniert Holmeta",
+      "steps": [
+        "Starten Sie Ihren 3-Tage-Test",
+        "Laden Sie die Erweiterung herunter",
+        "Schalten Sie die benötigten Werkzeuge in unter einer Minute aus einer einzigen Kommandozentrale ein"
+      ],
+      "body": "Keine Ansammlung separater Browser-Add-ons. Holmeta ist als ganzheitliches Browser-Kit gedacht, das Sie Website für Website fein abstimmen können."
+    },
+    "pricing": {
+      "kicker": "PREISE",
+      "title": "Einfache Preise",
+      "planTitle": "HOLMETA PREMIUM — 2 $/MONAT",
+      "bullets": [
+        "Adaptive Day / Night Appearance mit Dunkel-, Hell- und ADAPT-Modus",
+        "Light-Filter-Presets mit stärkerer Feinabstimmung pro Website",
+        "Deep Work, Gesundheitswarnungen und Meditations-Popups",
+        "Site-Insight-, Übersetzungs-, Screenshot- und lokaler-Tresor-Tools",
+        "3-Tage-Test, jederzeit kündbar"
+      ],
+      "foot": "Ein klares Abo. Keine Werbung, kein Datenverkauf und kein Stapel separater Browser-Erweiterungen."
+    },
+    "privacy": {
+      "kicker": "DATENSCHUTZ",
+      "title": "Als lokal orientiertes Browser-Kit gebaut",
+      "body": "Holmeta arbeitet dort, wo Sie arbeiten: im Browser. Sensible Steuerungen, Tresordaten und die meisten täglichen Werkzeuge bleiben nah an der Seite und lokal in Ihrem Setup.",
+      "bullets": [
+        "Lokal zuerst als Standard",
+        "Bewusst nur für den Browser",
+        "Jederzeit kündbar",
+        "Kein werbebasiertes Geschäftsmodell"
+      ]
+    },
+    "faq": {
+      "kicker": "FAQ",
+      "title": "Häufige Fragen",
+      "items": [
+        {
+          "q": "Warum ist Holmeta kostenpflichtig?",
+          "a": "Holmeta ist ein ganzheitliches Browser-Kit mit laufenden Updates, datenschutzfreundlicher lokaler Steuerung und ohne werbebasiertes Geschäftsmodell. Für 2 $ im Monat ersetzt es verstreute Hilfstools durch eine ruhigere Kommandozentrale."
+        },
+        {
+          "q": "Was ist in Holmeta enthalten?",
+          "a": "Holmeta enthält derzeit Adaptive Day / Night Appearance, das Light Filter Tool, Deep-Work-Steuerung, Gesundheitswarnungen, Meditations-Popups, Site Insight, Übersetzung, Screenshot-Tools und einen lokal verschlüsselten Tresor."
+        },
+        {
+          "q": "Funktioniert Holmeta systemweit?",
+          "a": "Holmeta v1 ist bewusst browserbasiert."
+        },
+        {
+          "q": "Was passiert während der Testphase?",
+          "a": "Sie erhalten 3 Tage Zugriff auf Premium-Funktionen. Kündigen Sie jederzeit."
+        },
+        {
+          "q": "Welche Daten speichern Sie?",
+          "a": "Abrechnungs- und Lizenzdaten, die zum Freischalten von Premium nötig sind. Die Kernsteuerungen laufen lokal in Ihrer Erweiterung."
+        },
+        {
+          "q": "Welche Browser werden unterstützt?",
+          "a": "Derzeit Chromium-Browser. Weitere Unterstützung folgt mit wachsender Store-Verteilung."
+        }
+      ]
+    },
+    "footer": {
+      "status": "Status / Changelog",
+      "privacy": "Datenschutz",
+      "terms": "AGB",
+      "contact": "Kontakt"
+    },
+    "aria": {
+      "homeLink": "HOLMETA Startseite",
+      "primaryNavigation": "Primäre Navigation",
+      "demoPreview": "Holmeta-Demo-Vorschau",
+      "proofStrip": "Beweisleiste",
+      "trustMarkers": "Vertrauensmerkmale",
+      "footerLinks": "Footer-Links",
+      "premiumCard": "Holmeta Premium Preise"
+    }
+  },
+  "pricingPage": {
+    "subtitle": "Voller Holmeta-Zugang in einem klaren Abonnement. Adaptive Darstellung, Filter, Alerts, Insight und Tresor bleiben in derselben Kommandozentrale.",
+    "monthlyLabel": "MONATLICH",
+    "yearlyLabel": "JÄHRLICH",
+    "perMonth": "Monat",
+    "perYear": "Jahr",
+    "yearlyNote": "Möchten Sie jährlich zahlen? Sie können im Checkout wechseln.",
+    "openCheckout": "Zum Checkout",
+    "footer": "Preise können je nach Region abweichen. Stripe zeigt den endgültigen Betrag vor der Bestätigung an.",
+    "aria": {
+      "premiumCard": "Holmeta Premium Preise",
+      "yearlyCard": "Holmeta Jahrespreis"
+    }
+  },
+  "dashboard": {
+    "kicker": "ZUGANG ZUR KOMMANDOZENTRALE",
+    "title": "Wählen Sie den Holmeta-Plan, der zu Ihrem Browser-Workflow passt",
+    "body": "Ein einziges Abonnement schaltet adaptive Darstellung, Lichtfilter, Alerts, Meditation, Site Insight, Übersetzung, Screenshots und den lokalen Tresor frei.",
+    "statusReady": "STATUS: BEREIT FÜR DEN 3-TAGE-TEST",
+    "statusCreating": "STATUS: CHECKOUT-SESSION WIRD ERSTELLT",
+    "statusFailed": "STATUS: CHECKOUT FEHLGESCHLAGEN ({message})",
+    "selectPlan": "Zugangsplan wählen",
+    "afterCheckout": "So geht es weiter",
+    "steps": [
+      "Öffnen Sie /billing/success mit Ihrer Checkout-Session-ID.",
+      "Zeigen Sie Ihren einmaligen Lizenzschlüssel an und kopieren Sie ihn.",
+      "Laden Sie die Erweiterung herunter, fügen Sie den Schlüssel ein und aktivieren Sie die gewünschten Werkzeuge."
+    ],
+    "plans": {
+      "monthly_a": {
+        "title": "HOLMETA PREMIUM",
+        "detail": "2 $/Monat · voller Command-Center-Zugang"
+      },
+      "yearly": {
+        "title": "HOLMETA JÄHRLICH",
+        "detail": "Jährliche Abrechnung · ideal für tägliche Nutzung"
+      }
+    }
+  },
+  "subscribe": {
+    "kicker": "HOLMETA FREISCHALTEN",
+    "title": "Wählen Sie Ihren Holmeta-Plan und wechseln Sie zu Stripe",
+    "body": "Starten Sie im Stripe-Checkout. Billing Success zeigt Ihren Lizenzschlüssel und führt Sie direkt zu Download und Aktivierung.",
+    "statusReady": "STATUS: BEREIT FÜR DEN 3-TAGE-TEST",
+    "statusOpening": "STATUS: {plan}-CHECKOUT WIRD GEÖFFNET",
+    "statusFailed": "STATUS: CHECKOUT FEHLGESCHLAGEN ({message})",
+    "alreadyCheckedOut": "ICH HABE BEREITS BEZAHLT",
+    "plans": {
+      "monthly_a": {
+        "label": "HOLMETA PREMIUM",
+        "detail": "2 $/Monat",
+        "note": "Voller Command-Center-Zugang"
+      },
+      "yearly": {
+        "label": "HOLMETA JÄHRLICH",
+        "detail": "Jährliche Abrechnung",
+        "note": "Ideal für tägliche Nutzung"
+      }
+    },
+    "creating": "SESSION WIRD ERSTELLT…",
+    "startTrial": "3-TAGE-TEST STARTEN"
+  },
+  "billingSuccess": {
+    "kicker": "ZAHLUNG ERFOLGREICH",
+    "title": "Ihr Holmeta-Lizenzschlüssel",
+    "body": "Speichern Sie diesen Schlüssel. Er schaltet Holmeta in der Erweiterung frei und gibt Zugriff auf alle Premium-Werkzeuge.",
+    "statusReady": "STATUS: BEREIT",
+    "statusSessionRequired": "STATUS: SESSION-ID ERFORDERLICH",
+    "statusFetching": "STATUS: LIZENZSCHLÜSSEL WIRD ABGERUFEN",
+    "statusAlreadyRevealed": "STATUS: LIZENZ WURDE FÜR DIESE SESSION BEREITS ANGEZEIGT",
+    "statusLicenseReady": "STATUS: LIZENZ BEREIT",
+    "statusLicenseFailed": "STATUS: LIZENZABRUF FEHLGESCHLAGEN ({message})",
+    "statusLicenseCopied": "STATUS: LIZENZ KOPIERT",
+    "statusCopyFailed": "STATUS: KOPIEREN FEHLGESCHLAGEN",
+    "statusOpeningPortal": "STATUS: ABRECHNUNGSPORTAL WIRD GEÖFFNET",
+    "statusPortalFailed": "STATUS: PORTAL FEHLGESCHLAGEN ({message})",
+    "statusVerifyingDownload": "STATUS: DOWNLOAD-ZUGRIFF WIRD GEPRÜFT",
+    "statusDownloadStarted": "STATUS: DOWNLOAD GESTARTET",
+    "statusDownloadFailed": "STATUS: DOWNLOAD FEHLGESCHLAGEN ({message})",
+    "sessionLabel": "CHECKOUT-SESSION-ID",
+    "licenseBox": "LIZENZSCHLÜSSEL",
+    "notRevealed": "NOCH NICHT ANGEZEIGT",
+    "reveal": "Lizenz anzeigen",
+    "manage": "Abrechnung verwalten",
+    "help": "Hilfe zu Erstattung / Kündigung",
+    "copy": "Lizenz kopieren",
+    "download": "Erweiterung herunterladen",
+    "openDownload": "Download-Seite öffnen",
+    "activateTitle": "Öffnen Sie Holmeta in unter einer Minute",
+    "activateSteps": [
+      "Laden Sie die Erweiterung herunter und fügen Sie sie Ihrem Browser hinzu.",
+      "Öffnen Sie das Erweiterungs-Popup und gehen Sie zu Premium freischalten.",
+      "Fügen Sie Ihren Lizenzschlüssel ein und klicken Sie auf Aktivieren.",
+      "Kehren Sie zur Erweiterung zurück und schalten Sie die gewünschten Werkzeuge ein."
+    ]
+  },
+  "download": {
+    "kicker": "HOLMETA INSTALLIEREN",
+    "title": "Holmeta herunterladen und Ihr Browser-Kit freischalten",
+    "flowKicker": "ABLAUF",
+    "flowTitle": "Checkout → Schlüssel → Download",
+    "flowBody": "Starten Sie zuerst Ihren 3-Tage-Test, wenn Sie noch nicht bezahlt haben. Bereits bezahlt? Bestätigen Sie unten mit Session-ID oder Lizenzschlüssel, um den Download freizuschalten.",
+    "storesKicker": "UNTERSTÜTZTE BROWSER",
+    "protectedKicker": "VERIFIZIERTER ERWEITERUNGS-DOWNLOAD",
+    "manualKicker": "MANUELLE INSTALLATION (CHROMIUM)",
+    "manualBody": "Nach dem Download: Zip entpacken → chrome://extensions öffnen → Entwicklermodus aktivieren → Entpackte Erweiterung laden → Ordner mit manifest.json auswählen.",
+    "detected": "Erkannter Browser",
+    "recommended": "Empfohlener Store",
+    "statusEnter": "STATUS: GEBEN SIE SESSION-ID ODER LIZENZ EIN, UM DEN DOWNLOAD FREIZUSCHALTEN",
+    "statusNeedInput": "STATUS: GEBEN SIE SESSION-ID ODER LIZENZSCHLÜSSEL EIN",
+    "statusVerifying": "STATUS: TEST ODER ABO WIRD GEPRÜFT",
+    "statusNoEntitlement": "STATUS: KEIN AKTIVER TEST ODER KEIN AKTIVES ABO GEFUNDEN",
+    "statusDownloadFailed": "STATUS: DOWNLOAD FEHLGESCHLAGEN ({message})",
+    "statusEmpty": "STATUS: LEERE DOWNLOAD-ANTWORT",
+    "statusStarted": "STATUS: DOWNLOAD GESTARTET",
+    "notDetected": "Nicht erkannt",
+    "chooseBrowser": "Wählen Sie Ihren Browser",
+    "storeChromium": "Chrome / Edge",
+    "storeFirefox": "Firefox",
+    "storeSafari": "Safari",
+    "installStore": "Aus dem Store installieren",
+    "storeMissing": "Store-Link nicht konfiguriert",
+    "downloadButton": "Verifizieren und Erweiterung herunterladen",
+    "downloadVerifying": "Wird verifiziert…",
+    "sessionLabel": "CHECKOUT-SESSION-ID",
+    "licenseLabel": "LIZENZSCHLÜSSEL (ALTERNATIV)",
+    "choiceLabels": {
+      "chromium": "Chrome / Edge / Brave / Vivaldi / Arc",
+      "firefox": "Firefox",
+      "safari": "Safari"
+    }
+  },
+  "billingHelp": {
+    "kicker": "ABRECHNUNGSSUPPORT",
+    "title": "Lizenz, Kündigung und Rückerstattungen",
+    "body": "Brauchen Sie Hilfe nach dem Checkout? Nutzen Sie diese Seite, um Ihren Lizenzschlüssel wiederherzustellen, in Stripe zu kündigen oder eine Rückerstattungsprüfung anzufragen.",
+    "quickActions": "Schnellaktionen",
+    "recover": "Lizenzschlüssel wiederherstellen",
+    "readTerms": "Abrechnungsbedingungen lesen",
+    "cancelTitle": "So kündigen Sie",
+    "cancelSteps": [
+      "Öffnen Sie /billing/success mit Ihrer checkout session_id.",
+      "Klicken Sie auf Abrechnung verwalten, um das Stripe-Portal zu öffnen.",
+      "Wählen Sie in Stripe Abo kündigen."
+    ],
+    "refundTitle": "Rückerstattungsanfragen",
+    "refundBody": "Rückerstattungen werden fallweise geprüft. Geben Sie Ihre Checkout-Session und den Grund an, damit der Support schneller reagieren kann.",
+    "contactLabel": "Kontakt",
+    "subjectLabel": "Betreff",
+    "subject": "HOLMETA RÜCKERSTATTUNGSANFRAGE",
+    "includeLabel": "Bitte angeben",
+    "includeBody": "Session-ID, Kaufdatum und eine kurze Problembeschreibung"
+  },
+  "billingCancel": {
+    "kicker": "CHECKOUT ABGEBROCHEN",
+    "title": "es wurde nichts berechnet",
+    "body": "Wenn Sie bereit sind, starten Sie den Checkout erneut und beginnen Ihren 3-Tage-Test.",
+    "help": "Abrechnungshilfe"
+  },
+  "privacyPage": {
+    "kicker": "DATENSCHUTZERKLÄRUNG",
+    "title": "Holmeta und Datenschutz",
+    "effective": "Gültig ab: 2. März 2026",
+    "storeTitle": "Was wir speichern",
+    "store": [
+      "Erweiterungseinstellungen und Erinnerungsprotokolle werden standardmäßig lokal im Browser gespeichert.",
+      "Stripe-Abrechnungsdaten und Lizenz-Hashes werden serverseitig für Abos und Freischaltprüfungen gespeichert.",
+      "Der Berechtigungsstatus (Test/aktiv/inaktiv) wird gespeichert, um kostenpflichtige Funktionen freizuschalten."
+    ],
+    "notStoreTitle": "Was wir nicht speichern",
+    "notStore": [
+      "Kein Keylogging.",
+      "Kein Verkauf personenbezogener Daten.",
+      "Kein Sammeln von Seiteninhalten für Werbeanalysen."
+    ],
+    "processingTitle": "Berechtigungen und Verarbeitung",
+    "processing": [
+      "Bildschirmfilter und Reminder-Overlays laufen im Browser.",
+      "Kamerazugriff ist optional und wird nur angefragt, wenn der Webcam-Haltungsmodus aktiviert ist.",
+      "Abrechnung, Download-Freigabe und Lizenzprüfungen laufen über sichere Serverfunktionen."
+    ],
+    "contact": "Kontakt",
+    "openTerms": "AGB lesen"
+  },
+  "termsPage": {
+    "kicker": "NUTZUNGSBEDINGUNGEN",
+    "title": "Holmeta Nutzungsbedingungen",
+    "effective": "Gültig ab: 2. März 2026",
+    "scopeTitle": "Leistungsumfang",
+    "scope": [
+      "Holmeta bietet ein browserbasiertes, ganzheitliches Kit für Komfort, Fokus, Erholung, Insight und nützliche Workflows.",
+      "Holmeta ist keine medizinische Beratung, Diagnose oder Behandlung.",
+      "Einige Funktionen erfordern ein aktives Abonnement."
+    ],
+    "billingTitle": "Abrechnung und Testphasen",
+    "billing": [
+      "Premium kostet 2 $ pro Monat.",
+      "Jährliche Abrechnung ist ebenfalls verfügbar, sofern sie auf der Abo-Seite angeboten wird.",
+      "Testbedingungen werden in Stripe Checkout angezeigt.",
+      "Sie können über Abrechnungshilfe und Stripe-Portal verwalten, kündigen oder eine Rückerstattungsprüfung anfragen."
+    ],
+    "acceptableTitle": "Zulässige Nutzung",
+    "acceptable": [
+      "Nutzen Sie den Dienst nicht für rechtswidrige Aktivitäten.",
+      "Versuchen Sie nicht, Abrechnungs-, Lizenz- oder Zugriffssysteme zu missbrauchen.",
+      "Nutzen Sie den Dienst nach eigenem Ermessen im Einklang mit Browser- und Plattformrichtlinien."
+    ],
+    "contact": "Kontakt",
+    "openPrivacy": "Datenschutz lesen"
+  },
+  "statusPage": {
+    "kicker": "SYSTEMSTATUS",
+    "title": "Holmeta Release-Status",
+    "operational": "STATUS: BETRIEBSBEREIT",
+    "monitoring": "MONITORING: AKTIVIERT (FUNKTIONSLOGS + CLIENT-FEHLER)",
+    "updated": "Zuletzt aktualisiert: 10. März 2026",
+    "recent": "Letzte Änderungen",
+    "changelog": [
+      {
+        "date": "2026-03-10",
+        "id": "HM-2026-03-10-A",
+        "summary": "Light-Filter-Härtung: Dunkel-/Hell-Lesen nutzt jetzt eine sichere Einzelstrategie mit Seitenfarb-Begrenzung, um unlesbare Seiten zu vermeiden."
+      },
+      {
+        "date": "2026-03-10",
+        "id": "HM-2026-03-10-B",
+        "summary": "Produktionsprüfung: Netlify-Env-Check, Checkout-Smoke für monatlich + jährlich, geschützter Download-Zugriff und Validierung der Erweiterungs-Zip-Synchronisierung."
+      },
+      {
+        "date": "2026-03-04",
+        "id": "HM-2026-03-04-B",
+        "summary": "Go-live-Härtung: geschützter Erweiterungsdownload, Lizenzaktivierung ohne Login und Webhook-Idempotenzprüfungen."
+      },
+      {
+        "date": "2026-03-04",
+        "id": "HM-2026-03-04-A",
+        "summary": "Planvereinfachung: nur monthly_a + yearly in Checkout, Validierung und Smoke-Skripten."
+      },
+      {
+        "date": "2026-02-25",
+        "id": "HM-2026-02-25-B",
+        "summary": "Netlify-Build-Pipeline stabilisiert mit Erweiterungs-Zip-Synchronisierung und CSS-Integritätswächter."
+      },
+      {
+        "date": "2026-02-24",
+        "id": "HM-2026-02-24-C",
+        "summary": "Die Startseite wurde im Mission-Briefing-Stil mit browserbewusstem Download-Fluss aktualisiert."
+      }
+    ]
+  }
+}

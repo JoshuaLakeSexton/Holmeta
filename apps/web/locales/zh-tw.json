@@ -1,7 +1,7 @@
 {
   "meta": {
     "title": "HOLMETA",
-    "description": "Holmeta 幫助長時間使用螢幕的使用者降低眼睛負擔並維持專注。"
+    "description": "Holmeta 是一套整合舒適、專注、洞察與本地優先控制的整體式瀏覽器工具包。"
   },
   "language": {
     "label": "語言",
@@ -20,9 +20,9 @@
     "quickNavigation": "快速導覽"
   },
   "home": {
-    "title": "保護眼睛，維持專注。",
-    "subtitle": "Holmeta 是為長時間使用螢幕的人打造的瀏覽器擴充功能。透過濾光、專注計時與溫和提醒降低視覺疲勞。",
-    "supportLine": "僅在瀏覽器運行。隱私優先。可隨時取消。",
+    "title": "為長時間活在分頁中的人打造的整體式瀏覽器工具包。",
+    "subtitle": "Holmeta 是一套整體式瀏覽器工具包，把自適應外觀、強力濾光、健康提醒、冥想、網站洞察、翻譯和本地保險庫集中到同一個指揮中心。",
+    "supportLine": "僅在瀏覽器內運作。本地優先。一個指揮中心。可隨時取消。",
     "nav": {
       "features": "功能",
       "howItWorks": "運作方式",
@@ -31,20 +31,20 @@
       "faq": "常見問題"
     },
     "why": {
-      "title": "為何使用者持續開著 Holmeta",
+      "title": "在一個擴充裡就能得到的 Holmeta",
       "kicker": "為什麼選擇 HOLMETA",
       "items": [
         {
-          "title": "減少眼睛疲勞",
-          "body": "打開瀏覽器濾光鏡，讓您的眼睛在後製時更加輕鬆。"
+          "title": "讓網頁配合你",
+          "body": "用自適應 Day / Night Appearance 和更強的 Light Filter 預設，壓住過亮、混亂或不一致的網站表面。"
         },
         {
-          "title": "繼續深入工作",
-          "body": "舉辦焦點會議可以減少干擾並幫助您保持動力。"
+          "title": "同時保護專注與恢復",
+          "body": "用深度工作、健康提醒和冥想彈窗，在不離開瀏覽器的情況下重置節奏。"
         },
         {
-          "title": "記得重置",
-          "body": "獲得關於休息、眨眼、姿勢和補水的微妙提醒。"
+          "title": "把關鍵脈絡留在手邊",
+          "body": "在同一個 Holmeta 指揮中心裡打開網站洞察、翻譯、截圖和本地保險庫。"
         }
       ]
     },
@@ -54,27 +54,27 @@
       "steps": [
         "開始 3 天試用",
         "下載擴充功能",
-        "一分鐘內開啟濾鏡、對焦模式和提醒"
+        "在一分鐘內從同一個指揮中心打開你需要的工具"
       ],
-      "body": "沒有複雜的設定。沒有帳戶迷宮。只需安裝、啟用即可。"
+      "body": "不需要堆一串分散的瀏覽器擴充。Holmeta 被設計成一個可按網站微調的整體式瀏覽器工具包。"
     },
     "pricing": {
       "title": "簡單定價",
       "kicker": "定價",
       "planTitle": "HOLMETA Premium — 每月 $2",
       "bullets": [
-        "紅光+暗光+對比濾鏡",
-        "專注定時器和深度工作模式",
-        "休息、眨眼、姿勢和補水提醒",
-        "每個站點預設",
-        "3 天試用，隨時取消"
+        "具備深色、淺色與 ADAPT 模式的 Adaptive Day / Night Appearance",
+        "可按網站更強調整的 Light Filter 預設",
+        "深度工作、健康提醒與冥想彈窗",
+        "網站洞察、翻譯、截圖與本地保險庫工具",
+        "3 天試用，可隨時取消"
       ],
-      "foot": "沒有廣告。沒有數據銷售的商業模式。只是一個專注的實用程序，可以幫助您更好地工作。"
+      "foot": "沒有廣告，沒有資料販售，也不用再堆一堆零散的瀏覽器附加工具。"
     },
     "privacy": {
-      "title": "專為瀏覽器工作流程設計",
+      "title": "作為本地優先的瀏覽器工具包而設計",
       "kicker": "隱私",
-      "body": "Holmeta 在您工作的地方運作：瀏覽器內。敏感控制保留在本地。計費僅解鎖高級功能。",
+      "body": "Holmeta 在你工作的地方運作：瀏覽器內部。敏感控制、保險庫資料以及大多數日常工作流工具都盡量留在頁面附近，並保存在你的本地環境中。",
       "bullets": [
         "預設為本地優先",
         "設計上僅限瀏覽器",
@@ -87,44 +87,48 @@
       "kicker": "常問問題",
       "items": [
         {
-          "q": "為什麼要支付 Holmeta？",
-          "a": "Holmeta 是一個專注的實用程序，具有持續更新、隱私優先的本地控制功能，並且沒有基於廣告的商業模式。它的價格為 $2/month，它被設計成一個小工具，可以讓您的瀏覽器更容易被您的眼睛和注意力所使用。"
+          "q": "為什麼 Holmeta 是付費的？",
+          "a": "Holmeta 是一套持續更新、隱私優先、本地控制、且不依賴廣告商業模式的整體式瀏覽器工具包。每月 $2，換來的是一個更平靜的指揮中心，而不是一堆分散的小工具。"
+        },
+        {
+          "q": "Holmeta 包含什麼？",
+          "a": "Holmeta 目前包含 Adaptive Day / Night Appearance、Light Filter Tool、深度工作控制、健康提醒、冥想彈窗、Site Insight、翻譯、截圖工具，以及本地加密保險庫。"
         },
         {
           "q": "Holmeta 是否在整個系統範圍內有效？",
           "a": "Holmeta v1 在設計上僅限瀏覽器使用。"
         },
         {
-          "q": "審判期間會發生什麼事？",
+          "q": "試用期間會發生什麼事？",
           "a": "您可以使用進階功能 3 天。隨時取消。"
         },
         {
-          "q": "您儲存什麼資料？",
-          "a": "解鎖高級版所需的帳單和許可證記錄。核心瀏覽控制項會在您的擴充功能中本地運行。"
+          "q": "你們會儲存什麼資料？",
+          "a": "解鎖高級版所需的帳單與授權記錄。核心瀏覽控制會在您的擴充功能中本地運行。"
         },
         {
           "q": "支援哪些瀏覽器？",
-          "a": "現在是 Chromium 瀏覽器。隨著商店分銷的成長，稍後擴大支援。"
+          "a": "目前支援 Chromium 系瀏覽器。隨著商店分發擴大，後續會延伸支援範圍。"
         }
       ]
     },
     "kicker": "任務簡報",
     "proof": [
-      "一鍵紅色模式",
-      "深度工作計時器",
-      "不煩人的休息提醒"
+      "Adaptive Day / Night + Light Filter",
+      "健康提醒 + 冥想彈窗",
+      "網站洞察 + 本地保險庫"
     ],
     "demo": {
       "kicker": "30 秒演示",
-      "summary": "透過快速演練即可檢視濾鏡切換、焦點計時器和提醒提示。",
+      "summary": "用一段簡短示範查看外觀控制、提醒流程，以及 Holmeta 指揮中心裡的核心工具。",
       "unsupported": "您的瀏覽器不支援演示影片。"
     },
     "trust": {
       "kicker": "專為生活在 Tabs 中的人們打造",
       "items": [
-        "僅限瀏覽器的控件",
+        "整體式瀏覽器工具包",
         "本地優先預設值",
-        "無廣告驅動的商業模式"
+        "一個擴充，多種工具"
       ]
     },
     "footer": {
@@ -144,114 +148,114 @@
     }
   },
   "pricingPage": {
-    "subtitle": "語言在地化、計費邏輯一致、升級流程清楚。",
+    "subtitle": "一份簡單訂閱，即可使用整套 Holmeta 瀏覽器工具包。外觀、濾光、提醒、洞察與保險庫工具都集中在同一個指揮中心。",
     "monthlyLabel": "月付",
     "yearlyLabel": "年付",
     "perMonth": "月",
     "perYear": "年",
-    "yearlyNote": "年費方案可在結帳頁選擇。",
-    "openCheckout": "前往結帳",
-    "footer": "顯示幣別可能為在地化，最終扣款金額以 Stripe Checkout 顯示為準。",
+    "yearlyNote": "年費方案可在結帳時選擇。",
+    "openCheckout": "開始結帳",
+    "footer": "顯示價格可能因地區而在地化，最終金額會在 Stripe Checkout 中確認。",
     "aria": {
       "premiumCard": "Holmeta 進階版定價卡片",
       "yearlyCard": "Holmeta 年費定價卡片"
     }
   },
   "dashboard": {
-    "title": "開始 3 天試用",
-    "kicker": "試用結帳",
-    "body": "保持流程簡單：先結帳，成功後顯示您的許可證，然後下載並啟動擴充功能。",
+    "title": "選擇適合你的 Holmeta 方案",
+    "kicker": "指揮中心存取",
+    "body": "一次訂閱，即可從同一個指揮中心解鎖自適應外觀、濾光、提醒、冥想、網站洞察、翻譯、截圖與本地保險庫。",
     "statusReady": "狀態：準備開始 3 天試用",
     "statusCreating": "狀態：正在建立結帳會話",
     "statusFailed": "狀態：結帳失敗 ({message})",
-    "selectPlan": "選擇計劃",
-    "afterCheckout": "結帳後",
+    "selectPlan": "選擇你的方案",
+    "afterCheckout": "接下來怎麼做",
     "steps": [
-      "使用您的結帳會話 ID 開啟 /billing/success。",
-      "顯示並複製您的一次性許可證密鑰。",
-      "下載擴充功能並使用您的金鑰啟動高級版。"
+      "使用你的結帳會話 ID 開啟 /billing/success。",
+      "顯示並複製您的一次性授權金鑰。",
+      "下載擴充功能，貼上金鑰，然後打開你要使用的工具。"
     ],
     "plans": {
       "monthly_a": {
         "title": "HOLMETA 進階版",
-        "detail": "$2/mo · 3 天試用"
+        "detail": "$2/mo · 解鎖完整指揮中心"
       },
       "yearly": {
-        "title": "HOLMETA 每年",
+        "title": "HOLMETA 年費",
         "detail": "按年計費"
       }
     }
   },
   "subscribe": {
-    "title": "選擇方案並前往結帳",
-    "kicker": "開始 3 天試用",
-    "body": "試用在 Stripe Checkout 中開始。付款後，您將進入“計費成功”以顯示許可證並下載。",
+    "title": "選擇你的 Holmeta 方案並前往 Stripe Checkout",
+    "kicker": "解鎖 HOLMETA",
+    "body": "Stripe Checkout 會啟動你的存取流程。Billing Success 會顯示授權金鑰，並帶你直接進入下載與啟用。",
     "statusReady": "狀態：準備開始 3 天試用",
-    "statusOpening": "狀態：開放 {plan} 結帳",
+    "statusOpening": "狀態：正在開啟 {plan} 結帳",
     "statusFailed": "狀態：結帳失敗 ({message})",
-    "alreadyCheckedOut": "我已經結帳了",
+    "alreadyCheckedOut": "我已完成結帳",
     "plans": {
       "monthly_a": {
         "label": "HOLMETA 進階版",
         "detail": "$2/mo",
-        "note": "包括 3 天試用期"
+        "note": "解鎖完整指揮中心"
       },
       "yearly": {
-        "label": "HOLMETA 每年",
+        "label": "HOLMETA 年費",
         "detail": "按年計費",
-        "note": "最適合日常用戶"
+        "note": "適合每天使用"
       }
     },
-    "creating": "正在創建會話...",
+    "creating": "正在建立會話…",
     "startTrial": "開始 3 天試用"
   },
   "billingSuccess": {
-    "title": "您的 Holmeta 授權金鑰",
+    "title": "你的 Holmeta 授權金鑰",
     "reveal": "顯示授權",
     "manage": "管理訂閱",
     "download": "下載擴充功能",
     "kicker": "結帳成功",
-    "body": "立即儲存此密鑰。您需要它來啟動擴充內的高級版。",
+    "body": "請儲存這個金鑰。它會在擴充功能中啟用 Holmeta，並解鎖全部進階工具。",
     "statusReady": "狀態：準備就緒",
     "statusSessionRequired": "狀態：需要會話 ID",
     "statusFetching": "狀態：正在取得許可證密鑰",
-    "statusAlreadyRevealed": "狀態：本次會議的許可證已公佈",
+    "statusAlreadyRevealed": "狀態：這個會話的授權已顯示過",
     "statusLicenseReady": "狀態：許可就緒",
     "statusLicenseFailed": "狀態：許可證取得失敗 ({message})",
     "statusLicenseCopied": "狀態：許可證已複製",
     "statusCopyFailed": "狀態：複製失敗",
-    "statusOpeningPortal": "狀態：開放計費門戶",
-    "statusPortalFailed": "狀態：門戶失敗 ({message})",
+    "statusOpeningPortal": "狀態：正在開啟計費入口",
+    "statusPortalFailed": "狀態：計費入口開啟失敗 ({message})",
     "statusVerifyingDownload": "狀態：正在驗證下載存取權限",
     "statusDownloadStarted": "狀態：下載已開始",
     "statusDownloadFailed": "狀態：下載失敗 ({message})",
     "sessionLabel": "結帳會話 ID",
-    "licenseBox": "許可證密鑰",
-    "notRevealed": "尚未揭曉",
+    "licenseBox": "授權金鑰",
+    "notRevealed": "尚未顯示",
     "help": "退款/取消協助",
-    "copy": "複製許可證",
+    "copy": "複製授權",
     "openDownload": "開啟下載頁面",
-    "activateTitle": "一分鐘內激活",
+    "activateTitle": "1 分鐘內開啟 Holmeta",
     "activateSteps": [
       "在瀏覽器中下載並載入擴充功能。",
-      "打開擴展彈出視窗並轉到高級解鎖。",
-      "貼上許可證密鑰並點擊啟動。",
-      "將此頁面加入書籤，以便進行計費和取消訪問。"
+      "打開擴充彈出視窗並前往高級解鎖。",
+      "貼上授權金鑰並點擊啟動。",
+      "回到擴充功能裡，打開你想使用的工具。"
     ]
   },
   "download": {
-    "title": "下載 Holmeta 擴充功能",
-    "downloadButton": "下載擴充功能",
-    "kicker": "試用後下載",
-    "flowKicker": "流動",
-    "flowTitle": "開始試用→結帳成功→下載",
-    "flowBody": "如果您尚未開始結帳，請先開始 3 天試用。如果您已付款，請使用下面的會話 ID 或許可證金鑰。",
-    "storesKicker": "瀏覽器商店",
-    "protectedKicker": "受保護的 zip 下載",
-    "manualKicker": "手動安裝（鉻）",
-    "manualBody": "下載後：解壓縮zip→開啟chrome：//extensions→啟用開發者模式→載入解壓縮→選擇包含manifest.json的解壓縮資料夾。",
+    "title": "下載 Holmeta 並啟用你的瀏覽器工具包",
+    "downloadButton": "驗證後下載擴充功能",
+    "kicker": "安裝 HOLMETA",
+    "flowKicker": "流程",
+    "flowTitle": "結帳 → 金鑰 → 下載",
+    "flowBody": "如果你還沒有開始結帳，請先啟動 3 天試用。如果你已經付款，請用會話 ID 或授權金鑰驗證，即可解鎖下方下載。",
+    "storesKicker": "支援的瀏覽器",
+    "protectedKicker": "已驗證的擴充下載",
+    "manualKicker": "手動安裝（Chromium）",
+    "manualBody": "下載後：解壓 zip → 開啟 chrome://extensions → 啟用開發者模式 → 載入已解壓的擴充功能 → 選擇包含 manifest.json 的資料夾。",
     "detected": "偵測到的瀏覽器",
-    "recommended": "推薦店鋪",
+    "recommended": "推薦通路",
     "statusEnter": "狀態：輸入會話 ID 或許可證進行下載",
     "statusNeedInput": "狀態：輸入結帳會話 ID 或許可證金鑰",
     "statusVerifying": "狀態：驗證試用或訂閱",
@@ -261,18 +265,18 @@
     "statusStarted": "狀態：下載已開始",
     "notDetected": "未檢測到",
     "chooseBrowser": "選擇您的瀏覽器",
-    "storeChromium": "鍍鉻/邊緣",
-    "storeFirefox": "火狐瀏覽器",
-    "storeSafari": "狩獵之旅",
+    "storeChromium": "Chrome / Edge",
+    "storeFirefox": "Firefox",
+    "storeSafari": "Safari",
     "installStore": "從商店安裝",
     "storeMissing": "商店連結未配置",
-    "downloadVerifying": "正在驗證...",
+    "downloadVerifying": "驗證中…",
     "sessionLabel": "結帳會話 ID",
     "licenseLabel": "許可證密鑰（備用）",
     "choiceLabels": {
-      "chromium": "鉻/邊緣/勇敢/維瓦爾第/弧",
-      "firefox": "火狐瀏覽器",
-      "safari": "狩獵之旅"
+      "chromium": "Chrome / Edge / Brave / Vivaldi / Arc",
+      "firefox": "Firefox",
+      "safari": "Safari"
     }
   },
   "billingHelp": {
@@ -319,7 +323,7 @@
       "計費、下載門控和許可證檢查均透過安全伺服器功能處理。"
     ],
     "contact": "接觸",
-    "openTerms": "開放條款"
+    "openTerms": "查看條款"
   },
   "termsPage": {
     "title": "Holmeta 使用條款",
@@ -327,7 +331,7 @@
     "effective": "生效日期：2026 年 3 月 2 日",
     "scopeTitle": "服務範圍",
     "scope": [
-      "Holmeta 提供以瀏覽器為基礎的健康和焦點工具。",
+      "Holmeta 提供一套以瀏覽器為基礎的整體式工具包，用於舒適、專注、恢復、洞察與實用工作流。",
       "Holmeta 不是醫療建議、診斷或治療。",
       "某些功能需要有效訂閱。"
     ],
@@ -345,7 +349,7 @@
       "請您根據瀏覽器和平台政策自行決定使用。"
     ],
     "contact": "接觸",
-    "openPrivacy": "開放隱私"
+    "openPrivacy": "查看隱私"
   },
   "statusPage": {
     "title": "Holmeta 發布狀態",

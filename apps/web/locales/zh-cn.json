@@ -1,7 +1,7 @@
 {
   "meta": {
     "title": "HOLMETA",
-    "description": "Holmeta 帮助长时间用屏用户减轻眼疲劳并保持专注。"
+    "description": "Holmeta 是一个整合舒适、专注、洞察与本地优先控制的整体式浏览器工具包。"
   },
   "language": {
     "label": "语言",
@@ -20,9 +20,9 @@
     "quickNavigation": "快速导航"
   },
   "home": {
-    "title": "保护眼睛，保持专注。",
-    "subtitle": "Holmeta 是面向长时间使用屏幕人群的浏览器扩展。通过光线过滤、深度专注计时与温和提醒，降低视觉疲劳。",
-    "supportLine": "仅浏览器内运行。隐私优先。可随时取消。",
+    "title": "为长期生活在标签页中的人打造的整体式浏览器工具包。",
+    "subtitle": "Holmeta 是一套整体式浏览器工具包，把自适应外观、强力滤光、健康提醒、冥想、站点洞察、翻译和本地保险库集中到一个指挥中心。",
+    "supportLine": "仅在浏览器内运行。本地优先。一个指挥中心。可随时取消。",
     "nav": {
       "features": "功能",
       "howItWorks": "工作方式",
@@ -31,20 +31,20 @@
       "faq": "常见问题"
     },
     "why": {
-      "title": "为什么用户会持续使用 Holmeta",
+      "title": "一个扩展里就能得到的 Holmeta",
       "kicker": "为什么选择 HOLMETA",
       "items": [
         {
-          "title": "减少眼睛疲劳",
-          "body": "打开浏览器滤光镜，让您的眼睛在后期工作时更加轻松。"
+          "title": "让网页适应你",
+          "body": "用自适应 Day / Night Appearance 和更强的 Light Filter 预设，压住过亮、混乱或不一致的网站表面。"
         },
         {
-          "title": "继续深入工作",
-          "body": "举办焦点会议可以减少干扰并帮助您保持动力。"
+          "title": "同时保护专注与恢复",
+          "body": "用深度工作、健康提醒和冥想弹窗，在不离开浏览器的情况下重置节奏。"
         },
         {
-          "title": "记得重置",
-          "body": "获得关于休息、眨眼、姿势和补水的微妙提醒。"
+          "title": "把关键信息留在手边",
+          "body": "在同一个 Holmeta 指挥中心里打开站点洞察、翻译、截图和本地保险库。"
         }
       ]
     },
@@ -54,27 +54,27 @@
       "steps": [
         "开始 3 天试用",
         "下载扩展程序",
-        "一分钟内打开滤镜、对焦模式和提醒"
+        "在一分钟内从一个指挥中心打开你需要的工具"
       ],
-      "body": "没有复杂的设置。没有帐户迷宫。只需安装、激活即可。"
+      "body": "不需要堆一串分散的浏览器扩展。Holmeta 被设计成一个可按站点微调的整体式浏览器工具包。"
     },
     "pricing": {
       "title": "简单定价",
       "kicker": "定价",
       "planTitle": "HOLMETA Premium — 每月 $2",
       "bullets": [
-        "红光+暗光+对比滤镜",
-        "专注定时器和深度工作模式",
-        "休息、眨眼、姿势和补水提醒",
-        "每个站点预设",
-        "3 天试用，随时取消"
+        "具备深色、浅色和 ADAPT 模式的 Adaptive Day / Night Appearance",
+        "可按站点更强调整的 Light Filter 预设",
+        "深度工作、健康提醒和冥想弹窗",
+        "站点洞察、翻译、截图和本地保险库工具",
+        "3 天试用，可随时取消"
       ],
-      "foot": "没有广告。没有数据销售的商业模式。只是一个专注的实用程序，可以帮助您更好地工作。"
+      "foot": "没有广告，没有数据贩卖，也不用再堆一堆零散的浏览器附加工具。"
     },
     "privacy": {
-      "title": "专为浏览器场景打造",
+      "title": "作为本地优先的浏览器工具包而设计",
       "kicker": "隐私",
-      "body": "Holmeta 在您工作的地方运行：浏览器内。敏感控件保留在本地。计费仅解锁高级功能。",
+      "body": "Holmeta 在你工作的地方运行：浏览器内部。敏感控制、保险库数据以及大多数日常工作流工具都尽量留在页面附近，并保存在你的本地环境中。",
       "bullets": [
         "默认情况下本地优先",
         "设计上仅限浏览器",
@@ -87,44 +87,48 @@
       "kicker": "常问问题",
       "items": [
         {
-          "q": "为什么支付 Holmeta？",
-          "a": "Holmeta 是一个专注的实用程序，具有持续更新、隐私优先的本地控制功能，并且没有基于广告的商业模式。它的价格为 $2/month，它被设计成一个小工具，可以让您的浏览器更容易被您的眼睛和注意力所使用。"
+          "q": "为什么 Holmeta 是付费的？",
+          "a": "Holmeta 是一个持续更新、隐私优先、本地控制、且不依赖广告商业模式的整体式浏览器工具包。每月 $2，换来的是一个更平静的指挥中心，而不是一堆分散的小工具。"
+        },
+        {
+          "q": "Holmeta 包含什么？",
+          "a": "Holmeta 目前包含 Adaptive Day / Night Appearance、Light Filter Tool、深度工作控制、健康提醒、冥想弹窗、Site Insight、翻译、截图工具以及本地加密保险库。"
         },
         {
           "q": "Holmeta 是否在整个系统范围内有效？",
           "a": "Holmeta v1 在设计上仅限浏览器使用。"
         },
         {
-          "q": "审判期间会发生什么？",
+          "q": "试用期间会发生什么？",
           "a": "您可以使用高级功能 3 天。随时取消。"
         },
         {
-          "q": "您存储什么数据？",
+          "q": "你们会存储什么数据？",
           "a": "解锁高级版所需的账单和许可证记录。核心浏览控件在您的扩展中本地运行。"
         },
         {
           "q": "支持哪些浏览器？",
-          "a": "现在是 Chromium 浏览器。随着商店分销的增长，稍后扩大支持。"
+          "a": "目前支持 Chromium 系浏览器。随着商店分发扩大，后续会扩展支持范围。"
         }
       ]
     },
     "kicker": "任务简报",
     "proof": [
-      "一键红色模式",
-      "深度工作计时器",
-      "不烦人的休息提醒"
+      "Adaptive Day / Night + Light Filter",
+      "健康提醒 + 冥想弹窗",
+      "站点洞察 + 本地保险库"
     ],
     "demo": {
       "kicker": "30 秒演示",
-      "summary": "通过快速演练即可查看滤镜切换、焦点计时器和提醒提示。",
+      "summary": "用一段简短演示查看外观控制、提醒流程，以及 Holmeta 指挥中心里的核心工具。",
       "unsupported": "您的浏览器不支持演示视频。"
     },
     "trust": {
       "kicker": "专为生活在 Tabs 中的人们打造",
       "items": [
-        "仅限浏览器的控件",
+        "整体式浏览器工具包",
         "本地优先默认值",
-        "无广告驱动的商业模式"
+        "一个扩展，多种工具"
       ]
     },
     "footer": {
@@ -144,114 +148,114 @@
     }
   },
   "pricingPage": {
-    "subtitle": "语言本地化，计费逻辑一致，升级路径清晰。",
+    "subtitle": "一份简单订阅，即可使用整套 Holmeta 浏览器工具包。外观、滤光、提醒、洞察与保险库工具都集中在同一个指挥中心。",
     "monthlyLabel": "月付",
     "yearlyLabel": "年付",
     "perMonth": "月",
     "perYear": "年",
-    "yearlyNote": "年费方案可在结账页选择。",
-    "openCheckout": "打开结账",
-    "footer": "显示币种可能会本地化，最终扣费金额以 Stripe Checkout 为准。",
+    "yearlyNote": "年付方案可在结账时选择。",
+    "openCheckout": "开始结账",
+    "footer": "显示价格可能因地区而本地化，最终金额会在 Stripe Checkout 中确认。",
     "aria": {
       "premiumCard": "Holmeta 高级版定价卡片",
       "yearlyCard": "Holmeta 年付定价卡片"
     }
   },
   "dashboard": {
-    "title": "开始 3 天试用",
-    "kicker": "试用结帐",
-    "body": "保持流程简单：首先结账，成功后显示您的许可证，然后下载并激活扩展。",
+    "title": "选择适合你的 Holmeta 方案",
+    "kicker": "指挥中心访问",
+    "body": "一次订阅，即可从同一个指挥中心解锁自适应外观、滤光、提醒、冥想、站点洞察、翻译、截图和本地保险库。",
     "statusReady": "状态：准备开始 3 天试用",
     "statusCreating": "状态：正在创建结账会话",
     "statusFailed": "状态：结帐失败 ({message})",
-    "selectPlan": "选择计划",
-    "afterCheckout": "结账后",
+    "selectPlan": "选择你的方案",
+    "afterCheckout": "接下来怎么做",
     "steps": [
-      "使用您的结帐会话 ID 打开 /billing/success。",
+      "使用你的结账会话 ID 打开 /billing/success。",
       "显示并复制您的一次性许可证密钥。",
-      "下载扩展程序并使用您的密钥激活高级版。"
+      "下载扩展，粘贴密钥，然后打开你要使用的工具。"
     ],
     "plans": {
       "monthly_a": {
         "title": "HOLMETA 高级版",
-        "detail": "$2/mo · 3 天试用"
+        "detail": "$2/mo · 解锁完整指挥中心"
       },
       "yearly": {
-        "title": "HOLMETA 每年",
+        "title": "HOLMETA 年付",
         "detail": "按年计费"
       }
     }
   },
   "subscribe": {
-    "title": "选择方案并继续结账",
-    "kicker": "开始 3 天试用",
-    "body": "试用在 Stripe Checkout 中开始。付款后，您将进入“计费成功”以显示许可证并下载。",
+    "title": "选择你的 Holmeta 方案并前往 Stripe Checkout",
+    "kicker": "解锁 HOLMETA",
+    "body": "Stripe Checkout 会启动你的访问流程。Billing Success 会显示许可证密钥，并带你直接进入下载与激活。",
     "statusReady": "状态：准备开始 3 天试用",
-    "statusOpening": "状态：开放 {plan} 结帐",
+    "statusOpening": "状态：正在打开 {plan} 结账",
     "statusFailed": "状态：结帐失败 ({message})",
-    "alreadyCheckedOut": "我已经结帐了",
+    "alreadyCheckedOut": "我已完成结账",
     "plans": {
       "monthly_a": {
         "label": "HOLMETA 高级版",
         "detail": "$2/mo",
-        "note": "包括 3 天试用期"
+        "note": "解锁完整指挥中心"
       },
       "yearly": {
-        "label": "HOLMETA 每年",
+        "label": "HOLMETA 年付",
         "detail": "按年计费",
-        "note": "最适合日常用户"
+        "note": "适合每天使用"
       }
     },
-    "creating": "正在创建会话...",
+    "creating": "正在创建会话…",
     "startTrial": "开始 3 天试用"
   },
   "billingSuccess": {
-    "title": "您的 Holmeta 许可证密钥",
+    "title": "你的 Holmeta 许可证密钥",
     "reveal": "显示许可证",
     "manage": "管理订阅",
     "download": "下载扩展",
     "kicker": "结帐成功",
-    "body": "立即保存此密钥。您需要它来激活扩展内的高级版。",
+    "body": "请保存这个密钥。它会在扩展中激活 Holmeta，并解锁全部高级工具。",
     "statusReady": "状态：准备就绪",
     "statusSessionRequired": "状态：需要会话 ID",
     "statusFetching": "状态：正在获取许可证密钥",
-    "statusAlreadyRevealed": "状态：本次会议的许可证已公布",
+    "statusAlreadyRevealed": "状态：该会话的许可证已显示过",
     "statusLicenseReady": "状态：许可就绪",
     "statusLicenseFailed": "状态：许可证获取失败 ({message})",
     "statusLicenseCopied": "状态：许可证已复制",
     "statusCopyFailed": "状态：复制失败",
-    "statusOpeningPortal": "状态：开放计费门户",
-    "statusPortalFailed": "状态：门户失败 ({message})",
+    "statusOpeningPortal": "状态：正在打开计费门户",
+    "statusPortalFailed": "状态：计费门户打开失败 ({message})",
     "statusVerifyingDownload": "状态：正在验证下载访问权限",
     "statusDownloadStarted": "状态：下载已开始",
     "statusDownloadFailed": "状态：下载失败 ({message})",
-    "sessionLabel": "结帐会话 ID",
+    "sessionLabel": "结账会话 ID",
     "licenseBox": "许可证密钥",
-    "notRevealed": "尚未揭晓",
+    "notRevealed": "尚未显示",
     "help": "退款/取消帮助",
     "copy": "复制许可证",
     "openDownload": "打开下载页面",
-    "activateTitle": "一分钟内激活",
+    "activateTitle": "1 分钟内开启 Holmeta",
     "activateSteps": [
       "在浏览器中下载并加载扩展程序。",
       "打开扩展弹出窗口并转到高级解锁。",
       "粘贴许可证密钥并单击激活。",
-      "将此页面添加为书签，以便进行计费和取消访问。"
+      "回到扩展里，打开你想使用的工具。"
     ]
   },
   "download": {
-    "title": "下载 Holmeta 扩展",
-    "downloadButton": "下载扩展",
-    "kicker": "试用后下载",
-    "flowKicker": "流动",
-    "flowTitle": "开始试用→结帐成功→下载",
-    "flowBody": "如果您尚未开始结账，请先开始 3 天试用。如果您已付款，请使用下面的会话 ID 或许可证密钥。",
-    "storesKicker": "浏览器商店",
-    "protectedKicker": "受保护的 zip 下载",
-    "manualKicker": "手动安装（铬）",
-    "manualBody": "下载后：解压zip→打开chrome：//extensions→启用开发者模式→加载解压→选择包含manifest.json的解压文件夹。",
+    "title": "下载 Holmeta 并激活你的浏览器工具包",
+    "downloadButton": "验证后下载扩展",
+    "kicker": "安装 HOLMETA",
+    "flowKicker": "流程",
+    "flowTitle": "结账 → 密钥 → 下载",
+    "flowBody": "如果你还没有开始结账，请先开启 3 天试用。如果你已经付款，请用会话 ID 或许可证密钥验证，即可解锁下方下载。",
+    "storesKicker": "支持的浏览器",
+    "protectedKicker": "已验证的扩展下载",
+    "manualKicker": "手动安装（Chromium）",
+    "manualBody": "下载后：解压 zip → 打开 chrome://extensions → 启用开发者模式 → 加载已解压的扩展 → 选择包含 manifest.json 的文件夹。",
     "detected": "检测到的浏览器",
-    "recommended": "推荐店铺",
+    "recommended": "推荐渠道",
     "statusEnter": "状态：输入会话 ID 或许可证进行下载",
     "statusNeedInput": "状态：输入结帐会话 ID 或许可证密钥",
     "statusVerifying": "状态：验证试用或订阅",
@@ -261,18 +265,18 @@
     "statusStarted": "状态：下载已开始",
     "notDetected": "未检测到",
     "chooseBrowser": "选择您的浏览器",
-    "storeChromium": "镀铬/边缘",
-    "storeFirefox": "火狐浏览器",
-    "storeSafari": "狩猎之旅",
+    "storeChromium": "Chrome / Edge",
+    "storeFirefox": "Firefox",
+    "storeSafari": "Safari",
     "installStore": "从商店安装",
     "storeMissing": "商店链接未配置",
-    "downloadVerifying": "正在验证...",
+    "downloadVerifying": "验证中…",
     "sessionLabel": "结帐会话 ID",
     "licenseLabel": "许可证密钥（备用）",
     "choiceLabels": {
-      "chromium": "铬/边缘/勇敢/维瓦尔第/弧",
-      "firefox": "火狐浏览器",
-      "safari": "狩猎之旅"
+      "chromium": "Chrome / Edge / Brave / Vivaldi / Arc",
+      "firefox": "Firefox",
+      "safari": "Safari"
     }
   },
   "billingHelp": {
@@ -319,7 +323,7 @@
       "计费、下载门控和许可证检查均通过安全服务器功能进行处理。"
     ],
     "contact": "接触",
-    "openTerms": "开放条款"
+    "openTerms": "查看条款"
   },
   "termsPage": {
     "title": "Holmeta 使用条款",
@@ -327,7 +331,7 @@
     "effective": "生效日期：2026 年 3 月 2 日",
     "scopeTitle": "服务范围",
     "scope": [
-      "Holmeta 提供基于浏览器的健康和焦点工具。",
+      "Holmeta 提供一套基于浏览器的整体式工具包，用于舒适、专注、恢复、洞察与实用工作流。",
       "Holmeta 不是医疗建议、诊断或治疗。",
       "某些功能需要有效订阅。"
     ],
@@ -345,7 +349,7 @@
       "请您根据浏览器和平台政策自行决定使用。"
     ],
     "contact": "接触",
-    "openPrivacy": "开放隐私"
+    "openPrivacy": "查看隐私"
   },
   "statusPage": {
     "title": "Holmeta 发布状态",

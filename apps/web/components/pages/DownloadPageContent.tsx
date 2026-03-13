@@ -80,7 +80,7 @@ export function DownloadPageContent({ locale = "en" }: DownloadPageProps) {
   const [sessionId, setSessionId] = useState<string>(() => sessionIdFromQuery());
   const [licenseKey, setLicenseKey] = useState("");
   const [statusLine, setStatusLine] = useState(
-    t(messages, "download.statusEnter", "STATUS: ENTER SESSION ID OR LICENSE TO DOWNLOAD")
+    t(messages, "download.statusEnter", "STATUS: ENTER SESSION ID OR LICENSE TO UNLOCK DOWNLOAD")
   );
   const [downloading, setDownloading] = useState(false);
 
@@ -198,17 +198,17 @@ export function DownloadPageContent({ locale = "en" }: DownloadPageProps) {
   return (
     <main className="shell">
       <Panel as="header">
-        <p className="hm-kicker">{t(messages, "download.kicker", "DOWNLOAD AFTER TRIAL")}</p>
-        <h1 className="hm-title">{t(messages, "download.title", "download holmeta extension")}</h1>
+        <p className="hm-kicker">{t(messages, "download.kicker", "INSTALL HOLMETA")}</p>
+        <h1 className="hm-title">{t(messages, "download.title", "download Holmeta and unlock your browser kit")}</h1>
         <p className="hm-meta">{t(messages, "download.detected", "Detected browser")}: {detectedLabel}</p>
         <p className="hm-meta">{t(messages, "download.recommended", "Recommended store")}: {recommendedLabel}</p>
       </Panel>
 
       <Panel>
         <p className="hm-kicker">{t(messages, "download.flowKicker", "FLOW")}</p>
-        <h2 className="hm-subtitle">{t(messages, "download.flowTitle", "Start trial → checkout success → download")}</h2>
+        <h2 className="hm-subtitle">{t(messages, "download.flowTitle", "Checkout → key → download")}</h2>
         <p className="hm-meta">
-          {t(messages, "download.flowBody", "If you have not started checkout yet, begin your 3-day trial first. If you already paid, use your session id or license key below.")}
+          {t(messages, "download.flowBody", "Start your 3-day trial first if you have not checked out yet. Already paid? Verify with your session ID or license key below to unlock download.")}
         </p>
         <div className="hm-cta-row">
           <Button href={pathWithLocale(locale, "/dashboard/subscribe")} variant="primary">{t(messages, "common.trialCta", "Start 3-Day Trial")}</Button>
@@ -218,7 +218,7 @@ export function DownloadPageContent({ locale = "en" }: DownloadPageProps) {
       </Panel>
 
       <Panel>
-        <p className="hm-kicker">{t(messages, "download.storesKicker", "BROWSER STORES")}</p>
+        <p className="hm-kicker">{t(messages, "download.storesKicker", "SUPPORTED BROWSERS")}</p>
         <div className="hm-cta-row">
           <Button variant={selectedChoice === "chromium" ? "primary" : "secondary"} onClick={() => setSelectedChoice("chromium")}>
             {t(messages, "download.storeChromium", "Chrome / Edge")}
@@ -253,7 +253,7 @@ export function DownloadPageContent({ locale = "en" }: DownloadPageProps) {
       </Panel>
 
       <Panel>
-        <p className="hm-kicker">{t(messages, "download.protectedKicker", "PROTECTED ZIP DOWNLOAD")}</p>
+        <p className="hm-kicker">{t(messages, "download.protectedKicker", "VERIFIED EXTENSION DOWNLOAD")}</p>
         <div className="hm-field-row hm-download-row">
           <label htmlFor="sessionId" className="hm-label">{t(messages, "download.sessionLabel", "CHECKOUT SESSION ID")}</label>
           <input
@@ -279,7 +279,7 @@ export function DownloadPageContent({ locale = "en" }: DownloadPageProps) {
           <Button onClick={downloadProtectedZip} variant="primary" disabled={downloading}>
             {downloading
               ? t(messages, "download.downloadVerifying", "Verifying…")
-              : t(messages, "download.downloadButton", "Download Extension")}
+              : t(messages, "download.downloadButton", "Verify & Download Extension")}
           </Button>
           <Button href={pathWithLocale(locale, "/billing/success")}>{t(messages, "billingSuccess.openDownload", "Open Download Page")}</Button>
           <Button href={pathWithLocale(locale, "/billing/help")}>{t(messages, "billingSuccess.help", "Refund / Cancel Help")}</Button>

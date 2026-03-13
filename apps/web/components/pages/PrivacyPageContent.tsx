@@ -52,7 +52,7 @@ export function PrivacyPageContent({ locale = "en" }: PrivacyPageProps) {
           {t(messages, "privacyPage.contact", "Contact")}: <a href={`mailto:${t(messages, "common.contactEmail", "reach@holmeta.com")}`}>{t(messages, "common.contactEmail", "reach@holmeta.com")}</a>
         </p>
         <div className="hm-cta-row">
-          <Button href={pathWithLocale(locale, "/terms")}>{t(messages, "privacyPage.openTerms", "Open Terms")}</Button>
+          <Button href={pathWithLocale(locale, "/terms")}>{t(messages, "privacyPage.openTerms", "Read Terms")}</Button>
           <Button href={pathWithLocale(locale, "/dashboard/subscribe")} variant="primary">{t(messages, "common.trialCta", "Start 3-Day Trial")}</Button>
         </div>
       </Panel>

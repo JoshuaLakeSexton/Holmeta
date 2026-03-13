@@ -1,4 +1,4 @@
-export const SUPPORTED_LOCALES = ["en", "ja", "ko", "zh-cn", "zh-tw"] as const;
+export const SUPPORTED_LOCALES = ["en", "ar", "fr", "de", "es", "ja", "ko", "zh-cn", "zh-tw"] as const;
 
 export type SupportedLocale = (typeof SUPPORTED_LOCALES)[number];
 
@@ -12,6 +12,8 @@ export function normalizeLocale(input?: string | null): SupportedLocale {
   if (value === "zh-hant" || value === "zh-tw" || value === "zh-hk") return "zh-tw";
   if (value === "jp") return "ja";
   if (LOCALE_SET.has(value)) return value as SupportedLocale;
+  const base = value.split("-")[0];
+  if (LOCALE_SET.has(base)) return base as SupportedLocale;
   return DEFAULT_LOCALE;
 }
 
@@ -61,6 +63,14 @@ export function splitLocaleFromPath(pathname: string): { locale: SupportedLocale
 
 export function localeDisplayName(locale: SupportedLocale): string {
   switch (locale) {
+    case "ar":
+      return "العربية";
+    case "fr":
+      return "Français";
+    case "de":
+      return "Deutsch";
+    case "es":
+      return "Español";
     case "ja":
       return "日本語";
     case "ko":

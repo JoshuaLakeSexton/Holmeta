@@ -10,6 +10,10 @@ import { getMessages, listAt, t, type MessageTree } from "@/lib/i18n/messages";
 const DEMO_VIDEO_PATH = "/videos/holmeta-demo.mp4";
 const NAV_LOCALES: Array<{ code: SupportedLocale; label: string }> = [
   { code: "en", label: "English" },
+  { code: "ar", label: "العربية" },
+  { code: "fr", label: "Français" },
+  { code: "de", label: "Deutsch" },
+  { code: "es", label: "Español" },
   { code: "ja", label: "日本語" },
   { code: "ko", label: "한국어" },
   { code: "zh-cn", label: "简体中文" },
@@ -57,6 +61,7 @@ function faqItems(messages: MessageTree) {
 
 export function HomePageContent({ locale = "en" }: HomePageProps) {
   const messages = getMessages(locale);
+  const activeNavLocale = NAV_LOCALES.find((entry) => entry.code === locale) || NAV_LOCALES[0];
   const whyHolmeta = featureItems(messages);
   const pricingBullets = listAt(messages, "home.pricing.bullets").map((item) => String(item || "")).filter(Boolean);
   const heroProof = listAt(messages, "home.proof").map((item) => String(item || "")).filter(Boolean);
@@ -80,8 +85,13 @@ export function HomePageContent({ locale = "en" }: HomePageProps) {
           </nav>
           <div className="hm-nav-actions">
             <details className="hm-lang-menu">
-              <summary className="hm-lang-menu-trigger" aria-label={t(messages, "language.switcherAria", "Switch language")}>
-                <span aria-hidden="true">☰</span>
+              <summary
+                className="hm-lang-menu-trigger"
+                aria-label={t(messages, "language.switcherAria", "Switch language")}
+                title={t(messages, "language.label", "Language")}
+              >
+                <span className="hm-lang-menu-code" aria-hidden="true">{activeNavLocale.code.toUpperCase()}</span>
+                <span className="hm-lang-menu-caret" aria-hidden="true">▾</span>
               </summary>
               <div className="hm-lang-menu-list" role="menu" aria-label={t(messages, "language.label", "Language")}>
                 {NAV_LOCALES.map((entry) => (
@@ -91,6 +101,7 @@ export function HomePageContent({ locale = "en" }: HomePageProps) {
                     className={`hm-lang-menu-item ${locale === entry.code ? "is-active" : ""}`.trim()}
                     role="menuitem"
                     lang={entry.code}
+                    dir={entry.code === "ar" ? "rtl" : "ltr"}
                   >
                     {entry.label}
                   </a>
@@ -109,10 +120,10 @@ export function HomePageContent({ locale = "en" }: HomePageProps) {
           <Panel className="hm-hero-copy">
             <p className="hm-kicker">{t(messages, "home.kicker", "MISSION BRIEFING")}</p>
             <h1 className="hm-title" id="hero-title">
-              {t(messages, "home.title", "Protect your eyes. Keep your focus.")}
+              {t(messages, "home.title", "The holistic browser kit for people who live in tabs.")}
             </h1>
             <p className="hm-lede">
-              {t(messages, "home.subtitle", "Holmeta is a browser extension for people who spend hours on screens. Use light filters, deep work sessions, and gentle reminders to reduce strain and stay on task.")}
+              {t(messages, "home.subtitle", "Holmeta is the holistic browser kit that brings adaptive appearance, intense light filtering, health alerts, meditation, site insight, translation, and a local vault into one command center.")}
             </p>
             <div className="hm-cta-row">
               <Button href={localizedHref(locale, "/dashboard/subscribe")} variant="primary">

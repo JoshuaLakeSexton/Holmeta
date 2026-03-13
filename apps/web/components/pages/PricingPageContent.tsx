@@ -44,7 +44,7 @@ export function PricingPageContent({ locale = "en" }: PricingPageProps) {
       <Panel as="header">
         <p className="hm-kicker">{t(messages, "home.pricing.kicker", "PRICING")}</p>
         <h1 className="hm-title">{t(messages, "home.pricing.title", "Simple pricing")}</h1>
-        <p className="hm-meta">{t(messages, "pricingPage.subtitle", "Localized language. Consistent billing logic. Clear upgrade path.")}</p>
+        <p className="hm-meta">{t(messages, "pricingPage.subtitle", "Full Holmeta access in one clean subscription. Adaptive appearance, filters, alerts, insight, and vault tools all stay inside the same command center.")}</p>
       </Panel>
 
       <Panel>
@@ -72,7 +72,7 @@ export function PricingPageContent({ locale = "en" }: PricingPageProps) {
         <article className="hm-pricing-card" aria-label={t(messages, "pricingPage.aria.yearlyCard", "Holmeta Yearly pricing")}>
           <p className="hm-plan-kicker">{t(messages, "pricingPage.yearlyLabel", "YEARLY")}</p>
           <h2 className="hm-subtitle">{yearlyLabel} / {t(messages, "pricingPage.perYear", "year")}</h2>
-          <p className="hm-meta">{t(messages, "pricingPage.yearlyNote", "Yearly billing available in checkout.")}</p>
+          <p className="hm-meta">{t(messages, "pricingPage.yearlyNote", "Prefer yearly billing? You can switch to it in checkout.")}</p>
           <div className="hm-cta-row">
             <Button
               onClick={() => {
@@ -80,13 +80,13 @@ export function PricingPageContent({ locale = "en" }: PricingPageProps) {
                 window.location.href = pathWithLocale(locale, "/dashboard/subscribe");
               }}
             >
-              {t(messages, "pricingPage.openCheckout", "Open Checkout")}
+              {t(messages, "pricingPage.openCheckout", "Start Checkout")}
             </Button>
           </div>
         </article>
 
         <p className="hm-meta">
-          {t(messages, "pricingPage.footer", "Displayed currency may be localized. Final charge is shown in Stripe Checkout before confirmation.")}
+          {t(messages, "pricingPage.footer", "Prices may localize by region. Stripe shows the final amount before you confirm.")}
         </p>
       </Panel>
     </main>

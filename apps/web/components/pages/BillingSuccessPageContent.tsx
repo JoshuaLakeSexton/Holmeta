@@ -209,7 +209,7 @@ export function BillingSuccessPageContent({ locale = "en" }: BillingSuccessPageP
         <p className="hm-kicker">{t(messages, "billingSuccess.kicker", "CHECKOUT SUCCESS")}</p>
         <h1 className="hm-title">{t(messages, "billingSuccess.title", "your holmeta license key")}</h1>
         <p className="hm-meta">
-          {t(messages, "billingSuccess.body", "Save this key now. You need it to activate Premium inside the extension.")}
+          {t(messages, "billingSuccess.body", "Save this key. It unlocks Holmeta in the extension and gives you access to every premium tool.")}
         </p>
         <p className="hm-meta">{statusLine}</p>
 
@@ -246,7 +246,7 @@ export function BillingSuccessPageContent({ locale = "en" }: BillingSuccessPageP
       </Panel>
 
       <Panel>
-        <h2 className="hm-subtitle">{t(messages, "billingSuccess.activateTitle", "Activate in Under a Minute")}</h2>
+        <h2 className="hm-subtitle">{t(messages, "billingSuccess.activateTitle", "Open Holmeta in under a minute")}</h2>
         <ol className="hm-protocol-grid">
           {[0, 1, 2, 3].map((index) => (
             <li key={index}>
