@@ -140,10 +140,11 @@ export const handler: Handler = async (event) => {
       });
     }
 
-    return json(500, {
+    // This endpoint is fully DB-backed; any runtime failure here should degrade as unavailable.
+    return json(503, {
       ok: false,
-      error: "Entitlement lookup failed",
-      code: "ENTITLEMENT_LOOKUP_FAILED"
+      error: "Entitlement lookup unavailable",
+      code: "ENTITLEMENT_STORE_UNAVAILABLE"
     });
   }
 };

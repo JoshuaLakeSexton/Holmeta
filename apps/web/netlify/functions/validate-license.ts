@@ -239,10 +239,11 @@ export const handler: Handler = async (event) => {
       });
     }
 
-    return respond(500, {
+    // Validation lookups are DB-backed; degrade to unavailable to preserve client-side grace handling.
+    return respond(503, {
       ok: false,
-      error: "License validation failed",
-      code: "VALIDATE_LICENSE_FAILED"
+      error: "License validation unavailable",
+      code: "ENTITLEMENT_STORE_UNAVAILABLE"
     });
   }
 };

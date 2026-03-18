@@ -337,6 +337,14 @@ export const handler: Handler = async (event) => {
       });
     }
 
+    if (licenseKey && !sessionId) {
+      return respond(503, {
+        ok: false,
+        error: "Entitlement check unavailable",
+        code: "ENTITLEMENT_STORE_UNAVAILABLE"
+      });
+    }
+
     return respond(500, {
       ok: false,
       error: "Unable to prepare extension download",
