@@ -3,6 +3,7 @@ import type { Handler } from "@netlify/functions";
 import { corsPreflight, json, methodNotAllowed, parseJsonBody, requestId } from "./_lib/http";
 import { requireEnvVars } from "./_lib/env";
 import { prisma } from "./_lib/prisma";
+import { isPrismaStoreUnavailable, prismaErrorCode } from "./_lib/prisma-error";
 import {
   buildLicenseEntitlement,
   hashLicenseKey,
@@ -219,10 +220,24 @@ export const handler: Handler = async (event) => {
       nextCheckAfterSec: entitlement.active ? 12 * 60 * 60 : 5 * 60
     });
   } catch (error) {
+    const code = prismaErrorCode(error);
+    const schemaMissing = code === "P2021";
+    const storeUnavailable = isPrismaStoreUnavailable(error);
     await reportServerEvent("error", "validate_license_failed", {
       requestId: rid,
+      code: code || null,
+      schemaMissing,
+      storeUnavailable,
       error: error instanceof Error ? error.message : "unknown"
     });
+
+    if (schemaMissing || storeUnavailable) {
+      return respond(503, {
+        ok: false,
+        error: schemaMissing ? "Entitlement store is not ready" : "License validation unavailable",
+        code: schemaMissing ? "ENTITLEMENT_SCHEMA_MISSING" : "ENTITLEMENT_STORE_UNAVAILABLE"
+      });
+    }
 
     return respond(500, {
       ok: false,

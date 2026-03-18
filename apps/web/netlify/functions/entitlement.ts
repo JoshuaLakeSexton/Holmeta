@@ -3,6 +3,7 @@ import type { Handler } from "@netlify/functions";
 import { corsPreflight, json, methodNotAllowed, parseJsonBody } from "./_lib/http";
 import { requireEnvVars } from "./_lib/env";
 import { prisma } from "./_lib/prisma";
+import { isPrismaStoreUnavailable, prismaErrorCode } from "./_lib/prisma-error";
 import { reportServerEvent } from "./_lib/monitor";
 import {
   buildLicenseEntitlement,
@@ -121,21 +122,21 @@ export const handler: Handler = async (event) => {
       features: normalized.features
     });
   } catch (error) {
-    const code = typeof error === "object" && error && "code" in error
-      ? String((error as { code?: string }).code || "")
-      : "";
+    const code = prismaErrorCode(error);
     const schemaMissing = code === "P2021";
+    const storeUnavailable = isPrismaStoreUnavailable(error);
     await reportServerEvent("error", "entitlement_lookup_failed", {
       schemaMissing,
+      storeUnavailable,
       code: code || null,
       error: error instanceof Error ? error.message : "unknown"
     });
 
-    if (schemaMissing) {
+    if (schemaMissing || storeUnavailable) {
       return json(503, {
         ok: false,
-        error: "Entitlement store is not ready",
-        code: "ENTITLEMENT_SCHEMA_MISSING"
+        error: schemaMissing ? "Entitlement store is not ready" : "Entitlement lookup unavailable",
+        code: schemaMissing ? "ENTITLEMENT_SCHEMA_MISSING" : "ENTITLEMENT_STORE_UNAVAILABLE"
       });
     }
 
