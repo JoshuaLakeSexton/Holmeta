@@ -3,22 +3,79 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>HOLMETA Focus Protocol</title>
+    <title>Holmeta Focus Shield</title>
     <link rel="stylesheet" href="blocked.css" />
   </head>
   <body>
-    <main class="wrap">
-      <section class="card">
-        <p class="kicker">FOCUS PROTOCOL ENGAGED</p>
-        <h1>Blocked by HOLMETA</h1>
-        <p class="copy">This route is locked by your current focus rules.</p>
-        <div class="actions">
-          <button id="pause10" class="primary" type="button">Pause 10 min</button>
-          <button id="openOptions" type="button">Open Dashboard</button>
-        </div>
-        <p id="status" class="status">Lock active.</p>
+    <main class="blocked-shell">
+      <section class="blocked-frame" aria-live="polite">
+        <header class="blocked-topbar">
+          <div class="blocked-brand">
+            <div class="blocked-brand-mark" aria-hidden="true">
+              <svg viewBox="0 0 18 18">
+                <path d="M3 9h12M9 3v12M4 4l10 10M14 4L4 14" />
+              </svg>
+            </div>
+            <div class="blocked-brand-copy">
+              <p class="blocked-kicker">Focus shield</p>
+              <p class="blocked-product">Holmeta Command Center</p>
+            </div>
+          </div>
+          <div class="blocked-mode-chip" id="modeChip">Shield live</div>
+        </header>
+
+        <section class="blocked-hero">
+          <p class="blocked-protocol">Site shield active</p>
+          <h1>This route is paused.</h1>
+          <p class="blocked-copy">
+            Holmeta intercepted this tab so your focus rules hold steady. Pause the shield, allow the site, or return to the command center.
+          </p>
+        </section>
+
+        <section class="blocked-target-card">
+          <div class="blocked-target-head">
+            <span class="blocked-field-label">Target</span>
+            <span class="blocked-reason-chip" id="reasonChip">Shield rules</span>
+          </div>
+          <div class="blocked-target-host" id="targetHost">Blocked site</div>
+          <div class="blocked-target-url" id="targetUrl">The blocked target will appear here when available.</div>
+          <p class="blocked-reason-copy" id="reasonDetail">This route matched your current Holmeta shield rules.</p>
+        </section>
+
+        <section class="blocked-stats">
+          <article class="blocked-stat">
+            <span class="blocked-field-label">Today</span>
+            <strong id="blockedToday">0</strong>
+            <span class="blocked-stat-sub">Routes intercepted</span>
+          </article>
+          <article class="blocked-stat">
+            <span class="blocked-field-label">Lifetime</span>
+            <strong id="blockedTotal">0</strong>
+            <span class="blocked-stat-sub">Shield events</span>
+          </article>
+          <article class="blocked-stat">
+            <span class="blocked-field-label">Status</span>
+            <strong id="pauseState">Live</strong>
+            <span class="blocked-stat-sub">Current protocol</span>
+          </article>
+        </section>
+
+        <section class="blocked-actions">
+          <div class="blocked-primary-actions">
+            <button id="pause10" class="blocked-btn blocked-btn-primary" type="button">Pause 10m</button>
+            <button id="pause30" class="blocked-btn blocked-btn-secondary" type="button">Pause 30m</button>
+          </div>
+          <div class="blocked-secondary-actions">
+            <button id="allowAction" class="blocked-btn blocked-btn-ghost" type="button">Allow Site</button>
+            <button id="openOptions" class="blocked-btn blocked-btn-ghost" type="button">Command Center</button>
+            <button id="closeTab" class="blocked-btn blocked-btn-ghost" type="button">Close Tab</button>
+          </div>
+        </section>
+
+        <p id="status" class="blocked-status" data-tone="neutral">Shield active.</p>
       </section>
     </main>
+
     <script src="blocked.js"></script>
   </body>
 </html>

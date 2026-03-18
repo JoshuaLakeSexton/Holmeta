@@ -12,12 +12,91 @@
         <div>
           <p class="kicker">MISSION BRIEFING</p>
           <h1>HOLMETA Command Center</h1>
-          <p class="tagline">Reduce screen strain. Increase focus.</p>
         </div>
         <div class="meta-stack">
           <span id="modeBadge" class="badge">FREE</span>
         </div>
       </header>
+
+      <section id="dashboardPanel" class="panel core dashboard-panel" aria-label="Holmeta dashboard">
+        <div class="section-head">
+          <h2>Dashboard</h2>
+        </div>
+
+        <div class="dashboard-local-row">
+          <div class="dashboard-local-time">
+            <p class="dashboard-mini-label">Local time</p>
+            <p class="dashboard-time">
+              <span id="dashboardHours">00</span>:<span id="dashboardMinutes">00</span><span id="dashboardSeconds" class="dashboard-seconds">00</span>
+            </p>
+            <p id="dashboardDate" class="micro">--</p>
+          </div>
+          <div class="dashboard-focus-inline">
+            <p class="dashboard-mini-label">Focus session</p>
+            <p id="dashboardPomoTime" class="dashboard-focus-time">25:00</p>
+            <p id="dashboardPomoPhase" class="micro">Focus</p>
+          </div>
+        </div>
+
+        <div class="field-row dashboard-workday-inputs">
+          <label>Workday</label>
+          <div class="row screen-size-row">
+            <input id="dashboardWorkStart" type="time" aria-label="Dashboard workday start" />
+            <span class="micro">→</span>
+            <input id="dashboardWorkEnd" type="time" aria-label="Dashboard workday end" />
+          </div>
+        </div>
+        <div class="dashboard-workbar">
+          <div id="dashboardWorkFill" class="dashboard-workfill"></div>
+        </div>
+        <p id="dashboardWorkMeta" class="micro">0% complete</p>
+
+        <div class="dashboard-mini-grid">
+          <div class="dashboard-mini-card">
+            <div class="section-head dashboard-mini-head">
+              <span class="label">Global clocks</span>
+              <button id="dashboardAddClock" class="ghost dashboard-mini-btn" type="button">Add</button>
+            </div>
+            <div id="dashboardClocks" class="dashboard-clocks" aria-live="polite"></div>
+          </div>
+
+          <div class="dashboard-mini-card">
+            <div class="section-head dashboard-mini-head">
+              <span class="label">Weather</span>
+              <button id="dashboardWeatherRefresh" class="ghost dashboard-mini-btn" type="button">Refresh</button>
+            </div>
+            <p id="dashboardWeatherSummary" class="micro">Detecting location...</p>
+            <div id="dashboardWeatherStats" class="dashboard-weather-stats" hidden>
+              <span id="dashboardWeatherTemp">--&deg;F</span>
+              <span id="dashboardWeatherCond">---</span>
+              <span id="dashboardWeatherWind">-- mph</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="dashboard-mini-card">
+          <div class="section-head dashboard-mini-head">
+            <span class="label">Daily assignments</span>
+            <span id="dashboardTaskProgress" class="micro">0 / 0 done</span>
+          </div>
+          <div id="dashboardTaskList" class="dashboard-task-list" role="list"></div>
+          <div class="row dashboard-task-input-row">
+            <select id="dashboardTaskPriority" aria-label="Dashboard task priority">
+              <option value="medium">MED</option>
+              <option value="high">HIGH</option>
+              <option value="low">LOW</option>
+            </select>
+            <input id="dashboardTaskInput" type="text" placeholder="Add assignment..." aria-label="Dashboard task input" />
+            <button id="dashboardTaskAdd" class="secondary" type="button">Add</button>
+          </div>
+        </div>
+
+        <div class="row actions-row">
+          <button id="dashboardPomoStart" class="ghost" type="button">Start Focus</button>
+          <button id="dashboardPomoPause" class="ghost" type="button">Pause</button>
+          <button id="dashboardPomoReset" class="ghost" type="button">Reset</button>
+        </div>
+      </section>
 
       <section id="accessLockPanel" class="panel core access-lock" hidden aria-live="polite">
         <div class="section-head">
@@ -65,140 +144,148 @@
         <p id="favoritesStatus" class="micro">Saved: 0 / 20</p>
       </section>
 
-      <section class="panel core" id="readingThemePanel">
+      <section class="panel core tool2-shell" id="readingThemePanel">
         <div class="section-head">
           <h2>2) Day / Night Appearance</h2>
-          <label class="switch" aria-label="Toggle reading theme">
-            <input id="readingThemeEnabled" type="checkbox" />
-            <span>On</span>
-          </label>
+          <span id="toggleStateLabel" class="badge">DAY</span>
         </div>
 
-        <div class="field-row">
-          <label>Theme</label>
-          <div class="reading-theme-wrap">
+        <div id="toggleCard" class="tool2-card">
+          <div class="tool2-card-main">
+            <div class="tool2-sky-icon" aria-hidden="true">
+              <svg class="tool2-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+                <circle cx="12" cy="12" r="3.5" />
+                <path d="M12 2.2v2.6M12 19.2v2.6M2.2 12h2.6M19.2 12h2.6M5 5l1.8 1.8M17.2 17.2 19 19M19 5l-1.8 1.8M6.8 17.2 5 19" />
+              </svg>
+              <svg class="tool2-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M20 14.3A8.4 8.4 0 1 1 9.7 4a6.7 6.7 0 0 0 10.3 10.3z" />
+              </svg>
+            </div>
+            <div class="tool2-copy">
+              <p class="tool2-kicker">Theme</p>
+              <p class="tool2-title"><span id="appearanceModeText">Day</span> Mode</p>
+            </div>
+            <label class="tool2-switch" aria-label="Toggle day and night mode">
+              <input id="readingThemeEnabled" type="checkbox" />
+              <span class="tool2-switch-track">
+                <span class="tool2-switch-thumb"></span>
+              </span>
+            </label>
+          </div>
+
+          <div class="tool2-divider"></div>
+
+          <div class="field-row">
+            <label>Theme</label>
             <div class="row reading-theme-buttons">
-              <button id="readingThemeLight" class="ghost" type="button" aria-label="Appearance Light mode">
+              <button id="readingThemeLight" class="ghost" type="button" aria-label="Appearance light mode">
                 <span>Light</span>
               </button>
-              <button id="readingThemeDark" class="secondary" type="button" aria-label="Appearance Dark mode">
+              <button id="readingThemeDark" class="secondary" type="button" aria-label="Appearance dark mode">
                 <span>Dark</span>
               </button>
-              <button id="readingThemeAuto" class="ghost" type="button" aria-label="Appearance System mode">
-                <span>System</span>
+              <button id="readingThemeAuto" class="ghost" type="button" aria-label="Appearance adaptive site theme">
+                <span>ADAPT</span>
               </button>
             </div>
           </div>
-        </div>
 
-        <div class="field-row reading-theme-selects">
-          <label for="readingThemeDarkVariant">Dark type</label>
-          <select id="readingThemeDarkVariant" aria-label="Appearance dark variant">
-            <option value="black">Black</option>
-            <option value="coal">Coal</option>
-            <option value="iron_ore">Iron ore</option>
-            <option value="brown">dark Brown</option>
-            <option value="grey">Grey</option>
-            <option value="sepia">Sepia</option>
-            <option value="teal">Teal</option>
-            <option value="purple">dark Purple</option>
-            <option value="forest_green">dark Green</option>
-          </select>
-        </div>
-
-        <div class="field-row reading-theme-selects">
-          <label for="readingThemeLightVariant">Light type</label>
-          <select id="readingThemeLightVariant" aria-label="Appearance light variant">
-            <option value="white">White</option>
-            <option value="warm">Warm</option>
-            <option value="off_white">Beige</option>
-            <option value="soft_green">Soft Green</option>
-            <option value="baby_blue">Baby Blue</option>
-            <option value="light_brown">Light Brown</option>
-          </select>
-        </div>
-
-        <div id="readingThemeAutoRow" class="field-row">
-          <label for="readingThemeScheduleMode">Auto schedule</label>
-          <select id="readingThemeScheduleMode" aria-label="Appearance auto schedule mode">
-            <option value="system">System</option>
-            <option value="sunset">Sunset to Sunrise</option>
-            <option value="custom">Custom Schedule</option>
-          </select>
-        </div>
-
-        <div id="readingThemeCustomScheduleRow" class="field-row">
-          <label>Custom time</label>
-          <div class="row reading-schedule-row">
-            <input id="readingThemeScheduleStart" type="time" aria-label="Appearance schedule start" />
-            <span class="micro">→</span>
-            <input id="readingThemeScheduleEnd" type="time" aria-label="Appearance schedule end" />
+          <div id="readingThemeDarkVariantRow" class="field-row reading-theme-selects">
+            <label for="readingThemeDarkVariant">Dark type</label>
+            <select id="readingThemeDarkVariant" aria-label="Appearance dark variant">
+              <option value="coal">Night</option>
+              <option value="iron_ore">Iron</option>
+              <option value="brown">Holmeta Brown</option>
+            </select>
           </div>
-        </div>
 
-        <div class="row actions-row reading-theme-site-actions">
-          <label class="switch" title="Enable Reading Theme override for this host">
-            <input id="readingThemeThisSiteEnabled" type="checkbox" />
-            <span>This site override</span>
-          </label>
-          <label class="switch" title="Exclude this host from Reading Theme">
-            <input id="readingThemeExcludeSite" type="checkbox" />
-            <span>Exclude site</span>
-          </label>
-        </div>
+          <div id="readingThemeLightVariantRow" class="field-row reading-theme-selects">
+            <label for="readingThemeLightVariant">Light type</label>
+            <select id="readingThemeLightVariant" aria-label="Appearance light variant">
+              <option value="white">White</option>
+              <option value="warm">Warm</option>
+              <option value="off_white">Beige</option>
+            </select>
+          </div>
 
-        <p id="readingThemeStatus" class="micro">Appearance is off. Toggle On to apply Light / Dark / Auto.</p>
+          <div class="tool2-hidden-control-group" aria-hidden="true">
+            <select id="readingThemeScheduleMode" class="tool2-hidden-control" aria-label="Appearance auto schedule mode">
+              <option value="sunset">Auto</option>
+              <option value="custom">Manual</option>
+              <option value="system" selected>System</option>
+            </select>
+            <input id="readingThemeScheduleStart" class="tool2-hidden-control" type="time" value="20:00" aria-label="Appearance schedule start" />
+            <input id="readingThemeScheduleEnd" class="tool2-hidden-control" type="time" value="06:00" aria-label="Appearance schedule end" />
+          </div>
 
-        <details class="inline-advanced reading-theme-advanced">
-          <summary>Advanced</summary>
-          <div class="field-row reading-theme-switch-row">
-            <label class="switch" title="Use opaque page surfaces instead of translucent/glass backgrounds.">
-              <input id="readingThemeOpaqueBackground" type="checkbox" />
-              <span>Opaque background</span>
-            </label>
-            <label class="switch" title="Use pointer cursor on interactive elements for clearer affordance.">
-              <input id="readingThemePointerCursors" type="checkbox" />
-              <span>Pointer cursors</span>
+          <div class="row actions-row reading-theme-site-actions reading-theme-site-actions-single">
+            <label class="switch" title="Exclude this host from appearance changes">
+              <input id="readingThemeExcludeSite" type="checkbox" />
+              <span>Exclude site</span>
             </label>
           </div>
 
-          <div class="field-row reading-theme-font-row">
-            <label for="readingThemeSansSize">UI font</label>
-            <div class="row reading-theme-font-controls">
-              <input id="readingThemeSansSize" type="number" min="10" max="24" step="1" aria-label="Appearance sans font size" />
-              <span class="micro">px</span>
-              <input id="readingThemeSansFamily" type="text" aria-label="Appearance sans font stack" />
-            </div>
+          <div class="tool2-quick-fix-grid">
+            <label class="switch" title="Keep images, video, and photography intact">
+              <input id="readingThemePreserveImages" type="checkbox" />
+              <span>Preserve images</span>
+            </label>
+            <label class="switch" title="Protect brand marks and logo containers">
+              <input id="readingThemePreserveLogos" type="checkbox" />
+              <span>Preserve logos</span>
+            </label>
+            <label class="switch" title="Push text contrast harder on difficult sites">
+              <input id="readingThemeHigherContrast" type="checkbox" />
+              <span>Higher contrast</span>
+            </label>
+            <label class="switch" title="Reduce harsh surface separation and panel slabs">
+              <input id="readingThemeSofterSurfaces" type="checkbox" />
+              <span>Softer surfaces</span>
+            </label>
           </div>
 
-          <div class="field-row reading-theme-font-row">
-            <label for="readingThemeCodeSize">Code font</label>
-            <div class="row reading-theme-font-controls">
-              <input id="readingThemeCodeSize" type="number" min="10" max="24" step="1" aria-label="Appearance code font size" />
-              <span class="micro">px</span>
-              <input id="readingThemeCodeFamily" type="text" aria-label="Appearance code font stack" />
-            </div>
-          </div>
-
-          <div class="row actions-row reading-theme-widget-row">
-            <button id="readingThemeShowWidget" class="ghost" type="button">Show on-page widget</button>
-            <button id="readingThemeHideWidget" class="ghost" type="button">Hide widget</button>
-          </div>
-        </details>
+        </div>
       </section>
 
-      <section class="panel core" id="lightPanel">
+      <section class="panel core light-filter-panel" id="lightPanel">
         <div class="section-head">
           <h2>3) Light Filter Tool</h2>
-          <label class="switch" aria-label="Toggle light filter">
+          <label class="switch" aria-label="Toggle light filter tool">
             <input id="lightEnabled" type="checkbox" />
             <span>On</span>
           </label>
         </div>
 
+        <div class="light-filter-hero">
+          <div>
+            <p class="kicker">High-intensity spectral control</p>
+            <p class="light-filter-title">Push warmth, red-spectrum protection, dimming, and focus overlays harder when you need stronger screen relief.</p>
+          </div>
+          <p class="micro">Tool 3 restores the original Holmeta filter engine with stronger presets and deeper manual control.</p>
+        </div>
+
+        <div class="light-filter-summary-card">
+          <div class="light-filter-summary-chips">
+            <span id="lightFilterModeChip" class="light-filter-chip">Warm Shift</span>
+            <span id="lightFilterSpectrumChip" class="light-filter-chip">Balanced</span>
+            <span id="lightFilterIntensityChip" class="light-filter-chip is-strong">45%</span>
+          </div>
+          <div class="light-filter-strength-bar" aria-hidden="true">
+            <span id="lightFilterStrengthFill"></span>
+          </div>
+          <p id="lightFilterSummary" class="micro">Filter off. Choose a preset or turn Tool 3 on.</p>
+        </div>
+
+        <div class="light-filter-preset-row">
+          <button id="lightPresetComfort" class="ghost" type="button">Comfort</button>
+          <button id="lightPresetDeepNight" class="secondary" type="button">Deep Night</button>
+          <button id="lightPresetInfrared" class="secondary" type="button">Infrared</button>
+          <button id="lightPresetRedLock" class="primary" type="button">Red Lock</button>
+        </div>
+
         <div class="field-row">
           <label for="lightMode">Mode</label>
-          <select id="lightMode" aria-label="Light filter mode">
+          <select id="lightMode">
             <option value="warm">Warm Shift</option>
             <option value="amber">Amber Balance</option>
             <option value="candle">Candle Warm</option>
@@ -229,152 +316,188 @@
         <div class="field-row">
           <label for="lightIntensity">Intensity</label>
           <div class="range-wrap">
-            <input id="lightIntensity" type="range" min="0" max="100" step="1" aria-label="Light intensity" />
+            <input id="lightIntensity" type="range" min="0" max="100" step="1" />
             <span id="lightIntensityValue" class="value">45%</span>
           </div>
         </div>
 
         <div class="field-row">
-          <label for="lightScheduleMode">Schedule</label>
-          <select id="lightScheduleMode" aria-label="Light filter schedule">
-            <option value="off">Off</option>
-            <option value="sunset">Sunset to Sunrise</option>
-            <option value="custom">Custom Schedule</option>
+          <label for="lightSpectrumPreset">Spectrum</label>
+          <select id="lightSpectrumPreset">
+            <option value="balanced">Balanced</option>
+            <option value="amber_590">Amber 590nm</option>
+            <option value="red_630">Red 630nm</option>
+            <option value="deep_red_660">Deep Red 660nm</option>
+            <option value="candle_1800k">Candle 1800K</option>
+            <option value="neutral_3500k">Neutral 3500K</option>
+            <option value="daylight_5000k">Daylight 5000K</option>
+            <option value="melatonin_guard">Melatonin Guard</option>
           </select>
         </div>
 
-        <div id="lightCustomScheduleRow" class="field-row">
-          <label>Custom time</label>
-          <div class="row reading-schedule-row">
-            <input id="lightScheduleStart" type="time" aria-label="Light schedule start" />
-            <span class="micro">→</span>
-            <input id="lightScheduleEnd" type="time" aria-label="Light schedule end" />
-          </div>
-        </div>
-
-        <p class="micro">Light Filter Tool controls warmth, tint, dimming, and spectral comfort independent of Reading Theme.</p>
-
-        <div class="row actions-row alert-types">
-          <label class="switch" title="Enable site override using current global profile">
-            <input id="lightThisSiteEnabled" type="checkbox" />
-            <span>This site override</span>
-          </label>
-          <label class="switch" title="Exclude current host from filters">
-            <input id="lightExcludeSite" type="checkbox" />
-            <span>Exclude site</span>
-          </label>
-        </div>
-
-        <details class="inline-advanced">
-          <summary>Advanced</summary>
-          <div class="field-row compact">
-            <label class="switch"><input id="reduceWhites" type="checkbox" /><span>Reduce Whites</span></label>
-            <label class="switch"><input id="videoSafe" type="checkbox" /><span>Video-safe</span></label>
-          </div>
-
-          <div class="field-row">
-            <label for="lightSpectrumPreset">Spectrum Preset</label>
-            <select id="lightSpectrumPreset">
-              <option value="balanced">Balanced</option>
-              <option value="amber_590">Amber 590nm</option>
-              <option value="red_630">Red 630nm</option>
-              <option value="deep_red_660">Deep Red 660nm</option>
-              <option value="candle_1800k">Candle 1800K</option>
-              <option value="neutral_3500k">Neutral 3500K</option>
-              <option value="daylight_5000k">Daylight 5000K</option>
-              <option value="melatonin_guard">Melatonin Guard</option>
-            </select>
-          </div>
-
-          <div class="field-row">
+        <div class="light-filter-metric-grid">
+          <div class="light-filter-metric">
             <label for="lightBlueCut">Blue Cut</label>
             <div class="range-wrap">
               <input id="lightBlueCut" type="range" min="0" max="100" step="1" />
               <span id="lightBlueCutValue" class="value">65%</span>
             </div>
           </div>
-
-          <div class="field-row">
-            <label for="lightSaturation">Saturation</label>
-            <div class="range-wrap">
-              <input id="lightSaturation" type="range" min="50" max="140" step="1" />
-              <span id="lightSaturationValue" class="value">100%</span>
-            </div>
-          </div>
-
-          <div class="field-row">
-            <label for="lightTintRed">Tint R/G/B</label>
-            <div class="range-triple">
-              <input id="lightTintRed" type="range" min="0" max="100" step="1" />
-              <input id="lightTintGreen" type="range" min="0" max="100" step="1" />
-              <input id="lightTintBlue" type="range" min="0" max="100" step="1" />
-              <span id="lightTintValue" class="value">100 / 62 / 30</span>
-            </div>
-          </div>
-
-          <div class="field-row">
-            <label for="lightBrightness">Brightness</label>
-            <div class="range-wrap">
-              <input id="lightBrightness" type="range" min="70" max="120" step="1" />
-              <span id="lightBrightnessValue" class="value">96%</span>
-            </div>
-          </div>
-
-          <div class="field-row">
+          <div class="light-filter-metric">
             <label for="lightDim">Dim</label>
             <div class="range-wrap">
               <input id="lightDim" type="range" min="0" max="60" step="1" />
               <span id="lightDimValue" class="value">18%</span>
             </div>
           </div>
-
-          <div class="field-row">
-            <label for="lightContrastSoft">Contrast Soft</label>
+          <div class="light-filter-metric">
+            <label for="lightBrightness">Brightness</label>
+            <div class="range-wrap">
+              <input id="lightBrightness" type="range" min="70" max="120" step="1" />
+              <span id="lightBrightnessValue" class="value">96%</span>
+            </div>
+          </div>
+          <div class="light-filter-metric">
+            <label for="lightContrastSoft">Surface Soft</label>
             <div class="range-wrap">
               <input id="lightContrastSoft" type="range" min="0" max="30" step="1" />
               <span id="lightContrastSoftValue" class="value">8%</span>
             </div>
           </div>
-
-          <div class="field-row compact">
-            <label class="switch"><input id="spotlightEnabled" type="checkbox" /><span>Spotlight</span></label>
-            <button id="setSpotlightCenter" class="ghost">Center Spotlight</button>
+          <div class="light-filter-metric">
+            <label for="lightSaturation">Saturation</label>
+            <div class="range-wrap">
+              <input id="lightSaturation" type="range" min="50" max="140" step="1" />
+              <span id="lightSaturationValue" class="value">100%</span>
+            </div>
           </div>
+        </div>
 
-          <div class="field-row compact">
-            <label class="switch"><input id="therapyMode" type="checkbox" /><span>Red Pulse Therapy</span></label>
-            <input id="therapyMinutes" type="number" min="1" max="10" step="1" value="3" aria-label="Therapy duration minutes" />
+        <div class="field-row">
+          <label>Tint</label>
+          <div class="light-filter-tint-grid">
+            <input id="lightTintRed" type="range" min="0" max="100" step="1" aria-label="Red tint" />
+            <input id="lightTintGreen" type="range" min="0" max="100" step="1" aria-label="Green tint" />
+            <input id="lightTintBlue" type="range" min="0" max="100" step="1" aria-label="Blue tint" />
+            <span id="lightTintValue" class="value">100 / 62 / 30</span>
           </div>
+        </div>
 
+        <div class="field-row">
+          <label for="lightScheduleMode">Schedule</label>
+          <select id="lightScheduleMode">
+            <option value="off">Off</option>
+            <option value="sunset">Sunset to Sunrise</option>
+            <option value="custom">Custom Schedule</option>
+          </select>
+        </div>
+
+        <div id="lightCustomScheduleRow" class="field-row light-filter-schedule-row">
+          <label>Custom Window</label>
+          <div class="row screen-size-row">
+            <input id="lightScheduleStart" type="time" aria-label="Light filter schedule start" />
+            <span class="micro">→</span>
+            <input id="lightScheduleEnd" type="time" aria-label="Light filter schedule end" />
+          </div>
+        </div>
+
+        <div class="light-filter-switch-grid">
+          <label class="switch"><input id="lightThisSiteEnabled" type="checkbox" /><span>This site override</span></label>
+          <label class="switch"><input id="lightExcludeSite" type="checkbox" /><span>Exclude site</span></label>
+          <label class="switch"><input id="reduceWhites" type="checkbox" /><span>Reduce whites</span></label>
+          <label class="switch"><input id="videoSafe" type="checkbox" /><span>Video-safe</span></label>
+          <label class="switch"><input id="spotlightEnabled" type="checkbox" /><span>Spotlight</span></label>
+          <label class="switch"><input id="therapyMode" type="checkbox" /><span>Red pulse therapy</span></label>
+        </div>
+
+        <div class="light-filter-therapy-row">
           <div class="field-row">
-            <label for="therapyCadence">Pulse Cadence</label>
-            <select id="therapyCadence">
-              <option value="gentle">Gentle</option>
-              <option value="medium">Medium</option>
-              <option value="slow">Slow</option>
-            </select>
+            <label for="therapyMinutes">Therapy</label>
+            <div class="row screen-size-row">
+              <input id="therapyMinutes" type="number" min="1" max="10" step="1" value="3" aria-label="Therapy minutes" />
+              <select id="therapyCadence" aria-label="Therapy cadence">
+                <option value="gentle">Gentle</option>
+                <option value="medium">Medium</option>
+                <option value="slow">Slow</option>
+              </select>
+            </div>
           </div>
-        </details>
+          <div class="row actions-row single-action-row">
+            <button id="setSpotlightCenter" class="ghost" type="button">Center Spotlight</button>
+          </div>
+        </div>
+
       </section>
 
-      <section class="panel compact" id="sharedVisualActionsPanel">
+      <section class="panel core vault-panel" id="vaultPanel">
         <div class="section-head">
-          <h2>5) Shared Site Actions</h2>
+          <h2>13) Vault</h2>
+          <span id="vaultStateBadge" class="badge">CHECKING</span>
         </div>
-        <div class="row actions-row single-action-row">
-          <button id="lightApplyAll" class="primary" type="button">Apply to All Tabs</button>
+
+        <div id="vaultLockView" class="vault-lock-view">
+          <div class="vault-hero">
+            <div class="vault-hero-mark" aria-hidden="true">V</div>
+            <div class="vault-hero-copy">
+              <p class="kicker">Local encryption active</p>
+              <p id="vaultLockHint" class="micro">Create a master password to store credentials, secure notes, and prompt templates locally.</p>
+            </div>
+          </div>
+
+          <div class="field-row vault-lock-row">
+            <label for="vaultMasterPassword">Master password</label>
+            <input id="vaultMasterPassword" type="password" placeholder="Enter master password" autocomplete="current-password" />
+          </div>
+
+          <div class="row actions-row">
+            <button id="vaultUnlockButton" class="primary" type="button">Unlock Vault</button>
+            <button id="vaultResetButton" class="ghost" type="button">Reset Vault</button>
+          </div>
+
+          <p class="micro vault-security-copy">AES-256-GCM encrypted in this browser only. Holmeta never receives vault contents or your master password.</p>
         </div>
-        <div class="row actions-row">
-          <button id="saveSiteProfile" class="secondary">Save This Site Profile</button>
-          <button id="copyGlobalToSite" class="secondary">Copy Global → Site</button>
+
+        <div id="vaultAppView" class="vault-app-view" hidden>
+          <div class="vault-summary-card">
+            <div>
+              <p class="kicker">Encrypted locally</p>
+              <p id="vaultSummaryText" class="micro">0 credentials · 0 notes · 0 prompts</p>
+            </div>
+            <div class="vault-summary-actions">
+              <button id="vaultPrimaryAction" class="secondary" type="button">Add Credential</button>
+              <button id="vaultLockButton" class="ghost" type="button">Lock</button>
+            </div>
+          </div>
+
+          <div class="vault-tab-row" role="tablist" aria-label="Vault tabs">
+            <button id="vaultTabPasswords" class="ghost vault-tab is-active" type="button" data-vault-tab="passwords" role="tab" aria-selected="true">
+              Passwords
+              <span id="vaultCountPasswords" class="vault-tab-count">0</span>
+            </button>
+            <button id="vaultTabNotes" class="ghost vault-tab" type="button" data-vault-tab="notes" role="tab" aria-selected="false">
+              Notes
+              <span id="vaultCountNotes" class="vault-tab-count">0</span>
+            </button>
+            <button id="vaultTabPrompts" class="ghost vault-tab" type="button" data-vault-tab="prompts" role="tab" aria-selected="false">
+              Prompts
+              <span id="vaultCountPrompts" class="vault-tab-count">0</span>
+            </button>
+            <button id="vaultTabGenerator" class="ghost vault-tab" type="button" data-vault-tab="generator" role="tab" aria-selected="false">
+              Generator
+            </button>
+          </div>
+
+          <div id="vaultToolbar" class="vault-toolbar">
+            <input id="vaultSearchInput" type="text" placeholder="Search vault" aria-label="Search vault" />
+          </div>
+
+          <div id="vaultContent" class="vault-content" aria-live="polite"></div>
         </div>
-        <button id="resetSiteOverrides" class="ghost" type="button">Reset Site Overrides</button>
-        <p id="siteInfo" class="micro">Site: unavailable</p>
       </section>
 
       <section class="panel core" id="screenEmulatorPanel">
         <div class="section-head">
-          <h2>6) Screen Resolution Emulator</h2>
+          <h2>5) Screen Resolution Emulator</h2>
           <label class="switch" aria-label="Screen emulator state">
             <input id="screenEmulatorActive" type="checkbox" disabled />
             <span>Active</span>
@@ -416,7 +539,7 @@
 
       <section class="panel core" id="eyeDropperPanel">
         <div class="section-head">
-          <h2>7) Color Eye Dropper</h2>
+          <h2>6) Color Eye Dropper</h2>
           <button id="eyePickFromPage" class="secondary">Pick from Page</button>
         </div>
 
@@ -446,7 +569,7 @@
 
       <section class="panel core" id="screenshotPanel">
         <div class="section-head">
-          <h2>8) Element Screenshot Tool</h2>
+          <h2>7) Element Screenshot Tool</h2>
           <label class="switch" aria-label="Enable screenshot tool">
             <input id="screenshotEnabled" type="checkbox" />
             <span>On</span>
@@ -543,7 +666,7 @@
 
       <section class="panel core" id="translatePanel">
         <div class="section-head">
-          <h2>9) Translate Tool</h2>
+          <h2>8) Translate Tool</h2>
           <label class="switch" aria-label="Enable translate tool">
             <input id="translateEnabled" type="checkbox" />
             <span>On</span>
@@ -659,226 +782,166 @@
         </details>
       </section>
 
-      <section class="panel core" id="blockerPanel">
+      <section class="panel core blocker-panel" id="blockerPanel">
         <div class="section-head">
-          <h2>10) Site Blocker Tool</h2>
+          <h2>9) Site Blocker Tool</h2>
           <label class="switch" aria-label="Toggle site blocker">
             <input id="blockerEnabled" type="checkbox" />
             <span>On</span>
           </label>
         </div>
 
-        <p id="blockerStatus" class="micro">Active: 0 sites blocked</p>
-        <p id="blockerStats" class="micro">Blocked today: 0 · Since install: 0</p>
-        <p id="blockerHostStatus" class="micro">Current site: unavailable</p>
-        <p class="micro">Quick category block:</p>
-
-        <div class="row actions-row category-block-buttons">
-          <button id="quickBlockSocial" class="ghost" type="button">Social Media</button>
-          <button id="quickBlockShopping" class="ghost" type="button">Shopping</button>
-          <button id="quickBlockEntertainment" class="ghost" type="button">Entertainment</button>
-          <button id="quickBlockAdult" class="ghost" type="button">18+</button>
+        <div class="blocker-brief">
+          <div class="blocker-brief-main">
+            <p class="kicker blocker-kicker">Focus shield</p>
+            <p id="blockerStatus" class="blocker-status-line">Shield idle</p>
+            <p id="blockerHostStatus" class="micro blocker-host-line">No active site detected.</p>
+          </div>
+          <p id="blockerStats" class="micro blocker-stats-line">Today 0 · Lifetime 0</p>
         </div>
 
-        <div class="row actions-row alert-types">
-          <label class="switch"><input id="blockCatAds" type="checkbox" /><span>Ads</span></label>
-          <label class="switch"><input id="blockCatTrackers" type="checkbox" /><span>Trackers</span></label>
-          <label class="switch"><input id="blockCatMalware" type="checkbox" /><span>Malware</span></label>
-          <label class="switch"><input id="blockCatAnnoyances" type="checkbox" /><span>Annoyances</span></label>
-          <label class="switch"><input id="blockCatVideoAds" type="checkbox" /><span>Video Ads</span></label>
+        <div class="blocker-group">
+          <div class="section-head blocker-mini-head">
+            <span class="label">Quick nets</span>
+          </div>
+          <div class="row actions-row category-block-buttons blocker-quick-grid">
+            <button id="quickBlockSocial" class="ghost" type="button">Social</button>
+            <button id="quickBlockShopping" class="ghost" type="button">Shopping</button>
+            <button id="quickBlockEntertainment" class="ghost" type="button">Entertainment</button>
+            <button id="quickBlockAdult" class="ghost" type="button">18+</button>
+          </div>
         </div>
 
-        <div class="row actions-row">
-          <button id="addCurrentSite" class="secondary">Block This Site</button>
-          <button id="removeCurrentSite" class="ghost">Unblock This Site</button>
+        <div class="blocker-group">
+          <div class="section-head blocker-mini-head">
+            <span class="label">Core filters</span>
+          </div>
+          <div class="row actions-row alert-types blocker-core-grid">
+            <label class="switch"><input id="blockCatAds" type="checkbox" /><span>Ads</span></label>
+            <label class="switch"><input id="blockCatTrackers" type="checkbox" /><span>Trackers</span></label>
+            <label class="switch"><input id="blockCatMalware" type="checkbox" /><span>Malware</span></label>
+            <label class="switch"><input id="blockCatAnnoyances" type="checkbox" /><span>Annoyances</span></label>
+            <label class="switch"><input id="blockCatVideoAds" type="checkbox" /><span>Video ads</span></label>
+          </div>
         </div>
 
-        <div class="field-row compact">
-          <label class="switch danger">
-            <input id="nuclearMode" type="checkbox" />
-            <span>Nuclear Mode</span>
-          </label>
-          <button id="toggleWhitelistSite" class="ghost">Allowlist Site</button>
+        <div class="blocker-group">
+          <div class="section-head blocker-mini-head">
+            <span class="label">Current site</span>
+          </div>
+          <div class="row actions-row blocker-site-actions">
+            <button id="addCurrentSite" class="secondary">Block Site</button>
+            <button id="toggleWhitelistSite" class="ghost">Allow Site</button>
+          </div>
         </div>
 
-        <div class="row actions-row single-action-row">
+        <div class="row actions-row blocker-utility-row">
           <button id="pauseBlocker" class="ghost">Pause 10m</button>
+          <button id="editBlocker" class="secondary">Manage Rules</button>
         </div>
 
-        <div class="field-row compact">
-          <label class="switch"><input id="blockCosmeticEnabled" type="checkbox" /><span>Cosmetic Cleanup</span></label>
-          <label class="switch"><input id="blockAntiDetect" type="checkbox" /><span>Anti-detect</span></label>
-        </div>
-
-        <div class="row actions-row">
-          <button id="blockElementPicker" class="secondary">Block Element</button>
-          <button id="toggleCosmeticSite" class="ghost">Disable Cosmetic Here</button>
-        </div>
-
-        <div class="row actions-row">
-          <button id="refreshBlockLists" class="ghost">Refresh Lists</button>
-          <button id="editBlocker" class="secondary">Edit Lists</button>
-        </div>
-
-        <details class="inline-advanced">
-          <summary>Blocker control guide</summary>
-          <ul class="tool-explain-list">
-            <li><strong>Block Element</strong>: manually hide one stubborn ad or popup element that slips past list rules.</li>
-            <li><strong>Disable Cosmetic Here</strong>: keep network blocking active, but stop visual cleanup on this host if layout breaks.</li>
-            <li><strong>Refresh Lists</strong>: pull the latest local filter domains so new ads, trackers, and scam hosts are blocked.</li>
-            <li><strong>Edit Lists</strong>: open full blocker settings to manage block domains, allowlist, custom selectors, and schedules.</li>
-          </ul>
-        </details>
-      </section>
-
-      <section class="panel core" id="secureTunnelPanel">
-        <div class="section-head">
-          <h2>11) Secure Tunnel</h2>
-          <label class="switch" aria-label="Toggle secure tunnel">
-            <input id="secureTunnelEnabled" type="checkbox" />
-            <span>On</span>
-          </label>
-        </div>
-
-        <div class="field-row">
-          <label for="secureTunnelMode">Mode</label>
-          <select id="secureTunnelMode" aria-label="Secure tunnel mode">
-            <option value="preset">Preset Relay</option>
-            <option value="custom">Custom Proxy</option>
-          </select>
-        </div>
-
-        <div class="field-row">
-          <label for="secureTunnelPreset">Server</label>
-          <select id="secureTunnelPreset" aria-label="Secure tunnel server"></select>
-        </div>
-
-        <p id="secureTunnelStatus" class="micro">Disconnected</p>
-        <p id="secureTunnelTimer" class="micro">Session: 00:00:00</p>
-
-        <details class="inline-advanced" id="secureTunnelCustomWrap">
-          <summary>Custom Proxy</summary>
-          <div class="field-row">
-            <label for="secureTunnelCustomScheme">Scheme</label>
-            <select id="secureTunnelCustomScheme" aria-label="Custom proxy scheme">
-              <option value="http">HTTP</option>
-              <option value="https">HTTPS</option>
-              <option value="socks5">SOCKS5</option>
-              <option value="socks4">SOCKS4</option>
-            </select>
+        <details class="inline-advanced blocker-advanced">
+          <summary>Advanced</summary>
+          <div class="field-row compact blocker-advanced-switches">
+            <label class="switch"><input id="blockCosmeticEnabled" type="checkbox" /><span>Cosmetic Cleanup</span></label>
+            <label class="switch"><input id="blockAntiDetect" type="checkbox" /><span>Anti-detect</span></label>
           </div>
-          <div class="field-row">
-            <label for="secureTunnelCustomHost">Host</label>
-            <input id="secureTunnelCustomHost" type="text" placeholder="proxy.example.com" aria-label="Custom proxy host" />
+
+          <div class="field-row compact blocker-advanced-switches blocker-danger-row">
+            <label class="switch danger">
+              <input id="nuclearMode" type="checkbox" />
+              <span>Lockdown Mode</span>
+            </label>
+            <button id="refreshBlockLists" class="ghost">Refresh Lists</button>
           </div>
-          <div class="field-row">
-            <label for="secureTunnelCustomPort">Port</label>
-            <input id="secureTunnelCustomPort" type="number" min="1" max="65535" step="1" placeholder="8080" aria-label="Custom proxy port" />
-          </div>
-          <div class="field-row">
-            <label for="secureTunnelCustomUser">Username</label>
-            <input id="secureTunnelCustomUser" type="text" placeholder="optional" aria-label="Custom proxy username" />
-          </div>
-          <div class="field-row">
-            <label for="secureTunnelCustomPass">Password</label>
-            <input id="secureTunnelCustomPass" type="password" placeholder="optional" aria-label="Custom proxy password" />
-          </div>
-          <div class="row actions-row">
-            <button id="secureTunnelSaveConnect" class="secondary" type="button">Save &amp; Connect</button>
-            <button id="secureTunnelDisconnect" class="ghost" type="button">Disconnect</button>
+
+          <div class="row actions-row blocker-advanced-actions">
+            <button id="blockElementPicker" class="secondary">Block Element</button>
+            <button id="toggleCosmeticSite" class="ghost">Disable Cosmetic Here</button>
           </div>
         </details>
-
-        <p class="micro">This protects only browser traffic, not your full device. For full-device VPN use a desktop app.</p>
       </section>
 
       <section class="panel core" id="alertsPanel">
         <div class="section-head">
-          <h2>12) Health Alert Popups</h2>
+          <h2>10) Health Alert Popups</h2>
           <label class="switch" aria-label="Toggle health alerts">
             <input id="alertsEnabled" type="checkbox" />
             <span>On</span>
           </label>
         </div>
 
-        <p class="micro alert-intro">Protocol sends gentle break cues. Use <strong>Test Alert</strong> to verify sound and popup delivery now.</p>
+        <div class="alert-meta-block">
+          <p class="micro alert-intro">Test Alert plays a tone and pushes a live popup preview so you can confirm delivery right away.</p>
 
-        <div class="alert-channel-row" aria-label="Alert channels">
-          <span id="alertChannelSound" class="alert-chip">Sound</span>
-          <span id="alertChannelToast" class="alert-chip">On-page</span>
-          <span id="alertChannelNotification" class="alert-chip">System</span>
+          <div class="alert-channel-row" aria-label="Alert channels">
+            <span id="alertChannelSound" class="alert-chip">Sound</span>
+            <span id="alertChannelToast" class="alert-chip">On-page</span>
+            <span id="alertChannelNotification" class="alert-chip">System</span>
+          </div>
         </div>
 
-        <div class="field-row">
-          <label for="alertFrequency">Frequency</label>
-          <select id="alertFrequency" aria-label="Alert frequency">
-            <option value="10">10 min</option>
-            <option value="20">20 min</option>
-            <option value="30">30 min</option>
-            <option value="45">45 min</option>
-            <option value="60">60 min</option>
-            <option value="90">90 min</option>
-            <option value="120">120 min</option>
-          </select>
-        </div>
+        <div class="alert-settings-grid">
+          <div class="alert-setting">
+            <label for="alertFrequency">Frequency</label>
+            <select id="alertFrequency" aria-label="Alert frequency">
+              <option value="10">10 min</option>
+              <option value="20">20 min</option>
+              <option value="30">30 min</option>
+              <option value="45">45 min</option>
+              <option value="60">60 min</option>
+              <option value="90">90 min</option>
+              <option value="120">120 min</option>
+            </select>
+          </div>
 
-        <div class="field-row">
-          <label for="alertCadence">Cadence</label>
-          <select id="alertCadence" aria-label="Alert cadence mode">
-            <option value="focus_weighted">Focus Weighted</option>
-            <option value="cycle">Cycle</option>
-            <option value="random">Random</option>
-          </select>
-        </div>
-
-        <div class="field-row">
-          <label for="alertTestType">Alert Type</label>
-          <select id="alertTestType" aria-label="Health alert type">
-            <option value="eye">Eye Relief</option>
-            <option value="posture">Posture</option>
-            <option value="burnout">Burnout Reset</option>
-            <option value="hydration">Hydration</option>
-            <option value="blink">Blink Reset</option>
-            <option value="movement">Movement</option>
-          </select>
+          <div class="alert-setting">
+            <label for="alertCadence">Cadence</label>
+            <select id="alertCadence" aria-label="Alert cadence mode">
+              <option value="focus_weighted">Focus Weighted</option>
+              <option value="cycle">Cycle</option>
+              <option value="random">Random</option>
+            </select>
+          </div>
         </div>
 
         <div class="row actions-row alert-types">
-          <label class="switch">
+          <label class="switch" data-alert-kind="eye">
             <input id="alertTypeEye" type="checkbox" />
             <span>Eye</span>
           </label>
-          <label class="switch">
+          <label class="switch" data-alert-kind="posture">
             <input id="alertTypePosture" type="checkbox" />
             <span>Posture</span>
           </label>
-          <label class="switch">
+          <label class="switch" data-alert-kind="burnout">
             <input id="alertTypeBurnout" type="checkbox" />
             <span>Burnout</span>
           </label>
-          <label class="switch">
+          <label class="switch" data-alert-kind="hydration">
             <input id="alertTypeHydration" type="checkbox" />
             <span>Hydration</span>
           </label>
-          <label class="switch">
+          <label class="switch" data-alert-kind="blink">
             <input id="alertTypeBlink" type="checkbox" />
             <span>Blink</span>
           </label>
-          <label class="switch">
+          <label class="switch" data-alert-kind="movement">
             <input id="alertTypeMovement" type="checkbox" />
             <span>Movement</span>
           </label>
         </div>
 
-        <div class="row actions-row">
+        <div class="row actions-row single-action-row">
           <label class="switch">
             <input id="alertSound" type="checkbox" />
             <span>Sound Alarm</span>
           </label>
-          <label class="switch">
-            <input id="alertQuietHoursEnabled" type="checkbox" />
-            <span>Quiet Hours</span>
-          </label>
+        </div>
+
+        <div class="alert-preview-strip" aria-live="polite">
+          <span class="alert-preview-label">Next preview</span>
+          <p id="alertPreviewSummary" class="alert-preview-summary">Eye Relief · Soviet Beacon · live popup + sound</p>
         </div>
 
         <details class="inline-advanced">
@@ -894,25 +957,20 @@
           <div class="field-row">
             <label for="alertSoundPattern">Sound Pattern</label>
             <select id="alertSoundPattern">
+              <option value="auto">Auto by alert type</option>
               <option value="single">Single</option>
               <option value="double">Double</option>
               <option value="triple">Triple</option>
+              <option value="beacon">Soviet Beacon</option>
+              <option value="watchtower">Watchtower</option>
+              <option value="relay">Command Relay</option>
+              <option value="klaxon">Bunker Klaxon</option>
             </select>
           </div>
 
           <div class="field-row compact">
             <label class="switch"><input id="alertToastEnabled" type="checkbox" /><span>On-page toast</span></label>
             <label class="switch"><input id="alertNotificationEnabled" type="checkbox" /><span>System notification</span></label>
-          </div>
-
-          <div class="field-row">
-            <label for="alertQuietStart">Quiet Start</label>
-            <input id="alertQuietStart" type="time" />
-          </div>
-
-          <div class="field-row">
-            <label for="alertQuietEnd">Quiet End</label>
-            <input id="alertQuietEnd" type="time" />
           </div>
 
           <div class="field-row">
@@ -948,62 +1006,165 @@
           </div>
         </details>
 
-        <div class="row actions-row">
+        <div class="row actions-row alert-actions">
           <button id="testAlert" class="primary">Test Alert</button>
           <button id="snoozeAlertsNow" class="ghost">Snooze Now</button>
         </div>
-        <p id="alertStatus" class="micro">Alerts ready.</p>
+        <p id="alertStatus" class="micro alert-status">Alerts ready.</p>
+      </section>
+
+      <section class="panel core meditation-panel" id="meditationPanel">
+        <div class="section-head">
+          <h2>11) Meditation Popup</h2>
+          <label class="switch" aria-label="Toggle meditation popup">
+            <input id="meditationEnabled" type="checkbox" />
+            <span>On</span>
+          </label>
+        </div>
+
+        <div class="alert-meta-block meditation-meta-block">
+          <p class="micro alert-intro">Send a centered meditation pause to the active website with a softer ambient soundscape and a set session length.</p>
+        </div>
+
+        <div class="alert-settings-grid">
+          <div class="alert-setting">
+            <label for="meditationLength">Length</label>
+            <select id="meditationLength" aria-label="Meditation length">
+              <option value="3">3 min</option>
+              <option value="5">5 min</option>
+              <option value="10">10 min</option>
+              <option value="15">15 min</option>
+              <option value="20">20 min</option>
+            </select>
+          </div>
+
+          <div class="alert-setting">
+            <label for="meditationAmbient">Ambient song</label>
+            <select id="meditationAmbient" aria-label="Meditation ambient song">
+              <option value="brown_hush">Brown Hush</option>
+              <option value="rain_atrium">Rain Atrium</option>
+              <option value="cloud_drift">Cloud Drift</option>
+              <option value="night_tide">Night Tide</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="field-row">
+          <label for="meditationVolume">Ambient level</label>
+          <div class="range-wrap">
+            <input id="meditationVolume" type="range" min="10" max="100" step="1" />
+            <span id="meditationVolumeValue" class="value">48%</span>
+          </div>
+        </div>
+
+        <div class="alert-preview-strip meditation-preview-strip" aria-live="polite">
+          <span class="alert-preview-label">Session preview</span>
+          <p id="meditationPreviewSummary" class="alert-preview-summary">10 min · Brown Hush · centered on-page session</p>
+        </div>
+
+        <div class="row actions-row">
+          <button id="meditationPreview" class="secondary" type="button">Preview</button>
+          <button id="meditationStart" class="primary" type="button">Start Session</button>
+        </div>
+
+        <div class="row actions-row single-action-row">
+          <button id="meditationStop" class="ghost" type="button">Stop Meditation</button>
+        </div>
+
+        <p id="meditationStatus" class="micro alert-status">Meditation session idle.</p>
       </section>
 
       <section class="panel core" id="siteInsightPanel">
         <div class="section-head">
-          <h2>13) Site Insight Popup</h2>
-          <label class="switch" aria-label="Toggle site insight popup">
+          <h2>12) Site Insight Popup</h2>
+          <label class="switch" aria-label="Toggle site insight">
             <input id="siteInsightEnabled" type="checkbox" />
             <span>On</span>
           </label>
         </div>
 
-        <div class="field-row">
-          <label for="siteInsightProfile">Profile</label>
-          <select id="siteInsightProfile" aria-label="Site insight profile">
-            <option value="regular">Regular / Visitor</option>
-            <option value="dev">Developers</option>
-            <option value="design">Designers</option>
-            <option value="uxr">UX Research / CRO</option>
-          </select>
+        <div class="site-insight-mini-head">
+          <div>
+            <p class="kicker">Current page brief</p>
+            <p id="siteInsightSummary" class="micro">Open a website tab and run Analyze to classify the page from reliable on-page signals.</p>
+          </div>
+          <span id="siteInsightHostChip" class="alert-chip">Site unavailable</span>
         </div>
 
-        <div class="field-row">
-          <label for="siteInsightDuration">Duration</label>
-          <select id="siteInsightDuration" aria-label="Site insight popup duration">
-            <option value="6000">6 sec</option>
-            <option value="8000">8 sec</option>
-            <option value="10000">10 sec</option>
-          </select>
+        <div class="site-insight-core-grid">
+          <div class="site-insight-core-card">
+            <span class="site-insight-fact-label">Page Type</span>
+            <strong id="siteInsightPageType">Unknown</strong>
+          </div>
+          <div class="site-insight-core-card">
+            <span class="site-insight-fact-label">What This Appears To Be</span>
+            <strong id="siteInsightAppears">Unknown</strong>
+          </div>
+        </div>
+
+        <div class="site-insight-list-block">
+          <span class="site-insight-fact-label">Key Signals</span>
+          <ul id="siteInsightSignals" class="site-insight-list"></ul>
+        </div>
+
+        <div id="siteInsightSecurityBlock" class="site-insight-list-block" hidden>
+          <span class="site-insight-fact-label">Security Note</span>
+          <p id="siteInsightSecurity" class="micro site-insight-security-note"></p>
+        </div>
+
+        <div class="site-insight-list-block">
+          <span class="site-insight-fact-label">Essentials</span>
+          <ul id="siteInsightEssentials" class="site-insight-list"></ul>
         </div>
 
         <div class="row actions-row">
-          <label class="switch">
-            <input id="siteInsightAutoMinimize" type="checkbox" />
-            <span>Auto-minimize</span>
-          </label>
-          <label class="switch">
-            <input id="siteInsightPill" type="checkbox" />
-            <span>Minimized pill</span>
-          </label>
+          <button id="siteInsightAnalyze" class="primary" type="button">Analyze Page</button>
+          <button id="siteInsightCopy" class="secondary" type="button">Copy Essentials</button>
         </div>
 
-        <div class="row actions-row">
-          <button id="siteInsightDisableSite" class="secondary">Disable on This Site</button>
-          <button id="siteInsightOpenSettings" class="ghost">Settings</button>
-        </div>
-
-        <p id="siteInsightStatus" class="micro">Host: unavailable</p>
+        <p id="siteInsightStatus" class="micro">Ready.</p>
       </section>
 
-      <details class="panel fold" id="deepWorkFold">
-        <summary>10) Deep Work Protocol</summary>
+      <details class="panel fold deep-work-fold" id="deepWorkFold">
+        <summary>Deep Work Protocol</summary>
+
+        <div class="deep-work-hero">
+          <div class="deep-work-copy">
+            <p class="kicker">Focus protocol</p>
+            <h3 id="deepWorkHeadline" class="deep-work-headline">Ready to engage</h3>
+            <p id="deepWorkSubline" class="micro deep-work-subline">Launch a timed focus block and let Holmeta keep the lane clean.</p>
+          </div>
+
+          <div class="deep-work-countdown-card">
+            <span class="deep-work-card-label">Next shift</span>
+            <strong id="deepWorkCountdown">25m</strong>
+            <span id="deepWorkPhaseBadge" class="deep-work-phase-chip">Focus window</span>
+          </div>
+        </div>
+
+        <div class="deep-work-stat-grid">
+          <div class="deep-work-stat-card">
+            <span class="deep-work-card-label">Cycle</span>
+            <strong id="deepWorkCycleValue">25 / 5</strong>
+            <span class="micro">Focus / recovery</span>
+          </div>
+          <div class="deep-work-stat-card">
+            <span class="deep-work-card-label">Today</span>
+            <strong id="deepWorkTodayMinutes">0m</strong>
+            <span class="micro">Focus minutes</span>
+          </div>
+          <div class="deep-work-stat-card">
+            <span class="deep-work-card-label">Sessions</span>
+            <strong id="deepWorkTodaySessions">0</strong>
+            <span class="micro">Completed today</span>
+          </div>
+          <div class="deep-work-stat-card">
+            <span class="deep-work-card-label">Automation</span>
+            <strong id="deepWorkAutomationState">Shield + Light</strong>
+            <span class="micro">Assist stack</span>
+          </div>
+        </div>
+
         <div class="field-row">
           <label for="pomodoroPreset">Pomodoro</label>
           <select id="pomodoroPreset" aria-label="Pomodoro preset">
@@ -1012,60 +1173,105 @@
             <option value="90:20">90 / 20</option>
           </select>
         </div>
-        <div class="row actions-row">
+
+        <div class="row actions-row deep-work-toggle-row">
+          <label class="switch">
+            <input id="deepWorkAutoBlocker" type="checkbox" />
+            <span>Auto shield</span>
+          </label>
+          <label class="switch">
+            <input id="deepWorkAutoLight" type="checkbox" />
+            <span>Auto light</span>
+          </label>
+        </div>
+
+        <div class="row actions-row deep-work-action-row">
           <button id="startDeepWork" class="primary">Activate Deep Work</button>
           <button id="stopDeepWork" class="secondary">Stop</button>
         </div>
-        <p id="deepWorkStatus" class="micro">Idle</p>
+
+        <p id="deepWorkStatus" class="micro deep-work-status-line">Idle</p>
       </details>
 
-      <details class="panel fold" id="advancedFold">
-        <summary>11) Advanced Lab (Premium)</summary>
+      <details class="panel fold advanced-lab-fold" id="advancedFold">
+        <summary>Advanced Lab (Premium)</summary>
+
+        <div class="advanced-lab-hero">
+          <div class="advanced-lab-copy">
+            <p class="kicker">Premium modules</p>
+            <h3 class="advanced-lab-headline">Shape the browser around the work.</h3>
+            <p class="micro advanced-lab-subline">Run local experimental modules that adapt focus, posture, content density, and task sequencing.</p>
+          </div>
+          <div class="advanced-lab-chip">Premium</div>
+        </div>
 
         <div class="premium-banner" id="premiumBanner">
-          <span>Premium feature set</span>
+          <div class="advanced-lab-upsell">
+            <strong>Unlock the lab</strong>
+            <span>Bio-feedback, Task Weaver, morphing, and focus sync all live here.</span>
+          </div>
           <button id="upgradePremium" class="primary">Upgrade to Premium</button>
         </div>
 
-        <div class="field-row">
-          <label class="switch" title="Premium feature – upgrade at holmeta.com">
+        <div class="advanced-lab-toggle-grid">
+          <label class="switch advanced-lab-switch" title="Premium feature – upgrade at holmeta.com">
             <input id="biofeedbackEnabled" type="checkbox" data-premium="true" />
-            <span>AI Bio-Feedback (Beta)</span>
+            <span class="advanced-lab-switch-copy">
+              <strong>AI Bio-Feedback</strong>
+              <small>Local posture and fatigue-aware prompts using on-device camera access.</small>
+            </span>
           </label>
-        </div>
 
-        <div class="field-row">
-          <label class="switch" title="Premium feature – upgrade at holmeta.com">
+          <label class="switch advanced-lab-switch" title="Premium feature – upgrade at holmeta.com">
             <input id="morphingEnabled" type="checkbox" data-premium="true" />
-            <span>Adaptive Content Morphing</span>
+            <span class="advanced-lab-switch-copy">
+              <strong>Adaptive Content Morphing</strong>
+              <small>Calm noisy layouts and shift dense pages toward a steadier reading rhythm.</small>
+            </span>
+          </label>
+
+          <label class="switch advanced-lab-switch" title="Premium feature – upgrade at holmeta.com">
+            <input id="taskWeaverEnabled" type="checkbox" data-premium="true" />
+            <span class="advanced-lab-switch-copy">
+              <strong>Task Weaver</strong>
+              <small>Read your open tabs and propose a cleaner execution sequence.</small>
+            </span>
+          </label>
+
+          <label class="switch advanced-lab-switch" title="Premium feature – upgrade at holmeta.com">
+            <input id="dashboardPredictionsEnabled" type="checkbox" data-premium="true" />
+            <span class="advanced-lab-switch-copy">
+              <strong>Dashboard Predictions</strong>
+              <small>Use local focus history to suggest the next stable protocol window.</small>
+            </span>
+          </label>
+
+          <label class="switch advanced-lab-switch" title="Premium feature – upgrade at holmeta.com">
+            <input id="collabSyncEnabled" type="checkbox" data-premium="true" />
+            <span class="advanced-lab-switch-copy">
+              <strong>Focus Sync</strong>
+              <small>Generate a local session snapshot you can share or paste into your workflow.</small>
+            </span>
           </label>
         </div>
 
-        <div class="row actions-row">
+        <div class="advanced-lab-brief">
+          <span class="label">Lab Brief</span>
+          <p id="advancedLabStatus" class="micro">Premium modules are standing by.</p>
+          <p id="advancedLabPrediction" class="micro">Enable Dashboard Predictions to shape a next-session recommendation from your local focus history.</p>
+        </div>
+
+        <div class="row actions-row advanced-lab-actions">
           <button id="taskWeaver" class="secondary" data-premium="true" title="Premium feature – upgrade at holmeta.com">
-            Weave Now
+            Weave Workflow
           </button>
           <button id="collabSync" class="secondary" data-premium="true" title="Premium feature – upgrade at holmeta.com">
-            Focus Sync
+            Focus Sync Snapshot
           </button>
         </div>
 
-        <ul id="weaverResults" class="result-list"></ul>
+        <ul id="weaverResults" class="result-list advanced-lab-results"></ul>
       </details>
-
-      <section id="hotkeysPanel" class="panel compact">
-        <div class="section-head">
-          <h2>14) Hotkeys</h2>
-        </div>
-        <div class="hotkeys">
-          <button class="hotkey" data-command="toggle_light_filters">Toggle Filters</button>
-          <button class="hotkey" data-command="toggle_redlight">Toggle Redlight</button>
-          <button class="hotkey" data-command="increase_intensity">Intensity +</button>
-          <button class="hotkey" data-command="decrease_intensity">Intensity -</button>
-          <button class="hotkey" data-command="toggle_spotlight">Toggle Spotlight</button>
-        </div>
-        <p class="micro">Use browser shortcut settings to map keys for these commands.</p>
-      </section>
 
       <footer class="statusbar">
         <span id="saveState">Ready</span>
@@ -1084,6 +1290,111 @@
           <button id="onboardNext" class="primary" type="button">Next</button>
         </div>
         <button id="onboardSkip" class="ghost" type="button">Skip / Close</button>
+      </div>
+    </div>
+
+    <div id="dashboardCityModal" class="dashboard-modal" hidden role="dialog" aria-modal="true" aria-labelledby="dashboardCityModalTitle">
+      <div class="dashboard-modal-card">
+        <p id="dashboardCityModalTitle" class="kicker">Add City Clock</p>
+        <input id="dashboardCitySearch" type="text" placeholder="Search city (e.g. Tokyo, Paris)..." aria-label="Search city" />
+        <div id="dashboardCitySuggestions" class="dashboard-city-suggestions" role="listbox" aria-label="City suggestions"></div>
+        <div class="row actions-row single-action-row">
+          <button id="dashboardCityClose" class="ghost" type="button">Close</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="vaultCredentialModal" class="vault-modal" hidden role="dialog" aria-modal="true" aria-labelledby="vaultCredentialModalTitle">
+      <div class="vault-modal-card">
+        <div class="section-head">
+          <h2 id="vaultCredentialModalTitle">Add Credential</h2>
+          <button id="vaultCredentialModalClose" class="ghost vault-modal-close" type="button" aria-label="Close credential editor">Close</button>
+        </div>
+        <div class="vault-form-grid">
+          <div class="vault-form-two">
+            <div class="vault-form-field">
+              <label for="vaultCredentialSite">Site / App</label>
+              <input id="vaultCredentialSite" type="text" placeholder="GitHub" />
+            </div>
+            <div class="vault-form-field vault-form-field-small">
+              <label for="vaultCredentialIcon">Icon</label>
+              <input id="vaultCredentialIcon" type="text" placeholder="🔐" maxlength="4" />
+            </div>
+          </div>
+          <div class="vault-form-field">
+            <label for="vaultCredentialUser">Username / Email</label>
+            <input id="vaultCredentialUser" type="text" placeholder="name@example.com" autocomplete="off" />
+          </div>
+          <div class="vault-form-field">
+            <label for="vaultCredentialPass">Password</label>
+            <div class="vault-inline-input">
+              <input id="vaultCredentialPass" type="password" placeholder="••••••••••" autocomplete="new-password" />
+              <button id="vaultCredentialReveal" class="ghost vault-inline-button" type="button">Show</button>
+              <button id="vaultCredentialGenerate" class="ghost vault-inline-button" type="button">Generate</button>
+            </div>
+            <div class="vault-strength">
+              <div id="vaultCredentialStrength0" class="vault-strength-bar"></div>
+              <div id="vaultCredentialStrength1" class="vault-strength-bar"></div>
+              <div id="vaultCredentialStrength2" class="vault-strength-bar"></div>
+              <div id="vaultCredentialStrength3" class="vault-strength-bar"></div>
+            </div>
+            <p id="vaultCredentialStrengthLabel" class="micro">Strength</p>
+          </div>
+          <div class="vault-form-two">
+            <div class="vault-form-field">
+              <label for="vaultCredentialUrl">URL</label>
+              <input id="vaultCredentialUrl" type="text" placeholder="https://example.com" />
+            </div>
+            <div class="vault-form-field">
+              <label for="vaultCredentialTag">Tag</label>
+              <input id="vaultCredentialTag" type="text" placeholder="Work" />
+            </div>
+          </div>
+          <div class="vault-form-field">
+            <label for="vaultCredentialNotes">Notes</label>
+            <textarea id="vaultCredentialNotes" rows="4" placeholder="Recovery codes, 2FA notes, login context..."></textarea>
+          </div>
+        </div>
+        <div class="row actions-row">
+          <button id="vaultCredentialCancel" class="ghost" type="button">Cancel</button>
+          <button id="vaultCredentialSave" class="primary" type="button">Save Credential</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="vaultTextModal" class="vault-modal" hidden role="dialog" aria-modal="true" aria-labelledby="vaultTextModalTitle">
+      <div class="vault-modal-card">
+        <div class="section-head">
+          <h2 id="vaultTextModalTitle">Add Note</h2>
+          <button id="vaultTextModalClose" class="ghost vault-modal-close" type="button" aria-label="Close note editor">Close</button>
+        </div>
+        <div class="vault-form-grid">
+          <div class="vault-form-two">
+            <div class="vault-form-field">
+              <label for="vaultTextTitle">Title</label>
+              <input id="vaultTextTitle" type="text" placeholder="Meeting notes" />
+            </div>
+            <div class="vault-form-field">
+              <label for="vaultTextType">Type</label>
+              <select id="vaultTextType">
+                <option value="note">Secure Note</option>
+                <option value="prompt">Prompt</option>
+              </select>
+            </div>
+          </div>
+          <div class="vault-form-field">
+            <label for="vaultTextBody">Content</label>
+            <textarea id="vaultTextBody" rows="7" placeholder="Write the full note or prompt template here..."></textarea>
+          </div>
+          <div class="vault-form-field">
+            <label for="vaultTextTags">Tags</label>
+            <input id="vaultTextTags" type="text" placeholder="client, research, openai" />
+          </div>
+        </div>
+        <div class="row actions-row">
+          <button id="vaultTextCancel" class="ghost" type="button">Cancel</button>
+          <button id="vaultTextSave" class="primary" type="button">Save</button>
+        </div>
       </div>
     </div>
 

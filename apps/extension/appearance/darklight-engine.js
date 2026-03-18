@@ -69,6 +69,13 @@
     };
   }
 
+  function normalizeAppearanceMode(value) {
+    const raw = String(value || "").toLowerCase();
+    if (raw === "auto") return "adaptive";
+    if (raw === "dark" || raw === "light" || raw === "adaptive") return raw;
+    return "adaptive";
+  }
+
   async function getRuntimeState() {
     const response = await sendRuntime({ type: "holmeta:get-state" });
     if (!response?.ok || !response.state) {
@@ -76,7 +83,7 @@
     }
     const host = normalizeHost(globalThis.location?.hostname || "");
     const hostState = hostStateFromSettings(response.state.settings || {}, host);
-    const mode = String(hostState.effective.appearance || hostState.effective.mode || "auto");
+    const mode = normalizeAppearanceMode(hostState.effective.appearance || hostState.effective.mode || "adaptive");
     const widget = await settingsStore?.getWidgetState?.(host) || {
       host,
       visible: false,
@@ -149,8 +156,12 @@
       });
     }
 
-    if (key === "setDark" || key === "setLight" || key === "setAuto") {
-      const appearance = key === "setDark" ? "dark" : key === "setLight" ? "light" : "auto";
+    if (key === "setDark" || key === "setLight" || key === "setAuto" || key === "setAdaptive") {
+      const appearance = key === "setDark"
+        ? "dark"
+        : key === "setLight"
+          ? "light"
+          : "adaptive";
       return patchReadingSettings((reading) => {
         reading.enabled = true;
         reading.appearance = appearance;
@@ -161,8 +172,11 @@
       return patchReadingSettings((reading) => {
         const nextEnabled = !Boolean(reading.enabled);
         reading.enabled = nextEnabled;
-        if (nextEnabled && !["dark", "light", "auto"].includes(String(reading.appearance || ""))) {
-          reading.appearance = "auto";
+        if (nextEnabled && !["dark", "light", "adaptive", "auto"].includes(String(reading.appearance || ""))) {
+          reading.appearance = "adaptive";
+        }
+        if (String(reading.appearance || "").toLowerCase() === "auto") {
+          reading.appearance = "adaptive";
         }
       });
     }

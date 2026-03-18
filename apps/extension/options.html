@@ -179,15 +179,9 @@
           </label>
           <label>Dark mode theme
             <select id="optReadingDarkVariant">
-              <option value="black">Black</option>
-              <option value="coal">Coal</option>
-              <option value="iron_ore">Iron ore</option>
-              <option value="brown">dark Brown</option>
-              <option value="grey">Grey</option>
-              <option value="sepia">Sepia</option>
-              <option value="teal">Teal</option>
-              <option value="purple">dark Purple</option>
-              <option value="forest_green">dark Green</option>
+              <option value="coal">Night</option>
+              <option value="iron_ore">Iron</option>
+              <option value="brown">Holmeta Brown</option>
             </select>
           </label>
           <label>Light mode theme
@@ -195,9 +189,6 @@
               <option value="white">White</option>
               <option value="warm">Warm</option>
               <option value="off_white">Beige</option>
-              <option value="soft_green">Soft Green</option>
-              <option value="baby_blue">Baby Blue</option>
-              <option value="light_brown">Light Brown</option>
             </select>
           </label>
           <label>Auto schedule
@@ -294,66 +285,6 @@
         </label>
       </section>
 
-      <section id="optPanelTunnel" class="panel">
-        <h2>5) Secure Tunnel</h2>
-        <p class="muted">Browser-only proxy tunnel for privacy and geo-routing. No full-device VPN behavior.</p>
-        <div class="grid cols-4">
-          <label class="switch-row"><input id="optTunnelEnabled" type="checkbox" />Enabled</label>
-          <label>Mode
-            <select id="optTunnelMode">
-              <option value="preset">Preset Relay</option>
-              <option value="custom">Custom Proxy</option>
-            </select>
-          </label>
-          <label>Preset server
-            <select id="optTunnelPreset"></select>
-          </label>
-          <label class="switch-row"><input id="optTunnelAutoReapply" type="checkbox" />Auto-reapply</label>
-          <label>Reapply interval (minutes)
-            <select id="optTunnelReapplyMinutes">
-              <option value="5">5</option>
-              <option value="10">10</option>
-              <option value="15">15</option>
-              <option value="20">20</option>
-              <option value="30">30</option>
-              <option value="45">45</option>
-              <option value="60">60</option>
-            </select>
-          </label>
-          <label>Custom scheme
-            <select id="optTunnelCustomScheme">
-              <option value="http">HTTP</option>
-              <option value="https">HTTPS</option>
-              <option value="socks5">SOCKS5</option>
-              <option value="socks4">SOCKS4</option>
-            </select>
-          </label>
-          <label>Custom host
-            <input id="optTunnelCustomHost" type="text" placeholder="proxy.example.com" />
-          </label>
-          <label>Custom port
-            <input id="optTunnelCustomPort" type="number" min="1" max="65535" step="1" placeholder="8080" />
-          </label>
-          <label>Proxy username (optional)
-            <input id="optTunnelCustomUser" type="text" placeholder="optional" />
-          </label>
-          <label>Proxy password (optional)
-            <input id="optTunnelCustomPass" type="password" placeholder="optional" />
-          </label>
-        </div>
-
-        <label>Bypass list (one per line, e.g. &lt;local&gt;)
-          <textarea id="optTunnelBypassList" rows="4" placeholder="<local>&#10;localhost&#10;127.0.0.1"></textarea>
-        </label>
-
-        <div class="row actions-row">
-          <button id="optTunnelConnect" class="primary" type="button">Save &amp; Connect</button>
-          <button id="optTunnelDisconnect" class="secondary" type="button">Disconnect</button>
-        </div>
-        <p id="optTunnelStatus" class="muted">Disconnected.</p>
-        <p class="muted">This protects only browser traffic. For full-device VPN protection, use a desktop VPN app.</p>
-      </section>
-
       <section id="optPanelAlerts" class="panel">
         <h2>6) Health Alert Popups</h2>
         <div class="grid cols-4">
@@ -446,46 +377,15 @@
 
       <section id="optPanelInsight" class="panel">
         <h2>7) Site Insight Popup</h2>
-        <p class="muted">On-page insight card shown on navigation complete. Local heuristics only.</p>
+        <p class="muted">Compact page intelligence from live on-page signals only.</p>
         <div class="grid cols-4">
           <label class="switch-row"><input id="optSiteInsightEnabled" type="checkbox" />Enabled</label>
-          <label class="switch-row"><input id="optSiteInsightShowOnEverySite" type="checkbox" />Show on every site</label>
-          <label class="switch-row"><input id="optSiteInsightAutoMinimize" type="checkbox" />Auto-minimize</label>
-          <label class="switch-row"><input id="optSiteInsightPill" type="checkbox" />Minimized pill</label>
-          <label>Selected profile
-            <select id="optSiteInsightProfile">
-              <option value="regular">Regular / Visitor</option>
-              <option value="dev">Developers</option>
-              <option value="design">Designers</option>
-              <option value="uxr">UX Research / CRO</option>
-            </select>
-          </label>
-          <label>Duration
-            <select id="optSiteInsightDuration">
-              <option value="6000">6 sec</option>
-              <option value="8000">8 sec</option>
-              <option value="10000">10 sec</option>
-            </select>
-          </label>
-          <label class="switch-row"><input id="optSiteInsightShowAlgorithm" type="checkbox" />Show algorithm label</label>
-          <label class="switch-row"><input id="optSiteInsightShowPurpose" type="checkbox" />Show purpose summary</label>
-        </div>
-
-        <h3>Enabled Profiles</h3>
-        <div class="grid cols-4">
-          <label class="switch-row"><input id="optSiteInsightRegular" type="checkbox" />Regular</label>
-          <label class="switch-row"><input id="optSiteInsightDev" type="checkbox" />Developers</label>
-          <label class="switch-row"><input id="optSiteInsightDesign" type="checkbox" />Designers</label>
-          <label class="switch-row"><input id="optSiteInsightUxr" type="checkbox" />UXR / CRO</label>
         </div>
 
         <label>Per-site disabled hosts (one per line)
           <textarea id="optSiteInsightDisabledHosts" rows="5" placeholder="youtube.com"></textarea>
         </label>
 
-        <div class="row actions-row">
-          <button id="optSiteInsightClearCache" class="secondary" type="button">Clear Insight Cache</button>
-        </div>
       </section>
 
       <section id="optPanelDeepWork" class="panel">

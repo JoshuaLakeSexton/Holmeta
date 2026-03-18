@@ -25,13 +25,11 @@
   "permissions": [
     "storage",
     "offscreen",
-    "proxy",
     "tabs",
     "activeTab",
     "windows",
     "scripting",
     "webRequest",
-    "webRequestAuthProvider",
     "notifications",
     "alarms",
     "declarativeContent",
@@ -45,35 +43,6 @@
   "host_permissions": [
     "<all_urls>"
   ],
-  "commands": {
-    "toggle_light_filters": {
-      "description": "Toggle Light Filters",
-      "suggested_key": {
-        "default": "Alt+Shift+F",
-        "mac": "Command+Shift+F"
-      }
-    },
-    "toggle_redlight": {
-      "description": "Toggle Redlight Mode",
-      "suggested_key": {
-        "default": "Alt+Shift+R",
-        "mac": "Command+Shift+R"
-      }
-    },
-    "increase_intensity": {
-      "description": "Increase Filter Intensity",
-      "suggested_key": {
-        "default": "Alt+Shift+Up",
-        "mac": "Command+Shift+Up"
-      }
-    },
-    "decrease_intensity": {
-      "description": "Decrease Filter Intensity"
-    },
-    "toggle_spotlight": {
-      "description": "Toggle Focus Spotlight"
-    }
-  },
   "content_scripts": [
     {
       "matches": [
@@ -94,8 +63,17 @@
         "appearance/appearance-state.js",
         "appearance/theme-detector.js",
         "appearance/site-classifier.js",
+        "appearance/color-engine.js",
+        "appearance/dom-scanner.js",
+        "appearance/token-engine.js",
         "appearance/media-guard.js",
+        "appearance/protection-engine.js",
         "appearance/ui-surface-classifier.js",
+        "appearance/site-profile.js",
+        "appearance/repair-memory.js",
+        "appearance/shadow-dom.js",
+        "appearance/iframe-handler.js",
+        "appearance/mutation-manager.js",
         "appearance/component-normalizer.js",
         "appearance/dynamic-node-processor.js",
         "appearance/site-compatibility.js",
@@ -107,6 +85,7 @@
         "appearance/darklight-switch.js",
         "light/engine.js",
         "translate/engine.js",
+        "insight/page-insight-engine.js",
         "content.js"
       ],
       "all_frames": true,

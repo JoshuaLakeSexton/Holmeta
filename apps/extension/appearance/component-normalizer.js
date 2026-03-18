@@ -163,6 +163,7 @@
     if (!classifier || !mediaGuard) return { components: 0, wrappers: 0, media: 0 };
 
     const host = String(options.host || location.hostname || "").toLowerCase();
+    const scopeDoc = root instanceof Document ? root : root?.ownerDocument || document;
     const maxComponents = Number.isFinite(Number(options.maxComponents))
       ? Math.max(120, Math.min(2400, Number(options.maxComponents)))
       : 1100;
@@ -221,7 +222,7 @@
     }
 
     if (host === "x.com" || host.endsWith(".x.com") || host === "twitter.com" || host.endsWith(".twitter.com")) {
-      const xSurfaces = document.querySelectorAll([
+      const xSurfaces = scopeDoc.querySelectorAll([
         "[data-testid='AppTabBar']",
         "[data-testid='TopNavBar']",
         "[data-testid='sidebarColumn']",
@@ -244,7 +245,7 @@
     }
 
     if (/(\.|^)amazon\./.test(host)) {
-      const amazonShells = document.querySelectorAll([
+      const amazonShells = scopeDoc.querySelectorAll([
         "#a-page",
         ".a-page",
         "#pageContent",
@@ -264,7 +265,7 @@
         markSurface(shell, "surface");
       }
 
-      const amazonNav = document.querySelectorAll([
+      const amazonNav = scopeDoc.querySelectorAll([
         "#nav-belt",
         "#nav-main",
         "#nav-subnav",
@@ -312,12 +313,26 @@
       const bgLum = parseBackgroundLuminance(style);
       if (!Number.isFinite(bgLum)) continue;
       const largeStructural = area > (viewportArea * 0.015) || (rect.width > window.innerWidth * 0.55 && rect.height > 22);
+      const pinnedChrome = (
+        (style.position === "fixed" || style.position === "sticky")
+        && rect.top <= Math.max(18, window.innerHeight * 0.05)
+        && rect.width >= window.innerWidth * 0.55
+        && rect.height >= 32
+        && rect.height <= Math.max(240, window.innerHeight * 0.34)
+      );
+      const topRail = (
+        rect.top <= Math.max(20, window.innerHeight * 0.06)
+        && rect.width >= window.innerWidth * 0.62
+        && rect.height >= 32
+        && rect.height <= Math.max(180, window.innerHeight * 0.26)
+      );
+      const chromeLike = pinnedChrome || topRail;
 
-      if (mode === "dark" && largeStructural && bgLum > 0.66) {
-        markSurface(node, "surface");
+      if (mode === "dark" && (largeStructural || chromeLike) && bgLum > 0.60) {
+        markSurface(node, chromeLike ? "header" : "surface");
         forcedSurfaces += 1;
-      } else if (mode === "light" && largeStructural && bgLum < 0.20) {
-        markSurface(node, "surface");
+      } else if (mode === "light" && (largeStructural || chromeLike) && bgLum < 0.24) {
+        markSurface(node, chromeLike ? "header" : "surface");
         forcedSurfaces += 1;
       }
     }
@@ -389,8 +404,10 @@
   function clearRoot(root = document.documentElement) {
     classifier?.clearOwned?.(root);
     mediaGuard?.clearMarks?.(root);
-    if (!(root instanceof Element)) return;
-    const extra = root.querySelectorAll(
+    if (!(root instanceof Element || root instanceof Document || root instanceof ShadowRoot)) return;
+    const base = root instanceof Document ? root.documentElement : root;
+    if (!base) return;
+    const extra = base.querySelectorAll(
       `[${ATTR.FORCE_TEXT}], [${ATTR.LOGO_WORDMARK}], [${ATTR.LOGO_SAFE_BG}], [${ATTR.LOGO_SVG}], [${ATTR.ACCENT_SAFE}]`
     );
     for (const node of extra) {

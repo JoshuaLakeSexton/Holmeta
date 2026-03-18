@@ -117,21 +117,6 @@
     optBlockedDomains: $("optBlockedDomains"),
     optAllowDomains: $("optAllowDomains"),
 
-    optTunnelEnabled: $("optTunnelEnabled"),
-    optTunnelMode: $("optTunnelMode"),
-    optTunnelPreset: $("optTunnelPreset"),
-    optTunnelAutoReapply: $("optTunnelAutoReapply"),
-    optTunnelReapplyMinutes: $("optTunnelReapplyMinutes"),
-    optTunnelCustomScheme: $("optTunnelCustomScheme"),
-    optTunnelCustomHost: $("optTunnelCustomHost"),
-    optTunnelCustomPort: $("optTunnelCustomPort"),
-    optTunnelCustomUser: $("optTunnelCustomUser"),
-    optTunnelCustomPass: $("optTunnelCustomPass"),
-    optTunnelBypassList: $("optTunnelBypassList"),
-    optTunnelConnect: $("optTunnelConnect"),
-    optTunnelDisconnect: $("optTunnelDisconnect"),
-    optTunnelStatus: $("optTunnelStatus"),
-
     optAlertsEnabled: $("optAlertsEnabled"),
     optAlertFrequency: $("optAlertFrequency"),
     optAlertCadence: $("optAlertCadence"),
@@ -156,19 +141,7 @@
     optAlertTest: $("optAlertTest"),
 
     optSiteInsightEnabled: $("optSiteInsightEnabled"),
-    optSiteInsightShowOnEverySite: $("optSiteInsightShowOnEverySite"),
-    optSiteInsightAutoMinimize: $("optSiteInsightAutoMinimize"),
-    optSiteInsightPill: $("optSiteInsightPill"),
-    optSiteInsightProfile: $("optSiteInsightProfile"),
-    optSiteInsightDuration: $("optSiteInsightDuration"),
-    optSiteInsightShowAlgorithm: $("optSiteInsightShowAlgorithm"),
-    optSiteInsightShowPurpose: $("optSiteInsightShowPurpose"),
-    optSiteInsightRegular: $("optSiteInsightRegular"),
-    optSiteInsightDev: $("optSiteInsightDev"),
-    optSiteInsightDesign: $("optSiteInsightDesign"),
-    optSiteInsightUxr: $("optSiteInsightUxr"),
     optSiteInsightDisabledHosts: $("optSiteInsightDisabledHosts"),
-    optSiteInsightClearCache: $("optSiteInsightClearCache"),
 
     optFocusMinutes: $("optFocusMinutes"),
     optBreakMinutes: $("optBreakMinutes"),
@@ -312,28 +285,6 @@
     return Array.isArray(list) ? list.join("\n") : "";
   }
 
-  function linesToBypassList(text) {
-    const seen = new Set();
-    const out = [];
-    String(text || "")
-      .split(/\n|,/g)
-      .map((line) => String(line || "").trim())
-      .filter(Boolean)
-      .forEach((value) => {
-        const normalized = value === "<local>"
-          ? "<local>"
-          : value
-              .toLowerCase()
-              .replace(/^https?:\/\//, "")
-              .replace(/^www\./, "")
-              .replace(/\/.*$/, "");
-        if (!normalized || seen.has(normalized)) return;
-        seen.add(normalized);
-        out.push(normalized);
-      });
-    return out;
-  }
-
   function hostMapToLines(map) {
     if (!map || typeof map !== "object") return "";
     return Object.entries(map)
@@ -415,47 +366,37 @@
 
   function normalizeReadingDarkVariant(value, fallback = "coal") {
     const raw = String(value || "").trim().toLowerCase();
-    if (raw === "iron ore") return "iron_ore";
-    if (raw === "coal-black" || raw === "coal -black") return "coal";
-    if (raw === "dark brown") return "brown";
-    if (raw === "dark purple") return "purple";
-    if (raw === "dark green") return "forest_green";
-    if (raw === "gray") return "grey";
-    if (raw === "dim_slate") return "grey";
-    if (raw === "gentle_night") return "brown";
-    if (raw === "soft_black") return "coal";
-    return ["black", "coal", "iron_ore", "brown", "grey", "sepia", "teal", "purple", "forest_green"].includes(raw)
-      ? raw
-      : fallback;
+    if (raw === "iron ore" || raw === "iron") return "iron_ore";
+    if (["coal-black", "coal -black", "night", "soft_black", "black", "gray", "grey", "dim_slate", "teal", "purple", "forest_green", "dark purple", "dark green"].includes(raw)) return "coal";
+    if (["dark brown", "sepia", "gentle_night", "holmeta brown", "holmeta_brown"].includes(raw)) return "brown";
+    if (["coal", "iron_ore", "brown"].includes(raw)) return raw;
+    return normalizeReadingDarkVariant(fallback, "coal");
   }
 
   function normalizeReadingLightVariant(value, fallback = "white") {
     const raw = String(value || "").trim().toLowerCase();
-    if (raw === "gray") return "off_white";
-    if (raw === "soft_paper") return "off_white";
-    if (raw === "warm_page") return "warm";
-    if (raw === "neutral_light") return "white";
-    return ["white", "warm", "off_white", "soft_green", "baby_blue", "light_brown"].includes(raw)
-      ? raw
-      : fallback;
+    if (["gray", "beige", "soft_paper"].includes(raw)) return "off_white";
+    if (["warm_page", "light_brown"].includes(raw)) return "warm";
+    if (["neutral_light", "soft_green", "baby_blue"].includes(raw)) return "white";
+    if (["white", "warm", "off_white"].includes(raw)) return raw;
+    return normalizeReadingLightVariant(fallback, "white");
   }
 
   function darkVariantFromPreset(preset, fallback = "coal") {
     const key = String(preset || "").trim().toLowerCase();
-    if (key === "iron ore") return "iron_ore";
-    if (["black", "coal", "iron_ore", "brown", "grey", "sepia", "teal", "purple", "forest_green"].includes(key)) return key;
-    if (key === "soft_black") return "coal";
-    if (key === "dim_slate") return "grey";
-    if (key === "gentle_night") return "brown";
+    if (key === "iron ore" || key === "iron") return "iron_ore";
+    if (["coal", "iron_ore", "brown"].includes(key)) return key;
+    if (["soft_black", "dim_slate", "night", "black", "gray", "grey", "teal", "purple", "forest_green", "dark purple", "dark green"].includes(key)) return "coal";
+    if (["gentle_night", "sepia", "holmeta brown", "holmeta_brown", "dark brown"].includes(key)) return "brown";
     return normalizeReadingDarkVariant(fallback, "coal");
   }
 
   function lightVariantFromPreset(preset, fallback = "white") {
     const key = String(preset || "").trim().toLowerCase();
-    if (["white", "warm", "off_white", "soft_green", "baby_blue", "light_brown"].includes(key)) return key;
-    if (key === "soft_paper") return "off_white";
-    if (key === "warm_page") return "warm";
-    if (key === "neutral_light") return "white";
+    if (["white", "warm", "off_white"].includes(key)) return key;
+    if (["soft_paper", "gray", "beige"].includes(key)) return "off_white";
+    if (["warm_page", "light_brown"].includes(key)) return "warm";
+    if (["neutral_light", "baby_blue", "soft_green"].includes(key)) return "white";
     return normalizeReadingLightVariant(fallback, "white");
   }
 
@@ -717,64 +658,6 @@
     ].join(" · ");
   }
 
-  function formatDuration(ms) {
-    const total = Math.max(0, Math.floor(Number(ms || 0) / 1000));
-    const h = Math.floor(total / 3600);
-    const m = Math.floor((total % 3600) / 60);
-    const s = total % 60;
-    return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
-  }
-
-  function renderSecureTunnel() {
-    const tunnel = state.app.settings.secureTunnel || {};
-    const runtime = state.app.runtime?.secureTunnel || {};
-    const presets = Array.isArray(runtime.presets) ? runtime.presets : [];
-
-    if (refs.optTunnelPreset && !refs.optTunnelPreset.dataset.initialized) {
-      refs.optTunnelPreset.innerHTML = presets
-        .map((preset) => `<option value="${preset.id}">${preset.label}</option>`)
-        .join("");
-      refs.optTunnelPreset.dataset.initialized = "true";
-    } else if (refs.optTunnelPreset && presets.length) {
-      const existing = new Set([...refs.optTunnelPreset.options].map((option) => option.value));
-      const mismatch = presets.some((preset) => !existing.has(preset.id)) || existing.size !== presets.length;
-      if (mismatch) {
-        refs.optTunnelPreset.innerHTML = presets
-          .map((preset) => `<option value="${preset.id}">${preset.label}</option>`)
-          .join("");
-      }
-    }
-
-    setChecked("optTunnelEnabled", tunnel.enabled);
-    setValue("optTunnelMode", tunnel.mode || "preset");
-    setValue("optTunnelPreset", tunnel.selectedPresetId || "fastest");
-    setChecked("optTunnelAutoReapply", tunnel.autoReapply);
-    setValue("optTunnelReapplyMinutes", tunnel.reapplyMinutes || 20);
-    setValue("optTunnelCustomScheme", tunnel.custom?.scheme || "http");
-    setValue("optTunnelCustomHost", tunnel.custom?.host || "");
-    setValue("optTunnelCustomPort", tunnel.custom?.port || 8080);
-    setValue("optTunnelCustomUser", tunnel.custom?.username || "");
-    setValue("optTunnelCustomPass", tunnel.custom?.password || "");
-    setValue("optTunnelBypassList", Array.isArray(tunnel.bypassList) ? tunnel.bypassList.join("\n") : "<local>\nlocalhost\n127.0.0.1");
-
-    refs.optTunnelPreset.disabled = String(tunnel.mode || "preset") === "custom";
-    refs.optTunnelCustomPass.disabled = String(tunnel.mode || "preset") !== "custom";
-    refs.optTunnelCustomUser.disabled = String(tunnel.mode || "preset") !== "custom";
-    refs.optTunnelCustomHost.disabled = String(tunnel.mode || "preset") !== "custom";
-    refs.optTunnelCustomPort.disabled = String(tunnel.mode || "preset") !== "custom";
-    refs.optTunnelCustomScheme.disabled = String(tunnel.mode || "preset") !== "custom";
-
-    if (runtime.connected) {
-      const label = runtime.activeLabel || runtime.activePresetId || "proxy";
-      const session = runtime.connectedAt ? formatDuration(Date.now() - Number(runtime.connectedAt || 0)) : "00:00:00";
-      refs.optTunnelStatus.textContent = `Connected via ${label} · Session ${session}`;
-    } else if (runtime.lastError) {
-      refs.optTunnelStatus.textContent = `Connection failed: ${runtime.lastError}`;
-    } else {
-      refs.optTunnelStatus.textContent = "Disconnected.";
-    }
-  }
-
   function render() {
     if (!state.app) return;
     applyOptionsToolRegistry();
@@ -924,8 +807,6 @@
     setValue("optAllowDomains", domainsToLines(s.blocker.allowDomains));
     setValue("optBlockCosmeticDisabledHosts", hostMapToLines(s.blocker.disableCosmeticOnSite));
     setValue("optBlockCustomCosmeticJson", JSON.stringify(s.blocker.customCosmeticSelectors || {}, null, 2));
-    renderSecureTunnel();
-
     setChecked("optAlertsEnabled", s.alerts.enabled);
     setValue("optAlertFrequency", s.alerts.frequencyMin);
     setValue("optAlertCadence", s.alerts.cadenceMode || "focus_weighted");
@@ -948,17 +829,6 @@
     setChecked("optAlertMovement", s.alerts.types.movement);
 
     setChecked("optSiteInsightEnabled", s.siteInsight.enabled);
-    setChecked("optSiteInsightShowOnEverySite", s.siteInsight.showOnEverySite);
-    setChecked("optSiteInsightAutoMinimize", s.siteInsight.autoMinimize);
-    setChecked("optSiteInsightPill", s.siteInsight.minimizedPill);
-    setValue("optSiteInsightProfile", s.siteInsight.selectedProfile);
-    setValue("optSiteInsightDuration", s.siteInsight.durationMs);
-    setChecked("optSiteInsightShowAlgorithm", s.siteInsight.showAlgorithmLabel);
-    setChecked("optSiteInsightShowPurpose", s.siteInsight.showPurposeSummary);
-    setChecked("optSiteInsightRegular", s.siteInsight.enabledProfiles.regular);
-    setChecked("optSiteInsightDev", s.siteInsight.enabledProfiles.dev);
-    setChecked("optSiteInsightDesign", s.siteInsight.enabledProfiles.design);
-    setChecked("optSiteInsightUxr", s.siteInsight.enabledProfiles.uxr);
     setValue("optSiteInsightDisabledHosts", hostMapToLines(s.siteInsight.perSiteDisabled));
 
     setValue("optFocusMinutes", s.deepWork.focusMin);
@@ -1250,18 +1120,6 @@
       }
     });
 
-    bindCheck("optTunnelEnabled", (el) => queuePatch({ secureTunnel: { enabled: el.checked } }));
-    bindSelect("optTunnelMode", (el) => queuePatch({ secureTunnel: { mode: String(el.value || "preset") } }));
-    bindSelect("optTunnelPreset", (el) => queuePatch({ secureTunnel: { selectedPresetId: String(el.value || "fastest") } }));
-    bindCheck("optTunnelAutoReapply", (el) => queuePatch({ secureTunnel: { autoReapply: el.checked } }));
-    bindSelect("optTunnelReapplyMinutes", (el) => queuePatch({ secureTunnel: { reapplyMinutes: Number(el.value || 20) } }));
-    bindSelect("optTunnelCustomScheme", (el) => queuePatch({ secureTunnel: { custom: { scheme: String(el.value || "http") } } }));
-    bindSelect("optTunnelCustomHost", (el) => queuePatch({ secureTunnel: { custom: { host: String(el.value || "") } } }));
-    bindSelect("optTunnelCustomPort", (el) => queuePatch({ secureTunnel: { custom: { port: Number(el.value || 8080) } } }));
-    bindSelect("optTunnelCustomUser", (el) => queuePatch({ secureTunnel: { custom: { username: String(el.value || "") } } }));
-    bindSelect("optTunnelCustomPass", (el) => queuePatch({ secureTunnel: { custom: { password: String(el.value || "") } } }));
-    bindSelect("optTunnelBypassList", (el) => queuePatch({ secureTunnel: { bypassList: linesToBypassList(el.value) } }));
-
     bindCheck("optAlertsEnabled", (el) => queuePatch({ alerts: { enabled: el.checked } }));
     bindSelect("optAlertFrequency", (el) => queuePatch({ alerts: { frequencyMin: Number(el.value || 45) } }));
     bindSelect("optAlertCadence", (el) => queuePatch({ alerts: { cadenceMode: String(el.value || "focus_weighted") } }));
@@ -1284,20 +1142,6 @@
     bindCheck("optAlertMovement", (el) => queuePatch({ alerts: { types: { movement: el.checked } } }));
 
     bindCheck("optSiteInsightEnabled", (el) => queuePatch({ siteInsight: { enabled: el.checked } }));
-    bindCheck("optSiteInsightShowOnEverySite", (el) => queuePatch({ siteInsight: { showOnEverySite: el.checked } }));
-    bindCheck("optSiteInsightAutoMinimize", (el) => queuePatch({ siteInsight: { autoMinimize: el.checked } }));
-    bindCheck("optSiteInsightPill", (el) => queuePatch({ siteInsight: { minimizedPill: el.checked } }));
-    bindSelect("optSiteInsightProfile", (el) => queuePatch({ siteInsight: { selectedProfile: String(el.value || "regular") } }));
-    bindSelect("optSiteInsightDuration", (el) => {
-      const durationMs = Math.max(6000, Math.min(10000, Number(el.value || 8000)));
-      queuePatch({ siteInsight: { durationMs } });
-    });
-    bindCheck("optSiteInsightShowAlgorithm", (el) => queuePatch({ siteInsight: { showAlgorithmLabel: el.checked } }));
-    bindCheck("optSiteInsightShowPurpose", (el) => queuePatch({ siteInsight: { showPurposeSummary: el.checked } }));
-    bindCheck("optSiteInsightRegular", (el) => queuePatch({ siteInsight: { enabledProfiles: { regular: el.checked } } }));
-    bindCheck("optSiteInsightDev", (el) => queuePatch({ siteInsight: { enabledProfiles: { dev: el.checked } } }));
-    bindCheck("optSiteInsightDesign", (el) => queuePatch({ siteInsight: { enabledProfiles: { design: el.checked } } }));
-    bindCheck("optSiteInsightUxr", (el) => queuePatch({ siteInsight: { enabledProfiles: { uxr: el.checked } } }));
     bindInput("optSiteInsightDisabledHosts", (el) => queuePatch({ siteInsight: { perSiteDisabled: linesToHostMap(el.value) } }));
 
     bindInput("optFocusMinutes", (el) => queuePatch({ deepWork: { focusMin: Number(el.value || 25) } }));
@@ -1461,46 +1305,6 @@
       toast("Filter lists refreshed.");
     });
 
-    refs.optTunnelConnect?.addEventListener("click", async () => {
-      const payload = {
-        mode: String(refs.optTunnelMode?.value || "preset"),
-        presetId: String(refs.optTunnelPreset?.value || "fastest"),
-        custom: {
-          scheme: String(refs.optTunnelCustomScheme?.value || "http"),
-          host: String(refs.optTunnelCustomHost?.value || "").trim(),
-          port: Number(refs.optTunnelCustomPort?.value || 8080),
-          username: String(refs.optTunnelCustomUser?.value || "").trim(),
-          password: String(refs.optTunnelCustomPass?.value || "")
-        }
-      };
-      refs.optTunnelConnect.disabled = true;
-      refs.optTunnelConnect.textContent = "Connecting...";
-      const response = await sendMessage({
-        type: "holmeta:secure-tunnel-connect",
-        ...payload
-      });
-      refs.optTunnelConnect.disabled = false;
-      refs.optTunnelConnect.textContent = "Save & Connect";
-      if (!response.ok) {
-        toast(`Secure Tunnel failed: ${response.error || "unknown"}`);
-        return;
-      }
-      state.app = response.state;
-      render();
-      toast("Secure Tunnel connected.");
-    });
-
-    refs.optTunnelDisconnect?.addEventListener("click", async () => {
-      const response = await sendMessage({ type: "holmeta:secure-tunnel-disconnect" });
-      if (!response.ok) {
-        toast(`Secure Tunnel disconnect failed: ${response.error || "unknown"}`);
-        return;
-      }
-      state.app = response.state;
-      render();
-      toast("Secure Tunnel disconnected.");
-    });
-
     refs.exportSettings.addEventListener("click", async () => {
       const response = await sendMessage({ type: "holmeta:export-settings" });
       if (!response.ok) {
@@ -1600,15 +1404,6 @@
     });
 
     refs.diagRefresh.addEventListener("click", refreshDiagnostics);
-
-    refs.optSiteInsightClearCache.addEventListener("click", async () => {
-      const response = await sendMessage({ type: "holmeta:clear-site-insight-cache" });
-      if (!response.ok) {
-        toast(`Clear cache failed: ${response.error || "unknown"}`);
-        return;
-      }
-      toast("Site Insight cache cleared.");
-    });
 
     refs.diagResetSite.addEventListener("click", async () => {
       const host = await getActiveHost();

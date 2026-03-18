@@ -47,32 +47,37 @@
     "li",
     "details",
     "summary",
-    "[class*='button']",
-    "[class*='btn']",
-    "[class*='pill']",
-    "[class*='chip']",
-    "[class*='card']",
-    "[class*='panel']",
-    "[class*='menu']",
-    "[class*='input']",
-    "[class*='search']",
-    "[class*='toolbar']",
-    "[class*='nav']",
-    "[class*='sidebar']",
-    "[class*='drawer']",
-    "[class*='modal']",
-    "[class*='dialog']",
-    "[class*='tab']",
-    "[class*='accordion']",
-    "[class*='footer']",
-    "[class*='contentinfo']",
-    "[class*='buy']",
-    "[class*='checkout']",
-    "[class*='cart']",
-    "[class*='payment']",
-    "[class*='summary']",
-    "[class*='installment']",
-    "[class*='surface']",
+    "[class*='button' i]",
+    "[class*='btn' i]",
+    "[class*='pill' i]",
+    "[class*='chip' i]",
+    "[class*='card' i]",
+    "[class*='panel' i]",
+    "[class*='menu' i]",
+    "[class*='input' i]",
+    "[class*='search' i]",
+    "[class*='toolbar' i]",
+    "[class*='nav' i]",
+    "[class*='navbar' i]",
+    "[class*='topbar' i]",
+    "[class*='appbar' i]",
+    "[class*='masthead' i]",
+    "[class*='header' i]",
+    "[class*='sidebar' i]",
+    "[class*='drawer' i]",
+    "[class*='modal' i]",
+    "[class*='dialog' i]",
+    "[class*='tab' i]",
+    "[class*='accordion' i]",
+    "[class*='footer' i]",
+    "[class*='contentinfo' i]",
+    "[class*='buy' i]",
+    "[class*='checkout' i]",
+    "[class*='cart' i]",
+    "[class*='payment' i]",
+    "[class*='summary' i]",
+    "[class*='installment' i]",
+    "[class*='surface' i]",
     "[data-testid*='button']",
     "[data-testid*='Button']",
     "[data-testid*='card']",
@@ -172,6 +177,18 @@
     if (/dropdown|popover|menuitem|listbox|select/.test(className)) {
       return "dropdown";
     }
+    if (tag === "button" || role === "button" || /button|btn|icon|glyph|toolbar-item|action/.test(className)) {
+      const rect = el.getBoundingClientRect?.() || { width: 0, height: 0 };
+      const text = String(el.textContent || "").replace(/\s+/g, " ").trim();
+      const iconLike = Boolean(
+        el.querySelector("svg, img, [class*='icon' i], [data-icon], [aria-hidden='true']")
+      );
+      const textLight = text.length === 0 || text.length <= 2 || /^[0-9]+$/.test(text);
+      const compact = rect.width > 0 && rect.height > 0 && rect.width <= 72 && rect.height <= 72;
+      if (iconLike && textLight && compact) {
+        return "icon_button";
+      }
+    }
     if (tag === "button" || role === "button" || /button|btn|pill|chip|toggle|cta/.test(className)) {
       return "button";
     }
@@ -261,7 +278,7 @@
   }
 
   function collectCandidates(root = document.documentElement, limit = 2800) {
-    if (!(root instanceof Element || root instanceof Document)) return [];
+    if (!(root instanceof Element || root instanceof Document || root instanceof ShadowRoot)) return [];
     const base = root instanceof Document ? root.documentElement : root;
     if (!base) return [];
 
@@ -320,7 +337,7 @@
   }
 
   function clearOwned(root = document.documentElement) {
-    if (!(root instanceof Element || root instanceof Document)) return;
+    if (!(root instanceof Element || root instanceof Document || root instanceof ShadowRoot)) return;
     const base = root instanceof Document ? root.documentElement : root;
     if (!base) return;
 

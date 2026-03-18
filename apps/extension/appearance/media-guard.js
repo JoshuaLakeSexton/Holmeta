@@ -69,7 +69,7 @@
   }
 
   function markMediaNodes(root = document.documentElement) {
-    if (!root || !(root instanceof Element || root instanceof Document)) return 0;
+    if (!root || !(root instanceof Element || root instanceof Document || root instanceof ShadowRoot)) return 0;
     let count = 0;
     const base = root instanceof Document ? root.documentElement : root;
     if (!base) return 0;
@@ -93,7 +93,7 @@
   }
 
   function clearMarks(root = document.documentElement) {
-    if (!root || !(root instanceof Element || root instanceof Document)) return;
+    if (!root || !(root instanceof Element || root instanceof Document || root instanceof ShadowRoot)) return;
     const base = root instanceof Document ? root.documentElement : root;
     if (!base) return;
     const nodes = base.querySelectorAll(`[${ATTR.MEDIA_SAFE}]`);

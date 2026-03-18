@@ -72,6 +72,11 @@ test("appearance presets include required dark and light variants", () => {
     "Baby Blue",
     "Light Brown"
   ]));
+  assert.equal(palettes.normalizeDarkVariant("night"), "coal");
+  assert.equal(palettes.normalizeDarkVariant("teal"), "coal");
+  assert.equal(palettes.normalizeDarkVariant("sepia"), "brown");
+  assert.equal(palettes.normalizeLightVariant("baby_blue"), "white");
+  assert.equal(palettes.normalizeLightVariant("light_brown"), "warm");
 });
 
 test("appearance state tokens map to selected palette values", () => {
@@ -162,7 +167,7 @@ test("appearance state tokens map to selected palette values", () => {
 
   const lightTokens = state.toTokens({
     mode: "light",
-    lightVariant: "baby_blue",
+    lightVariant: "off_white",
     intensity: 45,
     siteClass: "content",
     pageTone: "mixed",
@@ -170,7 +175,7 @@ test("appearance state tokens map to selected palette values", () => {
   });
   assert.equal(lightTokens.mode, "light");
   assert.equal(lightTokens.textPrimary, "#111111");
-  assert.equal(lightTokens.accent, "#42A5F5");
+  assert.equal(lightTokens.accent, "#757575");
   assert.ok(lightTokens.panelBackground, "token generator should emit panelBackground");
   assert.ok(lightTokens.inputBackground, "token generator should emit inputBackground");
 });
@@ -239,4 +244,6 @@ test("token remapper enforces explicit light/dark foreground markers", () => {
   assert.ok(css.includes("[data-holmeta-appearance-site='amazon']"), "missing amazon site harmonization rules");
   assert.ok(css.includes("[data-holmeta-appearance-site='claude']"), "missing claude site smoothing rules");
   assert.ok(css.includes(":where([role='button'])"), "missing role button smoothing rule");
+  assert.ok(css.includes("[data-holmeta-ui-component='icon_button']"), "missing icon button de-boxing rule");
+  assert.ok(css.includes("[class*='topbar' i]"), "missing dark header harmonization rule");
 });

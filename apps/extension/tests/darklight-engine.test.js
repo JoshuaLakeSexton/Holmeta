@@ -38,7 +38,7 @@ function createContext(initialSettings = {}) {
   let settings = deepMerge({
     darkLightTheme: {
       enabled: false,
-      appearance: "auto",
+      appearance: "adaptive",
       darkVariant: "coal",
       lightVariant: "white",
       excludedSites: {},
@@ -91,7 +91,7 @@ test("darklight engine actions update day/night settings", async () => {
 
   const before = await engine.getState();
   assert.equal(before.ok, true);
-  assert.equal(before.mode, "auto");
+  assert.equal(before.mode, "adaptive");
   assert.equal(before.enabled, false);
 
   const dark = await engine.applyAction("setDark");
@@ -110,6 +110,20 @@ test("darklight engine actions update day/night settings", async () => {
   const raw = context.__getSettings();
   assert.equal(raw.darkLightTheme.appearance, "dark");
   assert.equal(raw.darkLightTheme.excludedSites["example.com"], true);
+});
+
+test("darklight engine treats setAuto as adaptive mode", async () => {
+  const context = createContext();
+  const appearanceDir = path.join(__dirname, "..", "appearance");
+
+  loadScript(context, path.join(appearanceDir, "darklight-settings.js"));
+  loadScript(context, path.join(appearanceDir, "darklight-engine.js"));
+
+  const engine = context.HolmetaDarklightEngine;
+  const adaptive = await engine.applyAction("setAuto");
+  assert.equal(adaptive.ok, true);
+  assert.equal(adaptive.mode, "adaptive");
+  assert.equal(context.__getSettings().darkLightTheme.appearance, "adaptive");
 });
 
 test("darklight widget state persistence defaults hidden and stores host position", async () => {

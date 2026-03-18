@@ -69,7 +69,6 @@ html[${ATTR.ACTIVE}='1'] :where(
 }
 
 html[${ATTR.ACTIVE}='1'] [${ATTR.SURFACE}='1']:not([${ATTR.ACCENT_SAFE}='1']) {
-  background-color: var(--holmeta-appearance-panel-background) !important;
   color: var(--holmeta-appearance-text-primary) !important;
   border-color: var(--holmeta-appearance-border-subtle) !important;
   box-shadow: none !important;
@@ -120,6 +119,23 @@ html[${ATTR.ACTIVE}='1'] [${ATTR.SURFACE}='1'][${ATTR.COMPONENT}='button'] {
   border-color: var(--holmeta-appearance-button-border) !important;
 }
 
+html[${ATTR.ACTIVE}='1'] [${ATTR.SURFACE}='1'][${ATTR.COMPONENT}='icon_button'] {
+  background-color: transparent !important;
+  color: var(--holmeta-appearance-icon-primary) !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+}
+
+html[${ATTR.ACTIVE}='1'] [${ATTR.SURFACE}='1'][${ATTR.COMPONENT}='icon_button']:hover,
+html[${ATTR.ACTIVE}='1'] [${ATTR.SURFACE}='1'][${ATTR.COMPONENT}='icon_button']:focus-visible,
+html[${ATTR.ACTIVE}='1'] [${ATTR.SURFACE}='1'][${ATTR.COMPONENT}='icon_button'][aria-current='page'],
+html[${ATTR.ACTIVE}='1'] [${ATTR.SURFACE}='1'][${ATTR.COMPONENT}='icon_button'][aria-selected='true'],
+html[${ATTR.ACTIVE}='1'] [${ATTR.SURFACE}='1'][${ATTR.COMPONENT}='icon_button'][aria-pressed='true'],
+html[${ATTR.ACTIVE}='1'] [${ATTR.SURFACE}='1'][${ATTR.COMPONENT}='icon_button'][aria-expanded='true'] {
+  background-color: color-mix(in srgb, var(--holmeta-appearance-hover-background) 36%, transparent) !important;
+  border-color: transparent !important;
+}
+
 html[${ATTR.ACTIVE}='1'] [${ATTR.SURFACE}='1'][${ATTR.COMPONENT}='button']:hover,
 html[${ATTR.ACTIVE}='1'] [${ATTR.SURFACE}='1'][${ATTR.COMPONENT}='button']:focus-visible,
 html[${ATTR.ACTIVE}='1'] [${ATTR.SURFACE}='1'][${ATTR.COMPONENT}='button'][aria-current='page'],
@@ -144,7 +160,7 @@ html[${ATTR.ACTIVE}='1'] :where(input, textarea, select, [role='textbox'], [type
 }
 
 html[${ATTR.ACTIVE}='1'] :where(
-  button, [type='button'], [type='submit'], [type='reset'], [role='tab']
+  [type='button'], [type='submit'], [type='reset']
 ):not([${ATTR.ACCENT_SAFE}='1']) {
   background-color: var(--holmeta-appearance-control-background) !important;
   color: var(--holmeta-appearance-control-text) !important;
@@ -158,15 +174,24 @@ html[${ATTR.ACTIVE}='1'] :where([role='button']):not([${ATTR.ACCENT_SAFE}='1']) 
   box-shadow: none !important;
 }
 
-html[${ATTR.ACTIVE}='1'] :where([role='button'][aria-selected='true'], [role='button'][aria-current='page'], [role='button'][aria-pressed='true']):not([${ATTR.ACCENT_SAFE}='1']) {
-  background-color: color-mix(in srgb, var(--holmeta-appearance-selected-background) 40%, transparent) !important;
-  border-color: transparent !important;
-}
-
-html[${ATTR.ACTIVE}='1'] :where([role='tab'][aria-selected='true'], [aria-current='page']) {
+html[${ATTR.ACTIVE}='1'] :where([role='tab'][aria-selected='true'], a[aria-current='page'], [role='link'][aria-current='page']) {
   background-color: var(--holmeta-appearance-selected-background) !important;
   color: var(--holmeta-appearance-selected-text) !important;
   border-color: var(--holmeta-appearance-accent-strong) !important;
+}
+
+html[${ATTR.ACTIVE}='1'][${ATTR.MODE}='dark'] :where(
+  [role='banner'],
+  header,
+  nav,
+  div[class*='topbar' i],
+  div[class*='appbar' i],
+  div[class*='masthead' i],
+  div[class*='navbar' i]
+):not([${ATTR.MEDIA_SAFE}='1']):not([${ATTR.ACCENT_SAFE}='1']) {
+  background-color: var(--holmeta-appearance-nav-harmonized-background) !important;
+  color: var(--holmeta-appearance-nav-harmonized-text) !important;
+  border-color: var(--holmeta-appearance-line-subtle) !important;
 }
 
 html[${ATTR.ACTIVE}='1'] :where([class*='divider' i], [class*='separator' i], hr, [role='separator']) {

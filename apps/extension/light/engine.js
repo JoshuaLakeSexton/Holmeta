@@ -71,23 +71,14 @@
   ]);
 
   const READING_DARK_VARIANTS = new Set([
-    "black",
     "coal",
     "iron_ore",
-    "brown",
-    "grey",
-    "sepia",
-    "teal",
-    "purple",
-    "forest_green"
+    "brown"
   ]);
   const READING_LIGHT_VARIANTS = new Set([
     "white",
     "warm",
-    "off_white",
-    "soft_green",
-    "baby_blue",
-    "light_brown"
+    "off_white"
   ]);
   const READING_PRESETS = new Set([
     "black",
@@ -804,43 +795,35 @@
 
   function normalizeReadingDarkVariant(value, fallback = "coal") {
     const raw = String(value || "").trim().toLowerCase();
-    if (raw === "iron ore") return "iron_ore";
-    if (raw === "coal-black" || raw === "coal -black") return "coal";
-    if (raw === "dark brown") return "brown";
-    if (raw === "dark purple") return "purple";
-    if (raw === "dark green") return "forest_green";
-    if (raw === "gray") return "grey";
-    if (raw === "dim_slate") return "grey";
-    if (raw === "gentle_night") return "brown";
-    if (raw === "soft_black") return "coal";
+    if (raw === "iron ore" || raw === "iron") return "iron_ore";
+    if (["coal-black", "coal -black", "night", "soft_black", "black", "gray", "grey", "dim_slate", "teal", "purple", "forest_green", "dark purple", "dark green"].includes(raw)) return "coal";
+    if (["dark brown", "sepia", "gentle_night", "holmeta brown", "holmeta_brown"].includes(raw)) return "brown";
     return READING_DARK_VARIANTS.has(raw) ? raw : fallback;
   }
 
   function normalizeReadingLightVariant(value, fallback = "white") {
     const raw = String(value || "").trim().toLowerCase();
-    if (raw === "gray") return "off_white";
-    if (raw === "soft_paper") return "off_white";
-    if (raw === "warm_page") return "warm";
-    if (raw === "neutral_light") return "white";
+    if (["gray", "beige", "soft_paper"].includes(raw)) return "off_white";
+    if (["warm_page", "light_brown"].includes(raw)) return "warm";
+    if (["neutral_light", "soft_green", "baby_blue"].includes(raw)) return "white";
     return READING_LIGHT_VARIANTS.has(raw) ? raw : fallback;
   }
 
   function darkVariantFromPreset(preset, fallback = "coal") {
     const key = String(preset || "").trim().toLowerCase();
-    if (key === "iron ore") return "iron_ore";
+    if (key === "iron ore" || key === "iron") return "iron_ore";
     if (READING_DARK_VARIANTS.has(key)) return key;
-    if (key === "soft_black") return "coal";
-    if (key === "dim_slate") return "grey";
-    if (key === "gentle_night") return "brown";
+    if (["soft_black", "dim_slate", "night", "black", "gray", "grey", "teal", "purple", "forest_green", "dark purple", "dark green"].includes(key)) return "coal";
+    if (["gentle_night", "sepia", "holmeta brown", "holmeta_brown", "dark brown"].includes(key)) return "brown";
     return normalizeReadingDarkVariant(fallback, "coal");
   }
 
   function lightVariantFromPreset(preset, fallback = "white") {
     const key = String(preset || "").trim().toLowerCase();
     if (READING_LIGHT_VARIANTS.has(key)) return key;
-    if (key === "warm_page") return "warm";
-    if (key === "soft_paper") return "off_white";
-    if (key === "neutral_light") return "white";
+    if (["warm_page", "light_brown"].includes(key)) return "warm";
+    if (["soft_paper", "gray", "beige"].includes(key)) return "off_white";
+    if (["neutral_light", "baby_blue", "soft_green"].includes(key)) return "white";
     return normalizeReadingLightVariant(fallback, "white");
   }
 
@@ -851,14 +834,14 @@
   function createDefaultReadingProfile() {
     return {
       enabled: false,
-      appearance: "auto", // light | dark | auto
-      darkVariant: "coal", // black | coal | iron_ore | brown | grey | sepia | teal | purple | forest_green
-      darkThemeVariant: "black",
-      lightVariant: "white", // white | warm | off_white | soft_green | baby_blue | light_brown
+      appearance: "adaptive", // light | dark | adaptive
+      darkVariant: "coal", // coal (Night) | iron_ore (Iron) | brown (Holmeta Brown)
+      darkThemeVariant: "coal",
+      lightVariant: "white", // white | warm | off_white
       lightThemeVariant: "white",
-      scheduleMode: "system", // system | sunset | custom
+      scheduleMode: "system", // legacy compatibility only
       schedule: {
-        enabled: true,
+        enabled: false,
         useSunset: false,
         start: "20:00",
         end: "06:00"
@@ -868,6 +851,18 @@
       intensity: 44,
       opaqueBackground: false,
       pointerCursors: false,
+      preserveImages: true,
+      preserveLogos: true,
+      higherContrast: false,
+      softerSurfaces: false,
+      contrastStrength: 52,
+      surfaceStrength: 54,
+      preservedSelectors: [],
+      excludedSelectors: [],
+      tokenOverrides: {},
+      repairMemory: {
+        enabled: true
+      },
       sansFontSize: 13,
       sansFontFamily: "-apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
       codeFontSize: 12,
@@ -881,10 +876,10 @@
       ...(fallback || {})
     };
     const raw = input && typeof input === "object" ? input : {};
-    const appearanceRaw = String(raw.appearance || raw.mode || base.appearance || "auto").toLowerCase();
-    const appearance = ["light", "dark", "auto"].includes(appearanceRaw)
-      ? appearanceRaw
-      : "auto";
+    const appearanceRaw = String(raw.appearance || raw.mode || base.appearance || "adaptive").toLowerCase();
+    const appearance = appearanceRaw === "auto"
+      ? "adaptive"
+      : (["light", "dark", "adaptive"].includes(appearanceRaw) ? appearanceRaw : "adaptive");
     const scheduleModeRaw = String(raw.scheduleMode || (raw.schedule?.useSunset ? "sunset" : "") || base.scheduleMode || "system").toLowerCase();
     const scheduleMode = ["system", "sunset", "custom"].includes(scheduleModeRaw)
       ? scheduleModeRaw
@@ -894,12 +889,12 @@
       ...(raw.schedule && typeof raw.schedule === "object" ? raw.schedule : {})
     };
     const schedule = {
-      enabled: Boolean(raw.schedule?.enabled ?? (appearance === "auto")),
+      enabled: Boolean(raw.schedule?.enabled ?? false),
       useSunset: scheduleMode === "sunset",
       start: /^([01]\d|2[0-3]):([0-5]\d)$/.test(String(scheduleRaw.start || "")) ? String(scheduleRaw.start) : "20:00",
       end: /^([01]\d|2[0-3]):([0-5]\d)$/.test(String(scheduleRaw.end || "")) ? String(scheduleRaw.end) : "06:00"
     };
-    const mode = appearance === "auto"
+    const mode = appearance === "adaptive"
       ? (
         scheduleMode === "system"
           ? (window.matchMedia?.("(prefers-color-scheme: dark)")?.matches ? "dark" : "light")
@@ -920,6 +915,24 @@
       : presetFromVariants(mode, darkVariant, lightVariant);
     const opaqueBackground = Boolean(raw.opaqueBackground ?? base.opaqueBackground);
     const pointerCursors = Boolean(raw.pointerCursors ?? base.pointerCursors);
+    const preserveImages = Boolean(raw.preserveImages ?? base.preserveImages ?? true);
+    const preserveLogos = Boolean(raw.preserveLogos ?? base.preserveLogos ?? true);
+    const higherContrast = Boolean(raw.higherContrast ?? base.higherContrast ?? false);
+    const softerSurfaces = Boolean(raw.softerSurfaces ?? base.softerSurfaces ?? false);
+    const contrastStrength = Math.round(clamp(raw.contrastStrength ?? base.contrastStrength ?? 52, 0, 100));
+    const surfaceStrength = Math.round(clamp(raw.surfaceStrength ?? base.surfaceStrength ?? 54, 0, 100));
+    const preservedSelectors = Array.isArray(raw.preservedSelectors)
+      ? [...new Set(raw.preservedSelectors.map((value) => String(value || "").trim()).filter(Boolean))].slice(0, 80)
+      : [...(base.preservedSelectors || [])];
+    const excludedSelectors = Array.isArray(raw.excludedSelectors)
+      ? [...new Set(raw.excludedSelectors.map((value) => String(value || "").trim()).filter(Boolean))].slice(0, 80)
+      : [...(base.excludedSelectors || [])];
+    const tokenOverrides = raw.tokenOverrides && typeof raw.tokenOverrides === "object"
+      ? { ...raw.tokenOverrides }
+      : { ...(base.tokenOverrides || {}) };
+    const repairMemory = {
+      enabled: Boolean(raw.repairMemory?.enabled ?? base.repairMemory?.enabled ?? true)
+    };
     const sansFontSize = normalizeReadingFontSize(raw.sansFontSize ?? base.sansFontSize, base.sansFontSize || 13);
     const sansFontFamily = normalizeReadingFontFamily(
       raw.sansFontFamily,
@@ -946,6 +959,16 @@
       intensity: Math.round(clamp(raw.intensity ?? base.intensity, 0, 100)),
       opaqueBackground,
       pointerCursors,
+      preserveImages,
+      preserveLogos,
+      higherContrast,
+      softerSurfaces,
+      contrastStrength,
+      surfaceStrength,
+      preservedSelectors,
+      excludedSelectors,
+      tokenOverrides,
+      repairMemory,
       sansFontSize,
       sansFontFamily,
       codeFontSize,
@@ -972,40 +995,61 @@
   function adaptiveVariantsForSiteType(siteType = "general") {
     switch (String(siteType || "general")) {
       case "dashboard_app":
-        return { darkVariant: "black", lightVariant: "white", reason: "dashboard" };
+        return { darkVariant: "iron_ore", lightVariant: "white", reason: "dashboard" };
       case "docs_code":
-        return { darkVariant: "grey", lightVariant: "off_white", reason: "docs" };
+        return { darkVariant: "iron_ore", lightVariant: "off_white", reason: "docs" };
       case "social":
         return { darkVariant: "coal", lightVariant: "off_white", reason: "social" };
       case "article":
-        return { darkVariant: "sepia", lightVariant: "warm", reason: "article" };
+        return { darkVariant: "brown", lightVariant: "warm", reason: "article" };
       case "ecommerce":
-        return { darkVariant: "teal", lightVariant: "baby_blue", reason: "commerce" };
+        return { darkVariant: "iron_ore", lightVariant: "off_white", reason: "commerce" };
       case "media":
-        return { darkVariant: "black", lightVariant: "off_white", reason: "media" };
+        return { darkVariant: "coal", lightVariant: "off_white", reason: "media" };
       default:
         return { darkVariant: "coal", lightVariant: "white", reason: "general" };
     }
   }
 
+  function chooseAdaptiveAppearanceMode(siteType = "general", pageTone = { tone: "mixed", luminance: 0.5 }) {
+    const tone = String(pageTone?.tone || "mixed");
+    if (tone === "dark") return "dark";
+    if (tone === "light") return "light";
+
+    switch (String(siteType || "general")) {
+      case "dashboard_app":
+      case "social":
+      case "media":
+      case "ecommerce":
+        return "dark";
+      case "docs_code":
+      case "article":
+        return "light";
+      default:
+        return Number(pageTone?.luminance || 0.5) < 0.5 ? "dark" : "light";
+    }
+  }
+
   function resolveAdaptiveReadingProfile(profile = {}, context = {}) {
-    const appearance = String(profile.appearance || "auto");
-    const source = String(context.source || "global");
-    if (appearance !== "auto" || source === "site") {
+    const appearance = String(profile.appearance || "adaptive");
+    if (appearance !== "adaptive") {
       return {
         profile: { ...profile },
         applied: false,
-        reason: source === "site" ? "site-override" : "manual-mode"
+        reason: "manual-mode"
       };
     }
 
     const siteType = String(context.siteType || "general");
     const pageTone = String(context.pageTone || "mixed");
-    const mode = String(profile.mode || "dark") === "light" ? "light" : "dark";
+    const mode = chooseAdaptiveAppearanceMode(siteType, {
+      tone: pageTone,
+      luminance: Number(context.luminance || 0.5)
+    });
     const map = adaptiveVariantsForSiteType(siteType);
 
-    let darkVariant = normalizeReadingDarkVariant(map.darkVariant, profile.darkVariant || "coal");
-    let lightVariant = normalizeReadingLightVariant(map.lightVariant, profile.lightVariant || "white");
+    let darkVariant = normalizeReadingDarkVariant(profile.darkVariant || profile.darkThemeVariant || map.darkVariant, map.darkVariant);
+    let lightVariant = normalizeReadingLightVariant(profile.lightVariant || profile.lightThemeVariant || map.lightVariant, map.lightVariant);
 
     // Already-dark pages should avoid over-aggressive dark palettes in auto mode.
     if (mode === "dark" && pageTone === "dark") {
@@ -1040,7 +1084,7 @@
     return {
       profile: next,
       applied: changed,
-      reason: `auto-${map.reason}`
+      reason: `adaptive-${map.reason}`
     };
   }
 
@@ -1411,25 +1455,30 @@
     return { x: 50, y: 42 };
   }
 
-  function readingThemeForProfile(profile = {}, pageTone = { tone: "mixed", luminance: 0.5 }) {
+  function readingThemeForProfile(profile = {}, pageTone = { tone: "mixed", luminance: 0.5 }, siteType = "general") {
     const appearancePalettes = globalThis.HolmetaAppearancePalettes || null;
-    const appearance = ["light", "dark", "auto"].includes(String(profile.appearance || ""))
-      ? String(profile.appearance)
-      : (profile.mode === "light" ? "light" : "dark");
+    const rawAppearance = String(profile.appearance || "").toLowerCase();
+    const appearance = rawAppearance === "auto"
+      ? "adaptive"
+      : (["light", "dark", "adaptive"].includes(rawAppearance) ? rawAppearance : (profile.mode === "light" ? "light" : "dark"));
     const schedule = profile.schedule && typeof profile.schedule === "object"
       ? profile.schedule
-      : { start: "20:00", end: "06:00", enabled: appearance === "auto" };
+      : { start: "20:00", end: "06:00", enabled: false };
     const scheduleModeRaw = String(profile.scheduleMode || (schedule.useSunset ? "sunset" : "system")).toLowerCase();
     const scheduleMode = ["system", "sunset", "custom"].includes(scheduleModeRaw)
       ? scheduleModeRaw
       : "system";
-    const mode = appearance === "auto"
-      ? (
-        scheduleMode === "system"
-          ? (window.matchMedia?.("(prefers-color-scheme: dark)")?.matches ? "dark" : "light")
-          : (inRange(String(schedule.start || "20:00"), String(schedule.end || "06:00"), new Date()) ? "dark" : "light")
-      )
-      : (appearance === "light" ? "light" : "dark");
+    const mode = appearance === "adaptive"
+      ? chooseAdaptiveAppearanceMode(siteType, pageTone)
+      : (appearance === "light"
+        ? "light"
+        : appearance === "dark"
+          ? "dark"
+          : (
+            scheduleMode === "system"
+              ? (window.matchMedia?.("(prefers-color-scheme: dark)")?.matches ? "dark" : "light")
+              : (inRange(String(schedule.start || "20:00"), String(schedule.end || "06:00"), new Date()) ? "dark" : "light")
+          ));
     const tone = pageTone.tone || "mixed";
     const alreadyDark = tone === "dark";
     const intensityFactor = clamp(profile.intensity ?? 44, 0, 100) / 100;
@@ -1858,7 +1907,7 @@
       enabled: Boolean(legacyLight.readingModeEnabled ?? false),
       appearance: ["light", "dark"].includes(String(legacyLight.readingMode || ""))
         ? String(legacyLight.readingMode)
-        : "auto",
+        : "adaptive",
       scheduleMode: legacyLight.schedule?.useSunset ? "sunset" : "custom",
       schedule: {
         enabled: Boolean(legacyLight.readingModeEnabled ?? false),
@@ -1925,7 +1974,7 @@
 
     updateSystemAppearanceListener(
       readingThemeEnabled
-      && String(readingProfile.appearance || "") === "auto"
+      && String(readingProfile.appearance || "") === "adaptive"
       && String(readingProfile.scheduleMode || "") === "system"
     );
 
@@ -1944,7 +1993,7 @@
       ? profileToStyle(profile, strategy, rampFactor)
       : { overlayBg: "rgba(0,0,0,1)", overlayOpacity: 0, filter: "none" };
     const readingTheme = readingThemeEnabled
-      ? readingThemeForProfile(readingProfile, pageTone)
+      ? readingThemeForProfile(readingProfile, pageTone, siteType)
       : { mode: "off", variant: "off", overlayBg: style.overlayBg, overlayOpacity: 0, maxOverlayOpacity: 0.62, filter: "none" };
     const adaptiveTheme = null;
     const resolved = resolveEffectiveVisualProfile({
@@ -2039,6 +2088,16 @@
           schedule: readingProfile.schedule,
           opaqueBackground: readingProfile.opaqueBackground,
           pointerCursors: readingProfile.pointerCursors,
+          preserveImages: readingProfile.preserveImages,
+          preserveLogos: readingProfile.preserveLogos,
+          higherContrast: readingProfile.higherContrast,
+          softerSurfaces: readingProfile.softerSurfaces,
+          contrastStrength: readingProfile.contrastStrength,
+          surfaceStrength: readingProfile.surfaceStrength,
+          preservedSelectors: readingProfile.preservedSelectors,
+          excludedSelectors: readingProfile.excludedSelectors,
+          tokenOverrides: readingProfile.tokenOverrides,
+          repairMemory: readingProfile.repairMemory,
           sansFontSize: readingProfile.sansFontSize,
           sansFontFamily: readingProfile.sansFontFamily,
           codeFontSize: readingProfile.codeFontSize,

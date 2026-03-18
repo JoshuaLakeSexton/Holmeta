@@ -223,21 +223,20 @@
 
   function normalizeDarkVariant(value, fallback = "coal") {
     const key = String(value || "").trim().toLowerCase();
-    if (key === "iron ore") return "iron_ore";
-    if (key === "coal-black" || key === "coal -black") return "coal";
-    if (key === "dark brown") return "brown";
-    if (key === "dark purple") return "purple";
-    if (key === "dark green") return "forest_green";
-    if (key === "gray") return "grey";
-    if (darkMap[key]) return key;
-    return darkMap[fallback] ? fallback : "coal";
+    if (key === "iron ore" || key === "iron") return "iron_ore";
+    if (["dark brown", "sepia", "gentle_night", "holmeta brown", "holmeta_brown"].includes(key)) return "brown";
+    if (["coal", "iron_ore", "brown"].includes(key)) return key;
+    if (["coal-black", "coal -black", "night", "soft_black", "black", "gray", "grey", "dim_slate", "teal", "purple", "forest_green", "dark purple", "dark green"].includes(key)) return "coal";
+    return ["coal", "iron_ore", "brown"].includes(String(fallback || "").toLowerCase()) ? String(fallback || "").toLowerCase() : "coal";
   }
 
   function normalizeLightVariant(value, fallback = "white") {
     const key = String(value || "").trim().toLowerCase();
-    if (key === "gray") return "off_white";
-    if (lightMap[key]) return key;
-    return lightMap[fallback] ? fallback : "white";
+    if (["gray", "beige", "soft_paper"].includes(key)) return "off_white";
+    if (["warm_page", "light_brown"].includes(key)) return "warm";
+    if (["neutral_light", "soft_green", "baby_blue"].includes(key)) return "white";
+    if (["white", "warm", "off_white"].includes(key)) return key;
+    return ["white", "warm", "off_white"].includes(String(fallback || "").toLowerCase()) ? String(fallback || "").toLowerCase() : "white";
   }
 
   function getPalette(mode, variant) {

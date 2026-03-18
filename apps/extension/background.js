@@ -8,14 +8,11 @@
 const STORAGE_KEY = "holmeta.v3.state";
 const _LEGACY_KEYS = ["holmeta.v2.state", "holmeta.settings", "holmeta.v3"];
 const VERSION = "3.0.0";
-const SCHEMA_VERSION = 9;
+const SCHEMA_VERSION = 10;
 const LOG_LIMIT = 500;
 const DOMAIN_LIMIT = 600;
 const SWATCH_LIMIT = 12;
 const FAVORITE_LIMIT = 20;
-const SITE_INSIGHT_CACHE_LIMIT = 320;
-const SITE_INSIGHT_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
-const SITE_INSIGHT_THROTTLE_MS = 10 * 1000;
 const TRANSLATE_HISTORY_LIMIT = 120;
 const SAVED_PHRASE_LIMIT = 200;
 const TRIAL_DURATION_MS = 3 * 24 * 60 * 60 * 1000;
@@ -43,6 +40,22 @@ const SCREEN_PRESETS = new Set([
   "mobile_small",
   "mobile_large"
 ]);
+
+const AUTO_ALERT_SOUND_PATTERNS = Object.freeze({
+  eye: "beacon",
+  posture: "watchtower",
+  burnout: "klaxon",
+  hydration: "relay",
+  blink: "single",
+  movement: "double"
+});
+
+const MEDITATION_AMBIENT_LABELS = Object.freeze({
+  brown_hush: "Brown Hush",
+  rain_atrium: "Rain Atrium",
+  cloud_drift: "Cloud Drift",
+  night_tide: "Night Tide"
+});
 
 const LIGHT_FILTER_MODES = [
   "warm",
@@ -142,8 +155,7 @@ const ADAPTIVE_SITE_THEME_COMPATIBILITY = [
 const ALARMS = {
   HEALTH: "holmeta-v3-health-alert",
   DEEPWORK: "holmeta-v3-deepwork-transition",
-  HEARTBEAT: "holmeta-v3-heartbeat",
-  PROXY_REAPPLY: "holmeta-v3-proxy-reapply"
+  HEARTBEAT: "holmeta-v3-heartbeat"
 };
 
 const DNR_IDS = {
@@ -180,6 +192,7 @@ const DNR_CATEGORY_RANGES = {
 };
 
 const ALARMS_BLOCKER_UPDATE = "holmeta-v3-blocker-update";
+const BLOCKED_PAGE_CONTEXT_TTL_MS = 2 * 60 * 1000;
 
 const _FILTER_CATEGORY_META = {
   ads: { label: "Ads & banners" },
@@ -310,56 +323,9 @@ const REMOTE_FILTER_SOURCES = {
   ]
 };
 
-const SECURE_TUNNEL_PRESETS = [
-  {
-    id: "fastest",
-    label: "Fastest (Auto)",
-    region: "Auto",
-    kind: "auto",
-    pool: ["us_fast", "eu_fast", "asia_fast"]
-  },
-  {
-    id: "us_fast",
-    label: "US (Community Relay)",
-    region: "US",
-    kind: "fixed",
-    scheme: "http",
-    host: "67.169.98.211",
-    port: 443
-  },
-  {
-    id: "eu_fast",
-    label: "EU (Community Relay)",
-    region: "EU",
-    kind: "fixed",
-    scheme: "http",
-    host: "163.5.128.84",
-    port: 14270
-  },
-  {
-    id: "asia_fast",
-    label: "Asia (Community Relay)",
-    region: "Asia",
-    kind: "fixed",
-    scheme: "http",
-    host: "116.80.49.166",
-    port: 3172
-  },
-  {
-    id: "global_backup",
-    label: "Global Backup (Community Relay)",
-    region: "Global",
-    kind: "fixed",
-    scheme: "http",
-    host: "136.49.34.18",
-    port: 8888
-  }
-];
-
-const SECURE_TUNNEL_PROXY_SCHEMES = ["http", "https", "socks4", "socks5"];
-
 let memoryState = null;
 let dnrDebugListenerBound = false;
+const blockedPageContextByTab = new Map();
 let dnrBufferedCounters = {
   total: 0,
   byCategory: {
@@ -421,34 +387,105 @@ function normalizeHost(input) {
   return cleaned;
 }
 
+function hostMatchesDomain(host, domain) {
+  const normalizedHost = normalizeHost(host);
+  const normalizedDomain = normalizeHost(domain);
+  if (!normalizedHost || !normalizedDomain) return false;
+  return normalizedHost === normalizedDomain || normalizedHost.endsWith(`.${normalizedDomain}`);
+}
+
+function findMatchingDomain(host, domains) {
+  const normalizedHost = normalizeHost(host);
+  if (!normalizedHost || !Array.isArray(domains)) return "";
+  for (const domain of domains) {
+    if (hostMatchesDomain(normalizedHost, domain)) return normalizeHost(domain);
+  }
+  return "";
+}
+
+function findQuickCategoryForHost(host, quickCategories) {
+  const normalizedHost = normalizeHost(host);
+  if (!normalizedHost || !quickCategories || typeof quickCategories !== "object") return "";
+  for (const [category, enabled] of Object.entries(quickCategories)) {
+    if (!enabled) continue;
+    const hosts = QUICK_BLOCK_CATEGORY_HOSTS[category] || [];
+    if (hosts.some((domain) => hostMatchesDomain(normalizedHost, domain))) return category;
+  }
+  return "";
+}
+
+function blockerActivationLabel(blocker, state) {
+  if (!blocker?.enabled) return "Shield idle";
+  if (Number(blocker.pausedUntil || 0) > now()) return "Shield paused";
+  if (blocker.nuclear) return "Lockdown Mode";
+  if (blocker.activationMode === "deep_work") {
+    return state?.settings?.deepWork?.active ? "Deep Work shield" : "Deep Work trigger";
+  }
+  if (blocker.activationMode === "schedule") return "Scheduled shield";
+  return "Always-on shield";
+}
+
+function buildBlockedPageContext(state, tabId) {
+  const record = tabId >= 0 ? blockedPageContextByTab.get(tabId) : null;
+  const fresh = record && now() - Number(record.recordedAt || 0) <= BLOCKED_PAGE_CONTEXT_TTL_MS ? record : null;
+  const targetUrl = String(fresh?.url || "");
+  const targetHost = normalizeHost(targetUrl);
+  const blocker = state.settings?.blocker || {};
+  const today = toDayKey();
+  const dayStats = state.stats?.daily?.[today] || {};
+  const blockedToday = Math.max(0, Number(dayStats.adBlockEvents || dayStats.blocks || 0));
+  const blockedTotal = Math.max(0, Number(state.stats?.adBlockEventsTotal || state.stats?.blockEvents || 0));
+  const directBlockedDomain = findMatchingDomain(targetHost, blocker.blockedDomains || []);
+  const allowedDomain = findMatchingDomain(targetHost, blocker.allowDomains || []);
+  const quickCategory = findQuickCategoryForHost(targetHost, blocker.quickCategories || {});
+  const quickLabels = {
+    social: "Quick net · Social",
+    shopping: "Quick net · Shopping",
+    entertainment: "Quick net · Entertainment",
+    adult: "Quick net · 18+"
+  };
+  const quickDetails = {
+    social: "Social feeds and networking loops are paused so attention stays on the task in front of you.",
+    shopping: "Shopping routes are paused to cut impulse browsing and keep decision-making energy intact.",
+    entertainment: "Streaming, music, and entertainment routes are paused to keep the session intentional.",
+    adult: "Adult and explicit routes are paused under the 18+ quick net."
+  };
+
+  let reasonLabel = "Shield rules";
+  let reasonDetail = "This route matched your current Holmeta shield rules.";
+  if (blocker.nuclear && !allowedDomain) {
+    reasonLabel = "Lockdown Mode";
+    reasonDetail = "Lockdown Mode is active, so only allowed hosts stay open during this focus window.";
+  } else if (directBlockedDomain) {
+    reasonLabel = "Direct site block";
+    reasonDetail = "This host is on your direct block list, so Holmeta intercepted it immediately.";
+  } else if (quickCategory) {
+    reasonLabel = quickLabels[quickCategory] || "Quick net";
+    reasonDetail = quickDetails[quickCategory] || "This route is covered by one of your quick-net shields.";
+  }
+
+  return {
+    ok: true,
+    targetUrl,
+    targetHost,
+    reasonLabel,
+    reasonDetail,
+    modeLabel: blockerActivationLabel(blocker, state),
+    pausedUntil: Number(blocker.pausedUntil || 0),
+    blockedToday,
+    blockedTotal,
+    canAllow: Boolean(targetHost),
+    directBlocked: Boolean(directBlockedDomain),
+    directBlockedDomain,
+    allowedDomain,
+    quickCategory,
+    blockerActive: isBlockerActiveNow(state)
+  };
+}
+
 function normalizeDomainList(list) {
   if (!Array.isArray(list)) return [];
   return [...new Set(list.map(normalizeHost).filter(Boolean))].slice(0, DOMAIN_LIMIT);
-}
-
-function normalizeProxyScheme(value, fallback = "http") {
-  const scheme = String(value || "").trim().toLowerCase();
-  return SECURE_TUNNEL_PROXY_SCHEMES.includes(scheme) ? scheme : fallback;
-}
-
-function normalizeProxyPort(value, fallback = 8080) {
-  const n = Math.round(clamp(value, 1, 65535));
-  return Number.isFinite(n) ? n : fallback;
-}
-
-function normalizeBypassList(list) {
-  if (!Array.isArray(list)) return ["<local>", "localhost", "127.0.0.1"];
-  const out = [];
-  const seen = new Set();
-  for (const item of list) {
-    const value = String(item || "").trim();
-    if (!value || value.length > 120 || seen.has(value)) continue;
-    seen.add(value);
-    out.push(value);
-    if (out.length >= 40) break;
-  }
-  if (!out.length) return ["<local>", "localhost", "127.0.0.1"];
-  return out;
 }
 
 function normalizeTime(value, fallback) {
@@ -677,14 +714,14 @@ function normalizeTranslationEntry(entry) {
 function createDefaultReadingThemeSettings() {
   return {
     enabled: false,
-    appearance: "auto", // light | dark | auto
-    darkVariant: "coal", // black | coal | iron_ore | brown | grey | sepia | teal | purple | forest_green
-    darkThemeVariant: "black",
-    lightVariant: "white", // white | warm | off_white | soft_green | baby_blue | light_brown
+    appearance: "adaptive", // light | dark | adaptive
+    darkVariant: "coal", // coal (Night) | iron_ore (Iron) | brown (Holmeta Brown)
+    darkThemeVariant: "coal",
+    lightVariant: "white", // white | warm | off_white
     lightThemeVariant: "white",
-    scheduleMode: "system", // system | sunset | custom
+    scheduleMode: "system", // legacy compatibility: system | sunset | custom
     schedule: {
-      enabled: true,
+      enabled: false,
       useSunset: false,
       start: "20:00",
       end: "06:00"
@@ -695,6 +732,18 @@ function createDefaultReadingThemeSettings() {
     intensity: 44,
     opaqueBackground: false,
     pointerCursors: false,
+    preserveImages: true,
+    preserveLogos: true,
+    higherContrast: false,
+    softerSurfaces: false,
+    contrastStrength: 52,
+    surfaceStrength: 54,
+    preservedSelectors: [],
+    excludedSelectors: [],
+    tokenOverrides: {},
+    repairMemory: {
+      enabled: true
+    },
     sansFontSize: 13,
     sansFontFamily: "-apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
     codeFontSize: 12,
@@ -773,6 +822,16 @@ function normalizeExcludedSiteMap(rawMap) {
   );
 }
 
+function normalizeSelectorList(rawList) {
+  if (!Array.isArray(rawList)) return [];
+  return [...new Set(
+    rawList
+      .map((value) => String(value || "").trim())
+      .filter(Boolean)
+      .map((value) => value.slice(0, 220))
+  )].slice(0, 80);
+}
+
 function readingPresetFromLegacy(mode, darkVariant, lightVariant) {
   if (mode === "light") {
     if (lightVariant === "gray") return "off_white";
@@ -786,51 +845,44 @@ function readingPresetFromLegacy(mode, darkVariant, lightVariant) {
 
 function normalizeReadingDarkVariant(value, fallback = "coal") {
   const raw = String(value || "").trim().toLowerCase();
-  if (raw === "iron ore") return "iron_ore";
-  if (raw === "coal-black" || raw === "coal -black") return "coal";
-  if (raw === "dark brown") return "brown";
-  if (raw === "dark purple") return "purple";
-  if (raw === "dark green") return "forest_green";
-  if (raw === "gray") return "grey";
-  if (raw === "dim_slate") return "grey";
-  if (raw === "gentle_night") return "brown";
-  if (raw === "soft_black") return "coal";
-  if (["black", "coal", "iron_ore", "brown", "grey", "sepia", "teal", "purple", "forest_green"].includes(raw)) return raw;
-  return fallback;
+  if (raw === "iron ore" || raw === "iron") return "iron_ore";
+  if (["coal-black", "coal -black", "night", "soft_black", "black", "gray", "grey", "dim_slate", "teal", "purple", "forest_green", "dark purple", "dark green"].includes(raw)) return "coal";
+  if (["dark brown", "sepia", "gentle_night", "holmeta brown", "holmeta_brown"].includes(raw)) return "brown";
+  if (["coal", "iron_ore", "brown"].includes(raw)) return raw;
+  return normalizeReadingDarkVariant(fallback, "coal");
 }
 
 function normalizeReadingLightVariant(value, fallback = "white") {
   const raw = String(value || "").trim().toLowerCase();
-  if (raw === "gray") return "off_white";
-  if (raw === "soft_paper") return "off_white";
-  if (raw === "warm_page") return "warm";
-  if (raw === "neutral_light") return "white";
-  if (["white", "warm", "off_white", "soft_green", "baby_blue", "light_brown"].includes(raw)) return raw;
-  return fallback;
+  if (["gray", "beige", "soft_paper"].includes(raw)) return "off_white";
+  if (["warm_page", "light_brown"].includes(raw)) return "warm";
+  if (["neutral_light", "soft_green", "baby_blue"].includes(raw)) return "white";
+  if (["white", "warm", "off_white"].includes(raw)) return raw;
+  return normalizeReadingLightVariant(fallback, "white");
 }
 
 function darkVariantFromPreset(preset, fallback = "coal") {
   const key = String(preset || "").trim().toLowerCase();
-  if (key === "iron ore") return "iron_ore";
-  if (["black", "coal", "iron_ore", "brown", "grey", "sepia", "teal", "purple", "forest_green"].includes(key)) return key;
-  if (key === "soft_black") return "coal";
-  if (key === "dim_slate") return "grey";
-  if (key === "gentle_night") return "brown";
+  if (key === "iron ore" || key === "iron") return "iron_ore";
+  if (["coal", "iron_ore", "brown"].includes(key)) return key;
+  if (["soft_black", "dim_slate", "night", "black", "gray", "grey", "teal", "purple", "forest_green", "dark purple", "dark green"].includes(key)) return "coal";
+  if (["gentle_night", "sepia", "holmeta brown", "holmeta_brown", "dark brown"].includes(key)) return "brown";
   return normalizeReadingDarkVariant(fallback, "coal");
 }
 
 function lightVariantFromPreset(preset, fallback = "white") {
   const key = String(preset || "").trim().toLowerCase();
-  if (["white", "warm", "off_white", "soft_green", "baby_blue", "light_brown"].includes(key)) return key;
-  if (key === "warm_page") return "warm";
-  if (key === "soft_paper") return "off_white";
-  if (key === "neutral_light") return "white";
+  if (["white", "warm", "off_white"].includes(key)) return key;
+  if (["warm_page", "light_brown"].includes(key)) return "warm";
+  if (["soft_paper", "gray", "beige"].includes(key)) return "off_white";
+  if (["neutral_light", "baby_blue", "soft_green"].includes(key)) return "white";
   return normalizeReadingLightVariant(fallback, "white");
 }
 
-function normalizeReadingAppearance(value, fallback = "auto") {
+function normalizeReadingAppearance(value, fallback = "adaptive") {
   const raw = String(value || "").trim().toLowerCase();
-  if (["light", "dark", "auto"].includes(raw)) return raw;
+  if (raw === "auto") return "adaptive";
+  if (["light", "dark", "adaptive"].includes(raw)) return raw;
   return fallback;
 }
 
@@ -841,8 +893,9 @@ function normalizeReadingScheduleMode(value, fallback = "system") {
 }
 
 function resolveReadingModeFromAppearance(appearance, schedule) {
-  const safeAppearance = normalizeReadingAppearance(appearance, "auto");
+  const safeAppearance = normalizeReadingAppearance(appearance, "adaptive");
   if (safeAppearance === "light" || safeAppearance === "dark") return safeAppearance;
+  if (safeAppearance === "adaptive") return "dark";
   const start = normalizeTime(schedule?.start, "20:00");
   const end = normalizeTime(schedule?.end, "06:00");
   return inTimeRange(start, end, new Date()) ? "dark" : "light";
@@ -858,7 +911,7 @@ function normalizeReadingThemeSettings(rawSettings, fallback, legacyLight = {}) 
     : "dark";
   const appearance = normalizeReadingAppearance(
     raw.appearance || raw.mode || legacyMode,
-    normalizeReadingAppearance(base.appearance, "auto")
+    normalizeReadingAppearance(base.appearance, "adaptive")
   );
   const scheduleMode = normalizeReadingScheduleMode(
     raw.scheduleMode || (raw.schedule?.useSunset ? "sunset" : "") || (base.scheduleMode || "system"),
@@ -869,7 +922,7 @@ function normalizeReadingThemeSettings(rawSettings, fallback, legacyLight = {}) 
     ...(raw.schedule && typeof raw.schedule === "object" ? raw.schedule : {})
   };
   const schedule = {
-    enabled: Boolean(raw.schedule?.enabled ?? (appearance === "auto")),
+    enabled: Boolean(raw.schedule?.enabled ?? false),
     useSunset: scheduleMode === "sunset",
     start: normalizeTime(scheduleRaw.start, "20:00"),
     end: normalizeTime(scheduleRaw.end, "06:00")
@@ -891,6 +944,20 @@ function normalizeReadingThemeSettings(rawSettings, fallback, legacyLight = {}) 
   const intensity = Math.round(clamp(raw.intensity ?? legacyLight.intensity ?? base.intensity, 0, 100));
   const opaqueBackground = Boolean(raw.opaqueBackground ?? base.opaqueBackground);
   const pointerCursors = Boolean(raw.pointerCursors ?? base.pointerCursors);
+  const preserveImages = Boolean(raw.preserveImages ?? base.preserveImages ?? true);
+  const preserveLogos = Boolean(raw.preserveLogos ?? base.preserveLogos ?? true);
+  const higherContrast = Boolean(raw.higherContrast ?? base.higherContrast ?? false);
+  const softerSurfaces = Boolean(raw.softerSurfaces ?? base.softerSurfaces ?? false);
+  const contrastStrength = Math.round(clamp(raw.contrastStrength ?? base.contrastStrength ?? 52, 0, 100));
+  const surfaceStrength = Math.round(clamp(raw.surfaceStrength ?? base.surfaceStrength ?? 54, 0, 100));
+  const preservedSelectors = normalizeSelectorList(raw.preservedSelectors ?? base.preservedSelectors);
+  const excludedSelectors = normalizeSelectorList(raw.excludedSelectors ?? base.excludedSelectors);
+  const tokenOverrides = raw.tokenOverrides && typeof raw.tokenOverrides === "object"
+    ? { ...raw.tokenOverrides }
+    : { ...(base.tokenOverrides || {}) };
+  const repairMemory = {
+    enabled: Boolean(raw.repairMemory?.enabled ?? base.repairMemory?.enabled ?? true)
+  };
   const sansFontSize = normalizeReadingFontSize(raw.sansFontSize ?? base.sansFontSize, base.sansFontSize || 13);
   const sansFontFamily = normalizeReadingFontFamily(
     raw.sansFontFamily,
@@ -922,7 +989,7 @@ function normalizeReadingThemeSettings(rawSettings, fallback, legacyLight = {}) 
       ...(row.schedule && typeof row.schedule === "object" ? row.schedule : {})
     };
     const rowSchedule = {
-      enabled: Boolean(row.schedule?.enabled ?? (rowAppearance === "auto")),
+      enabled: Boolean(row.schedule?.enabled ?? false),
       useSunset: rowScheduleMode === "sunset",
       start: normalizeTime(rowScheduleRaw.start, schedule.start),
       end: normalizeTime(rowScheduleRaw.end, schedule.end)
@@ -952,6 +1019,20 @@ function normalizeReadingThemeSettings(rawSettings, fallback, legacyLight = {}) 
       intensity: Math.round(clamp(row.intensity ?? intensity, 0, 100)),
       opaqueBackground: Boolean(row.opaqueBackground ?? opaqueBackground),
       pointerCursors: Boolean(row.pointerCursors ?? pointerCursors),
+      preserveImages: Boolean(row.preserveImages ?? preserveImages),
+      preserveLogos: Boolean(row.preserveLogos ?? preserveLogos),
+      higherContrast: Boolean(row.higherContrast ?? higherContrast),
+      softerSurfaces: Boolean(row.softerSurfaces ?? softerSurfaces),
+      contrastStrength: Math.round(clamp(row.contrastStrength ?? contrastStrength, 0, 100)),
+      surfaceStrength: Math.round(clamp(row.surfaceStrength ?? surfaceStrength, 0, 100)),
+      preservedSelectors: normalizeSelectorList(row.preservedSelectors ?? preservedSelectors),
+      excludedSelectors: normalizeSelectorList(row.excludedSelectors ?? excludedSelectors),
+      tokenOverrides: row.tokenOverrides && typeof row.tokenOverrides === "object"
+        ? { ...row.tokenOverrides }
+        : { ...tokenOverrides },
+      repairMemory: {
+        enabled: Boolean(row.repairMemory?.enabled ?? repairMemory.enabled)
+      },
       sansFontSize: normalizeReadingFontSize(row.sansFontSize ?? sansFontSize, sansFontSize),
       sansFontFamily: normalizeReadingFontFamily(row.sansFontFamily, sansFontFamily),
       codeFontSize: normalizeReadingFontSize(row.codeFontSize ?? codeFontSize, codeFontSize),
@@ -975,6 +1056,16 @@ function normalizeReadingThemeSettings(rawSettings, fallback, legacyLight = {}) 
     intensity,
     opaqueBackground,
     pointerCursors,
+    preserveImages,
+    preserveLogos,
+    higherContrast,
+    softerSurfaces,
+    contrastStrength,
+    surfaceStrength,
+    preservedSelectors,
+    excludedSelectors,
+    tokenOverrides,
+    repairMemory,
     sansFontSize,
     sansFontFamily,
     codeFontSize,
@@ -1627,7 +1718,6 @@ function markLockedSettings(settings) {
   if (next.siteInsight) next.siteInsight.enabled = false;
   if (next.translate) next.translate.enabled = false;
   if (next.screenshotTool) next.screenshotTool.enabled = false;
-  if (next.secureTunnel) next.secureTunnel.enabled = false;
   if (next.screenEmulator) next.screenEmulator.active = false;
   return next;
 }
@@ -1728,28 +1818,13 @@ function createDefaultState() {
         pausedUntil: 0,
         passwordHash: ""
       },
-      secureTunnel: {
-        enabled: false,
-        mode: "preset", // preset | custom
-        selectedPresetId: "fastest",
-        custom: {
-          scheme: "http",
-          host: "",
-          port: 8080,
-          username: "",
-          password: ""
-        },
-        bypassList: ["<local>", "localhost", "127.0.0.1"],
-        autoReapply: true,
-        reapplyMinutes: 20
-      },
       alerts: {
         enabled: false,
         frequencyMin: 45,
         cadenceMode: "focus_weighted", // cycle | random | focus_weighted
         soundEnabled: true,
         soundVolume: 35, // 5..100
-        soundPattern: "double", // single | double | triple
+        soundPattern: "auto", // auto | single | double | triple | beacon | watchtower | relay | klaxon
         toastEnabled: true,
         notificationEnabled: true,
         cooldownMin: 20,
@@ -1769,6 +1844,12 @@ function createDefaultState() {
           blink: false,
           movement: false
         }
+      },
+      meditation: {
+        enabled: true,
+        durationMin: 10,
+        ambient: "brown_hush",
+        volume: 48
       },
       eyeDropper: {
         recentHex: "#FFB300",
@@ -1801,20 +1882,7 @@ function createDefaultState() {
       },
       siteInsight: {
         enabled: true,
-        showOnEverySite: true,
-        durationMs: 8000,
-        autoMinimize: true,
-        minimizedPill: true,
-        selectedProfile: "regular", // regular | dev | design | uxr
-        enabledProfiles: {
-          regular: true,
-          dev: true,
-          design: true,
-          uxr: true
-        },
-        perSiteDisabled: {},
-        showAlgorithmLabel: true,
-        showPurposeSummary: true
+        perSiteDisabled: {}
       },
       translate: {
         enabled: true,
@@ -1884,21 +1952,6 @@ function createDefaultState() {
       blockerRuleLimitHit: false,
       blockerLastRuleCount: 0,
       blockerLastRuleSignature: "",
-      secureTunnel: {
-        connected: false,
-        connectedAt: 0,
-        activePresetId: "",
-        activeLabel: "",
-        activeScheme: "",
-        activeHost: "",
-        activePort: 0,
-        lastAppliedAt: 0,
-        lastError: "",
-        lastErrorAt: 0,
-        authFailures: 0,
-        autoCursor: 0,
-        lastAppliedSignature: ""
-      },
       screenshotTool: {
         activeTabId: 0,
         activeWindowId: 0,
@@ -1908,7 +1961,6 @@ function createDefaultState() {
       }
     },
     cache: {
-      siteInsight: {},
       blockerRemote: {
         updatedAt: 0,
         byCategory: {
@@ -2105,30 +2157,6 @@ function normalizeState(input) {
     : [1, 2, 3, 4, 5];
   merged.settings.blocker.pausedUntil = Math.max(0, Number(merged.settings.blocker.pausedUntil || 0));
 
-  merged.settings.secureTunnel = {
-    ...base.settings.secureTunnel,
-    ...(merged.settings.secureTunnel || {}),
-    custom: {
-      ...base.settings.secureTunnel.custom,
-      ...(merged.settings.secureTunnel?.custom || {})
-    }
-  };
-  merged.settings.secureTunnel.enabled = Boolean(merged.settings.secureTunnel.enabled);
-  merged.settings.secureTunnel.mode = ["preset", "custom"].includes(String(merged.settings.secureTunnel.mode || ""))
-    ? String(merged.settings.secureTunnel.mode)
-    : "preset";
-  merged.settings.secureTunnel.selectedPresetId = SECURE_TUNNEL_PRESETS.some((preset) => preset.id === merged.settings.secureTunnel.selectedPresetId)
-    ? String(merged.settings.secureTunnel.selectedPresetId)
-    : "fastest";
-  merged.settings.secureTunnel.custom.scheme = normalizeProxyScheme(merged.settings.secureTunnel.custom.scheme, "http");
-  merged.settings.secureTunnel.custom.host = normalizeHost(merged.settings.secureTunnel.custom.host);
-  merged.settings.secureTunnel.custom.port = normalizeProxyPort(merged.settings.secureTunnel.custom.port, 8080);
-  merged.settings.secureTunnel.custom.username = String(merged.settings.secureTunnel.custom.username || "").slice(0, 120);
-  merged.settings.secureTunnel.custom.password = String(merged.settings.secureTunnel.custom.password || "").slice(0, 180);
-  merged.settings.secureTunnel.bypassList = normalizeBypassList(merged.settings.secureTunnel.bypassList);
-  merged.settings.secureTunnel.autoReapply = Boolean(merged.settings.secureTunnel.autoReapply);
-  merged.settings.secureTunnel.reapplyMinutes = Math.round(clamp(merged.settings.secureTunnel.reapplyMinutes, 5, 60));
-
   merged.settings.alerts = {
     ...base.settings.alerts,
     ...(merged.settings.alerts || {}),
@@ -2148,9 +2176,9 @@ function normalizeState(input) {
     : "focus_weighted";
   merged.settings.alerts.soundEnabled = Boolean(merged.settings.alerts.soundEnabled);
   merged.settings.alerts.soundVolume = Math.round(clamp(merged.settings.alerts.soundVolume, 5, 100));
-  merged.settings.alerts.soundPattern = ["single", "double", "triple"].includes(merged.settings.alerts.soundPattern)
+  merged.settings.alerts.soundPattern = ["auto", "single", "double", "triple", "beacon", "watchtower", "relay", "klaxon"].includes(merged.settings.alerts.soundPattern)
     ? merged.settings.alerts.soundPattern
-    : "double";
+    : "auto";
   merged.settings.alerts.toastEnabled = Boolean(merged.settings.alerts.toastEnabled);
   merged.settings.alerts.notificationEnabled = Boolean(merged.settings.alerts.notificationEnabled);
   merged.settings.alerts.cooldownMin = Math.round(clamp(merged.settings.alerts.cooldownMin, 0, 180));
@@ -2166,6 +2194,17 @@ function normalizeState(input) {
   merged.settings.alerts.types.hydration = Boolean(merged.settings.alerts.types.hydration);
   merged.settings.alerts.types.blink = Boolean(merged.settings.alerts.types.blink);
   merged.settings.alerts.types.movement = Boolean(merged.settings.alerts.types.movement);
+
+  merged.settings.meditation = {
+    ...base.settings.meditation,
+    ...(merged.settings.meditation || {})
+  };
+  merged.settings.meditation.enabled = Boolean(merged.settings.meditation.enabled);
+  merged.settings.meditation.durationMin = Math.round(clamp(merged.settings.meditation.durationMin, 3, 20));
+  merged.settings.meditation.ambient = Object.prototype.hasOwnProperty.call(MEDITATION_AMBIENT_LABELS, String(merged.settings.meditation.ambient || ""))
+    ? String(merged.settings.meditation.ambient)
+    : "brown_hush";
+  merged.settings.meditation.volume = Math.round(clamp(merged.settings.meditation.volume, 10, 100));
 
   merged.settings.eyeDropper = {
     ...base.settings.eyeDropper,
@@ -2198,41 +2237,19 @@ function normalizeState(input) {
   merged.settings.screenEmulator.active = Boolean(merged.settings.screenEmulator.active);
   merged.settings.screenEmulator.lastAppliedAt = Math.max(0, Number(merged.settings.screenEmulator.lastAppliedAt || 0));
 
+  const rawSiteInsight = merged.settings.siteInsight && typeof merged.settings.siteInsight === "object"
+    ? merged.settings.siteInsight
+    : {};
   merged.settings.siteInsight = {
-    ...base.settings.siteInsight,
-    ...(merged.settings.siteInsight || {}),
-    enabledProfiles: {
-      ...base.settings.siteInsight.enabledProfiles,
-      ...(merged.settings.siteInsight?.enabledProfiles || {})
-    }
-  };
-  merged.settings.siteInsight.enabled = Boolean(merged.settings.siteInsight.enabled);
-  merged.settings.siteInsight.showOnEverySite = Boolean(merged.settings.siteInsight.showOnEverySite);
-  merged.settings.siteInsight.durationMs = Math.round(clamp(merged.settings.siteInsight.durationMs, 6000, 10000));
-  merged.settings.siteInsight.autoMinimize = Boolean(merged.settings.siteInsight.autoMinimize);
-  merged.settings.siteInsight.minimizedPill = Boolean(merged.settings.siteInsight.minimizedPill);
-  merged.settings.siteInsight.selectedProfile = ["regular", "dev", "design", "uxr"].includes(merged.settings.siteInsight.selectedProfile)
-    ? merged.settings.siteInsight.selectedProfile
-    : "regular";
-  merged.settings.siteInsight.showAlgorithmLabel = Boolean(merged.settings.siteInsight.showAlgorithmLabel);
-  merged.settings.siteInsight.showPurposeSummary = Boolean(merged.settings.siteInsight.showPurposeSummary);
-  merged.settings.siteInsight.enabledProfiles = {
-    regular: Boolean(merged.settings.siteInsight.enabledProfiles.regular),
-    dev: Boolean(merged.settings.siteInsight.enabledProfiles.dev),
-    design: Boolean(merged.settings.siteInsight.enabledProfiles.design),
-    uxr: Boolean(merged.settings.siteInsight.enabledProfiles.uxr)
-  };
-  merged.settings.siteInsight.perSiteDisabled = merged.settings.siteInsight.perSiteDisabled && typeof merged.settings.siteInsight.perSiteDisabled === "object"
+    enabled: Boolean(rawSiteInsight.enabled ?? base.settings.siteInsight.enabled),
+    perSiteDisabled: rawSiteInsight.perSiteDisabled && typeof rawSiteInsight.perSiteDisabled === "object"
     ? Object.fromEntries(
-        Object.entries(merged.settings.siteInsight.perSiteDisabled)
+        Object.entries(rawSiteInsight.perSiteDisabled)
           .map(([host, value]) => [normalizeHost(host), Boolean(value)])
           .filter(([host, value]) => Boolean(host) && value)
       )
-    : {};
-  if (!merged.settings.siteInsight.enabledProfiles[merged.settings.siteInsight.selectedProfile]) {
-    const fallback = ["regular", "dev", "design", "uxr"].find((key) => merged.settings.siteInsight.enabledProfiles[key]) || "regular";
-    merged.settings.siteInsight.selectedProfile = fallback;
-  }
+    : {}
+  };
 
   merged.settings.translate = normalizeTranslateSettings(
     merged.settings.translate || {},
@@ -2256,6 +2273,19 @@ function normalizeState(input) {
     ...base.settings.advanced,
     ...(merged.settings.advanced || {})
   };
+
+  // Explicitly prune removed v3 sections so stale persisted keys do not linger.
+  delete merged.settings.hotkeys;
+  delete merged.settings.secureTunnel;
+  delete merged.settings.sharedSiteActions;
+  delete merged.settings.sharedActions;
+  delete merged.settings.sharedSites;
+  delete merged.settings.sharedSiteProfiles;
+  delete merged.settings.sharedRules;
+  delete merged.runtime.secureTunnel;
+  if (merged.cache && typeof merged.cache === "object") {
+    delete merged.cache.siteInsight;
+  }
 
   // Gate advanced modules based on centralized entitlement access.
   const accessDecision = syncEntitlementAccess(merged);
@@ -2316,23 +2346,6 @@ function normalizeState(input) {
   merged.runtime.blockerRuleLimitHit = Boolean(merged.runtime.blockerRuleLimitHit);
   merged.runtime.blockerLastRuleCount = Math.max(0, Number(merged.runtime.blockerLastRuleCount || 0));
   merged.runtime.blockerLastRuleSignature = String(merged.runtime.blockerLastRuleSignature || "").slice(0, 80);
-  merged.runtime.secureTunnel = {
-    ...base.runtime.secureTunnel,
-    ...(merged.runtime.secureTunnel || {})
-  };
-  merged.runtime.secureTunnel.connected = Boolean(merged.runtime.secureTunnel.connected);
-  merged.runtime.secureTunnel.connectedAt = Math.max(0, Number(merged.runtime.secureTunnel.connectedAt || 0));
-  merged.runtime.secureTunnel.activePresetId = String(merged.runtime.secureTunnel.activePresetId || "").slice(0, 80);
-  merged.runtime.secureTunnel.activeLabel = String(merged.runtime.secureTunnel.activeLabel || "").slice(0, 120);
-  merged.runtime.secureTunnel.activeScheme = normalizeProxyScheme(merged.runtime.secureTunnel.activeScheme, "http");
-  merged.runtime.secureTunnel.activeHost = normalizeHost(merged.runtime.secureTunnel.activeHost);
-  merged.runtime.secureTunnel.activePort = normalizeProxyPort(merged.runtime.secureTunnel.activePort, 8080);
-  merged.runtime.secureTunnel.lastAppliedAt = Math.max(0, Number(merged.runtime.secureTunnel.lastAppliedAt || 0));
-  merged.runtime.secureTunnel.lastError = String(merged.runtime.secureTunnel.lastError || "").slice(0, 220);
-  merged.runtime.secureTunnel.lastErrorAt = Math.max(0, Number(merged.runtime.secureTunnel.lastErrorAt || 0));
-  merged.runtime.secureTunnel.authFailures = Math.max(0, Number(merged.runtime.secureTunnel.authFailures || 0));
-  merged.runtime.secureTunnel.autoCursor = Math.max(0, Number(merged.runtime.secureTunnel.autoCursor || 0));
-  merged.runtime.secureTunnel.lastAppliedSignature = String(merged.runtime.secureTunnel.lastAppliedSignature || "").slice(0, 120);
   merged.runtime.screenshotTool = {
     ...base.runtime.screenshotTool,
     ...(merged.runtime.screenshotTool || {})
@@ -2366,19 +2379,6 @@ function normalizeState(input) {
         }
       : null;
 
-  const rawInsightCache = merged.cache?.siteInsight && typeof merged.cache.siteInsight === "object" ? merged.cache.siteInsight : {};
-  const cacheRows = Object.entries(rawInsightCache)
-    .map(([host, value]) => [normalizeHost(host), value])
-    .filter(([host]) => Boolean(host))
-    .map(([host, value]) => ({
-      host,
-      computedAt: Math.max(0, Number(value?.computedAt || 0)),
-      summaryData: value?.summaryData && typeof value.summaryData === "object" ? value.summaryData : null
-    }))
-    .filter((entry) => entry.summaryData && entry.computedAt > 0 && now() - entry.computedAt < SITE_INSIGHT_CACHE_TTL_MS)
-    .sort((a, b) => b.computedAt - a.computedAt)
-    .slice(0, SITE_INSIGHT_CACHE_LIMIT);
-  merged.cache.siteInsight = Object.fromEntries(cacheRows.map((entry) => [entry.host, { computedAt: entry.computedAt, summaryData: entry.summaryData }]));
   merged.cache.blockerRemote = {
     updatedAt: Math.max(0, Number(merged.cache?.blockerRemote?.updatedAt || 0)),
     byCategory: {
@@ -2505,28 +2505,63 @@ function isRestrictedExtensionPageUrl(urlLike) {
   return !/^https?:\/\//.test(url);
 }
 
-const CONTENT_SCRIPT_FILES = [
-  "appearance/init-theme-toggle.js",
-  "appearance/palette-presets.js",
-  "appearance/token-generator.js",
-  "appearance/appearance-state.js",
-  "appearance/theme-detector.js",
-  "appearance/site-classifier.js",
-  "appearance/media-guard.js",
-  "appearance/ui-surface-classifier.js",
-  "appearance/component-normalizer.js",
-  "appearance/dynamic-node-processor.js",
-  "appearance/site-compatibility.js",
-  "appearance/site-rules.js",
-  "appearance/token-remapper.js",
-  "appearance/appearance-engine.js",
-  "appearance/darklight-settings.js",
-  "appearance/darklight-engine.js",
-  "appearance/darklight-switch.js",
-  "light/engine.js",
-  "translate/engine.js",
-  "content.js"
-];
+function loadManifestContentScripts() {
+  try {
+    const manifest = chrome.runtime?.getManifest?.();
+    const rows = Array.isArray(manifest?.content_scripts) ? manifest.content_scripts : [];
+    const seen = new Set();
+    const files = [];
+
+    for (const row of rows) {
+      if (!Array.isArray(row?.js)) continue;
+      for (const entry of row.js) {
+        const file = String(entry || "").trim();
+        if (!file || seen.has(file)) continue;
+        seen.add(file);
+        files.push(file);
+      }
+    }
+
+    if (files.length) return files;
+  } catch {
+    // Fall through to the static safety list below.
+  }
+
+  return [
+    "appearance/init-theme-toggle.js",
+    "appearance/palette-presets.js",
+    "appearance/token-generator.js",
+    "appearance/appearance-state.js",
+    "appearance/theme-detector.js",
+    "appearance/site-classifier.js",
+    "appearance/color-engine.js",
+    "appearance/dom-scanner.js",
+    "appearance/token-engine.js",
+    "appearance/media-guard.js",
+    "appearance/protection-engine.js",
+    "appearance/ui-surface-classifier.js",
+    "appearance/site-profile.js",
+    "appearance/repair-memory.js",
+    "appearance/shadow-dom.js",
+    "appearance/iframe-handler.js",
+    "appearance/mutation-manager.js",
+    "appearance/component-normalizer.js",
+    "appearance/dynamic-node-processor.js",
+    "appearance/site-compatibility.js",
+    "appearance/site-rules.js",
+    "appearance/token-remapper.js",
+    "appearance/appearance-engine.js",
+    "appearance/darklight-settings.js",
+    "appearance/darklight-engine.js",
+    "appearance/darklight-switch.js",
+    "light/engine.js",
+    "translate/engine.js",
+    "insight/page-insight-engine.js",
+    "content.js"
+  ];
+}
+
+const CONTENT_SCRIPT_FILES = loadManifestContentScripts();
 
 async function ensureContentScriptReady(tabId) {
   const ping = await sendTab(tabId, { type: "holmeta:ping" }, { frameId: 0 });
@@ -2872,7 +2907,26 @@ async function sendToBestWebTab(type, payload, preferActive = true) {
     if (!isWebTab(tab)) return { ok: false, error: "not_web_tab" };
     if (tried.has(tab.id)) return { ok: false, error: "already_tried" };
     tried.add(tab.id);
-    return sendTab(tab.id, { type, payload });
+    const ready = await ensureContentScriptReady(tab.id);
+    if (!ready.ok) {
+      return { ok: false, error: ready.error || "content_script_unavailable" };
+    }
+    const sent = await sendTab(tab.id, { type, payload }, { frameId: 0 });
+    if (sent.ok) {
+      return { ok: true, tabId: tab.id, res: sent.res };
+    }
+    if (isMissingReceiverError(sent.error)) {
+      const retryReady = await ensureContentScriptReady(tab.id);
+      if (!retryReady.ok) {
+        return { ok: false, error: retryReady.error || "content_script_unavailable" };
+      }
+      const retry = await sendTab(tab.id, { type, payload }, { frameId: 0 });
+      if (retry.ok) {
+        return { ok: true, tabId: tab.id, res: retry.res };
+      }
+      return { ok: false, error: retry.error || "send_failed" };
+    }
+    return { ok: false, error: sent.error || "send_failed" };
   };
 
   if (preferActive) {
@@ -2937,6 +2991,41 @@ async function playAlertSoundReliable(payload = {}) {
   return { ok: false, channel: "none", error: fallback.error || "sound_unavailable" };
 }
 
+async function playMeditationSoundReliable(payload = {}) {
+  const offscreen = await ensureOffscreenAudioDocument();
+  if (offscreen.ok) {
+    const result = await runtimeSend({
+      type: "holmeta:offscreen-meditation",
+      payload: {
+        action: "start",
+        ...payload
+      }
+    });
+    if (result?.ok) return { ok: true, channel: "offscreen" };
+  }
+
+  const fallback = await sendToBestWebTab("holmeta:meditation-sound", payload, true);
+  if (fallback.ok) {
+    return { ok: true, channel: "content_tab" };
+  }
+  return { ok: false, channel: "none", error: fallback.error || "meditation_sound_unavailable" };
+}
+
+async function stopMeditationSoundReliable() {
+  const results = [];
+  const offscreen = await ensureOffscreenAudioDocument();
+  if (offscreen.ok) {
+    const result = await runtimeSend({
+      type: "holmeta:offscreen-meditation",
+      payload: { action: "stop" }
+    });
+    results.push(Boolean(result?.ok));
+  }
+  const fallback = await sendToBestWebTab("holmeta:stop-meditation-sound", {}, true);
+  results.push(Boolean(fallback.ok));
+  return { ok: results.some(Boolean) };
+}
+
 function executeScriptFiles(tabId, files) {
   return new Promise((resolve) => {
     if (!chrome.scripting?.executeScript) {
@@ -2995,53 +3084,6 @@ function notificationCreate(id, options) {
   return new Promise((resolve) => chrome.notifications.create(id, options, () => resolve()));
 }
 
-function proxySettingsSet(value) {
-  return new Promise((resolve) => {
-    if (!chrome.proxy?.settings?.set) {
-      resolve({ ok: false, error: "proxy_api_unavailable" });
-      return;
-    }
-    chrome.proxy.settings.set({ value, scope: "regular" }, () => {
-      const err = chrome.runtime.lastError;
-      if (err) {
-        resolve({ ok: false, error: err.message || "proxy_set_failed" });
-        return;
-      }
-      resolve({ ok: true });
-    });
-  });
-}
-
-function proxySettingsClear() {
-  return new Promise((resolve) => {
-    if (!chrome.proxy?.settings?.clear) {
-      resolve({ ok: false, error: "proxy_api_unavailable" });
-      return;
-    }
-    chrome.proxy.settings.clear({ scope: "regular" }, () => {
-      const err = chrome.runtime.lastError;
-      if (err) {
-        resolve({ ok: false, error: err.message || "proxy_clear_failed" });
-        return;
-      }
-      resolve({ ok: true });
-    });
-  });
-}
-
-function getSecureTunnelPresetCatalog() {
-  return SECURE_TUNNEL_PRESETS.map((preset) => ({
-    id: preset.id,
-    label: preset.label,
-    region: preset.region,
-    kind: preset.kind
-  }));
-}
-
-function getSecureTunnelPresetById(id) {
-  return SECURE_TUNNEL_PRESETS.find((preset) => preset.id === id) || null;
-}
-
 function hashText(input) {
   const text = String(input || "");
   let hash = 0;
@@ -3058,240 +3100,6 @@ function shouldShowRatePrompt(state) {
   const enoughSessions = Number(state.meta.sessionCount || 0) >= 10;
   const dismissed = Number(state.meta.ratePromptDismissedUntil || 0) > now();
   return !dismissed && (isOldEnough || enoughSessions);
-}
-
-function getSiteInsightCacheEntry(state, host) {
-  const normalizedHost = normalizeHost(host);
-  if (!normalizedHost) return null;
-  const entry = state.cache?.siteInsight?.[normalizedHost];
-  if (!entry) return null;
-  const computedAt = Math.max(0, Number(entry.computedAt || 0));
-  if (!computedAt || now() - computedAt > SITE_INSIGHT_CACHE_TTL_MS) {
-    delete state.cache.siteInsight[normalizedHost];
-    return null;
-  }
-  return {
-    computedAt,
-    summaryData: entry.summaryData || null
-  };
-}
-
-function upsertSiteInsightCache(state, host, summaryData) {
-  const normalizedHost = normalizeHost(host);
-  if (!normalizedHost || !summaryData || typeof summaryData !== "object") return;
-  state.cache.siteInsight[normalizedHost] = {
-    computedAt: now(),
-    summaryData
-  };
-  const rows = Object.entries(state.cache.siteInsight || {})
-    .map(([cacheHost, value]) => ({ host: cacheHost, computedAt: Math.max(0, Number(value?.computedAt || 0)), summaryData: value?.summaryData }))
-    .sort((a, b) => b.computedAt - a.computedAt)
-    .slice(0, SITE_INSIGHT_CACHE_LIMIT);
-  state.cache.siteInsight = Object.fromEntries(rows.map((row) => [row.host, { computedAt: row.computedAt, summaryData: row.summaryData }]));
-}
-
-function patchTouchesSecureTunnel(patch) {
-  return Boolean(
-    patch &&
-    typeof patch === "object" &&
-    Object.prototype.hasOwnProperty.call(patch, "secureTunnel")
-  );
-}
-
-function buildProxyValueFromServer(server, bypassList = ["<local>", "localhost", "127.0.0.1"]) {
-  return {
-    mode: "fixed_servers",
-    rules: {
-      singleProxy: {
-        scheme: normalizeProxyScheme(server.scheme, "http"),
-        host: normalizeHost(server.host),
-        port: normalizeProxyPort(server.port, 8080)
-      },
-      bypassList: normalizeBypassList(bypassList)
-    }
-  };
-}
-
-function resolveSecureTunnelCandidates(state) {
-  const tunnel = state.settings.secureTunnel;
-  if (tunnel.mode === "custom") {
-    const custom = tunnel.custom || {};
-    if (!custom.host) return [];
-    return [
-      {
-        id: "custom",
-        label: "Custom Proxy",
-        scheme: normalizeProxyScheme(custom.scheme, "http"),
-        host: normalizeHost(custom.host),
-        port: normalizeProxyPort(custom.port, 8080),
-        username: String(custom.username || ""),
-        password: String(custom.password || "")
-      }
-    ];
-  }
-
-  const selected = getSecureTunnelPresetById(tunnel.selectedPresetId) || getSecureTunnelPresetById("fastest");
-  if (!selected) return [];
-
-  if (selected.kind === "auto" && Array.isArray(selected.pool) && selected.pool.length) {
-    const cursor = Math.max(0, Number(state.runtime.secureTunnel?.autoCursor || 0));
-    const orderedIds = selected.pool.map((_, idx) => selected.pool[(cursor + idx) % selected.pool.length]);
-    const candidates = orderedIds
-      .map((id) => getSecureTunnelPresetById(id))
-      .filter((preset) => preset && preset.kind === "fixed")
-      .map((preset) => ({
-        id: preset.id,
-        label: preset.label,
-        scheme: normalizeProxyScheme(preset.scheme, "http"),
-        host: normalizeHost(preset.host),
-        port: normalizeProxyPort(preset.port, 8080),
-        username: String(preset.username || ""),
-        password: String(preset.password || "")
-      }));
-    return candidates;
-  }
-
-  if (selected.kind === "fixed") {
-    return [
-      {
-        id: selected.id,
-        label: selected.label,
-        scheme: normalizeProxyScheme(selected.scheme, "http"),
-        host: normalizeHost(selected.host),
-        port: normalizeProxyPort(selected.port, 8080),
-        username: String(selected.username || ""),
-        password: String(selected.password || "")
-      }
-    ];
-  }
-
-  return [];
-}
-
-async function clearSecureTunnel(state, reason = "manual") {
-  const result = await proxySettingsClear();
-  if (!result.ok && result.error !== "proxy_api_unavailable") {
-    state.runtime.secureTunnel.lastError = result.error || "proxy_clear_failed";
-    state.runtime.secureTunnel.lastErrorAt = now();
-    log(state, "error", "secure_tunnel_clear_failed", { reason, error: result.error });
-  } else {
-    state.runtime.secureTunnel.lastError = "";
-    state.runtime.secureTunnel.lastErrorAt = 0;
-  }
-
-  state.runtime.secureTunnel.connected = false;
-  state.runtime.secureTunnel.connectedAt = 0;
-  state.runtime.secureTunnel.activePresetId = "";
-  state.runtime.secureTunnel.activeLabel = "";
-  state.runtime.secureTunnel.activeScheme = "";
-  state.runtime.secureTunnel.activeHost = "";
-  state.runtime.secureTunnel.activePort = 0;
-  state.runtime.secureTunnel.lastAppliedAt = now();
-  state.runtime.secureTunnel.authFailures = 0;
-  state.runtime.secureTunnel.lastAppliedSignature = "";
-  await saveState(state);
-  return result.ok ? { ok: true } : result;
-}
-
-async function applySecureTunnel(state, { force = false, reason = "manual" } = {}) {
-  if (!hasProductAccess(state)) {
-    return clearSecureTunnel(state, `${reason}_locked`);
-  }
-
-  const tunnel = state.settings.secureTunnel || createDefaultState().settings.secureTunnel;
-  if (!tunnel.enabled) {
-    return clearSecureTunnel(state, reason);
-  }
-
-  if (!chrome.proxy?.settings?.set) {
-    state.runtime.secureTunnel.connected = false;
-    state.runtime.secureTunnel.lastError = "proxy_api_unavailable";
-    state.runtime.secureTunnel.lastErrorAt = now();
-    log(state, "error", "secure_tunnel_unsupported", { reason });
-    await saveState(state);
-    return { ok: false, error: "proxy_api_unavailable" };
-  }
-
-  const candidates = resolveSecureTunnelCandidates(state).filter((item) => item.host);
-  if (!candidates.length) {
-    state.runtime.secureTunnel.connected = false;
-    state.runtime.secureTunnel.lastError = "missing_proxy_config";
-    state.runtime.secureTunnel.lastErrorAt = now();
-    log(state, "error", "secure_tunnel_missing_config", { reason, mode: tunnel.mode });
-    await saveState(state);
-    return { ok: false, error: "missing_proxy_config" };
-  }
-
-  const attemptOrder = candidates.slice(0, 4);
-  let applied = null;
-  let lastError = "";
-
-  for (let idx = 0; idx < attemptOrder.length; idx += 1) {
-    const candidate = attemptOrder[idx];
-    const signature = hashText(JSON.stringify({
-      id: candidate.id,
-      host: candidate.host,
-      port: candidate.port,
-      scheme: candidate.scheme,
-      bypassList: tunnel.bypassList || []
-    }));
-
-    if (
-      !force &&
-      state.runtime.secureTunnel.connected &&
-      state.runtime.secureTunnel.lastAppliedSignature === signature
-    ) {
-      return { ok: true, skipped: true };
-    }
-
-    const result = await proxySettingsSet(buildProxyValueFromServer(candidate, tunnel.bypassList));
-    if (!result.ok) {
-      lastError = result.error || "proxy_set_failed";
-      continue;
-    }
-
-    applied = { ...candidate, signature };
-    break;
-  }
-
-  if (!applied) {
-    state.runtime.secureTunnel.connected = false;
-    state.runtime.secureTunnel.lastError = lastError || "proxy_connection_failed";
-    state.runtime.secureTunnel.lastErrorAt = now();
-    log(state, "error", "secure_tunnel_apply_failed", {
-      reason,
-      error: state.runtime.secureTunnel.lastError
-    });
-    await saveState(state);
-    return { ok: false, error: state.runtime.secureTunnel.lastError };
-  }
-
-  if (tunnel.selectedPresetId === "fastest" && Array.isArray(getSecureTunnelPresetById("fastest")?.pool)) {
-    const pool = getSecureTunnelPresetById("fastest").pool;
-    const nextCursor = Math.max(0, pool.indexOf(applied.id));
-    state.runtime.secureTunnel.autoCursor = nextCursor;
-  }
-
-  state.runtime.secureTunnel.connected = true;
-  state.runtime.secureTunnel.connectedAt = state.runtime.secureTunnel.connectedAt || now();
-  state.runtime.secureTunnel.activePresetId = applied.id;
-  state.runtime.secureTunnel.activeLabel = applied.label;
-  state.runtime.secureTunnel.activeScheme = applied.scheme;
-  state.runtime.secureTunnel.activeHost = applied.host;
-  state.runtime.secureTunnel.activePort = applied.port;
-  state.runtime.secureTunnel.lastAppliedAt = now();
-  state.runtime.secureTunnel.lastError = "";
-  state.runtime.secureTunnel.lastErrorAt = 0;
-  state.runtime.secureTunnel.lastAppliedSignature = applied.signature;
-  await saveState(state);
-
-  log(state, "info", "secure_tunnel_applied", {
-    reason,
-    mode: tunnel.mode,
-    presetId: applied.id,
-    host: applied.host
-  });
-  return { ok: true, applied };
 }
 
 function isLightActiveNow(state) {
@@ -3353,7 +3161,6 @@ function publicState(state) {
   const trialRemainingMs = Math.max(0, trialEndsAt - now());
   const effectiveSettings = effectiveSettingsForAccess(state);
   const resizeBackup = state.runtime?.windowResizeBackup || null;
-  const tunnelRuntime = state.runtime?.secureTunnel || createDefaultState().runtime.secureTunnel;
   return {
     meta: {
       version: state.meta.version,
@@ -3414,20 +3221,6 @@ function publicState(state) {
         startedAt: Math.max(0, Number(state.runtime?.screenshotTool?.startedAt || 0)),
         lastCaptureAt: Math.max(0, Number(state.runtime?.screenshotTool?.lastCaptureAt || 0)),
         lastError: String(state.runtime?.screenshotTool?.lastError || "")
-      },
-      secureTunnel: {
-        connected: Boolean(tunnelRuntime.connected),
-        connectedAt: Math.max(0, Number(tunnelRuntime.connectedAt || 0)),
-        activePresetId: String(tunnelRuntime.activePresetId || ""),
-        activeLabel: String(tunnelRuntime.activeLabel || ""),
-        activeScheme: String(tunnelRuntime.activeScheme || ""),
-        activeHost: String(tunnelRuntime.activeHost || ""),
-        activePort: Math.max(0, Number(tunnelRuntime.activePort || 0)),
-        lastAppliedAt: Math.max(0, Number(tunnelRuntime.lastAppliedAt || 0)),
-        lastError: String(tunnelRuntime.lastError || ""),
-        lastErrorAt: Math.max(0, Number(tunnelRuntime.lastErrorAt || 0)),
-        authFailures: Math.max(0, Number(tunnelRuntime.authFailures || 0)),
-        presets: getSecureTunnelPresetCatalog()
       }
     }
   };
@@ -3708,6 +3501,83 @@ function reminderCopy(kind) {
   };
 }
 
+function meditationCopy(settings = {}, test = false) {
+  const durationMin = Math.round(clamp(settings.durationMin || 10, 3, 20));
+  const ambient = String(settings.ambient || "brown_hush");
+  const ambientLabel = MEDITATION_AMBIENT_LABELS[ambient] || "Brown Hush";
+  return {
+    title: test ? "Meditation Preview" : "Meditation Window",
+    body: `${durationMin}-minute ${ambientLabel} session ready. Let your eyes soften, slow your breathing, and settle into stillness.`,
+    ambient,
+    ambientLabel,
+    durationMin
+  };
+}
+
+function resolveAlertSoundPattern(kind = "eye", rawPattern = "auto") {
+  const normalizedPattern = String(rawPattern || "auto");
+  if (normalizedPattern && normalizedPattern !== "auto") return normalizedPattern;
+  return AUTO_ALERT_SOUND_PATTERNS[String(kind || "eye")] || "beacon";
+}
+
+async function fireMeditation(test = false) {
+  const state = await loadState();
+  const meditation = state.settings.meditation || {};
+  if (!meditation.enabled && !test) {
+    return {
+      state,
+      skipped: true,
+      reason: "meditation_disabled",
+      delivery: { toast: false, sound: false, soundChannel: "none", soundError: "" }
+    };
+  }
+
+  const copy = meditationCopy(meditation, test);
+  const delivery = {
+    toast: false,
+    sound: false,
+    soundChannel: "none",
+    soundError: ""
+  };
+
+  const toastResult = await sendToBestWebTab("holmeta:toast", {
+    title: copy.title,
+    body: copy.body,
+    meditation: true,
+    test,
+    durationMin: copy.durationMin,
+    ambient: copy.ambient,
+    ambientLabel: copy.ambientLabel
+  }, true);
+  delivery.toast = Boolean(toastResult.ok);
+
+  const soundResult = await playMeditationSoundReliable({
+    ambient: copy.ambient,
+    volume: Math.max(0.12, Math.min(1, Number(meditation.volume || 48) / 100)),
+    durationMs: copy.durationMin * 60 * 1000
+  });
+  delivery.sound = Boolean(soundResult.ok);
+  delivery.soundChannel = soundResult.channel || "none";
+  delivery.soundError = String(soundResult.error || "");
+
+  if (!delivery.toast) {
+    await notificationCreate(`holmeta-meditation-${now()}`, {
+      type: "basic",
+      iconUrl: "assets/icons/icon128.png",
+      title: `HOLMETA${test ? " Preview" : ""}: ${copy.title}`,
+      message: copy.body
+    });
+  }
+
+  return { state, skipped: false, delivery, meditation: copy };
+}
+
+async function stopMeditationSession() {
+  const sound = await stopMeditationSoundReliable();
+  const toast = await sendToBestWebTab("holmeta:close-meditation-toast", {}, true);
+  return { ok: Boolean(sound.ok || toast.ok) };
+}
+
 async function fireAlert(kind = "auto", test = false) {
   const state = await loadState();
   const alerts = state.settings.alerts;
@@ -3743,12 +3613,15 @@ async function fireAlert(kind = "auto", test = false) {
   const copy = reminderCopy(type);
   const id = `holmeta-alert-${now()}`;
   const snoozeMinutes = Math.max(1, Number(alerts.snoozeMinutes || 10));
+  const shouldNotify = test || Boolean(alerts.notificationEnabled);
+  const shouldToast = test || Boolean(alerts.toastEnabled);
+  const shouldSound = test || Boolean(alerts.soundEnabled);
 
-  if (alerts.notificationEnabled) {
+  if (shouldNotify) {
     await notificationCreate(id, {
       type: "basic",
       iconUrl: "assets/icons/icon128.png",
-      title: `HOLMETA: ${copy.title}`,
+      title: `HOLMETA${test ? " Test" : ""}: ${copy.title}`,
       message: copy.body,
       priority: copy.severity === "high" ? 2 : 1,
       requireInteraction: copy.severity === "high",
@@ -3760,11 +3633,12 @@ async function fireAlert(kind = "auto", test = false) {
     delivery.notification = true;
   }
 
-  if (alerts.toastEnabled) {
+  if (shouldToast) {
     const toastResult = await sendToBestWebTab("holmeta:toast", {
-      title: copy.title,
+      title: test ? `Test Alert · ${copy.title}` : copy.title,
       body: copy.body,
       kind: type,
+      test,
       severity: copy.severity,
       durationMs: 9000,
       snoozeMinutes
@@ -3772,11 +3646,12 @@ async function fireAlert(kind = "auto", test = false) {
     delivery.toast = Boolean(toastResult.ok);
   }
 
-  if (alerts.soundEnabled) {
+  if (shouldSound) {
+    const resolvedPattern = resolveAlertSoundPattern(type, alerts.soundPattern || "auto");
     const soundResult = await playAlertSoundReliable({
       kind: type,
       volume: Math.max(0.05, Math.min(0.85, Number(alerts.soundVolume || 35) / 100)),
-      pattern: alerts.soundPattern || "double"
+      pattern: resolvedPattern
     });
     delivery.sound = Boolean(soundResult.ok);
     delivery.soundChannel = soundResult.channel || "none";
@@ -3787,18 +3662,20 @@ async function fireAlert(kind = "auto", test = false) {
     await notificationCreate(`${id}-fallback`, {
       type: "basic",
       iconUrl: "assets/icons/icon128.png",
-      title: `HOLMETA: ${copy.title}`,
+      title: `HOLMETA${test ? " Test" : ""}: ${copy.title}`,
       message: `${copy.body} (Fallback notification)`
     });
     delivery.notification = true;
   }
 
-  state.runtime.lastAlertAt = ts;
-  state.runtime.lastAlertType = type;
-  state.stats.alertsFired += 1;
-  incrementDaily(state, "alerts", 1);
+  if (!test) {
+    state.runtime.lastAlertAt = ts;
+    state.runtime.lastAlertType = type;
+    state.stats.alertsFired += 1;
+    incrementDaily(state, "alerts", 1);
+  }
   log(state, "info", "alert_fired", { type, test, cadenceMode: alerts.cadenceMode, delivery });
-  await saveState(state);
+  if (!test) await saveState(state);
   return { state, skipped: false, reason: "", delivery };
 }
 
@@ -4257,7 +4134,16 @@ async function broadcastState(state) {
     attempted += 1;
     // Expected to fail on restricted/internal pages.
     // eslint-disable-next-line no-await-in-loop
-    const result = await sendTab(tab.id, { type: "holmeta:apply-state", payload }, { frameId: 0 });
+    let result = await sendTab(tab.id, { type: "holmeta:apply-state", payload }, { frameId: 0 });
+    if (!result.ok && isMissingReceiverError(result.error)) {
+      // Existing tabs opened before an extension reload may not have the content script yet.
+      // eslint-disable-next-line no-await-in-loop
+      const ready = await ensureContentScriptReady(tab.id);
+      if (ready.ok) {
+        // eslint-disable-next-line no-await-in-loop
+        result = await sendTab(tab.id, { type: "holmeta:apply-state", payload }, { frameId: 0 });
+      }
+    }
     if (result.ok) applied += 1;
   }
   return { attempted, applied };
@@ -4268,8 +4154,7 @@ async function scheduleRuntimeAlarms(state) {
     alarmClear(ALARMS.HEALTH),
     alarmClear(ALARMS.DEEPWORK),
     alarmClear(ALARMS.HEARTBEAT),
-    alarmClear(ALARMS_BLOCKER_UPDATE),
-    alarmClear(ALARMS.PROXY_REAPPLY)
+    alarmClear(ALARMS_BLOCKER_UPDATE)
   ]);
 
   if (!hasProductAccess(state)) {
@@ -4288,14 +4173,14 @@ async function scheduleRuntimeAlarms(state) {
   }
 
   const readingTheme = state.settings.darkLightTheme || state.settings.readingTheme || {};
-  const readingAutoEnabled = Boolean(
+  const readingAdaptiveEnabled = Boolean(
     readingTheme.enabled
-    && normalizeReadingAppearance(readingTheme.appearance || readingTheme.mode || "dark", "dark") === "auto"
+    && normalizeReadingAppearance(readingTheme.appearance || readingTheme.mode || "dark", "dark") === "adaptive"
   );
 
   const needsHeartbeat =
     Boolean(state.settings.lightFilter?.enabled || state.settings.light?.enabled) ||
-    readingAutoEnabled ||
+    readingAdaptiveEnabled ||
     state.settings.blocker.enabled ||
     state.settings.deepWork.active ||
     state.settings.alerts.enabled;
@@ -4309,10 +4194,6 @@ async function scheduleRuntimeAlarms(state) {
     alarmCreate(ALARMS_BLOCKER_UPDATE, { periodInMinutes: hours * 60 });
   }
 
-  if (state.settings.secureTunnel.enabled && state.settings.secureTunnel.autoReapply) {
-    const minutes = Math.round(clamp(state.settings.secureTunnel.reapplyMinutes, 5, 60));
-    alarmCreate(ALARMS.PROXY_REAPPLY, { periodInMinutes: minutes });
-  }
 }
 
 async function initializeRuntime(reason = "startup") {
@@ -4327,41 +4208,8 @@ async function initializeRuntime(reason = "startup") {
   maybeBindDnrDebugCounters();
   await scheduleRuntimeAlarms(state);
   await applyDnrRules(state);
-  await applySecureTunnel(state, { force: true, reason });
   await broadcastState(state);
   await saveState(state);
-}
-
-async function runCommand(command) {
-  const state = await loadState();
-  if (!hasProductAccess(state)) {
-    return { ok: false, error: "access_locked", state: publicState(state) };
-  }
-  const light = state.settings.lightFilter || state.settings.light;
-
-  if (command === "toggle_light_filters" || command === "toggle-light-filter") {
-    light.enabled = !light.enabled;
-  } else if (command === "toggle_redlight" || command === "toggle-red-mode") {
-    light.enabled = true;
-    light.mode = light.mode === "red_overlay" ? "warm" : "red_overlay";
-  } else if (command === "increase_intensity" || command === "increase-intensity") {
-    light.intensity = Math.round(clamp(light.intensity + 5, 0, 100));
-  } else if (command === "decrease_intensity" || command === "decrease-intensity") {
-    light.intensity = Math.round(clamp(light.intensity - 5, 0, 100));
-  } else if (command === "toggle_spotlight" || command === "toggle-spotlight") {
-    light.enabled = true;
-    light.mode = "spotlight";
-    light.spotlightEnabled = !light.spotlightEnabled;
-  } else {
-    return { ok: false, error: "unknown_command" };
-  }
-
-  log(state, "info", "command_run", { command });
-  await saveState(state);
-  await applyDnrRules(state);
-  await broadcastState(state);
-  await scheduleRuntimeAlarms(state);
-  return { ok: true, state: publicState(state) };
 }
 
 async function startDeepWork(focusMin, breakMin) {
@@ -4500,67 +4348,181 @@ async function heartbeatTick() {
 
   await saveState(state);
   await applyDnrRules(state);
-  await applySecureTunnel(state, { force: false, reason: "heartbeat" });
   await broadcastState(state);
-}
-
-async function maybeShowSiteInsight(tabId, urlLike, state) {
-  if (!hasProductAccess(state)) return;
-  const host = normalizeHost(urlLike);
-  if (!host) return;
-  const config = state.settings.siteInsight || createDefaultState().settings.siteInsight;
-  if (!config.enabled || !config.showOnEverySite) return;
-  if (config.perSiteDisabled?.[host]) return;
-
-  const cached = getSiteInsightCacheEntry(state, host);
-  await sendTab(tabId, {
-    type: "holmeta:show-site-insight",
-    payload: {
-      host,
-      url: String(urlLike || ""),
-      settings: config,
-      throttleMs: SITE_INSIGHT_THROTTLE_MS,
-      cachedSummary: cached?.summaryData || null,
-      cachedAt: Number(cached?.computedAt || 0)
-    }
-  });
 }
 
 function generateTaskWeaverSuggestions(tabs) {
   const list = Array.isArray(tabs) ? tabs : [];
-  const useful = list.filter((t) => /^https?:/i.test(String(t.url || "")));
+  const useful = list
+    .filter((tab) => /^https?:/i.test(String(tab?.url || "")))
+    .map((tab) => {
+      const host = normalizeHost(tab.url);
+      const title = String(tab.title || host || "Untitled tab").trim();
+      return {
+        id: Number(tab.id || 0),
+        url: String(tab.url || ""),
+        host,
+        title,
+        active: Boolean(tab.active),
+        pinned: Boolean(tab.pinned)
+      };
+    })
+    .filter((tab) => tab.host);
+
   if (!useful.length) return [];
+
+  const EXECUTION_HOSTS = [
+    "github.com", "linear.app", "jira.com", "atlassian.net", "figma.com",
+    "notion.so", "docs.google.com", "airtable.com", "trello.com", "asana.com",
+    "clickup.com", "miro.com", "drive.google.com"
+  ];
+  const REFERENCE_HOSTS = [
+    "developer.mozilla.org", "stackoverflow.com", "stackexchange.com", "readme.com",
+    "docs.", "openai.com", "wikipedia.org", "npmjs.com", "pypi.org", "github.io"
+  ];
+  const SYNC_HOSTS = [
+    "mail.google.com", "gmail.com", "slack.com", "discord.com", "teams.microsoft.com",
+    "meet.google.com", "calendar.google.com", "outlook.live.com", "outlook.office.com", "zoom.us"
+  ];
+  const DISTRACTION_CATEGORIES = ["social", "shopping", "entertainment", "adult"];
+
+  function hostMatches(host, patterns) {
+    return patterns.some((pattern) => host === pattern || host.endsWith(`.${pattern}`) || host.includes(pattern));
+  }
+
+  function distractionCategory(host) {
+    for (const key of DISTRACTION_CATEGORIES) {
+      const listForKey = QUICK_BLOCK_CATEGORY_HOSTS[key] || [];
+      if (listForKey.some((pattern) => host === pattern || host.endsWith(`.${pattern}`))) return key;
+    }
+    return "";
+  }
+
+  function classifyLane(tab) {
+    const host = tab.host;
+    const title = tab.title.toLowerCase();
+    const quickCategory = distractionCategory(host);
+    if (quickCategory) return { lane: "Park", cue: quickCategory };
+    if (hostMatches(host, SYNC_HOSTS) || /mail|inbox|calendar|chat|messages/.test(title)) {
+      return { lane: "Sync", cue: "communications" };
+    }
+    if (hostMatches(host, REFERENCE_HOSTS) || /docs|reference|guide|api|readme|tutorial/.test(title)) {
+      return { lane: "Reference", cue: "reference" };
+    }
+    if (hostMatches(host, EXECUTION_HOSTS) || /issue|task|board|design|project|workspace|repo/.test(title)) {
+      return { lane: "Execution", cue: "execution" };
+    }
+    return { lane: "Execution", cue: "general" };
+  }
+
+  function displayHost(host) {
+    const base = String(host || "").replace(/^www\./, "");
+    const parts = base.split(".");
+    return parts.length > 2 ? parts.slice(-2).join(".") : base;
+  }
+
+  function scoreTab(tab) {
+    const lane = classifyLane(tab).lane;
+    let score = 0;
+    if (tab.active) score += 8;
+    if (tab.pinned) score += 2;
+    if (lane === "Execution") score += 5;
+    if (lane === "Reference") score += 3;
+    if (lane === "Sync") score += 1;
+    if (lane === "Park") score -= 3;
+    return score;
+  }
 
   const domainCount = new Map();
   useful.forEach((tab) => {
-    const host = normalizeHost(tab.url);
-    domainCount.set(host, (domainCount.get(host) || 0) + 1);
+    domainCount.set(tab.host, (domainCount.get(tab.host) || 0) + 1);
   });
 
-  const simulations = [];
-  for (let i = 0; i < 20; i += 1) {
-    const pick = useful[Math.floor(Math.random() * useful.length)];
-    const host = normalizeHost(pick.url);
-    const weight = (domainCount.get(host) || 1) + Math.random() * 2;
-    simulations.push({
-      title: pick.title || host,
-      reason: `Focus potential +${Math.round(weight * 8)}% (${host})`,
-      url: pick.url,
-      weight
+  const ranked = useful
+    .map((tab) => ({
+      ...tab,
+      ...classifyLane(tab),
+      score: scoreTab(tab)
+    }))
+    .sort((a, b) => b.score - a.score);
+
+  const results = [];
+  const seenKeys = new Set();
+  const addResult = (key, payload) => {
+    if (!payload || seenKeys.has(key)) return;
+    seenKeys.add(key);
+    results.push(payload);
+  };
+
+  const primary = ranked[0];
+  addResult("primary", {
+    lane: primary.lane === "Park" ? "Execution" : primary.lane,
+    title: `Lead with ${primary.title}`,
+    reason: primary.active
+      ? `This is the active tab and the strongest candidate for the current work lane. Keep it open and reduce side-switching around ${displayHost(primary.host)}.`
+      : `This tab scores highest for direct execution in the current window. Promote it to the lead lane before you start the next block.`,
+    url: primary.url
+  });
+
+  const duplicateCluster = [...domainCount.entries()]
+    .filter(([, count]) => count > 1)
+    .sort((a, b) => b[1] - a[1])[0];
+  if (duplicateCluster) {
+    const [host, count] = duplicateCluster;
+    const candidate = ranked.find((tab) => tab.host === host);
+    addResult(`cluster:${host}`, {
+      lane: "Cluster",
+      title: `Collapse the ${displayHost(host)} stack`,
+      reason: `${count} tabs from ${displayHost(host)} are open. Keep one primary tab and park the rest to cut context churn.`,
+      url: candidate?.url || ""
     });
   }
 
-  simulations.sort((a, b) => b.weight - a.weight);
-  const unique = [];
-  const seen = new Set();
-  for (const item of simulations) {
-    if (seen.has(item.url)) continue;
-    seen.add(item.url);
-    unique.push(item);
-    if (unique.length >= 5) break;
+  const reference = ranked.find((tab) => tab.lane === "Reference" && tab.url !== primary.url);
+  if (reference) {
+    addResult(`reference:${reference.host}`, {
+      lane: "Reference",
+      title: `Contain research inside ${displayHost(reference.host)}`,
+      reason: `Use this tab as the only reference lane for the session so research supports execution instead of fragmenting it.`,
+      url: reference.url
+    });
   }
 
-  return unique;
+  const syncTab = ranked.find((tab) => tab.lane === "Sync");
+  if (syncTab) {
+    addResult(`sync:${syncTab.host}`, {
+      lane: "Sync",
+      title: `Batch the ${displayHost(syncTab.host)} sweep`,
+      reason: "Communication tabs are open. Batch them into a single check-in after the current work block instead of puncturing focus repeatedly.",
+      url: syncTab.url
+    });
+  }
+
+  const parkTab = ranked.find((tab) => tab.lane === "Park");
+  if (parkTab) {
+    addResult(`park:${parkTab.host}`, {
+      lane: "Park",
+      title: `Park ${displayHost(parkTab.host)} until the block ends`,
+      reason: "This tab matches a high-distraction pattern. Move it out of the active lane so the current protocol stays clean.",
+      url: parkTab.url
+    });
+  }
+
+  if (results.length < 5) {
+    ranked
+      .filter((tab) => tab.url !== primary.url)
+      .slice(0, 5)
+      .forEach((tab) => {
+        addResult(`support:${tab.url}`, {
+          lane: tab.lane,
+          title: `${tab.lane} support · ${tab.title}`,
+          reason: `Keep ${displayHost(tab.host)} in a ${tab.lane.toLowerCase()} lane so the main execution tab does not get overloaded.`,
+          url: tab.url
+        });
+      });
+  }
+
+  return results.slice(0, 5);
 }
 
 async function validateLicenseWithServer(licenseKey, installId) {
@@ -4712,7 +4674,6 @@ async function activateLicense(keyRaw) {
   await saveState(state);
   await scheduleRuntimeAlarms(state);
   await applyDnrRules(state);
-  await applySecureTunnel(state, { force: true, reason: "entitlement_change" });
   await broadcastState(state);
 
   if (!refreshed.ok) {
@@ -4802,11 +4763,6 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
     return;
   }
 
-  if (alarm.name === ALARMS.PROXY_REAPPLY) {
-    const state = await loadState();
-    await applySecureTunnel(state, { force: true, reason: "alarm_reapply" });
-    return;
-  }
 });
 
 chrome.notifications.onButtonClicked.addListener(async (_notificationId, buttonIndex) => {
@@ -4824,79 +4780,36 @@ chrome.notifications.onButtonClicked.addListener(async (_notificationId, buttonI
   }
 });
 
-chrome.commands.onCommand.addListener(async (command) => {
-  await runCommand(command);
-});
+if (chrome.webRequest?.onBeforeRequest?.addListener) {
+  try {
+    chrome.webRequest.onBeforeRequest.addListener(
+      (details) => {
+        const tabId = Number(details?.tabId ?? -1);
+        if (tabId < 0) return;
+        const url = String(details?.url || "");
+        if (!/^https?:/i.test(url)) return;
+        blockedPageContextByTab.set(tabId, {
+          url,
+          recordedAt: now()
+        });
+      },
+      { urls: ["http://*/*", "https://*/*"], types: ["main_frame"] }
+    );
+  } catch {
+    // Ignore optional listener failures on unsupported Chromium variants.
+  }
+}
 
 chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
   if (changeInfo.status !== "complete") return;
   if (!/^https?:/i.test(String(tab?.url || ""))) return;
   const state = await loadState();
   await sendTab(tabId, { type: "holmeta:apply-state", payload: effectivePayload(state) }, { frameId: 0 });
-  await maybeShowSiteInsight(tabId, tab?.url, state);
 });
 
-if (chrome.proxy?.onProxyError?.addListener) {
-  chrome.proxy.onProxyError.addListener(async (details) => {
-    const state = await loadState();
-    const message = String(details?.error || details?.details || "proxy_error");
-    state.runtime.secureTunnel.connected = false;
-    state.runtime.secureTunnel.lastError = message.slice(0, 220);
-    state.runtime.secureTunnel.lastErrorAt = now();
-    log(state, "error", "secure_tunnel_proxy_error", {
-      fatal: Boolean(details?.fatal),
-      message
-    });
-    await saveState(state);
-  });
-}
-
-if (chrome.webRequest?.onAuthRequired?.addListener) {
-  try {
-    chrome.webRequest.onAuthRequired.addListener(
-      (details, callback) => {
-        (async () => {
-          try {
-            if (!details?.isProxy) {
-              callback({});
-              return;
-            }
-            const state = await loadState();
-            const tunnel = state.settings.secureTunnel;
-            if (!tunnel.enabled) {
-              callback({});
-              return;
-            }
-
-            const candidates = resolveSecureTunnelCandidates(state);
-            const active = candidates.find((item) => item.id === state.runtime.secureTunnel.activePresetId) || candidates[0];
-            const username = String(active?.username || "");
-            const password = String(active?.password || "");
-            if (!username) {
-              callback({});
-              return;
-            }
-
-            state.runtime.secureTunnel.authFailures = Math.max(0, Number(state.runtime.secureTunnel.authFailures || 0));
-
-            callback({
-              authCredentials: {
-                username,
-                password
-              }
-            });
-          } catch {
-            callback({});
-          }
-        })();
-      },
-      { urls: ["<all_urls>"] },
-      ["asyncBlocking"]
-    );
-  } catch {
-    // Missing permission or unsupported in this Chromium build.
-  }
-}
+chrome.tabs.onRemoved.addListener((tabId) => {
+  blockedPageContextByTab.delete(Number(tabId));
+});
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   (async () => {
@@ -4935,7 +4848,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         await saveState(state);
         await scheduleRuntimeAlarms(state);
         await applyDnrRules(state);
-        await applySecureTunnel(state, { force: true, reason: "get_state_sync" });
         await broadcastState(state);
       }
 
@@ -4948,15 +4860,51 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       return;
     }
 
-    if (type === "holmeta:get-site-insight-config") {
-      const host = normalizeHost(message.host || sender?.tab?.url || "");
-      sendResponse({
-        ok: true,
-        settings: state.settings.siteInsight,
-        host,
-        disabledOnHost: Boolean(host && state.settings.siteInsight?.perSiteDisabled?.[host]),
-        cached: host ? getSiteInsightCacheEntry(state, host) : null
-      });
+    if (type === "holmeta:collect-page-insight") {
+      const tabs = await tabsQuery({ active: true, currentWindow: true });
+      const tab = tabs.find((candidate) => Number.isInteger(candidate?.id) && /^https?:/i.test(String(candidate?.url || "")));
+      if (!tab) {
+        sendResponse({ ok: false, error: "no_active_web_tab" });
+        return;
+      }
+
+      const insightSettings = state.settings?.siteInsight || {};
+      if (!insightSettings.enabled) {
+        sendResponse({ ok: false, error: "site_insight_disabled" });
+        return;
+      }
+
+      const activeHost = normalizeHost(tab.url || "");
+      const disabledMap = insightSettings.perSiteDisabled && typeof insightSettings.perSiteDisabled === "object"
+        ? insightSettings.perSiteDisabled
+        : {};
+      if (activeHost && disabledMap[activeHost]) {
+        sendResponse({ ok: false, error: "insight_disabled_for_site" });
+        return;
+      }
+
+      const tabId = Number(tab.id || 0);
+      if (!Number.isInteger(tabId) || tabId <= 0) {
+        sendResponse({ ok: false, error: "no_active_web_tab" });
+        return;
+      }
+
+      let result = await sendTab(tabId, { type: "holmeta:collect-page-insight" }, { frameId: 0 });
+      if (!result.ok && isMissingReceiverError(result.error)) {
+        const ready = await ensureContentScriptReady(tabId);
+        if (!ready.ok) {
+          sendResponse({ ok: false, error: ready.error || "content_script_unavailable" });
+          return;
+        }
+        result = await sendTab(tabId, { type: "holmeta:collect-page-insight" }, { frameId: 0 });
+      }
+
+      if (!result.ok || !result.res?.ok) {
+        sendResponse({ ok: false, error: result.error || result.res?.error || "collect_page_insight_failed" });
+        return;
+      }
+
+      sendResponse({ ok: true, insight: result.res.insight || null });
       return;
     }
 
@@ -5141,82 +5089,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       }
       state.settings = normalizeState({ settings: mergeDeep(state.settings, expandedPatch), license: state.license }).settings;
       await saveState(state);
-      if (patchTouchesSecureTunnel(expandedPatch)) {
-        await applySecureTunnel(state, { force: true, reason: "settings_patch" });
-      }
       await scheduleRuntimeAlarms(state);
       await applyDnrRules(state);
       await broadcastState(state);
       sendResponse({ ok: true, state: publicState(state) });
-      return;
-    }
-
-    if (type === "holmeta:get-secure-tunnel-presets") {
-      sendResponse({
-        ok: true,
-        presets: getSecureTunnelPresetCatalog(),
-        state: publicState(state)
-      });
-      return;
-    }
-
-    if (type === "holmeta:secure-tunnel-toggle") {
-      state.settings.secureTunnel.enabled = Boolean(message.enabled);
-      await saveState(state);
-      const result = await applySecureTunnel(state, { force: true, reason: "toggle" });
-      await scheduleRuntimeAlarms(state);
-      sendResponse({
-        ok: result.ok,
-        error: result.ok ? "" : (result.error || "secure_tunnel_toggle_failed"),
-        state: publicState(state)
-      });
-      return;
-    }
-
-    if (type === "holmeta:secure-tunnel-connect") {
-      const mode = ["preset", "custom"].includes(String(message.mode || ""))
-        ? String(message.mode)
-        : state.settings.secureTunnel.mode;
-      const patch = {
-        mode,
-        selectedPresetId: SECURE_TUNNEL_PRESETS.some((preset) => preset.id === message.presetId)
-          ? String(message.presetId)
-          : state.settings.secureTunnel.selectedPresetId,
-        custom: {
-          scheme: normalizeProxyScheme(message.custom?.scheme, state.settings.secureTunnel.custom.scheme),
-          host: normalizeHost(message.custom?.host || state.settings.secureTunnel.custom.host),
-          port: normalizeProxyPort(message.custom?.port, state.settings.secureTunnel.custom.port),
-          username: String(message.custom?.username ?? state.settings.secureTunnel.custom.username ?? "").slice(0, 120),
-          password: String(message.custom?.password ?? state.settings.secureTunnel.custom.password ?? "").slice(0, 180)
-        }
-      };
-      state.settings.secureTunnel = {
-        ...state.settings.secureTunnel,
-        ...patch,
-        enabled: true
-      };
-      state.settings = normalizeState({ settings: state.settings, license: state.license }).settings;
-      await saveState(state);
-      const result = await applySecureTunnel(state, { force: true, reason: "manual_connect" });
-      await scheduleRuntimeAlarms(state);
-      sendResponse({
-        ok: result.ok,
-        error: result.ok ? "" : (result.error || "secure_tunnel_connect_failed"),
-        state: publicState(state)
-      });
-      return;
-    }
-
-    if (type === "holmeta:secure-tunnel-disconnect") {
-      state.settings.secureTunnel.enabled = false;
-      await saveState(state);
-      const result = await clearSecureTunnel(state, "manual_disconnect");
-      await scheduleRuntimeAlarms(state);
-      sendResponse({
-        ok: result.ok,
-        error: result.ok ? "" : (result.error || "secure_tunnel_disconnect_failed"),
-        state: publicState(state)
-      });
       return;
     }
 
@@ -5260,51 +5136,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         return;
       }
       sendResponse(result);
-      return;
-    }
-
-    if (type === "holmeta:disable-site-insight-host") {
-      const host = normalizeHost(message.host || sender?.tab?.url || "");
-      if (!host) {
-        sendResponse({ ok: false, error: "invalid_host" });
-        return;
-      }
-      state.settings.siteInsight.perSiteDisabled[host] = true;
-      await saveState(state);
-      await broadcastState(state);
-      sendResponse({ ok: true, state: publicState(state) });
-      return;
-    }
-
-    if (type === "holmeta:enable-site-insight-host") {
-      const host = normalizeHost(message.host || sender?.tab?.url || "");
-      if (!host) {
-        sendResponse({ ok: false, error: "invalid_host" });
-        return;
-      }
-      delete state.settings.siteInsight.perSiteDisabled[host];
-      await saveState(state);
-      await broadcastState(state);
-      sendResponse({ ok: true, state: publicState(state) });
-      return;
-    }
-
-    if (type === "holmeta:site-insight-cache-set") {
-      const host = normalizeHost(message.host || "");
-      if (!host) {
-        sendResponse({ ok: false, error: "invalid_host" });
-        return;
-      }
-      upsertSiteInsightCache(state, host, message.summaryData || null);
-      await saveState(state);
-      sendResponse({ ok: true });
-      return;
-    }
-
-    if (type === "holmeta:clear-site-insight-cache") {
-      state.cache.siteInsight = {};
-      await saveState(state);
-      sendResponse({ ok: true });
       return;
     }
 
@@ -5515,83 +5346,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       return;
     }
 
-    if (type === "holmeta:save-site-profile") {
-      const host = normalizeHost(message.host);
-      if (!host) {
-        sendResponse({ ok: false, error: "invalid_host" });
-        return;
-      }
-      state.settings.lightFilter.perSiteOverrides[host] = {
-        enabled: true,
-        mode: state.settings.lightFilter.mode,
-        spectrumPreset: state.settings.lightFilter.spectrumPreset,
-        intensity: state.settings.lightFilter.intensity,
-        dim: state.settings.lightFilter.dim,
-        contrastSoft: state.settings.lightFilter.contrastSoft,
-        brightness: state.settings.lightFilter.brightness,
-        saturation: state.settings.lightFilter.saturation,
-        blueCut: state.settings.lightFilter.blueCut,
-        tintRed: state.settings.lightFilter.tintRed,
-        tintGreen: state.settings.lightFilter.tintGreen,
-        tintBlue: state.settings.lightFilter.tintBlue,
-        reduceWhites: state.settings.lightFilter.reduceWhites,
-        videoSafe: state.settings.lightFilter.videoSafe,
-        spotlightEnabled: state.settings.lightFilter.spotlightEnabled,
-        therapyMode: state.settings.lightFilter.therapyMode,
-        therapyDuration: state.settings.lightFilter.therapyDuration,
-        therapyCadence: state.settings.lightFilter.therapyCadence
-      };
-      state.settings.readingTheme.perSiteOverrides[host] = {
-        enabled: true,
-        appearance: state.settings.readingTheme.appearance,
-        darkVariant: state.settings.readingTheme.darkVariant,
-        lightVariant: state.settings.readingTheme.lightVariant,
-        scheduleMode: state.settings.readingTheme.scheduleMode,
-        schedule: {
-          ...(state.settings.readingTheme.schedule || {})
-        },
-        mode: state.settings.readingTheme.mode,
-        preset: state.settings.readingTheme.preset,
-        intensity: state.settings.readingTheme.intensity,
-        opaqueBackground: Boolean(state.settings.readingTheme.opaqueBackground),
-        pointerCursors: Boolean(state.settings.readingTheme.pointerCursors),
-        sansFontSize: state.settings.readingTheme.sansFontSize,
-        sansFontFamily: state.settings.readingTheme.sansFontFamily,
-        codeFontSize: state.settings.readingTheme.codeFontSize,
-        codeFontFamily: state.settings.readingTheme.codeFontFamily
-      };
-      state.settings.adaptiveSiteTheme.perSiteOverrides[host] = {
-        enabled: true,
-        mode: state.settings.adaptiveSiteTheme.mode,
-        preset: state.settings.adaptiveSiteTheme.preset,
-        strategy: state.settings.adaptiveSiteTheme.strategy,
-        compatibilityMode: state.settings.adaptiveSiteTheme.compatibilityMode,
-        intensity: state.settings.adaptiveSiteTheme.intensity
-      };
-      await saveState(state);
-      await broadcastState(state);
-      sendResponse({ ok: true, state: publicState(state) });
-      return;
-    }
-
-    if (type === "holmeta:reset-site-overrides") {
-      const host = normalizeHost(message.host);
-      if (!host) {
-        sendResponse({ ok: false, error: "invalid_host" });
-        return;
-      }
-      delete state.settings.lightFilter.perSiteOverrides[host];
-      delete state.settings.lightFilter.excludedSites[host];
-      delete state.settings.readingTheme.perSiteOverrides[host];
-      delete state.settings.readingTheme.excludedSites[host];
-      delete state.settings.adaptiveSiteTheme.perSiteOverrides[host];
-      delete state.settings.adaptiveSiteTheme.excludedSites[host];
-      await saveState(state);
-      await broadcastState(state);
-      sendResponse({ ok: true, state: publicState(state) });
-      return;
-    }
-
     if (type === "holmeta:add-blocked-domain") {
       const host = normalizeHost(message.host || sender?.tab?.url || "");
       if (!host) {
@@ -5750,11 +5504,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     }
 
     if (type === "holmeta:get-blocked-context") {
-      sendResponse({
-        ok: true,
-        blockerActive: isBlockerActiveNow(state),
-        pausedUntil: Number(state.settings.blocker.pausedUntil || 0)
-      });
+      sendResponse(buildBlockedPageContext(state, Number(sender?.tab?.id ?? -1)));
       return;
     }
 
@@ -5796,6 +5546,44 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       return;
     }
 
+    if (type === "holmeta:test-meditation") {
+      const result = await fireMeditation(true);
+      sendResponse({
+        ok: !result?.skipped,
+        skipped: Boolean(result?.skipped),
+        reason: String(result?.reason || ""),
+        delivery: result?.delivery || {
+          toast: false,
+          sound: false,
+          soundChannel: "none",
+          soundError: ""
+        }
+      });
+      return;
+    }
+
+    if (type === "holmeta:start-meditation") {
+      const result = await fireMeditation(false);
+      sendResponse({
+        ok: !result?.skipped,
+        skipped: Boolean(result?.skipped),
+        reason: String(result?.reason || ""),
+        delivery: result?.delivery || {
+          toast: false,
+          sound: false,
+          soundChannel: "none",
+          soundError: ""
+        }
+      });
+      return;
+    }
+
+    if (type === "holmeta:stop-meditation") {
+      const result = await stopMeditationSession();
+      sendResponse({ ok: Boolean(result?.ok) });
+      return;
+    }
+
     if (type === "holmeta:snooze-alerts") {
       const minutes = Math.round(clamp(message.minutes || state.settings.alerts.snoozeMinutes || 10, 1, 240));
       state.settings.alerts.snoozeUntil = now() + minutes * 60 * 1000;
@@ -5814,12 +5602,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       log(state, "info", "task_weaver_run", { resultCount: results.length });
       await saveState(state);
       sendResponse({ ok: true, results });
-      return;
-    }
-
-    if (type === "holmeta:run-command") {
-      const result = await runCommand(String(message.command || ""));
-      sendResponse(result);
       return;
     }
 
@@ -5850,7 +5632,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       await saveState(state);
       await scheduleRuntimeAlarms(state);
       await applyDnrRules(state);
-      await applySecureTunnel(state, { force: true, reason: "manual_refresh" });
       await broadcastState(state);
       sendResponse({
         ok: refreshed.ok,
@@ -5885,7 +5666,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       await saveState(state);
       await scheduleRuntimeAlarms(state);
       await applyDnrRules(state);
-      await applySecureTunnel(state, { force: true, reason: "clear_license" });
       await broadcastState(state);
       sendResponse({ ok: true, state: publicState(state) });
       return;
@@ -5911,7 +5691,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       await saveState(imported);
       await scheduleRuntimeAlarms(imported);
       await applyDnrRules(imported);
-      await applySecureTunnel(imported, { force: true, reason: "import_settings" });
       await broadcastState(imported);
       sendResponse({ ok: true, state: publicState(imported) });
       return;
@@ -5922,7 +5701,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       await saveState(fresh);
       await scheduleRuntimeAlarms(fresh);
       await applyDnrRules(fresh);
-      await applySecureTunnel(fresh, { force: true, reason: "reset_all" });
       await broadcastState(fresh);
       sendResponse({ ok: true, state: publicState(fresh) });
       return;
@@ -5950,5 +5728,6 @@ globalThis.__HOLMETA_BG_TEST__ = {
   inTimeRange,
   createDefaultState,
   normalizeState,
+  resolveAlertSoundPattern,
   generateTaskWeaverSuggestions
 };

@@ -30,15 +30,43 @@
     saveInFlight: false,
     onboardingStep: 0,
     diagnostics: null,
-    alertTestType: "eye",
+    pageInsight: null,
     eyeDraftHex: "#FFB300",
     favoriteDraftUrl: "",
-    tunnelTimerHandle: null,
     screenshotRunning: false,
     translateInputDraft: "",
     translateOutputDraft: "",
     translateLastEntry: null,
-    popupOrderApplied: false
+    popupOrderApplied: false,
+    dashboard: null,
+    dashboardClockTimer: null,
+    dashboardPomoTimer: null,
+    dashboardWeatherRequested: false,
+    weaverResults: [],
+    vault: {
+      ready: false,
+      hasVault: false,
+      unlocked: false,
+      busy: false,
+      masterPassword: "",
+      activeTab: "passwords",
+      search: "",
+      revealMap: {},
+      credentials: [],
+      notes: [],
+      prompts: [],
+      generator: {
+        length: 20,
+        upper: true,
+        lower: true,
+        number: true,
+        symbol: true,
+        result: ""
+      },
+      editingCredentialIndex: null,
+      editingTextIndex: null,
+      editingTextType: "note"
+    }
   };
 
   const onboardingSteps = [
@@ -56,10 +84,122 @@
     }
   ];
 
+  const DASHBOARD_STORAGE_KEYS = {
+    clocks: "holmeta-dashboard-clocks",
+    tasks: "holmeta-dashboard-tasks",
+    workStart: "holmeta-dashboard-work-start",
+    workEnd: "holmeta-dashboard-work-end"
+  };
+
+  const VAULT_STORAGE_KEYS = {
+    ciphertext: "holmeta-vault-ciphertext-v1",
+    verify: "holmeta-vault-verify-v1"
+  };
+
+  const DASHBOARD_CITIES = [
+    { name: "New York", tz: "America/New_York", code: "NYC" },
+    { name: "Los Angeles", tz: "America/Los_Angeles", code: "LAX" },
+    { name: "Chicago", tz: "America/Chicago", code: "CHI" },
+    { name: "Toronto", tz: "America/Toronto", code: "YYZ" },
+    { name: "London", tz: "Europe/London", code: "LON" },
+    { name: "Paris", tz: "Europe/Paris", code: "CDG" },
+    { name: "Berlin", tz: "Europe/Berlin", code: "BER" },
+    { name: "Madrid", tz: "Europe/Madrid", code: "MAD" },
+    { name: "Rome", tz: "Europe/Rome", code: "FCO" },
+    { name: "Dubai", tz: "Asia/Dubai", code: "DXB" },
+    { name: "Mumbai", tz: "Asia/Kolkata", code: "BOM" },
+    { name: "Singapore", tz: "Asia/Singapore", code: "SIN" },
+    { name: "Hong Kong", tz: "Asia/Hong_Kong", code: "HKG" },
+    { name: "Shanghai", tz: "Asia/Shanghai", code: "PVG" },
+    { name: "Seoul", tz: "Asia/Seoul", code: "ICN" },
+    { name: "Tokyo", tz: "Asia/Tokyo", code: "TYO" },
+    { name: "Sydney", tz: "Australia/Sydney", code: "SYD" },
+    { name: "Auckland", tz: "Pacific/Auckland", code: "AKL" }
+  ];
+
   const refs = {
     modeBadge: document.getElementById("modeBadge"),
     saveState: document.getElementById("saveState"),
     toastHost: document.getElementById("toastHost"),
+    dashboardPanel: document.getElementById("dashboardPanel"),
+    dashboardHours: document.getElementById("dashboardHours"),
+    dashboardMinutes: document.getElementById("dashboardMinutes"),
+    dashboardSeconds: document.getElementById("dashboardSeconds"),
+    dashboardDate: document.getElementById("dashboardDate"),
+    dashboardWorkStart: document.getElementById("dashboardWorkStart"),
+    dashboardWorkEnd: document.getElementById("dashboardWorkEnd"),
+    dashboardWorkFill: document.getElementById("dashboardWorkFill"),
+    dashboardWorkMeta: document.getElementById("dashboardWorkMeta"),
+    dashboardClocks: document.getElementById("dashboardClocks"),
+    dashboardAddClock: document.getElementById("dashboardAddClock"),
+    dashboardWeatherRefresh: document.getElementById("dashboardWeatherRefresh"),
+    dashboardWeatherSummary: document.getElementById("dashboardWeatherSummary"),
+    dashboardWeatherStats: document.getElementById("dashboardWeatherStats"),
+    dashboardWeatherTemp: document.getElementById("dashboardWeatherTemp"),
+    dashboardWeatherCond: document.getElementById("dashboardWeatherCond"),
+    dashboardWeatherWind: document.getElementById("dashboardWeatherWind"),
+    dashboardTaskProgress: document.getElementById("dashboardTaskProgress"),
+    dashboardTaskList: document.getElementById("dashboardTaskList"),
+    dashboardTaskPriority: document.getElementById("dashboardTaskPriority"),
+    dashboardTaskInput: document.getElementById("dashboardTaskInput"),
+    dashboardTaskAdd: document.getElementById("dashboardTaskAdd"),
+    dashboardPomoTime: document.getElementById("dashboardPomoTime"),
+    dashboardPomoPhase: document.getElementById("dashboardPomoPhase"),
+    dashboardPomoStart: document.getElementById("dashboardPomoStart"),
+    dashboardPomoPause: document.getElementById("dashboardPomoPause"),
+    dashboardPomoReset: document.getElementById("dashboardPomoReset"),
+    dashboardCityModal: document.getElementById("dashboardCityModal"),
+    dashboardCitySearch: document.getElementById("dashboardCitySearch"),
+    dashboardCitySuggestions: document.getElementById("dashboardCitySuggestions"),
+    dashboardCityClose: document.getElementById("dashboardCityClose"),
+    vaultStateBadge: document.getElementById("vaultStateBadge"),
+    vaultLockView: document.getElementById("vaultLockView"),
+    vaultAppView: document.getElementById("vaultAppView"),
+    vaultLockHint: document.getElementById("vaultLockHint"),
+    vaultMasterPassword: document.getElementById("vaultMasterPassword"),
+    vaultUnlockButton: document.getElementById("vaultUnlockButton"),
+    vaultResetButton: document.getElementById("vaultResetButton"),
+    vaultSummaryText: document.getElementById("vaultSummaryText"),
+    vaultPrimaryAction: document.getElementById("vaultPrimaryAction"),
+    vaultLockButton: document.getElementById("vaultLockButton"),
+    vaultTabPasswords: document.getElementById("vaultTabPasswords"),
+    vaultTabNotes: document.getElementById("vaultTabNotes"),
+    vaultTabPrompts: document.getElementById("vaultTabPrompts"),
+    vaultTabGenerator: document.getElementById("vaultTabGenerator"),
+    vaultCountPasswords: document.getElementById("vaultCountPasswords"),
+    vaultCountNotes: document.getElementById("vaultCountNotes"),
+    vaultCountPrompts: document.getElementById("vaultCountPrompts"),
+    vaultToolbar: document.getElementById("vaultToolbar"),
+    vaultSearchInput: document.getElementById("vaultSearchInput"),
+    vaultContent: document.getElementById("vaultContent"),
+    vaultCredentialModal: document.getElementById("vaultCredentialModal"),
+    vaultCredentialModalTitle: document.getElementById("vaultCredentialModalTitle"),
+    vaultCredentialModalClose: document.getElementById("vaultCredentialModalClose"),
+    vaultCredentialSite: document.getElementById("vaultCredentialSite"),
+    vaultCredentialIcon: document.getElementById("vaultCredentialIcon"),
+    vaultCredentialUser: document.getElementById("vaultCredentialUser"),
+    vaultCredentialPass: document.getElementById("vaultCredentialPass"),
+    vaultCredentialReveal: document.getElementById("vaultCredentialReveal"),
+    vaultCredentialGenerate: document.getElementById("vaultCredentialGenerate"),
+    vaultCredentialUrl: document.getElementById("vaultCredentialUrl"),
+    vaultCredentialTag: document.getElementById("vaultCredentialTag"),
+    vaultCredentialNotes: document.getElementById("vaultCredentialNotes"),
+    vaultCredentialStrength0: document.getElementById("vaultCredentialStrength0"),
+    vaultCredentialStrength1: document.getElementById("vaultCredentialStrength1"),
+    vaultCredentialStrength2: document.getElementById("vaultCredentialStrength2"),
+    vaultCredentialStrength3: document.getElementById("vaultCredentialStrength3"),
+    vaultCredentialStrengthLabel: document.getElementById("vaultCredentialStrengthLabel"),
+    vaultCredentialCancel: document.getElementById("vaultCredentialCancel"),
+    vaultCredentialSave: document.getElementById("vaultCredentialSave"),
+    vaultTextModal: document.getElementById("vaultTextModal"),
+    vaultTextModalTitle: document.getElementById("vaultTextModalTitle"),
+    vaultTextModalClose: document.getElementById("vaultTextModalClose"),
+    vaultTextTitle: document.getElementById("vaultTextTitle"),
+    vaultTextType: document.getElementById("vaultTextType"),
+    vaultTextBody: document.getElementById("vaultTextBody"),
+    vaultTextTags: document.getElementById("vaultTextTags"),
+    vaultTextCancel: document.getElementById("vaultTextCancel"),
+    vaultTextSave: document.getElementById("vaultTextSave"),
     accessLockPanel: document.getElementById("accessLockPanel"),
     accessStateBadge: document.getElementById("accessStateBadge"),
     accessLockMessage: document.getElementById("accessLockMessage"),
@@ -70,6 +210,15 @@
     accessEnterLicense: document.getElementById("accessEnterLicense"),
 
     lightEnabled: document.getElementById("lightEnabled"),
+    lightPresetComfort: document.getElementById("lightPresetComfort"),
+    lightPresetDeepNight: document.getElementById("lightPresetDeepNight"),
+    lightPresetInfrared: document.getElementById("lightPresetInfrared"),
+    lightPresetRedLock: document.getElementById("lightPresetRedLock"),
+    lightFilterModeChip: document.getElementById("lightFilterModeChip"),
+    lightFilterSpectrumChip: document.getElementById("lightFilterSpectrumChip"),
+    lightFilterIntensityChip: document.getElementById("lightFilterIntensityChip"),
+    lightFilterStrengthFill: document.getElementById("lightFilterStrengthFill"),
+    lightFilterSummary: document.getElementById("lightFilterSummary"),
     lightMode: document.getElementById("lightMode"),
     lightIntensity: document.getElementById("lightIntensity"),
     lightIntensityValue: document.getElementById("lightIntensityValue"),
@@ -81,6 +230,8 @@
     readingThemeDark: document.getElementById("readingThemeDark"),
     readingThemeLight: document.getElementById("readingThemeLight"),
     readingThemeAuto: document.getElementById("readingThemeAuto"),
+    readingThemeDarkVariantRow: document.getElementById("readingThemeDarkVariantRow"),
+    readingThemeLightVariantRow: document.getElementById("readingThemeLightVariantRow"),
     readingThemeDarkVariant: document.getElementById("readingThemeDarkVariant"),
     readingThemeLightVariant: document.getElementById("readingThemeLightVariant"),
     readingThemeOpaqueBackground: document.getElementById("readingThemeOpaqueBackground"),
@@ -92,32 +243,23 @@
     readingThemeScheduleMode: document.getElementById("readingThemeScheduleMode"),
     readingThemeScheduleStart: document.getElementById("readingThemeScheduleStart"),
     readingThemeScheduleEnd: document.getElementById("readingThemeScheduleEnd"),
-    readingThemeAutoRow: document.getElementById("readingThemeAutoRow"),
-    readingThemeCustomScheduleRow: document.getElementById("readingThemeCustomScheduleRow"),
-    readingThemeThisSiteEnabled: document.getElementById("readingThemeThisSiteEnabled"),
     readingThemeExcludeSite: document.getElementById("readingThemeExcludeSite"),
+    readingThemePreserveImages: document.getElementById("readingThemePreserveImages"),
+    readingThemePreserveLogos: document.getElementById("readingThemePreserveLogos"),
+    readingThemeHigherContrast: document.getElementById("readingThemeHigherContrast"),
+    readingThemeSofterSurfaces: document.getElementById("readingThemeSofterSurfaces"),
     readingThemeStatus: document.getElementById("readingThemeStatus"),
     readingThemeShowWidget: document.getElementById("readingThemeShowWidget"),
     readingThemeHideWidget: document.getElementById("readingThemeHideWidget"),
-
-    adaptiveThemeEnabled: document.getElementById("adaptiveThemeEnabled"),
-    adaptiveThemeMode: document.getElementById("adaptiveThemeMode"),
-    adaptiveThemePreset: document.getElementById("adaptiveThemePreset"),
-    adaptiveThemeIntensity: document.getElementById("adaptiveThemeIntensity"),
-    adaptiveThemeIntensityValue: document.getElementById("adaptiveThemeIntensityValue"),
-    adaptiveThemeStrategy: document.getElementById("adaptiveThemeStrategy"),
-    adaptiveThemeCompatibility: document.getElementById("adaptiveThemeCompatibility"),
-    adaptiveThemeThisSiteEnabled: document.getElementById("adaptiveThemeThisSiteEnabled"),
-    adaptiveThemeExcludeSite: document.getElementById("adaptiveThemeExcludeSite"),
-    adaptiveThemeStatus: document.getElementById("adaptiveThemeStatus"),
+    toggleStateLabel: document.getElementById("toggleStateLabel"),
+    appearanceModeText: document.getElementById("appearanceModeText"),
+    appearanceModeSub: document.getElementById("appearanceModeSub"),
+    readingThemeStatTime: document.getElementById("readingThemeStatTime"),
+    readingThemeStatSunrise: document.getElementById("readingThemeStatSunrise"),
+    readingThemeStatSunset: document.getElementById("readingThemeStatSunset"),
 
     lightThisSiteEnabled: document.getElementById("lightThisSiteEnabled"),
     lightExcludeSite: document.getElementById("lightExcludeSite"),
-    lightApplyAll: document.getElementById("lightApplyAll"),
-    saveSiteProfile: document.getElementById("saveSiteProfile"),
-    copyGlobalToSite: document.getElementById("copyGlobalToSite"),
-    resetSiteOverrides: document.getElementById("resetSiteOverrides"),
-    siteInfo: document.getElementById("siteInfo"),
 
     reduceWhites: document.getElementById("reduceWhites"),
     videoSafe: document.getElementById("videoSafe"),
@@ -223,7 +365,6 @@
     quickBlockEntertainment: document.getElementById("quickBlockEntertainment"),
     quickBlockAdult: document.getElementById("quickBlockAdult"),
     addCurrentSite: document.getElementById("addCurrentSite"),
-    removeCurrentSite: document.getElementById("removeCurrentSite"),
     toggleWhitelistSite: document.getElementById("toggleWhitelistSite"),
     blockCatAds: document.getElementById("blockCatAds"),
     blockCatTrackers: document.getElementById("blockCatTrackers"),
@@ -238,24 +379,9 @@
     editBlocker: document.getElementById("editBlocker"),
     pauseBlocker: document.getElementById("pauseBlocker"),
 
-    secureTunnelEnabled: document.getElementById("secureTunnelEnabled"),
-    secureTunnelMode: document.getElementById("secureTunnelMode"),
-    secureTunnelPreset: document.getElementById("secureTunnelPreset"),
-    secureTunnelStatus: document.getElementById("secureTunnelStatus"),
-    secureTunnelTimer: document.getElementById("secureTunnelTimer"),
-    secureTunnelCustomWrap: document.getElementById("secureTunnelCustomWrap"),
-    secureTunnelCustomScheme: document.getElementById("secureTunnelCustomScheme"),
-    secureTunnelCustomHost: document.getElementById("secureTunnelCustomHost"),
-    secureTunnelCustomPort: document.getElementById("secureTunnelCustomPort"),
-    secureTunnelCustomUser: document.getElementById("secureTunnelCustomUser"),
-    secureTunnelCustomPass: document.getElementById("secureTunnelCustomPass"),
-    secureTunnelSaveConnect: document.getElementById("secureTunnelSaveConnect"),
-    secureTunnelDisconnect: document.getElementById("secureTunnelDisconnect"),
-
     alertsEnabled: document.getElementById("alertsEnabled"),
     alertFrequency: document.getElementById("alertFrequency"),
     alertCadence: document.getElementById("alertCadence"),
-    alertTestType: document.getElementById("alertTestType"),
     alertTypeEye: document.getElementById("alertTypeEye"),
     alertTypePosture: document.getElementById("alertTypePosture"),
     alertTypeBurnout: document.getElementById("alertTypeBurnout"),
@@ -268,38 +394,66 @@
     alertSoundPattern: document.getElementById("alertSoundPattern"),
     alertToastEnabled: document.getElementById("alertToastEnabled"),
     alertNotificationEnabled: document.getElementById("alertNotificationEnabled"),
-    alertQuietHoursEnabled: document.getElementById("alertQuietHoursEnabled"),
-    alertQuietStart: document.getElementById("alertQuietStart"),
-    alertQuietEnd: document.getElementById("alertQuietEnd"),
     alertSnoozeMinutes: document.getElementById("alertSnoozeMinutes"),
     alertCooldown: document.getElementById("alertCooldown"),
     alertBurnoutThreshold: document.getElementById("alertBurnoutThreshold"),
     testAlert: document.getElementById("testAlert"),
     snoozeAlertsNow: document.getElementById("snoozeAlertsNow"),
+    alertPreviewSummary: document.getElementById("alertPreviewSummary"),
     alertStatus: document.getElementById("alertStatus"),
     alertChannelSound: document.getElementById("alertChannelSound"),
     alertChannelToast: document.getElementById("alertChannelToast"),
     alertChannelNotification: document.getElementById("alertChannelNotification"),
 
+    meditationEnabled: document.getElementById("meditationEnabled"),
+    meditationLength: document.getElementById("meditationLength"),
+    meditationAmbient: document.getElementById("meditationAmbient"),
+    meditationVolume: document.getElementById("meditationVolume"),
+    meditationVolumeValue: document.getElementById("meditationVolumeValue"),
+    meditationPreviewSummary: document.getElementById("meditationPreviewSummary"),
+    meditationPreview: document.getElementById("meditationPreview"),
+    meditationStart: document.getElementById("meditationStart"),
+    meditationStop: document.getElementById("meditationStop"),
+    meditationStatus: document.getElementById("meditationStatus"),
+
     siteInsightEnabled: document.getElementById("siteInsightEnabled"),
-    siteInsightProfile: document.getElementById("siteInsightProfile"),
-    siteInsightDuration: document.getElementById("siteInsightDuration"),
-    siteInsightAutoMinimize: document.getElementById("siteInsightAutoMinimize"),
-    siteInsightPill: document.getElementById("siteInsightPill"),
-    siteInsightDisableSite: document.getElementById("siteInsightDisableSite"),
-    siteInsightOpenSettings: document.getElementById("siteInsightOpenSettings"),
+    siteInsightAnalyze: document.getElementById("siteInsightAnalyze"),
+    siteInsightCopy: document.getElementById("siteInsightCopy"),
+    siteInsightSummary: document.getElementById("siteInsightSummary"),
+    siteInsightHostChip: document.getElementById("siteInsightHostChip"),
+    siteInsightPageType: document.getElementById("siteInsightPageType"),
+    siteInsightAppears: document.getElementById("siteInsightAppears"),
+    siteInsightSignals: document.getElementById("siteInsightSignals"),
+    siteInsightSecurityBlock: document.getElementById("siteInsightSecurityBlock"),
+    siteInsightSecurity: document.getElementById("siteInsightSecurity"),
+    siteInsightEssentials: document.getElementById("siteInsightEssentials"),
     siteInsightStatus: document.getElementById("siteInsightStatus"),
 
     pomodoroPreset: document.getElementById("pomodoroPreset"),
     startDeepWork: document.getElementById("startDeepWork"),
     stopDeepWork: document.getElementById("stopDeepWork"),
+    deepWorkHeadline: document.getElementById("deepWorkHeadline"),
+    deepWorkSubline: document.getElementById("deepWorkSubline"),
+    deepWorkCountdown: document.getElementById("deepWorkCountdown"),
+    deepWorkPhaseBadge: document.getElementById("deepWorkPhaseBadge"),
+    deepWorkCycleValue: document.getElementById("deepWorkCycleValue"),
+    deepWorkTodayMinutes: document.getElementById("deepWorkTodayMinutes"),
+    deepWorkTodaySessions: document.getElementById("deepWorkTodaySessions"),
+    deepWorkAutomationState: document.getElementById("deepWorkAutomationState"),
+    deepWorkAutoBlocker: document.getElementById("deepWorkAutoBlocker"),
+    deepWorkAutoLight: document.getElementById("deepWorkAutoLight"),
     deepWorkStatus: document.getElementById("deepWorkStatus"),
 
     biofeedbackEnabled: document.getElementById("biofeedbackEnabled"),
     morphingEnabled: document.getElementById("morphingEnabled"),
+    taskWeaverEnabled: document.getElementById("taskWeaverEnabled"),
+    dashboardPredictionsEnabled: document.getElementById("dashboardPredictionsEnabled"),
+    collabSyncEnabled: document.getElementById("collabSyncEnabled"),
     taskWeaver: document.getElementById("taskWeaver"),
     collabSync: document.getElementById("collabSync"),
     weaverResults: document.getElementById("weaverResults"),
+    advancedLabStatus: document.getElementById("advancedLabStatus"),
+    advancedLabPrediction: document.getElementById("advancedLabPrediction"),
     premiumBanner: document.getElementById("premiumBanner"),
     upgradePremium: document.getElementById("upgradePremium"),
 
@@ -393,6 +547,1402 @@
     return fallback;
   }
 
+  function readLocalJSON(key, fallback) {
+    try {
+      const raw = localStorage.getItem(key);
+      if (!raw) return fallback;
+      const parsed = JSON.parse(raw);
+      return parsed ?? fallback;
+    } catch {
+      return fallback;
+    }
+  }
+
+  function writeLocalJSON(key, value) {
+    try {
+      localStorage.setItem(key, JSON.stringify(value));
+    } catch {
+      // noop
+    }
+  }
+
+  function readLocalString(key, fallback) {
+    try {
+      const raw = localStorage.getItem(key);
+      return raw && String(raw).trim() ? String(raw) : fallback;
+    } catch {
+      return fallback;
+    }
+  }
+
+  function writeLocalString(key, value) {
+    try {
+      localStorage.setItem(key, String(value ?? ""));
+    } catch {
+      // noop
+    }
+  }
+
+  function escapeHtml(value) {
+    return String(value ?? "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#39;");
+  }
+
+  function toByteBase64(bytes) {
+    const chunkSize = 0x8000;
+    let binary = "";
+    for (let index = 0; index < bytes.length; index += chunkSize) {
+      binary += String.fromCharCode(...bytes.subarray(index, index + chunkSize));
+    }
+    return btoa(binary);
+  }
+
+  function fromByteBase64(value) {
+    const binary = atob(String(value || ""));
+    const bytes = new Uint8Array(binary.length);
+    for (let index = 0; index < binary.length; index += 1) {
+      bytes[index] = binary.charCodeAt(index);
+    }
+    return bytes;
+  }
+
+  function vaultStorageGet(keys) {
+    return new Promise((resolve, reject) => {
+      chrome.storage.local.get(keys, (result) => {
+        const err = chrome.runtime.lastError;
+        if (err) {
+          reject(err);
+          return;
+        }
+        resolve(result || {});
+      });
+    });
+  }
+
+  function vaultStorageSet(payload) {
+    return new Promise((resolve, reject) => {
+      chrome.storage.local.set(payload, () => {
+        const err = chrome.runtime.lastError;
+        if (err) {
+          reject(err);
+          return;
+        }
+        resolve();
+      });
+    });
+  }
+
+  function vaultStorageRemove(keys) {
+    return new Promise((resolve, reject) => {
+      chrome.storage.local.remove(keys, () => {
+        const err = chrome.runtime.lastError;
+        if (err) {
+          reject(err);
+          return;
+        }
+        resolve();
+      });
+    });
+  }
+
+  async function deriveVaultKey(password, salt) {
+    const enc = new TextEncoder();
+    const keyMaterial = await crypto.subtle.importKey("raw", enc.encode(password), "PBKDF2", false, ["deriveKey"]);
+    return crypto.subtle.deriveKey(
+      { name: "PBKDF2", salt, iterations: 260000, hash: "SHA-256" },
+      keyMaterial,
+      { name: "AES-GCM", length: 256 },
+      false,
+      ["encrypt", "decrypt"]
+    );
+  }
+
+  async function encryptVaultPayload(payload, password) {
+    const enc = new TextEncoder();
+    const salt = crypto.getRandomValues(new Uint8Array(32));
+    const iv = crypto.getRandomValues(new Uint8Array(12));
+    const key = await deriveVaultKey(password, salt);
+    const ciphertext = await crypto.subtle.encrypt(
+      { name: "AES-GCM", iv },
+      key,
+      enc.encode(JSON.stringify(payload))
+    );
+    const packed = new Uint8Array(44 + ciphertext.byteLength);
+    packed.set(salt, 0);
+    packed.set(iv, 32);
+    packed.set(new Uint8Array(ciphertext), 44);
+    return toByteBase64(packed);
+  }
+
+  async function decryptVaultPayload(payload, password) {
+    const dec = new TextDecoder();
+    const packed = fromByteBase64(payload);
+    const salt = packed.slice(0, 32);
+    const iv = packed.slice(32, 44);
+    const ciphertext = packed.slice(44);
+    const key = await deriveVaultKey(password, salt);
+    const plain = await crypto.subtle.decrypt({ name: "AES-GCM", iv }, key, ciphertext);
+    return JSON.parse(dec.decode(plain));
+  }
+
+  function normalizeVaultItems(list, kind) {
+    if (!Array.isArray(list)) return [];
+    return list
+      .map((item, index) => {
+        if (kind === "credential") {
+          const site = String(item?.site || "").trim().slice(0, 120);
+          const user = String(item?.user || "").trim().slice(0, 160);
+          const pass = String(item?.pass || "");
+          if (!site || !user || !pass) return null;
+          return {
+            id: Number(item?.id || Date.now() + index),
+            site,
+            user,
+            pass,
+            icon: String(item?.icon || "🔐").slice(0, 4),
+            url: String(item?.url || "").trim().slice(0, 240),
+            tag: String(item?.tag || "").trim().slice(0, 48),
+            notes: String(item?.notes || "").trim().slice(0, 2000),
+            createdAt: String(item?.createdAt || item?.created || new Date().toISOString()),
+            updatedAt: String(item?.updatedAt || item?.updated || new Date().toISOString())
+          };
+        }
+        const title = String(item?.title || "").trim().slice(0, 140);
+        const body = String(item?.body || "").trim().slice(0, 12000);
+        if (!title || !body) return null;
+        return {
+          id: Number(item?.id || Date.now() + index),
+          title,
+          body,
+          tags: String(item?.tags || "").trim().slice(0, 240),
+          createdAt: String(item?.createdAt || item?.created || new Date().toISOString()),
+          updatedAt: String(item?.updatedAt || item?.updated || new Date().toISOString())
+        };
+      })
+      .filter(Boolean);
+  }
+
+  function resetVaultSession(keepData = false) {
+    state.vault.unlocked = false;
+    state.vault.busy = false;
+    state.vault.masterPassword = "";
+    state.vault.revealMap = {};
+    state.vault.search = "";
+    state.vault.activeTab = "passwords";
+    state.vault.generator.result = "";
+    state.vault.editingCredentialIndex = null;
+    state.vault.editingTextIndex = null;
+    state.vault.editingTextType = "note";
+    if (!keepData) {
+      state.vault.credentials = [];
+      state.vault.notes = [];
+      state.vault.prompts = [];
+    }
+  }
+
+  function vaultPayloadFromState() {
+    return {
+      credentials: state.vault.credentials,
+      notes: state.vault.notes,
+      prompts: state.vault.prompts
+    };
+  }
+
+  async function persistVaultState() {
+    if (!state.vault.masterPassword) return;
+    const payload = vaultPayloadFromState();
+    const ciphertext = await encryptVaultPayload(payload, state.vault.masterPassword);
+    const verify = await encryptVaultPayload({ ok: true }, state.vault.masterPassword);
+    await vaultStorageSet({
+      [VAULT_STORAGE_KEYS.ciphertext]: ciphertext,
+      [VAULT_STORAGE_KEYS.verify]: verify
+    });
+    state.vault.hasVault = true;
+  }
+
+  async function loadVaultMeta() {
+    try {
+      const stored = await vaultStorageGet([VAULT_STORAGE_KEYS.ciphertext]);
+      state.vault.hasVault = Boolean(stored?.[VAULT_STORAGE_KEYS.ciphertext]);
+    } catch (error) {
+      log("error", "vault_meta_failed", error);
+      state.vault.hasVault = false;
+    } finally {
+      state.vault.ready = true;
+    }
+    renderVault();
+  }
+
+  async function unlockVault(password) {
+    const stored = await vaultStorageGet([VAULT_STORAGE_KEYS.ciphertext, VAULT_STORAGE_KEYS.verify]);
+    const ciphertext = stored?.[VAULT_STORAGE_KEYS.ciphertext];
+    const verify = stored?.[VAULT_STORAGE_KEYS.verify];
+    if (!ciphertext) {
+      state.vault.credentials = [];
+      state.vault.notes = [];
+      state.vault.prompts = [];
+      state.vault.masterPassword = password;
+      state.vault.hasVault = true;
+      await persistVaultState();
+      return true;
+    }
+    if (verify) {
+      await decryptVaultPayload(verify, password);
+    }
+    const payload = await decryptVaultPayload(ciphertext, password);
+    state.vault.credentials = normalizeVaultItems(payload?.credentials, "credential");
+    state.vault.notes = normalizeVaultItems(payload?.notes, "note");
+    state.vault.prompts = normalizeVaultItems(payload?.prompts, "prompt");
+    state.vault.masterPassword = password;
+    state.vault.hasVault = true;
+    return true;
+  }
+
+  function vaultPasswordStrength(value) {
+    const raw = String(value || "");
+    if (!raw) return 0;
+    let score = 0;
+    if (raw.length >= 8) score += 1;
+    if (raw.length >= 14) score += 1;
+    if (/[a-z]/.test(raw) && /[A-Z]/.test(raw)) score += 1;
+    if (/\d/.test(raw)) score += 1;
+    if (/[^A-Za-z0-9]/.test(raw)) score += 1;
+    return Math.max(0, Math.min(4, Math.round(score * 0.8)));
+  }
+
+  function renderVaultStrength(value, bars, labelRef) {
+    const score = vaultPasswordStrength(value);
+    const labels = ["", "Weak", "Fair", "Good", "Strong"];
+    bars.forEach((bar, index) => {
+      if (!bar) return;
+      bar.className = "vault-strength-bar";
+      if (index < score) {
+        bar.classList.add(`is-active-${score}`);
+      }
+    });
+    if (labelRef) {
+      labelRef.textContent = score ? `Strength: ${labels[score]}` : "Strength";
+    }
+  }
+
+  function generateVaultPassword() {
+    const generator = state.vault.generator;
+    const pools = [];
+    if (generator.upper) pools.push("ABCDEFGHIJKLMNOPQRSTUVWXYZ");
+    if (generator.lower) pools.push("abcdefghijklmnopqrstuvwxyz");
+    if (generator.number) pools.push("0123456789");
+    if (generator.symbol) pools.push("!@#$%^&*()-_=+[]{};:,.?/|");
+    if (!pools.length) return "";
+    const chars = pools.join("");
+    const bytes = crypto.getRandomValues(new Uint8Array(generator.length));
+    return Array.from(bytes, (value) => chars[value % chars.length]).join("");
+  }
+
+  function formatVaultDate(value) {
+    try {
+      return new Date(value).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+    } catch {
+      return "Recent";
+    }
+  }
+
+  function closeVaultModal(ref) {
+    if (ref) ref.hidden = true;
+  }
+
+  function openVaultModal(ref) {
+    if (ref) ref.hidden = false;
+  }
+
+  function setVaultBusy(nextBusy) {
+    state.vault.busy = Boolean(nextBusy);
+    if (refs.vaultUnlockButton) refs.vaultUnlockButton.disabled = Boolean(nextBusy);
+  }
+
+  function updateVaultPrimaryActionLabel() {
+    if (!refs.vaultPrimaryAction) return;
+    const labelMap = {
+      passwords: "Add Credential",
+      notes: "Add Note",
+      prompts: "Add Prompt",
+      generator: "Use Generator"
+    };
+    refs.vaultPrimaryAction.textContent = labelMap[state.vault.activeTab] || "Add";
+  }
+
+  function renderVaultGenerator() {
+    const result = escapeHtml(state.vault.generator.result || "Generate a password to use it in new credentials.");
+    return `
+      <div class="vault-generator-shell">
+        <div class="vault-generator-result">${result}</div>
+        <div class="vault-generator-length">
+          <span class="vault-card-label">Length</span>
+          <input id="vaultGeneratorLength" type="range" min="8" max="64" step="1" value="${state.vault.generator.length}" />
+          <span class="value">${state.vault.generator.length}</span>
+        </div>
+        <div class="vault-toggle-grid">
+          <label class="switch"><input id="vaultGeneratorUpper" type="checkbox" ${state.vault.generator.upper ? "checked" : ""} /><span>Uppercase</span></label>
+          <label class="switch"><input id="vaultGeneratorLower" type="checkbox" ${state.vault.generator.lower ? "checked" : ""} /><span>Lowercase</span></label>
+          <label class="switch"><input id="vaultGeneratorNumber" type="checkbox" ${state.vault.generator.number ? "checked" : ""} /><span>Numbers</span></label>
+          <label class="switch"><input id="vaultGeneratorSymbol" type="checkbox" ${state.vault.generator.symbol ? "checked" : ""} /><span>Symbols</span></label>
+        </div>
+        <div class="row actions-row">
+          <button id="vaultGeneratorGenerate" class="primary" type="button">Generate</button>
+          <button id="vaultGeneratorCopy" class="ghost" type="button">Copy</button>
+        </div>
+        <div class="row actions-row single-action-row">
+          <button id="vaultGeneratorUse" class="secondary" type="button">Use in Credential</button>
+        </div>
+      </div>
+    `;
+  }
+
+  function renderVaultList() {
+    if (!refs.vaultContent) return;
+    const tab = state.vault.activeTab;
+    const query = state.vault.search.trim().toLowerCase();
+
+    if (tab === "generator") {
+      refs.vaultContent.innerHTML = renderVaultGenerator();
+      return;
+    }
+
+    const records = (tab === "passwords" ? state.vault.credentials : tab === "notes" ? state.vault.notes : state.vault.prompts)
+      .filter((record) => {
+        if (!query) return true;
+        const haystack = tab === "passwords"
+          ? `${record.site} ${record.user} ${record.tag} ${record.notes}`
+          : `${record.title} ${record.body} ${record.tags}`;
+        return haystack.toLowerCase().includes(query);
+      });
+
+    if (!records.length) {
+      const emptyCopy = tab === "passwords"
+        ? "No credentials stored yet"
+        : tab === "notes"
+          ? "No secure notes yet"
+          : "No saved prompts yet";
+      refs.vaultContent.innerHTML = `<div class="vault-empty">${emptyCopy}</div>`;
+      return;
+    }
+
+    refs.vaultContent.innerHTML = records
+      .map((record) => {
+        const source = tab === "passwords" ? state.vault.credentials : tab === "notes" ? state.vault.notes : state.vault.prompts;
+        const index = source.findIndex((candidate) => candidate.id === record.id);
+        if (tab === "passwords") {
+          const revealed = Boolean(state.vault.revealMap[record.id]);
+          const secret = revealed ? escapeHtml(record.pass) : "••••••••••••";
+          const notesRow = record.notes
+            ? `<div class="vault-card-row"><span class="vault-card-label">Notes</span><span class="vault-card-value">${escapeHtml(record.notes)}</span></div>`
+            : "";
+          const urlRow = record.url
+            ? `<div class="vault-card-row"><span class="vault-card-label">URL</span><span class="vault-card-value">${escapeHtml(record.url)}</span></div>`
+            : "";
+          return `
+            <div class="vault-card" data-vault-kind="credential" data-vault-index="${index}">
+              <div class="vault-card-top">
+                <span class="vault-card-icon">${escapeHtml(record.icon || "🔐")}</span>
+                <div class="vault-card-copy">
+                  <p class="vault-card-title">${escapeHtml(record.site)}</p>
+                  <p class="vault-card-subtitle">${escapeHtml(record.user)}</p>
+                </div>
+                ${record.tag ? `<span class="vault-card-badge">${escapeHtml(record.tag)}</span>` : "<span></span>"}
+              </div>
+              <div class="vault-card-meta">
+                <div class="vault-card-row"><span class="vault-card-label">User</span><span class="vault-card-value">${escapeHtml(record.user)}</span></div>
+                <div class="vault-card-row"><span class="vault-card-label">Pass</span><span class="vault-card-value is-secret">${secret}</span></div>
+                ${urlRow}
+                ${notesRow}
+              </div>
+              <div class="vault-card-actions">
+                <button class="ghost" type="button" data-vault-action="reveal" data-vault-index="${index}">${revealed ? "Hide" : "Reveal"}</button>
+                <button class="ghost" type="button" data-vault-action="copy-pass" data-vault-index="${index}">Copy</button>
+                <button class="secondary" type="button" data-vault-action="edit-credential" data-vault-index="${index}">Edit</button>
+                <button class="danger" type="button" data-vault-action="delete-credential" data-vault-index="${index}">Delete</button>
+              </div>
+            </div>
+          `;
+        }
+
+        return `
+          <div class="vault-card" data-vault-kind="${tab === "notes" ? "note" : "prompt"}" data-vault-index="${index}">
+            <div class="vault-card-top">
+              <span class="vault-card-icon">${tab === "notes" ? "📝" : "💬"}</span>
+              <div class="vault-card-copy">
+                <p class="vault-card-title">${escapeHtml(record.title)}</p>
+                <p class="vault-card-subtitle">${formatVaultDate(record.createdAt)}${record.tags ? ` · ${escapeHtml(record.tags)}` : ""}</p>
+              </div>
+              <span class="vault-card-badge">${tab === "notes" ? "NOTE" : "PROMPT"}</span>
+            </div>
+            <div class="vault-note-body">${escapeHtml(record.body)}</div>
+            <div class="vault-card-actions">
+              <button class="ghost" type="button" data-vault-action="copy-text" data-vault-kind="${tab}" data-vault-index="${index}">Copy</button>
+              <button class="secondary" type="button" data-vault-action="edit-text" data-vault-kind="${tab}" data-vault-index="${index}">Edit</button>
+              <button class="danger" type="button" data-vault-action="delete-text" data-vault-kind="${tab}" data-vault-index="${index}">Delete</button>
+            </div>
+          </div>
+        `;
+      })
+      .join("");
+  }
+
+  function renderVault() {
+    if (!refs.vaultStateBadge || !refs.vaultLockView || !refs.vaultAppView) return;
+
+    const badgeText = !state.vault.ready
+      ? "CHECKING"
+      : state.vault.unlocked
+        ? "ENCRYPTED"
+        : state.vault.hasVault
+          ? "LOCKED"
+          : "NEW";
+    refs.vaultStateBadge.textContent = badgeText;
+    refs.vaultStateBadge.classList.toggle("premium", state.vault.unlocked);
+
+    refs.vaultLockView.hidden = state.vault.unlocked;
+    refs.vaultAppView.hidden = !state.vault.unlocked;
+
+    if (refs.vaultLockHint) {
+      refs.vaultLockHint.textContent = state.vault.hasVault
+        ? "Unlock your local vault with the master password you already set."
+        : "Create a master password to begin storing credentials, notes, and prompts locally.";
+    }
+    if (refs.vaultUnlockButton) {
+      refs.vaultUnlockButton.textContent = state.vault.hasVault ? "Unlock Vault" : "Create Vault";
+    }
+    if (refs.vaultResetButton) {
+      refs.vaultResetButton.hidden = !state.vault.hasVault;
+    }
+
+    if (!state.vault.unlocked) {
+      return;
+    }
+
+    if (refs.vaultSummaryText) {
+      refs.vaultSummaryText.textContent = `${state.vault.credentials.length} credentials · ${state.vault.notes.length} notes · ${state.vault.prompts.length} prompts`;
+    }
+    if (refs.vaultCountPasswords) refs.vaultCountPasswords.textContent = String(state.vault.credentials.length);
+    if (refs.vaultCountNotes) refs.vaultCountNotes.textContent = String(state.vault.notes.length);
+    if (refs.vaultCountPrompts) refs.vaultCountPrompts.textContent = String(state.vault.prompts.length);
+
+    [
+      [refs.vaultTabPasswords, "passwords"],
+      [refs.vaultTabNotes, "notes"],
+      [refs.vaultTabPrompts, "prompts"],
+      [refs.vaultTabGenerator, "generator"]
+    ].forEach(([button, tab]) => {
+      if (!button) return;
+      const active = state.vault.activeTab === tab;
+      button.classList.toggle("is-active", active);
+      button.setAttribute("aria-selected", active ? "true" : "false");
+    });
+
+    if (refs.vaultSearchInput) {
+      refs.vaultSearchInput.hidden = state.vault.activeTab === "generator";
+      refs.vaultSearchInput.placeholder = state.vault.activeTab === "passwords"
+        ? "Search by site, username, tag, or note"
+        : state.vault.activeTab === "notes"
+          ? "Search secure notes"
+          : "Search prompt library";
+      if (document.activeElement !== refs.vaultSearchInput) {
+        refs.vaultSearchInput.value = state.vault.search;
+      }
+    }
+
+    updateVaultPrimaryActionLabel();
+    renderVaultList();
+  }
+
+  function openCredentialEditor(index = null, prefilledPassword = "") {
+    state.vault.editingCredentialIndex = Number.isInteger(index) ? index : null;
+    const record = Number.isInteger(index) ? state.vault.credentials[index] : null;
+    if (refs.vaultCredentialModalTitle) {
+      refs.vaultCredentialModalTitle.textContent = record ? "Edit Credential" : "Add Credential";
+    }
+    if (refs.vaultCredentialSite) refs.vaultCredentialSite.value = record?.site || "";
+    if (refs.vaultCredentialIcon) refs.vaultCredentialIcon.value = record?.icon || "";
+    if (refs.vaultCredentialUser) refs.vaultCredentialUser.value = record?.user || "";
+    if (refs.vaultCredentialPass) refs.vaultCredentialPass.value = record?.pass || prefilledPassword || "";
+    if (refs.vaultCredentialPass) refs.vaultCredentialPass.type = "password";
+    if (refs.vaultCredentialReveal) refs.vaultCredentialReveal.textContent = "Show";
+    if (refs.vaultCredentialUrl) refs.vaultCredentialUrl.value = record?.url || "";
+    if (refs.vaultCredentialTag) refs.vaultCredentialTag.value = record?.tag || "";
+    if (refs.vaultCredentialNotes) refs.vaultCredentialNotes.value = record?.notes || "";
+    renderVaultStrength(
+      refs.vaultCredentialPass?.value || "",
+      [refs.vaultCredentialStrength0, refs.vaultCredentialStrength1, refs.vaultCredentialStrength2, refs.vaultCredentialStrength3],
+      refs.vaultCredentialStrengthLabel
+    );
+    openVaultModal(refs.vaultCredentialModal);
+  }
+
+  function openTextEditor(type = "note", index = null) {
+    const safeType = type === "prompt" ? "prompt" : "note";
+    state.vault.editingTextType = safeType;
+    state.vault.editingTextIndex = Number.isInteger(index) ? index : null;
+    const source = safeType === "prompt" ? state.vault.prompts : state.vault.notes;
+    const record = Number.isInteger(index) ? source[index] : null;
+    if (refs.vaultTextModalTitle) {
+      refs.vaultTextModalTitle.textContent = record
+        ? safeType === "prompt" ? "Edit Prompt" : "Edit Note"
+        : safeType === "prompt" ? "Add Prompt" : "Add Note";
+    }
+    if (refs.vaultTextTitle) refs.vaultTextTitle.value = record?.title || "";
+    if (refs.vaultTextType) refs.vaultTextType.value = safeType;
+    if (refs.vaultTextBody) refs.vaultTextBody.value = record?.body || "";
+    if (refs.vaultTextTags) refs.vaultTextTags.value = record?.tags || "";
+    openVaultModal(refs.vaultTextModal);
+  }
+
+  async function copyVaultText(value, successLabel = "Copied") {
+    try {
+      await navigator.clipboard.writeText(String(value || ""));
+      toast(successLabel);
+    } catch {
+      toast("Copy failed.");
+    }
+  }
+
+  async function handleVaultUnlock() {
+    if (!refs.vaultMasterPassword) return;
+    const password = String(refs.vaultMasterPassword.value || "").trim();
+    if (password.length < 4) {
+      toast("Use a master password with at least 4 characters.");
+      refs.vaultMasterPassword.focus();
+      return;
+    }
+    setVaultBusy(true);
+    const existed = state.vault.hasVault;
+    try {
+      await unlockVault(password);
+      state.vault.unlocked = true;
+      state.vault.search = "";
+      state.vault.generator.result = state.vault.generator.result || generateVaultPassword();
+      refs.vaultMasterPassword.value = "";
+      renderVault();
+      toast(existed ? "Vault unlocked." : "Vault created.");
+    } catch (error) {
+      log("error", "vault_unlock_failed", error);
+      toast("Master password was incorrect or the vault could not be opened.");
+    } finally {
+      setVaultBusy(false);
+    }
+  }
+
+  async function handleVaultReset() {
+    if (!state.vault.hasVault) return;
+    if (!window.confirm("Reset the vault? This permanently removes all stored credentials, notes, and prompts.")) {
+      return;
+    }
+    try {
+      await vaultStorageRemove([VAULT_STORAGE_KEYS.ciphertext, VAULT_STORAGE_KEYS.verify]);
+      resetVaultSession();
+      state.vault.hasVault = false;
+      state.vault.ready = true;
+      if (refs.vaultMasterPassword) refs.vaultMasterPassword.value = "";
+      renderVault();
+      toast("Vault reset.");
+    } catch (error) {
+      log("error", "vault_reset_failed", error);
+      toast("Vault reset failed.");
+    }
+  }
+
+  function handleVaultLock() {
+    resetVaultSession();
+    renderVault();
+    toast("Vault locked.");
+  }
+
+  async function saveCredentialFromModal() {
+    const site = String(refs.vaultCredentialSite?.value || "").trim();
+    const user = String(refs.vaultCredentialUser?.value || "").trim();
+    const pass = String(refs.vaultCredentialPass?.value || "");
+    if (!site || !user || !pass) {
+      toast("Site, username, and password are required.");
+      return;
+    }
+    const now = new Date().toISOString();
+    const record = {
+      id: state.vault.editingCredentialIndex !== null
+        ? state.vault.credentials[state.vault.editingCredentialIndex]?.id || Date.now()
+        : Date.now(),
+      site: site.slice(0, 120),
+      user: user.slice(0, 160),
+      pass,
+      icon: String(refs.vaultCredentialIcon?.value || "🔐").trim().slice(0, 4) || "🔐",
+      url: String(refs.vaultCredentialUrl?.value || "").trim().slice(0, 240),
+      tag: String(refs.vaultCredentialTag?.value || "").trim().slice(0, 48),
+      notes: String(refs.vaultCredentialNotes?.value || "").trim().slice(0, 2000),
+      createdAt: state.vault.editingCredentialIndex !== null
+        ? state.vault.credentials[state.vault.editingCredentialIndex]?.createdAt || now
+        : now,
+      updatedAt: now
+    };
+    if (state.vault.editingCredentialIndex !== null) {
+      state.vault.credentials[state.vault.editingCredentialIndex] = record;
+    } else {
+      state.vault.credentials.unshift(record);
+    }
+    await persistVaultState();
+    closeVaultModal(refs.vaultCredentialModal);
+    state.vault.editingCredentialIndex = null;
+    renderVault();
+    toast("Credential saved.");
+  }
+
+  async function saveTextFromModal() {
+    const title = String(refs.vaultTextTitle?.value || "").trim();
+    const body = String(refs.vaultTextBody?.value || "").trim();
+    const type = String(refs.vaultTextType?.value || "note") === "prompt" ? "prompt" : "note";
+    if (!title || !body) {
+      toast("Title and content are required.");
+      return;
+    }
+    const currentStore = state.vault.editingTextType === "prompt" ? state.vault.prompts : state.vault.notes;
+    const existing = state.vault.editingTextIndex !== null ? currentStore[state.vault.editingTextIndex] : null;
+    const record = {
+      id: existing?.id || Date.now(),
+      title: title.slice(0, 140),
+      body: body.slice(0, 12000),
+      tags: String(refs.vaultTextTags?.value || "").trim().slice(0, 240),
+      createdAt: existing?.createdAt || new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+    if (state.vault.editingTextIndex !== null && state.vault.editingTextType === type) {
+      currentStore[state.vault.editingTextIndex] = record;
+    } else {
+      if (state.vault.editingTextIndex !== null) {
+        currentStore.splice(state.vault.editingTextIndex, 1);
+      }
+      if (type === "prompt") state.vault.prompts.unshift(record);
+      else state.vault.notes.unshift(record);
+    }
+    await persistVaultState();
+    closeVaultModal(refs.vaultTextModal);
+    state.vault.editingTextIndex = null;
+    state.vault.editingTextType = type;
+    state.vault.activeTab = type === "prompt" ? "prompts" : "notes";
+    renderVault();
+    toast(type === "prompt" ? "Prompt saved." : "Note saved.");
+  }
+
+  async function handleVaultContentAction(action, index, kind = "") {
+    if (state.vault.activeTab === "passwords") {
+      const record = state.vault.credentials[index];
+      if (!record) return;
+      if (action === "reveal") {
+        state.vault.revealMap[record.id] = !state.vault.revealMap[record.id];
+        renderVault();
+        return;
+      }
+      if (action === "copy-pass") {
+        await copyVaultText(record.pass, "Password copied.");
+        return;
+      }
+      if (action === "edit-credential") {
+        openCredentialEditor(index);
+        return;
+      }
+      if (action === "delete-credential") {
+        if (!window.confirm(`Delete ${record.site}?`)) return;
+        state.vault.credentials.splice(index, 1);
+        await persistVaultState();
+        renderVault();
+        toast("Credential deleted.");
+      }
+      return;
+    }
+    const source = kind === "prompts" || state.vault.activeTab === "prompts" ? state.vault.prompts : state.vault.notes;
+    const record = source[index];
+    if (!record) return;
+    if (action === "copy-text") {
+      await copyVaultText(record.body, kind === "prompts" ? "Prompt copied." : "Note copied.");
+      return;
+    }
+    if (action === "edit-text") {
+      openTextEditor(kind === "prompts" ? "prompt" : "note", index);
+      return;
+    }
+    if (action === "delete-text") {
+      if (!window.confirm(`Delete ${record.title}?`)) return;
+      source.splice(index, 1);
+      await persistVaultState();
+      renderVault();
+      toast(kind === "prompts" ? "Prompt deleted." : "Note deleted.");
+    }
+  }
+
+  function bindVaultEvents() {
+    refs.vaultUnlockButton?.addEventListener("click", handleVaultUnlock);
+    refs.vaultMasterPassword?.addEventListener("keydown", (event) => {
+      if (event.key === "Enter") {
+        event.preventDefault();
+        handleVaultUnlock();
+      }
+    });
+    refs.vaultResetButton?.addEventListener("click", () => {
+      handleVaultReset().catch((error) => {
+        log("error", "vault_reset_failed", error);
+        toast("Vault reset failed.");
+      });
+    });
+    refs.vaultLockButton?.addEventListener("click", handleVaultLock);
+    refs.vaultPrimaryAction?.addEventListener("click", () => {
+      if (state.vault.activeTab === "passwords") {
+        openCredentialEditor();
+        return;
+      }
+      if (state.vault.activeTab === "notes") {
+        openTextEditor("note");
+        return;
+      }
+      if (state.vault.activeTab === "prompts") {
+        openTextEditor("prompt");
+        return;
+      }
+      state.vault.generator.result = generateVaultPassword();
+      renderVault();
+      openCredentialEditor(null, state.vault.generator.result);
+    });
+    [refs.vaultTabPasswords, refs.vaultTabNotes, refs.vaultTabPrompts, refs.vaultTabGenerator].forEach((button) => {
+      button?.addEventListener("click", () => {
+        state.vault.activeTab = String(button.dataset.vaultTab || "passwords");
+        state.vault.search = "";
+        if (refs.vaultSearchInput) refs.vaultSearchInput.value = "";
+        if (state.vault.activeTab === "generator" && !state.vault.generator.result) {
+          state.vault.generator.result = generateVaultPassword();
+        }
+        renderVault();
+      });
+    });
+    refs.vaultSearchInput?.addEventListener("input", (event) => {
+      state.vault.search = String(event.target?.value || "");
+      renderVaultList();
+    });
+    refs.vaultCredentialPass?.addEventListener("input", () => {
+      renderVaultStrength(
+        refs.vaultCredentialPass?.value || "",
+        [refs.vaultCredentialStrength0, refs.vaultCredentialStrength1, refs.vaultCredentialStrength2, refs.vaultCredentialStrength3],
+        refs.vaultCredentialStrengthLabel
+      );
+    });
+    refs.vaultCredentialReveal?.addEventListener("click", () => {
+      if (!refs.vaultCredentialPass || !refs.vaultCredentialReveal) return;
+      const showing = refs.vaultCredentialPass.type === "text";
+      refs.vaultCredentialPass.type = showing ? "password" : "text";
+      refs.vaultCredentialReveal.textContent = showing ? "Show" : "Hide";
+    });
+    refs.vaultCredentialGenerate?.addEventListener("click", () => {
+      const generated = generateVaultPassword();
+      state.vault.generator.result = generated;
+      if (refs.vaultCredentialPass) refs.vaultCredentialPass.value = generated;
+      if (refs.vaultCredentialPass) refs.vaultCredentialPass.type = "text";
+      if (refs.vaultCredentialReveal) refs.vaultCredentialReveal.textContent = "Hide";
+      renderVaultStrength(
+        generated,
+        [refs.vaultCredentialStrength0, refs.vaultCredentialStrength1, refs.vaultCredentialStrength2, refs.vaultCredentialStrength3],
+        refs.vaultCredentialStrengthLabel
+      );
+    });
+    refs.vaultCredentialCancel?.addEventListener("click", () => closeVaultModal(refs.vaultCredentialModal));
+    refs.vaultCredentialModalClose?.addEventListener("click", () => closeVaultModal(refs.vaultCredentialModal));
+    refs.vaultCredentialSave?.addEventListener("click", () => {
+      saveCredentialFromModal().catch((error) => {
+        log("error", "vault_credential_save_failed", error);
+        toast("Credential save failed.");
+      });
+    });
+    refs.vaultTextCancel?.addEventListener("click", () => closeVaultModal(refs.vaultTextModal));
+    refs.vaultTextModalClose?.addEventListener("click", () => closeVaultModal(refs.vaultTextModal));
+    refs.vaultTextSave?.addEventListener("click", () => {
+      saveTextFromModal().catch((error) => {
+        log("error", "vault_text_save_failed", error);
+        toast("Vault item save failed.");
+      });
+    });
+    refs.vaultContent?.addEventListener("click", (event) => {
+      const actionButton = event.target instanceof Element ? event.target.closest("[data-vault-action]") : null;
+      if (!actionButton) return;
+      const action = String(actionButton.getAttribute("data-vault-action") || "");
+      const index = Number(actionButton.getAttribute("data-vault-index"));
+      const kind = String(actionButton.getAttribute("data-vault-kind") || "");
+      if (!Number.isInteger(index)) return;
+      handleVaultContentAction(action, index, kind).catch((error) => {
+        log("error", "vault_action_failed", error);
+        toast("Vault action failed.");
+      });
+    });
+    document.addEventListener("input", (event) => {
+      const target = event.target;
+      if (!(target instanceof HTMLInputElement)) return;
+      if (target.id === "vaultGeneratorLength") {
+        state.vault.generator.length = Math.max(8, Math.min(64, Number(target.value || 20)));
+        renderVaultList();
+      }
+    });
+    document.addEventListener("change", (event) => {
+      const target = event.target;
+      if (!(target instanceof HTMLInputElement)) return;
+      if (target.id === "vaultGeneratorUpper") state.vault.generator.upper = target.checked;
+      if (target.id === "vaultGeneratorLower") state.vault.generator.lower = target.checked;
+      if (target.id === "vaultGeneratorNumber") state.vault.generator.number = target.checked;
+      if (target.id === "vaultGeneratorSymbol") state.vault.generator.symbol = target.checked;
+      if (["vaultGeneratorUpper", "vaultGeneratorLower", "vaultGeneratorNumber", "vaultGeneratorSymbol"].includes(target.id)) {
+        renderVaultList();
+      }
+    });
+    document.addEventListener("click", (event) => {
+      const target = event.target;
+      if (!(target instanceof Element)) return;
+      if (target.id === "vaultGeneratorGenerate") {
+        state.vault.generator.result = generateVaultPassword();
+        renderVaultList();
+      }
+      if (target.id === "vaultGeneratorCopy") {
+        copyVaultText(state.vault.generator.result, "Generated password copied.").catch(() => {});
+      }
+      if (target.id === "vaultGeneratorUse") {
+        if (!state.vault.generator.result) {
+          state.vault.generator.result = generateVaultPassword();
+        }
+        openCredentialEditor(null, state.vault.generator.result);
+      }
+    });
+    [refs.vaultCredentialModal, refs.vaultTextModal].forEach((modal) => {
+      modal?.addEventListener("click", (event) => {
+        if (event.target === modal) closeVaultModal(modal);
+      });
+    });
+    document.addEventListener("keydown", (event) => {
+      if (event.key !== "Escape") return;
+      if (!refs.vaultCredentialModal?.hidden) closeVaultModal(refs.vaultCredentialModal);
+      if (!refs.vaultTextModal?.hidden) closeVaultModal(refs.vaultTextModal);
+    });
+  }
+
+
+  function dashboardPad2(value) {
+    return String(Math.max(0, Number(value || 0))).padStart(2, "0");
+  }
+
+  function dashboardParseTimeMins(value, fallback) {
+    const raw = String(value || "");
+    const match = raw.match(/^(\d{2}):(\d{2})$/);
+    if (!match) return fallback;
+    const hh = Number(match[1]);
+    const mm = Number(match[2]);
+    if (!Number.isFinite(hh) || !Number.isFinite(mm) || hh > 23 || mm > 59) return fallback;
+    return hh * 60 + mm;
+  }
+
+  function dashboardSafeTaskText(value) {
+    return String(value || "").replace(/\s+/g, " ").trim().slice(0, 140);
+  }
+
+  function initDashboardState() {
+    if (state.dashboard) return;
+    const defaultClocks = [
+      { name: "London", tz: "Europe/London", code: "LON" },
+      { name: "Tokyo", tz: "Asia/Tokyo", code: "TYO" },
+      { name: "New York", tz: "America/New_York", code: "NYC" }
+    ];
+    const clocksRaw = readLocalJSON(DASHBOARD_STORAGE_KEYS.clocks, defaultClocks);
+    const clocks = Array.isArray(clocksRaw)
+      ? clocksRaw
+          .map((item) => ({
+            name: String(item?.name || "").slice(0, 32),
+            tz: String(item?.tz || ""),
+            code: String(item?.code || "").slice(0, 8)
+          }))
+          .filter((item) => item.name && item.tz)
+          .slice(0, 8)
+      : defaultClocks;
+
+    const tasksRaw = readLocalJSON(DASHBOARD_STORAGE_KEYS.tasks, []);
+    const tasks = Array.isArray(tasksRaw)
+      ? tasksRaw
+          .map((task) => ({
+            id: Number(task?.id || Date.now() + Math.random()),
+            text: dashboardSafeTaskText(task?.text),
+            done: Boolean(task?.done),
+            priority: ["low", "medium", "high"].includes(String(task?.priority || "")) ? String(task.priority) : "medium",
+            time: String(task?.time || "").slice(0, 5) || `${dashboardPad2(new Date().getHours())}:${dashboardPad2(new Date().getMinutes())}`
+          }))
+          .filter((task) => task.text)
+          .slice(0, 40)
+      : [];
+
+    state.dashboard = {
+      clocks,
+      tasks,
+      workStart: readLocalString(DASHBOARD_STORAGE_KEYS.workStart, "09:00"),
+      workEnd: readLocalString(DASHBOARD_STORAGE_KEYS.workEnd, "17:00"),
+      weather: null,
+      weatherLoading: false,
+      pomo: {
+        running: false,
+        phase: "focus",
+        remainingSec: 25 * 60,
+        totalSec: 25 * 60,
+        sessions: 0
+      }
+    };
+  }
+
+  function saveDashboardClocks() {
+    if (!state.dashboard) return;
+    writeLocalJSON(DASHBOARD_STORAGE_KEYS.clocks, state.dashboard.clocks);
+  }
+
+  function saveDashboardTasks() {
+    if (!state.dashboard) return;
+    writeLocalJSON(DASHBOARD_STORAGE_KEYS.tasks, state.dashboard.tasks);
+  }
+
+  function renderDashboardClocks() {
+    if (!refs.dashboardClocks || !state.dashboard) return;
+    const list = state.dashboard.clocks || [];
+    if (!list.length) {
+      refs.dashboardClocks.innerHTML = "<div class=\"dashboard-clock-empty\">No clocks yet</div>";
+      return;
+    }
+    refs.dashboardClocks.innerHTML = list
+      .map(
+        (clock, index) => `
+        <div class="dashboard-clock-chip">
+          <span class="dashboard-clock-city">${clock.name}</span>
+          <span class="dashboard-clock-time" id="dashboardClockTime-${index}">--:--</span>
+          <button class="dashboard-chip-remove" type="button" data-dash-clock-remove="${index}" aria-label="Remove ${clock.name}">×</button>
+        </div>
+      `
+      )
+      .join("");
+  }
+
+  function renderDashboardTasks() {
+    if (!refs.dashboardTaskList || !refs.dashboardTaskProgress || !state.dashboard) return;
+    const list = state.dashboard.tasks || [];
+    const done = list.filter((task) => task.done).length;
+    refs.dashboardTaskProgress.textContent = `${done} / ${list.length} done`;
+
+    if (!list.length) {
+      refs.dashboardTaskList.innerHTML = "<div class=\"dashboard-task-empty\">No assignments yet</div>";
+      return;
+    }
+
+    refs.dashboardTaskList.innerHTML = list
+      .map(
+        (task, index) => `
+        <div class="dashboard-task-item${task.done ? " is-done" : ""}" role="listitem">
+          <button class="dashboard-task-check${task.done ? " is-checked" : ""}" type="button" data-dash-task-toggle="${index}" aria-label="Toggle task">${task.done ? "✓" : ""}</button>
+          <span class="dashboard-task-text">${task.text}</span>
+          <button class="dashboard-task-remove" type="button" data-dash-task-remove="${index}" aria-label="Remove task">×</button>
+        </div>
+      `
+      )
+      .join("");
+  }
+
+  function renderDashboardWeather() {
+    if (!refs.dashboardWeatherSummary || !refs.dashboardWeatherStats || !state.dashboard) return;
+    const weather = state.dashboard.weather;
+    if (state.dashboard.weatherLoading) {
+      refs.dashboardWeatherSummary.textContent = "Fetching weather...";
+      refs.dashboardWeatherStats.hidden = true;
+      return;
+    }
+    if (!weather) {
+      refs.dashboardWeatherSummary.textContent = "Weather unavailable. Tap Refresh.";
+      refs.dashboardWeatherStats.hidden = true;
+      return;
+    }
+    refs.dashboardWeatherSummary.textContent = weather.location;
+    if (refs.dashboardWeatherTemp) refs.dashboardWeatherTemp.textContent = `${weather.tempF}°F`;
+    if (refs.dashboardWeatherCond) refs.dashboardWeatherCond.textContent = weather.description;
+    if (refs.dashboardWeatherWind) refs.dashboardWeatherWind.textContent = `${weather.windMph} mph wind`;
+    refs.dashboardWeatherStats.hidden = false;
+  }
+
+  function renderDashboardPomodoro() {
+    if (!refs.dashboardPomoTime || !refs.dashboardPomoPhase || !state.dashboard) return;
+    const pomo = state.dashboard.pomo;
+    const mm = dashboardPad2(Math.floor(pomo.remainingSec / 60));
+    const ss = dashboardPad2(pomo.remainingSec % 60);
+    refs.dashboardPomoTime.textContent = `${mm}:${ss}`;
+    refs.dashboardPomoPhase.textContent = pomo.phase === "focus" ? "Focus" : "Break";
+  }
+
+  function renderDashboardClockFrame() {
+    if (!refs.dashboardHours || !state.dashboard) return;
+    const now = new Date();
+    const hh = dashboardPad2(now.getHours());
+    const mm = dashboardPad2(now.getMinutes());
+    const ss = dashboardPad2(now.getSeconds());
+    refs.dashboardHours.textContent = hh;
+    refs.dashboardMinutes.textContent = mm;
+    refs.dashboardSeconds.textContent = ss;
+
+    if (refs.dashboardDate) refs.dashboardDate.textContent = now.toLocaleDateString(undefined, {
+      weekday: "long",
+      year: "numeric",
+      month: "long",
+      day: "numeric"
+    });
+
+    (state.dashboard.clocks || []).forEach((clock, index) => {
+      const el = document.getElementById(`dashboardClockTime-${index}`);
+      if (!el) return;
+      try {
+        el.textContent = now.toLocaleTimeString("en-US", {
+          timeZone: clock.tz,
+          hour: "2-digit",
+          minute: "2-digit",
+          hour12: true
+        }).replace(/^0/, "");
+      } catch {
+        el.textContent = "--:--";
+      }
+    });
+
+    const startMinsBase = dashboardParseTimeMins(state.dashboard.workStart, 9 * 60);
+    const endMinsBase = dashboardParseTimeMins(state.dashboard.workEnd, 17 * 60);
+    let startMins = startMinsBase;
+    let endMins = endMinsBase;
+    let nowMins = now.getHours() * 60 + now.getMinutes();
+    if (endMins <= startMins) {
+      endMins += 24 * 60;
+      if (nowMins < startMins) nowMins += 24 * 60;
+    }
+    const total = Math.max(1, endMins - startMins);
+    const elapsed = Math.max(0, Math.min(total, nowMins - startMins));
+    const pct = Math.round((elapsed / total) * 100);
+    if (refs.dashboardWorkFill) refs.dashboardWorkFill.style.width = `${pct}%`;
+    if (refs.dashboardWorkMeta) {
+      const eh = Math.floor(elapsed / 60);
+      const em = elapsed % 60;
+      refs.dashboardWorkMeta.textContent = `${pct}% complete · ${eh}h ${dashboardPad2(em)}m elapsed`;
+    }
+  }
+
+  function ensureDashboardClockTicker() {
+    if (state.dashboardClockTimer) return;
+    state.dashboardClockTimer = setInterval(() => {
+      renderDashboardClockFrame();
+    }, 1000);
+  }
+
+  const DASHBOARD_WX_CODES = {
+    0: "Clear sky",
+    1: "Mostly clear",
+    2: "Partly cloudy",
+    3: "Overcast",
+    45: "Foggy",
+    48: "Foggy",
+    51: "Light drizzle",
+    53: "Drizzle",
+    55: "Heavy drizzle",
+    61: "Light rain",
+    63: "Rain",
+    65: "Heavy rain",
+    71: "Light snow",
+    73: "Snow",
+    75: "Heavy snow",
+    80: "Showers",
+    81: "Showers",
+    82: "Heavy showers",
+    95: "Thunderstorm",
+    96: "Thunderstorm",
+    99: "Thunderstorm"
+  };
+
+  function dashboardCanUseChromePermissions() {
+    return typeof chrome !== "undefined"
+      && Boolean(chrome.permissions?.contains)
+      && Boolean(chrome.permissions?.request);
+  }
+
+  async function dashboardContainsPermission(permission) {
+    if (!dashboardCanUseChromePermissions()) return false;
+    return new Promise((resolve) => {
+      chrome.permissions.contains({ permissions: [permission] }, (granted) => {
+        resolve(Boolean(granted));
+      });
+    });
+  }
+
+  async function dashboardRequestPermission(permission) {
+    if (!dashboardCanUseChromePermissions()) return false;
+    return new Promise((resolve) => {
+      chrome.permissions.request({ permissions: [permission] }, (granted) => {
+        resolve(Boolean(granted));
+      });
+    });
+  }
+
+  function dashboardTimezoneCandidates() {
+    const tz = String(Intl.DateTimeFormat().resolvedOptions().timeZone || "").trim();
+    if (!tz) return [];
+    const parts = tz.split("/").filter(Boolean);
+    const clean = (value) => value.replace(/_/g, " ").trim();
+    const candidates = [];
+    if (parts.length >= 2) candidates.push(clean(parts[parts.length - 1]));
+    if (parts.length >= 3) candidates.push(clean(parts.slice(-2).join(" ")));
+    if (parts.length >= 2) candidates.push(clean(parts[1]));
+    return [...new Set(candidates.filter(Boolean))];
+  }
+
+  async function dashboardLookupCoordsFromTimezone() {
+    const candidates = dashboardTimezoneCandidates();
+    for (const query of candidates) {
+      try {
+        const geoUrl = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(query)}&count=1&language=en&format=json`;
+        const geoRes = await fetch(geoUrl);
+        if (!geoRes.ok) continue;
+        const geoData = await geoRes.json();
+        const result = Array.isArray(geoData?.results) ? geoData.results[0] : null;
+        if (!result) continue;
+        const location = [result.name, result.admin1, result.country].filter(Boolean).join(", ");
+        return {
+          lat: Number(result.latitude),
+          lon: Number(result.longitude),
+          location
+        };
+      } catch {
+        continue;
+      }
+    }
+    return null;
+  }
+
+  async function dashboardResolveWeatherCoords(force = false) {
+    let permissionGranted = await dashboardContainsPermission("geolocation");
+    if (!permissionGranted && force) {
+      permissionGranted = await dashboardRequestPermission("geolocation");
+    }
+
+    if (permissionGranted && navigator.geolocation) {
+      try {
+        const coords = await new Promise((resolve, reject) => {
+          navigator.geolocation.getCurrentPosition(
+            (pos) => resolve(pos.coords),
+            (err) => reject(err),
+            { timeout: 7000, maximumAge: 300000 }
+          );
+        });
+        return {
+          lat: Number(coords?.latitude),
+          lon: Number(coords?.longitude),
+          location: ""
+        };
+      } catch {
+        // Fall through to non-invasive fallback.
+      }
+    }
+
+    const timezoneMatch = await dashboardLookupCoordsFromTimezone();
+    if (timezoneMatch && Number.isFinite(timezoneMatch.lat) && Number.isFinite(timezoneMatch.lon)) {
+      return timezoneMatch;
+    }
+
+    try {
+      const ipRes = await fetch("https://ipapi.co/json/");
+      if (ipRes.ok) {
+        const ipData = await ipRes.json();
+        return {
+          lat: Number(ipData?.latitude),
+          lon: Number(ipData?.longitude),
+          location: [ipData?.city, ipData?.region, ipData?.country_name].filter(Boolean).join(", ")
+        };
+      }
+    } catch {
+      // Keep null result below.
+    }
+
+    return null;
+  }
+
+  async function fetchDashboardWeather(force = false) {
+    if (!state.dashboard || !refs.dashboardWeatherSummary) return;
+    if (state.dashboard.weatherLoading && !force) return;
+    state.dashboard.weatherLoading = true;
+    renderDashboardWeather();
+
+    const resolved = await dashboardResolveWeatherCoords(force);
+    if (!resolved || !Number.isFinite(resolved.lat) || !Number.isFinite(resolved.lon)) {
+      state.dashboard.weatherLoading = false;
+      state.dashboard.weather = null;
+      renderDashboardWeather();
+      if (force) toast("Weather needs location access or an active connection.");
+      return;
+    }
+
+    try {
+      const wxUrl = `https://api.open-meteo.com/v1/forecast?latitude=${resolved.lat}&longitude=${resolved.lon}&current=temperature_2m,weather_code,wind_speed_10m&temperature_unit=fahrenheit&wind_speed_unit=mph&timezone=auto`;
+      const wxRes = await fetch(wxUrl);
+      if (!wxRes.ok) throw new Error(`weather_http_${wxRes.status}`);
+      const wxData = await wxRes.json();
+      const current = wxData?.current || {};
+      const description = DASHBOARD_WX_CODES[Number(current.weather_code)] || "Weather";
+      const cityLabel = resolved.location || `${resolved.lat.toFixed(1)}, ${resolved.lon.toFixed(1)}`;
+      state.dashboard.weather = {
+        location: cityLabel,
+        tempF: Math.round(Number(current.temperature_2m || 0)),
+        windMph: Math.round(Number(current.wind_speed_10m || 0)),
+        description
+      };
+    } catch {
+      state.dashboard.weather = null;
+      if (force) toast("Weather lookup failed. Try Refresh again.");
+    }
+
+    state.dashboard.weatherLoading = false;
+    renderDashboardWeather();
+  }
+
+  function renderDashboardCitySuggestions(query = "") {
+    if (!refs.dashboardCitySuggestions) return;
+    const q = String(query || "").trim().toLowerCase();
+    const list = (q
+      ? DASHBOARD_CITIES.filter((city) => city.name.toLowerCase().includes(q) || city.code.toLowerCase().includes(q))
+      : DASHBOARD_CITIES
+    ).slice(0, 16);
+
+    refs.dashboardCitySuggestions.innerHTML = list
+      .map(
+        (city) => `
+        <button class="dashboard-city-option" type="button" data-dash-city="${city.name}" data-dash-tz="${city.tz}" data-dash-code="${city.code}">
+          <span>${city.name}</span>
+          <span class="city-code">${city.code}</span>
+        </button>
+      `
+      )
+      .join("");
+  }
+
+  function openDashboardCityModal() {
+    if (!refs.dashboardCityModal || !refs.dashboardCitySearch) return;
+    renderDashboardCitySuggestions("");
+    refs.dashboardCityModal.hidden = false;
+    refs.dashboardCitySearch.value = "";
+    setTimeout(() => refs.dashboardCitySearch?.focus(), 0);
+  }
+
+  function closeDashboardCityModal() {
+    if (!refs.dashboardCityModal) return;
+    refs.dashboardCityModal.hidden = true;
+  }
+
+  function addDashboardTask() {
+    if (!state.dashboard || !refs.dashboardTaskInput) return;
+    const text = dashboardSafeTaskText(refs.dashboardTaskInput.value);
+    if (!text) return;
+    const priority = ["low", "medium", "high"].includes(String(refs.dashboardTaskPriority?.value || ""))
+      ? String(refs.dashboardTaskPriority.value)
+      : "medium";
+    const now = new Date();
+    state.dashboard.tasks.unshift({
+      id: Date.now(),
+      text,
+      done: false,
+      priority,
+      time: `${dashboardPad2(now.getHours())}:${dashboardPad2(now.getMinutes())}`
+    });
+    state.dashboard.tasks = state.dashboard.tasks.slice(0, 40);
+    refs.dashboardTaskInput.value = "";
+    saveDashboardTasks();
+    renderDashboardTasks();
+  }
+
+  function toggleDashboardTask(index) {
+    if (!state.dashboard) return;
+    const i = Number(index);
+    if (!Number.isInteger(i) || i < 0 || i >= state.dashboard.tasks.length) return;
+    state.dashboard.tasks[i].done = !state.dashboard.tasks[i].done;
+    saveDashboardTasks();
+    renderDashboardTasks();
+  }
+
+  function removeDashboardTask(index) {
+    if (!state.dashboard) return;
+    const i = Number(index);
+    if (!Number.isInteger(i) || i < 0 || i >= state.dashboard.tasks.length) return;
+    state.dashboard.tasks.splice(i, 1);
+    saveDashboardTasks();
+    renderDashboardTasks();
+  }
+
+  function startDashboardPomo() {
+    if (!state.dashboard || state.dashboard.pomo.running) return;
+    state.dashboard.pomo.running = true;
+    if (state.dashboardPomoTimer) clearInterval(state.dashboardPomoTimer);
+    state.dashboardPomoTimer = setInterval(() => {
+      if (!state.dashboard?.pomo.running) return;
+      state.dashboard.pomo.remainingSec -= 1;
+      if (state.dashboard.pomo.remainingSec <= 0) {
+        if (state.dashboard.pomo.phase === "focus") {
+          state.dashboard.pomo.sessions = Math.min(8, state.dashboard.pomo.sessions + 1);
+          state.dashboard.pomo.phase = "break";
+          state.dashboard.pomo.totalSec = 5 * 60;
+          state.dashboard.pomo.remainingSec = 5 * 60;
+        } else {
+          state.dashboard.pomo.phase = "focus";
+          state.dashboard.pomo.totalSec = 25 * 60;
+          state.dashboard.pomo.remainingSec = 25 * 60;
+        }
+        state.dashboard.pomo.running = false;
+        if (state.dashboardPomoTimer) {
+          clearInterval(state.dashboardPomoTimer);
+          state.dashboardPomoTimer = null;
+        }
+      }
+      renderDashboardPomodoro();
+    }, 1000);
+    renderDashboardPomodoro();
+  }
+
+  function pauseDashboardPomo() {
+    if (!state.dashboard) return;
+    state.dashboard.pomo.running = false;
+    if (state.dashboardPomoTimer) {
+      clearInterval(state.dashboardPomoTimer);
+      state.dashboardPomoTimer = null;
+    }
+    renderDashboardPomodoro();
+  }
+
+  function resetDashboardPomo() {
+    if (!state.dashboard) return;
+    state.dashboard.pomo.running = false;
+    state.dashboard.pomo.phase = "focus";
+    state.dashboard.pomo.totalSec = 25 * 60;
+    state.dashboard.pomo.remainingSec = 25 * 60;
+    renderDashboardPomodoro();
+  }
+
+  function renderDashboard() {
+    if (!refs.dashboardPanel) return;
+    initDashboardState();
+    if (!state.dashboard) return;
+    setInputValue(refs.dashboardWorkStart, state.dashboard.workStart);
+    setInputValue(refs.dashboardWorkEnd, state.dashboard.workEnd);
+    renderDashboardClocks();
+    renderDashboardTasks();
+    renderDashboardWeather();
+    renderDashboardPomodoro();
+    renderDashboardClockFrame();
+    ensureDashboardClockTicker();
+    if (!state.dashboardWeatherRequested) {
+      state.dashboardWeatherRequested = true;
+      void fetchDashboardWeather();
+    }
+  }
+
   async function copyToClipboard(text) {
     const value = String(text || "");
     if (!value) return false;
@@ -483,73 +2033,50 @@
     return state.app?.settings?.darkLightTheme || state.app?.settings?.readingTheme || {};
   }
 
+  function getMeditationState() {
+    return state.app?.settings?.meditation || {};
+  }
+
   const READING_DARK_VARIANTS = [
-    "black",
     "coal",
     "iron_ore",
-    "brown",
-    "grey",
-    "sepia",
-    "teal",
-    "purple",
-    "forest_green"
+    "brown"
   ];
 
   const READING_LIGHT_VARIANTS = [
     "white",
     "warm",
-    "off_white",
-    "soft_green",
-    "baby_blue",
-    "light_brown"
+    "off_white"
   ];
 
   const READING_DARK_LABELS = {
-    black: "Black",
-    coal: "Coal",
-    iron_ore: "Iron ore",
-    brown: "dark Brown",
-    grey: "Grey",
-    sepia: "Sepia",
-    teal: "Teal",
-    purple: "dark Purple",
-    forest_green: "dark Green"
+    coal: "Night",
+    iron_ore: "Iron",
+    brown: "Holmeta Brown"
   };
 
   const READING_LIGHT_LABELS = {
     white: "White",
     warm: "Warm",
-    off_white: "Beige",
-    soft_green: "Soft Green",
-    baby_blue: "Baby Blue",
-    light_brown: "Light Brown"
+    off_white: "Beige"
   };
 
   function normalizeReadingDarkVariant(value, fallback = "coal") {
     const raw = String(value || "").trim().toLowerCase();
-    if (raw === "iron ore") return "iron_ore";
-    if (raw === "coal-black" || raw === "coal -black") return "coal";
-    if (raw === "dark brown") return "brown";
-    if (raw === "dark purple") return "purple";
-    if (raw === "dark green") return "forest_green";
-    if (raw === "gray") return "grey";
-    if (raw === "dim_slate") return "grey";
-    if (raw === "gentle_night") return "brown";
-    if (raw === "soft_black") return "coal";
+    if (raw === "iron ore" || raw === "iron") return "iron_ore";
+    if (["coal-black", "coal -black", "night", "soft_black", "black", "gray", "grey", "dim_slate", "teal", "purple", "forest_green", "dark purple", "dark green"].includes(raw)) return "coal";
+    if (["dark brown", "sepia", "gentle_night", "holmeta brown", "holmeta_brown"].includes(raw)) return "brown";
     if (READING_DARK_VARIANTS.includes(raw)) return raw;
-    if (raw === "black" || raw === "brown" || raw === "grey" || raw === "iron_ore") return raw;
-    return fallback;
+    return normalizeReadingDarkVariant(fallback, "coal");
   }
 
   function normalizeReadingLightVariant(value, fallback = "white") {
     const raw = String(value || "").trim().toLowerCase();
-    if (raw === "gray") return "off_white";
-    if (raw === "soft_paper") return "off_white";
-    if (raw === "warm_page") return "warm";
-    if (raw === "neutral_light") return "white";
+    if (["gray", "beige", "soft_paper"].includes(raw)) return "off_white";
+    if (["warm_page", "light_brown"].includes(raw)) return "warm";
+    if (["neutral_light", "soft_green", "baby_blue"].includes(raw)) return "white";
     if (READING_LIGHT_VARIANTS.includes(raw)) return raw;
-    if (raw === "white" || raw === "warm" || raw === "off_white") return raw;
-    return fallback;
+    return normalizeReadingLightVariant(fallback, "white");
   }
 
   function normalizeReadingFontSize(value, fallback = 13) {
@@ -567,21 +2094,19 @@
 
   function darkVariantFromPreset(preset, fallback = "coal") {
     const key = String(preset || "").trim().toLowerCase();
-    if (key === "iron ore") return "iron_ore";
+    if (key === "iron ore" || key === "iron") return "iron_ore";
     if (READING_DARK_VARIANTS.includes(key)) return key;
-    if (key === "soft_black") return "coal";
-    if (key === "dim_slate") return "grey";
-    if (key === "gentle_night") return "brown";
-    if (key === "sepia") return "sepia";
+    if (["soft_black", "dim_slate", "night", "black", "grey", "gray", "teal", "purple", "forest_green", "dark purple", "dark green"].includes(key)) return "coal";
+    if (["gentle_night", "sepia", "holmeta brown", "holmeta_brown", "dark brown"].includes(key)) return "brown";
     return normalizeReadingDarkVariant(fallback, "coal");
   }
 
   function lightVariantFromPreset(preset, fallback = "white") {
     const key = String(preset || "").trim().toLowerCase();
     if (READING_LIGHT_VARIANTS.includes(key)) return key;
-    if (key === "neutral_light") return "white";
-    if (key === "warm_page") return "warm";
-    if (key === "soft_paper") return "off_white";
+    if (["neutral_light", "baby_blue", "soft_green"].includes(key)) return "white";
+    if (["warm_page", "light_brown"].includes(key)) return "warm";
+    if (["soft_paper", "gray", "beige"].includes(key)) return "off_white";
     return normalizeReadingLightVariant(fallback, "white");
   }
 
@@ -594,29 +2119,16 @@
       const lightLevels = {
         white: 72,
         warm: 68,
-        off_white: 66,
-        soft_green: 67,
-        baby_blue: 68,
-        light_brown: 67
+        off_white: 66
       };
       return lightLevels[lightVariant] || 70;
     }
     const darkLevels = {
-      black: 84,
       coal: 78,
       iron_ore: 80,
-      brown: 76,
-      grey: 74,
-      sepia: 74,
-      teal: 75,
-      purple: 75,
-      forest_green: 75
+      brown: 76
     };
     return darkLevels[darkVariant] || 78;
-  }
-
-  function getAdaptiveThemeState() {
-    return state.app?.settings?.adaptiveSiteTheme || {};
   }
 
   function readingVariantLabel(mode, variant) {
@@ -636,12 +2148,6 @@
     return state.currentHost ? map[state.currentHost] : null;
   }
 
-  function getAdaptiveSiteProfile() {
-    const adaptive = getAdaptiveThemeState();
-    const map = adaptive.perSiteOverrides || adaptive.siteProfiles || {};
-    return state.currentHost ? map[state.currentHost] : null;
-  }
-
   function isFilterSiteExcluded() {
     const light = getLightFilterState();
     const map = light.excludedSites || {};
@@ -654,9 +2160,11 @@
     return Boolean(state.currentHost && map[state.currentHost]);
   }
 
-  function isAdaptiveSiteExcluded() {
-    const adaptive = getAdaptiveThemeState();
-    const map = adaptive.excludedSites || {};
+  function isSiteInsightDisabledForHost() {
+    const insight = state.app?.settings?.siteInsight || {};
+    const map = insight.perSiteDisabled && typeof insight.perSiteDisabled === "object"
+      ? insight.perSiteDisabled
+      : {};
     return Boolean(state.currentHost && map[state.currentHost]);
   }
 
@@ -685,6 +2193,112 @@
     return `${Math.max(0, mins)}m`;
   }
 
+  function toDayKey(ts = Date.now()) {
+    const d = ts instanceof Date ? ts : new Date(ts);
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    return `${y}-${m}-${day}`;
+  }
+
+  function formatMinutesCompact(minutes) {
+    const total = Math.max(0, Math.round(Number(minutes || 0)));
+    if (total >= 60) {
+      const h = Math.floor(total / 60);
+      const m = total % 60;
+      return m ? `${h}h ${m}m` : `${h}h`;
+    }
+    return `${total}m`;
+  }
+
+  function formatCountdownClock(ms) {
+    const total = Math.max(0, Math.ceil(Number(ms || 0) / 1000));
+    const hours = Math.floor(total / 3600);
+    const minutes = Math.floor((total % 3600) / 60);
+    const seconds = total % 60;
+    if (hours > 0) {
+      return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+    }
+    return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+  }
+
+  function getTodayFocusMetrics() {
+    const todayKey = toDayKey();
+    const daily = state.app?.stats?.daily?.[todayKey] || {};
+    const sessions = Array.isArray(state.app?.stats?.focusSessions) ? state.app.stats.focusSessions : [];
+    const todaySessions = sessions.filter((entry) => {
+      const stamp = Number(entry?.endedAt || entry?.startedAt || 0);
+      return stamp > 0 && toDayKey(stamp) === todayKey;
+    });
+    const activeMinutes = (() => {
+      const deep = state.app?.settings?.deepWork;
+      if (!deep?.active || deep.phase !== "focus" || !deep.startedAt) return 0;
+      return Math.max(0, Math.floor((Date.now() - Number(deep.startedAt || 0)) / 60000));
+    })();
+
+    return {
+      completedSessions: todaySessions.length,
+      completedMinutes: Math.max(0, Number(daily.focusMinutes || 0)),
+      liveMinutes: activeMinutes,
+      totalMinutes: Math.max(0, Number(daily.focusMinutes || 0)) + activeMinutes
+    };
+  }
+
+  function getDeepWorkPrediction() {
+    const sessions = Array.isArray(state.app?.stats?.focusSessions) ? state.app.stats.focusSessions : [];
+    const recent = sessions.slice(-8);
+    const average = recent.length
+      ? recent.reduce((sum, entry) => sum + Math.max(0, Number(entry?.minutes || 0)), 0) / recent.length
+      : 0;
+    const recommended = average >= 70 ? "90 / 20" : average >= 40 ? "50 / 10" : "25 / 5";
+    const detail = recent.length >= 3
+      ? `Recent average ${Math.round(average)}m across ${recent.length} focus blocks.`
+      : "Starter recommendation until more focus history builds locally.";
+    return {
+      average,
+      recommended,
+      detail
+    };
+  }
+
+  function describeDeepWorkAutomation(deep) {
+    const parts = [];
+    if (deep?.autoBlocker) parts.push("Shield");
+    if (deep?.autoLight) parts.push("Light");
+    return parts.length ? parts.join(" + ") : "Manual";
+  }
+
+  function buildFocusSyncSnapshot() {
+    const deep = state.app?.settings?.deepWork || {};
+    const blocker = state.app?.settings?.blocker || {};
+    const light = getLightFilterState();
+    const metrics = getTodayFocusMetrics();
+    const prediction = getDeepWorkPrediction();
+    const topResult = Array.isArray(state.weaverResults) && state.weaverResults.length ? state.weaverResults[0] : null;
+    const countdown = deep.active
+      ? formatCountdownClock(Math.max(0, Number(deep.nextTransitionAt || 0) - Date.now()))
+      : "standby";
+    const blockerState = blocker.enabled
+      ? (blocker.nuclear ? "Lockdown ready" : "Shield armed")
+      : "Shield off";
+    const lightState = light?.enabled
+      ? `${String(light.mode || "warm").replaceAll("_", " ")} · ${Math.round(Number(light.intensity || 0))}%`
+      : "Filter off";
+
+    return [
+      "HOLMETA Focus Sync Snapshot",
+      `Generated: ${new Date().toLocaleString()}`,
+      `Host: ${state.currentHost || "No active website"}`,
+      `Deep Work: ${deep.active ? `${deep.phase} · ${deep.focusMin}/${deep.breakMin} · ${countdown}` : `idle · ${deep.focusMin || 25}/${deep.breakMin || 5}`}`,
+      `Automation: ${describeDeepWorkAutomation(deep)}`,
+      `Shield: ${blockerState}`,
+      `Light: ${lightState}`,
+      `Today: ${formatMinutesCompact(metrics.totalMinutes)} focus · ${metrics.completedSessions} completed session${metrics.completedSessions === 1 ? "" : "s"}`,
+      `Recommended next cycle: ${prediction.recommended}`,
+      topResult ? `Next woven move: ${topResult.lane} · ${topResult.title}` : "Next woven move: Run Task Weaver to shape the current tab stack."
+    ].join("\n");
+  }
+
   function humanAccessReason(reason) {
     const key = String(reason || "").toLowerCase();
     if (!key) return "Subscription inactive.";
@@ -710,7 +2324,7 @@
       const selector = entry.headingTag === "summary" ? "summary" : ".section-head h2, h2";
       const titleNode = node.querySelector(selector);
       if (titleNode) {
-        titleNode.textContent = `${index + 1}) ${String(entry.title || "").trim()}`;
+        titleNode.textContent = `${index}) ${String(entry.title || "").trim()}`;
       }
       if (footer) shell.insertBefore(node, footer);
       else shell.appendChild(node);
@@ -788,7 +2402,9 @@
     const reading = getReadingThemeState();
     const siteProfile = getReadingSiteProfile();
     const rawAppearance = String(siteProfile?.appearance || reading.appearance || siteProfile?.mode || reading.mode || "dark");
-    const appearance = ["light", "dark", "auto"].includes(rawAppearance) ? rawAppearance : "dark";
+    const appearance = rawAppearance === "auto"
+      ? "adaptive"
+      : (["light", "dark", "adaptive"].includes(rawAppearance) ? rawAppearance : "dark");
     const sourcePreset = String(siteProfile?.preset || reading.preset || "");
     const darkVariant = normalizeReadingDarkVariant(
       siteProfile?.darkVariant || reading.darkVariant || siteProfile?.darkThemeVariant || reading.darkThemeVariant,
@@ -805,7 +2421,7 @@
     const scheduleStart = String(siteProfile?.schedule?.start || reading.schedule?.start || "20:00");
     const scheduleEnd = String(siteProfile?.schedule?.end || reading.schedule?.end || "06:00");
     const effective = {
-      enabled: Boolean(reading.enabled),
+      enabled: Boolean(siteProfile?.enabled ?? reading.enabled),
       appearance,
       darkVariant,
       lightVariant,
@@ -814,6 +2430,10 @@
       scheduleEnd,
       opaqueBackground: Boolean(siteProfile?.opaqueBackground ?? reading.opaqueBackground),
       pointerCursors: Boolean(siteProfile?.pointerCursors ?? reading.pointerCursors),
+      preserveImages: Boolean(siteProfile?.preserveImages ?? reading.preserveImages ?? true),
+      preserveLogos: Boolean(siteProfile?.preserveLogos ?? reading.preserveLogos ?? true),
+      higherContrast: Boolean(siteProfile?.higherContrast ?? reading.higherContrast ?? false),
+      softerSurfaces: Boolean(siteProfile?.softerSurfaces ?? reading.softerSurfaces ?? false),
       sansFontSize: normalizeReadingFontSize(siteProfile?.sansFontSize ?? reading.sansFontSize, 13),
       sansFontFamily: normalizeReadingFontFamily(
         siteProfile?.sansFontFamily ?? reading.sansFontFamily,
@@ -829,32 +2449,49 @@
     setChecked(refs.readingThemeEnabled, effective.enabled);
     refs.readingThemeLight.classList.toggle("is-active", effective.appearance === "light");
     refs.readingThemeDark.classList.toggle("is-active", effective.appearance === "dark");
-    refs.readingThemeAuto.classList.toggle("is-active", effective.appearance === "auto");
+    refs.readingThemeAuto.classList.toggle("is-active", effective.appearance === "adaptive");
     setInputValue(refs.readingThemeDarkVariant, effective.darkVariant);
     setInputValue(refs.readingThemeLightVariant, effective.lightVariant);
-    setInputValue(refs.readingThemeScheduleMode, effective.scheduleMode);
+    const scheduleModeForUI = "system";
+    setInputValue(refs.readingThemeScheduleMode, scheduleModeForUI);
     setInputValue(refs.readingThemeScheduleStart, effective.scheduleStart);
     setInputValue(refs.readingThemeScheduleEnd, effective.scheduleEnd);
+    if (refs.readingThemeDarkVariantRow) {
+      refs.readingThemeDarkVariantRow.hidden = effective.appearance === "light";
+    }
+    if (refs.readingThemeLightVariantRow) {
+      refs.readingThemeLightVariantRow.hidden = effective.appearance === "dark";
+    }
     setChecked(refs.readingThemeOpaqueBackground, effective.opaqueBackground);
     setChecked(refs.readingThemePointerCursors, effective.pointerCursors);
+    setChecked(refs.readingThemePreserveImages, effective.preserveImages);
+    setChecked(refs.readingThemePreserveLogos, effective.preserveLogos);
+    setChecked(refs.readingThemeHigherContrast, effective.higherContrast);
+    setChecked(refs.readingThemeSofterSurfaces, effective.softerSurfaces);
     setInputValue(refs.readingThemeSansSize, effective.sansFontSize);
     setInputValue(refs.readingThemeSansFamily, effective.sansFontFamily);
     setInputValue(refs.readingThemeCodeSize, effective.codeFontSize);
     setInputValue(refs.readingThemeCodeFamily, effective.codeFontFamily);
-    refs.readingThemeAutoRow.hidden = effective.appearance !== "auto";
-    refs.readingThemeCustomScheduleRow.hidden = effective.appearance !== "auto" || effective.scheduleMode !== "custom";
-    refs.readingThemeScheduleStart.disabled = effective.appearance !== "auto" || effective.scheduleMode !== "custom";
-    refs.readingThemeScheduleEnd.disabled = effective.appearance !== "auto" || effective.scheduleMode !== "custom";
-    setChecked(refs.readingThemeThisSiteEnabled, Boolean(siteProfile));
+    if (refs.readingThemeScheduleStart) refs.readingThemeScheduleStart.disabled = true;
+    if (refs.readingThemeScheduleEnd) refs.readingThemeScheduleEnd.disabled = true;
+    const hasActiveHost = Boolean(state.currentHost);
+    if (refs.readingThemeExcludeSite) refs.readingThemeExcludeSite.disabled = !hasActiveHost;
     setChecked(refs.readingThemeExcludeSite, isReadingSiteExcluded());
     if (refs.readingThemeShowWidget) refs.readingThemeShowWidget.disabled = !state.currentHost;
     if (refs.readingThemeHideWidget) refs.readingThemeHideWidget.disabled = !state.currentHost;
 
     const darkLabel = readingVariantLabel("dark", darkVariant);
     const lightLabel = readingVariantLabel("light", lightVariant);
-    const scheduleLabel = effective.scheduleMode === "system"
-      ? "System"
-      : (effective.scheduleMode === "sunset" ? "Sunset to Sunrise" : `${effective.scheduleStart} → ${effective.scheduleEnd}`);
+    if (refs.appearanceModeText) {
+      refs.appearanceModeText.textContent = effective.appearance === "adaptive"
+        ? "ADAPT"
+        : (effective.appearance === "dark" ? "Night" : "Day");
+    }
+    if (refs.toggleStateLabel) {
+      refs.toggleStateLabel.textContent = effective.enabled
+        ? (effective.appearance === "dark" ? "NIGHT" : effective.appearance === "light" ? "DAY" : "ADAPT")
+        : "OFF";
+    }
     const diagnosticsVariant = String(state.diagnostics?.readingVariant || "");
     const activeVariantLabel = (() => {
       if (!diagnosticsVariant) return "";
@@ -865,37 +2502,30 @@
       }
       return readingVariantLabel("dark", key);
     })();
-    const adaptiveReason = String(state.diagnostics?.readingAdaptiveReason || "");
-    const adaptiveApplied = Boolean(state.diagnostics?.readingAdaptiveApplied);
-    const appearanceDiagnostics = state.diagnostics?.readingAppearance || null;
-    const compatLabel = appearanceDiagnostics?.compatibilityMode || "normal";
-    const coherenceSummary = appearanceDiagnostics
-      ? ` · Harmonize: ${compatLabel} · Coherence fixes: ${Number(appearanceDiagnostics.forcedSurfaces || 0) + Number(appearanceDiagnostics.forcedText || 0) + Number(appearanceDiagnostics.logoFixes || 0)}`
-      : "";
 
-    const excluded = isReadingSiteExcluded();
-    if (excluded) {
-      refs.readingThemeStatus.textContent = "[Excluded] This site is excluded from appearance changes.";
-      return;
-    }
-
-    const hostSuffix = state.currentHost ? ` on ${state.currentHost}` : "";
-    if (effective.enabled) {
-      if (effective.appearance === "auto") {
-        const activeNow = activeVariantLabel ? ` · Active now: ${activeVariantLabel}` : "";
-        refs.readingThemeStatus.textContent = `[Auto] Applying Auto${hostSuffix} · Dark ${darkLabel} / Light ${lightLabel} · ${scheduleLabel}${activeNow}${coherenceSummary}.`;
-      } else {
-        refs.readingThemeStatus.textContent = `[${effective.appearance === "dark" ? "Dark" : "Light"}] Applying ${effective.appearance === "dark" ? `Dark ${darkLabel}` : `Light ${lightLabel}`}${hostSuffix}${coherenceSummary}.`;
+    if (refs.readingThemeStatus) {
+      const excluded = isReadingSiteExcluded();
+      if (excluded) {
+        refs.readingThemeStatus.textContent = "[Excluded] This site is excluded from Tool 2.";
+        return;
       }
-      if (siteProfile) {
-        refs.readingThemeStatus.textContent += " This site uses its own override.";
-      } else if (effective.appearance === "auto" && adaptiveApplied) {
-        refs.readingThemeStatus.textContent += ` Adaptive tune: ${adaptiveReason.replace(/^auto-/, "")}.`;
-      }
-      return;
-    }
 
-    refs.readingThemeStatus.textContent = "[Off] Appearance is off. Toggle On to apply Light / Dark / Auto.";
+      const hostSuffix = state.currentHost ? ` on ${state.currentHost}` : "";
+      if (effective.enabled) {
+        if (effective.appearance === "adaptive") {
+          refs.readingThemeStatus.textContent = `[On] Adaptive${hostSuffix} · Dark ${darkLabel} / Light ${lightLabel}.`;
+          if (activeVariantLabel) {
+            refs.readingThemeStatus.textContent += ` Active now: ${activeVariantLabel}.`;
+          }
+        } else {
+          const activeLabel = effective.appearance === "dark" ? `Dark ${darkLabel}` : `Light ${lightLabel}`;
+          refs.readingThemeStatus.textContent = `[On] ${activeLabel}${hostSuffix}.`;
+        }
+        return;
+      }
+
+      refs.readingThemeStatus.textContent = "[Off] Appearance is off. Toggle On to apply Dark, Light, or Adaptive mode.";
+    }
   }
 
   function renderLight() {
@@ -962,52 +2592,44 @@
     setInputValue(refs.therapyMinutes, effective.therapyDuration);
     setInputValue(refs.therapyCadence, effective.therapyCadence);
 
-    let info = state.currentHost ? `Site: ${state.currentHost}` : "Site: unavailable";
-    if (state.diagnostics?.strategy) {
-      info += ` · Strategy: ${state.diagnostics.strategy}`;
-    }
-    if (state.diagnostics?.siteType) {
-      info += ` · Type: ${state.diagnostics.siteType}`;
-    }
-    if (state.diagnostics?.activeSystems) {
-      const active = Object.entries(state.diagnostics.activeSystems)
-        .filter(([, value]) => Boolean(value))
-        .map(([key]) => key);
-      if (active.length) {
-        info += ` · Active: ${active.join(", ")}`;
+    const modeLabel = refs.lightMode?.selectedOptions?.[0]?.textContent?.trim() || "Warm Shift";
+    const spectrumLabel = refs.lightSpectrumPreset?.selectedOptions?.[0]?.textContent?.trim() || "Balanced";
+    if (refs.lightFilterModeChip) refs.lightFilterModeChip.textContent = modeLabel;
+    if (refs.lightFilterSpectrumChip) refs.lightFilterSpectrumChip.textContent = spectrumLabel;
+    if (refs.lightFilterIntensityChip) refs.lightFilterIntensityChip.textContent = `${effective.intensity}% intensity`;
+    if (refs.lightFilterStrengthFill) refs.lightFilterStrengthFill.style.width = `${Math.max(0, Math.min(100, effective.intensity))}%`;
+
+    const activePreset = effective.mode === "red_lock"
+      ? "red_lock"
+      : effective.mode === "near_infrared"
+        ? "infrared"
+        : effective.mode === "deep_night"
+          ? "deep_night"
+          : ["warm", "amber", "amber_focus", "candle", "paper", "sunset_glow"].includes(String(effective.mode))
+            ? "comfort"
+            : "";
+    refs.lightPresetComfort?.classList.toggle("is-active", activePreset === "comfort");
+    refs.lightPresetDeepNight?.classList.toggle("is-active", activePreset === "deep_night");
+    refs.lightPresetInfrared?.classList.toggle("is-active", activePreset === "infrared");
+    refs.lightPresetRedLock?.classList.toggle("is-active", activePreset === "red_lock");
+
+    if (refs.lightFilterSummary) {
+      const scopeLabel = siteProfile ? "site override" : "global profile";
+      const addOns = [
+        effective.reduceWhites ? "reduced whites" : null,
+        effective.videoSafe ? "video-safe" : null,
+        effective.spotlightEnabled ? "spotlight" : null,
+        effective.therapyMode ? `therapy ${effective.therapyDuration}m` : null
+      ].filter(Boolean);
+      if (!light.enabled) {
+        refs.lightFilterSummary.textContent = "Filter off. Arm Tool 3 to apply a stronger screen-relief profile.";
+      } else if (isFilterSiteExcluded()) {
+        refs.lightFilterSummary.textContent = "Current site excluded. Your saved filter profile is intact, but it will not apply on this host.";
+      } else {
+        refs.lightFilterSummary.textContent = `${modeLabel} with ${spectrumLabel} at ${effective.intensity}% intensity · ${scopeLabel}${addOns.length ? ` · ${addOns.join(" · ")}` : ""}.`;
       }
     }
-    refs.siteInfo.textContent = info;
-  }
 
-  function renderAdaptiveTheme() {
-    if (!refs.adaptiveThemeStatus) return;
-    const adaptive = getAdaptiveThemeState();
-    const siteProfile = getAdaptiveSiteProfile();
-    const effective = {
-      enabled: Boolean(adaptive.enabled),
-      mode: siteProfile?.mode ?? adaptive.mode ?? "smart_dark",
-      preset: siteProfile?.preset ?? adaptive.preset ?? "balanced",
-      strategy: siteProfile?.strategy ?? adaptive.strategy ?? "auto",
-      compatibilityMode: siteProfile?.compatibilityMode ?? adaptive.compatibilityMode ?? "normal",
-      intensity: siteProfile?.intensity ?? adaptive.intensity ?? 52
-    };
-
-    setChecked(refs.adaptiveThemeEnabled, effective.enabled);
-    setInputValue(refs.adaptiveThemeMode, effective.mode);
-    setInputValue(refs.adaptiveThemePreset, effective.preset);
-    setInputValue(refs.adaptiveThemeStrategy, effective.strategy);
-    setInputValue(refs.adaptiveThemeCompatibility, effective.compatibilityMode);
-    setInputValue(refs.adaptiveThemeIntensity, effective.intensity);
-    if (refs.adaptiveThemeIntensityValue) refs.adaptiveThemeIntensityValue.textContent = `${effective.intensity}%`;
-    setChecked(refs.adaptiveThemeThisSiteEnabled, Boolean(siteProfile));
-    setChecked(refs.adaptiveThemeExcludeSite, isAdaptiveSiteExcluded());
-
-    const strategyLabel = String(effective.strategy || "auto").replaceAll("_", " ");
-    const compatLabel = String(effective.compatibilityMode || "normal");
-    refs.adaptiveThemeStatus.textContent = effective.enabled
-      ? `Active: ${effective.mode.replaceAll("_", " ")} · ${strategyLabel} · ${compatLabel}`
-      : "Adaptive Site Theme is off. Toggle On for smart site transformation.";
   }
 
   function renderEyeDropper() {
@@ -1355,6 +2977,8 @@
     const hostBlocked = Boolean(state.currentHost && (blocker.blockedDomains || []).includes(state.currentHost));
     const hostWhitelisted = Boolean(state.currentHost && (blocker.allowDomains || []).includes(state.currentHost));
     const cosmeticDisabledHost = Boolean(state.currentHost && blocker.disableCosmeticOnSite?.[state.currentHost]);
+    const pausedUntil = Math.max(0, Number(blocker.pausedUntil || 0));
+    const pauseMinutes = pausedUntil > Date.now() ? Math.max(1, Math.ceil((pausedUntil - Date.now()) / 60000)) : 0;
 
     setChecked(refs.blockerEnabled, blocker.enabled);
     setChecked(refs.nuclearMode, blocker.nuclear);
@@ -1366,125 +2990,178 @@
     setChecked(refs.blockCosmeticEnabled, blocker.cosmeticFiltering);
     setChecked(refs.blockAntiDetect, blocker.antiDetection);
     const quickEnabledCount = Object.values(quickCategories).filter(Boolean).length;
-    refs.blockerStatus.textContent = `Active: ${(blocker.blockedDomains || []).length} sites blocked${quickEnabledCount ? ` · ${quickEnabledCount} quick category blocks` : ""}`;
-    refs.blockerStats.textContent = `Blocked today: ${blockedToday} · Since install: ${blockedTotal}${state.app.runtime?.blockerRuleLimitHit ? " · Rule cap reached" : ""}`;
-    if (!state.currentHost) {
-      refs.blockerHostStatus.textContent = "Current site: unavailable on this page.";
-    } else if (hostWhitelisted) {
-      refs.blockerHostStatus.textContent = `Current site: ${state.currentHost} is allowlisted (block rules bypassed).`;
-    } else if (hostBlocked) {
-      refs.blockerHostStatus.textContent = `Current site: ${state.currentHost} is blocked by your list.`;
+    const blockedDomainCount = (blocker.blockedDomains || []).length;
+    if (!blocker.enabled) {
+      refs.blockerStatus.textContent = "Shield idle";
+    } else if (pauseMinutes > 0) {
+      refs.blockerStatus.textContent = `Shield paused · resumes in ${pauseMinutes}m`;
     } else {
-      refs.blockerHostStatus.textContent = `Current site: ${state.currentHost} is not blocked.`;
+      refs.blockerStatus.textContent = `Shield live · ${blockedDomainCount} blocked domain${blockedDomainCount === 1 ? "" : "s"}${quickEnabledCount ? ` · ${quickEnabledCount} quick net${quickEnabledCount === 1 ? "" : "s"}` : ""}`;
     }
-    refs.addCurrentSite.disabled = !state.currentHost || hostBlocked;
-    refs.removeCurrentSite.disabled = !state.currentHost || !hostBlocked;
-    refs.toggleWhitelistSite.textContent = hostWhitelisted ? "Remove from Allowlist" : "Allowlist Site";
+    refs.blockerStats.textContent = `Today ${blockedToday} · Lifetime ${blockedTotal}${state.app.runtime?.blockerRuleLimitHit ? " · Dynamic rule cap hit" : ""}`;
+    if (!state.currentHost) {
+      refs.blockerHostStatus.textContent = "Open a website tab to manage its host here.";
+    } else if (hostWhitelisted) {
+      refs.blockerHostStatus.textContent = `${state.currentHost} is allowed here right now.`;
+    } else if (hostBlocked) {
+      refs.blockerHostStatus.textContent = `${state.currentHost} is blocked directly.`;
+    } else if (blocker.enabled) {
+      refs.blockerHostStatus.textContent = `${state.currentHost} is open and ready.`;
+    } else {
+      refs.blockerHostStatus.textContent = `${state.currentHost} is ready when the shield is on.`;
+    }
+    refs.addCurrentSite.textContent = hostBlocked ? "Unblock Site" : "Block Site";
+    refs.addCurrentSite.disabled = !state.currentHost;
+    refs.toggleWhitelistSite.textContent = hostWhitelisted ? "Remove Allow" : "Allow Site";
     refs.toggleWhitelistSite.disabled = !state.currentHost;
     refs.toggleCosmeticSite.textContent = cosmeticDisabledHost ? "Enable Cosmetic Here" : "Disable Cosmetic Here";
     refs.toggleCosmeticSite.disabled = !state.currentHost;
+    refs.pauseBlocker.textContent = pauseMinutes > 0 ? `Paused ${pauseMinutes}m` : "Pause 10m";
     refs.quickBlockSocial.classList.toggle("is-active", Boolean(quickCategories.social));
     refs.quickBlockShopping.classList.toggle("is-active", Boolean(quickCategories.shopping));
     refs.quickBlockEntertainment.classList.toggle("is-active", Boolean(quickCategories.entertainment));
     refs.quickBlockAdult.classList.toggle("is-active", Boolean(quickCategories.adult));
   }
 
-  function formatDuration(ms) {
-    const total = Math.max(0, Math.floor(Number(ms || 0) / 1000));
-    const h = Math.floor(total / 3600);
-    const m = Math.floor((total % 3600) / 60);
-    const s = total % 60;
-    return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+  const ALERT_KIND_LABELS = {
+    eye: "Eye Relief",
+    posture: "Posture",
+    burnout: "Burnout Reset",
+    hydration: "Hydration",
+    blink: "Blink Reset",
+    movement: "Movement"
+  };
+
+  const ALERT_KIND_PREVIEW_TEXT = {
+    eye: "Look away from the screen and relax your focus for a moment.",
+    posture: "Reset your shoulders, neck, and spine before strain builds.",
+    burnout: "Step back, breathe, and break the overload cycle.",
+    hydration: "Pause and drink water before fatigue sneaks in.",
+    blink: "Blink fully a few times to ease eye dryness.",
+    movement: "Stand up and move briefly to wake the body back up."
+  };
+
+  const ALERT_KIND_SOUND_LABELS = {
+    eye: "Soviet Beacon",
+    posture: "Watchtower",
+    burnout: "Bunker Klaxon",
+    hydration: "Command Relay",
+    blink: "Single",
+    movement: "Double"
+  };
+
+  const MEDITATION_AMBIENT_LABELS = {
+    brown_hush: "Brown Hush",
+    rain_atrium: "Rain Atrium",
+    cloud_drift: "Cloud Drift",
+    night_tide: "Night Tide"
+  };
+
+  const EMPTY_SITE_INSIGHT = Object.freeze({
+    pageType: "Unknown / Mixed Page",
+    appearsToBe: "Mixed or unclear intent",
+    summary: "Analyze the current page to extract useful structure-based insight.",
+    signals: ["No high-confidence page signals loaded yet."],
+    securityNote: "",
+    essentials: ["Title: unavailable", "Domain: unavailable", "Path: /", "Language: und"],
+    confidence: 0,
+    copyText: ""
+  });
+
+  function normalizeSiteInsightPayload(payload = {}) {
+    const pageType = String(payload.pageType || EMPTY_SITE_INSIGHT.pageType).slice(0, 96);
+    const appearsToBe = String(payload.appearsToBe || payload.intent || EMPTY_SITE_INSIGHT.appearsToBe).slice(0, 140);
+    const summary = String(payload.summary || EMPTY_SITE_INSIGHT.summary).slice(0, 320);
+    const signals = Array.isArray(payload.signals) && payload.signals.length
+      ? payload.signals.map((item) => String(item || "").trim()).filter(Boolean).slice(0, 5)
+      : [...EMPTY_SITE_INSIGHT.signals];
+    const securityNote = String(payload.securityNote || EMPTY_SITE_INSIGHT.securityNote).trim().slice(0, 220);
+    const essentials = Array.isArray(payload.essentials) && payload.essentials.length
+      ? payload.essentials.map((item) => String(item || "").trim()).filter(Boolean).slice(0, 8)
+      : [...EMPTY_SITE_INSIGHT.essentials];
+    const confidenceRaw = Number(payload.confidence);
+    const confidence = Number.isFinite(confidenceRaw)
+      ? Math.max(0, Math.min(1, Number(confidenceRaw.toFixed(2))))
+      : 0;
+    const copyText = String(payload.copyText || "").trim() || [
+      `Page Type: ${pageType}`,
+      `Appears To Be: ${appearsToBe}`,
+      `Summary: ${summary}`,
+      ...(securityNote ? [`Security Note: ${securityNote}`] : []),
+      ...essentials,
+      ...(signals.length ? ["Key Signals:", ...signals.map((line) => `- ${line}`)] : [])
+    ].join("\n");
+    return { pageType, appearsToBe, summary, signals, securityNote, essentials, confidence, copyText };
   }
 
-  function renderSecureTunnelTimer() {
-    const runtime = state.app?.runtime?.secureTunnel || {};
-    if (!runtime.connected || !runtime.connectedAt) {
-      refs.secureTunnelTimer.textContent = "Session: 00:00:00";
-      return;
-    }
-    refs.secureTunnelTimer.textContent = `Session: ${formatDuration(Date.now() - Number(runtime.connectedAt || 0))}`;
+  function renderSiteInsightList(target, rows) {
+    if (!target) return;
+    target.innerHTML = "";
+    rows.forEach((line) => {
+      const li = document.createElement("li");
+      li.textContent = line;
+      target.appendChild(li);
+    });
   }
 
-  function syncSecureTunnelTicker() {
-    const connected = Boolean(state.app?.runtime?.secureTunnel?.connected);
-    if (connected && !state.tunnelTimerHandle) {
-      state.tunnelTimerHandle = setInterval(renderSecureTunnelTimer, 1000);
-    }
-    if (!connected && state.tunnelTimerHandle) {
-      clearInterval(state.tunnelTimerHandle);
-      state.tunnelTimerHandle = null;
-    }
+  let alertPreviewCursor = null;
+  let siteInsightRequestSeq = 0;
+
+  function getEnabledAlertKinds(alerts) {
+    return Object.entries(alerts?.types || {})
+      .filter(([, value]) => Boolean(value))
+      .map(([key]) => key);
   }
 
-  function getSecureTunnelPresets() {
-    const list = state.app?.runtime?.secureTunnel?.presets;
-    if (!Array.isArray(list) || !list.length) return [];
-    return list;
+  function getPreferredAlertKind(alerts) {
+    const enabledKinds = getEnabledAlertKinds(alerts);
+    if (!enabledKinds.length) {
+      alertPreviewCursor = null;
+      return "eye";
+    }
+    if (alertPreviewCursor && enabledKinds.includes(alertPreviewCursor)) {
+      return alertPreviewCursor;
+    }
+    alertPreviewCursor = enabledKinds[0];
+    return alertPreviewCursor;
   }
 
-  function renderSecureTunnel() {
-    const tunnel = state.app.settings.secureTunnel || {};
-    const runtime = state.app.runtime?.secureTunnel || {};
-    const presets = getSecureTunnelPresets();
-    const selectedPresetId = String(tunnel.selectedPresetId || "fastest");
-
-    if (refs.secureTunnelPreset && !refs.secureTunnelPreset.dataset.initialized) {
-      refs.secureTunnelPreset.innerHTML = presets
-        .map((preset) => `<option value="${preset.id}">${preset.label}</option>`)
-        .join("");
-      refs.secureTunnelPreset.dataset.initialized = "true";
-    } else if (refs.secureTunnelPreset && presets.length) {
-      const existing = new Set([...refs.secureTunnelPreset.options].map((option) => option.value));
-      const mismatch = presets.some((preset) => !existing.has(preset.id)) || existing.size !== presets.length;
-      if (mismatch) {
-        refs.secureTunnelPreset.innerHTML = presets
-          .map((preset) => `<option value="${preset.id}">${preset.label}</option>`)
-          .join("");
-      }
+  function advanceAlertPreviewKind(alerts, currentKind) {
+    const enabledKinds = getEnabledAlertKinds(alerts);
+    if (!enabledKinds.length) {
+      alertPreviewCursor = null;
+      return null;
     }
+    const currentIndex = enabledKinds.indexOf(currentKind);
+    const nextIndex = currentIndex === -1 ? 0 : (currentIndex + 1) % enabledKinds.length;
+    alertPreviewCursor = enabledKinds[nextIndex];
+    return alertPreviewCursor;
+  }
 
-    setChecked(refs.secureTunnelEnabled, tunnel.enabled);
-    setInputValue(refs.secureTunnelMode, tunnel.mode || "preset");
-    setInputValue(refs.secureTunnelPreset, selectedPresetId);
-    setInputValue(refs.secureTunnelCustomScheme, tunnel.custom?.scheme || "http");
-    setInputValue(refs.secureTunnelCustomHost, tunnel.custom?.host || "");
-    setInputValue(refs.secureTunnelCustomPort, tunnel.custom?.port || 8080);
-    setInputValue(refs.secureTunnelCustomUser, tunnel.custom?.username || "");
-    setInputValue(refs.secureTunnelCustomPass, tunnel.custom?.password || "");
-
-    const customMode = String(tunnel.mode || "preset") === "custom";
-    refs.secureTunnelPreset.disabled = customMode;
-    if (refs.secureTunnelCustomWrap) {
-      refs.secureTunnelCustomWrap.open = customMode;
-    }
-
-    if (runtime.connected) {
-      const label = runtime.activeLabel || runtime.activePresetId || "Proxy";
-      refs.secureTunnelStatus.textContent = `Connected via ${label} \u00b7 IP hidden`;
-    } else if (runtime.lastError) {
-      refs.secureTunnelStatus.textContent = `Connection failed: ${runtime.lastError}`;
-    } else {
-      refs.secureTunnelStatus.textContent = "Disconnected";
-    }
-
-    renderSecureTunnelTimer();
-    syncSecureTunnelTicker();
+  function getAlertSoundLabel(alerts, kind) {
+    const raw = String(alerts?.soundPattern || "auto");
+    if (raw === "auto") return ALERT_KIND_SOUND_LABELS[kind] || "Soviet Beacon";
+    return raw
+      .replace(/_/g, " ")
+      .replace(/\b\w/g, (char) => char.toUpperCase());
   }
 
   function renderAlerts() {
     const alerts = state.app.settings.alerts;
-    const enabledTypes = Object.entries(alerts.types || {})
-      .filter(([, value]) => Boolean(value))
-      .map(([key]) => key);
-    if (!enabledTypes.includes(state.alertTestType)) {
-      state.alertTestType = enabledTypes[0] || "eye";
-    }
+    const enabledTypes = getEnabledAlertKinds(alerts);
+    const previewKind = getPreferredAlertKind(alerts);
+    const hasPreviewKind = Boolean(alerts.enabled && enabledTypes.length);
+    const previewKindLabel = ALERT_KIND_LABELS[previewKind] || "Health Alert";
+    const previewSoundLabel = getAlertSoundLabel(alerts, previewKind);
+    const previewChannels = [
+      alerts.toastEnabled ? "live popup" : null,
+      alerts.notificationEnabled ? "system" : null,
+      alerts.soundEnabled ? "sound" : null
+    ].filter(Boolean);
 
     setChecked(refs.alertsEnabled, alerts.enabled);
     setInputValue(refs.alertFrequency, alerts.frequencyMin);
     setInputValue(refs.alertCadence, alerts.cadenceMode || "focus_weighted");
-    setInputValue(refs.alertTestType, state.alertTestType || "eye");
     setChecked(refs.alertTypeEye, alerts.types.eye);
     setChecked(refs.alertTypePosture, alerts.types.posture);
     setChecked(refs.alertTypeBurnout, alerts.types.burnout);
@@ -1494,18 +3171,25 @@
     setChecked(refs.alertSound, alerts.soundEnabled);
     setInputValue(refs.alertSoundVolume, alerts.soundVolume);
     refs.alertSoundVolumeValue.textContent = `${alerts.soundVolume}%`;
-    setInputValue(refs.alertSoundPattern, alerts.soundPattern || "double");
+    setInputValue(refs.alertSoundPattern, alerts.soundPattern || "auto");
     setChecked(refs.alertToastEnabled, alerts.toastEnabled);
     setChecked(refs.alertNotificationEnabled, alerts.notificationEnabled);
-    setChecked(refs.alertQuietHoursEnabled, alerts.quietHours?.enabled);
-    setInputValue(refs.alertQuietStart, alerts.quietHours?.start || "22:30");
-    setInputValue(refs.alertQuietEnd, alerts.quietHours?.end || "06:30");
     setInputValue(refs.alertSnoozeMinutes, alerts.snoozeMinutes || 10);
     setInputValue(refs.alertCooldown, alerts.cooldownMin || 0);
     setInputValue(refs.alertBurnoutThreshold, alerts.burnoutFocusThresholdMin || 90);
     refs.alertChannelSound?.classList.toggle("is-on", Boolean(alerts.soundEnabled));
     refs.alertChannelToast?.classList.toggle("is-on", Boolean(alerts.toastEnabled));
     refs.alertChannelNotification?.classList.toggle("is-on", Boolean(alerts.notificationEnabled));
+    document
+      .querySelectorAll("#alertsPanel .actions-row.alert-types .switch[data-alert-kind]")
+      .forEach((tile) => {
+        const kind = tile.getAttribute("data-alert-kind");
+        tile.classList.toggle("is-preview-kind", Boolean(hasPreviewKind && kind === previewKind));
+      });
+    if (refs.alertPreviewSummary) {
+      const channelText = previewChannels.length ? previewChannels.join(" + ") : "visual channels off";
+      refs.alertPreviewSummary.textContent = `${previewKindLabel} · ${previewSoundLabel} · ${channelText}`;
+    }
 
     const dependentControls = [
       refs.alertFrequency,
@@ -1521,9 +3205,6 @@
       refs.alertSoundPattern,
       refs.alertToastEnabled,
       refs.alertNotificationEnabled,
-      refs.alertQuietHoursEnabled,
-      refs.alertQuietStart,
-      refs.alertQuietEnd,
       refs.alertSnoozeMinutes,
       refs.alertCooldown,
       refs.alertBurnoutThreshold
@@ -1535,14 +3216,13 @@
 
     const enabledTypeCount = enabledTypes.length;
     const snoozeUntil = Number(alerts.snoozeUntil || 0);
-    const quietEnabled = Boolean(alerts.quietHours?.enabled);
     const nowTs = Date.now();
     if (!alerts.enabled) {
-      refs.alertStatus.textContent = "Alerts off. Turn on and press Test Alert to verify channels.";
+      refs.alertStatus.textContent = "Alerts are off. Press Test Alert any time to verify popup and sound delivery.";
       return;
     }
     if (!alerts.notificationEnabled && !alerts.toastEnabled) {
-      refs.alertStatus.textContent = "Enable at least one popup channel (On-page or System) to receive reminders.";
+      refs.alertStatus.textContent = "Sound can still run, but enable On-page or System if you want visible reminders during normal use.";
       return;
     }
     if (snoozeUntil > nowTs) {
@@ -1555,57 +3235,275 @@
       : alerts.cadenceMode === "random"
         ? "random"
         : "cycle";
-    refs.alertStatus.textContent = `${enabledTypeCount} reminder types · every ${alerts.frequencyMin}m (${cadenceLabel})${quietEnabled ? " · quiet hours on" : ""}`;
+    refs.alertStatus.textContent = `${enabledTypeCount} reminder types · every ${alerts.frequencyMin}m (${cadenceLabel})`;
+  }
+
+  function renderMeditation() {
+    const meditation = getMeditationState();
+    const enabled = Boolean(meditation.enabled);
+    const durationMin = Math.max(3, Math.min(20, Number(meditation.durationMin || 10)));
+    const ambient = String(meditation.ambient || "brown_hush");
+    const ambientLabel = MEDITATION_AMBIENT_LABELS[ambient] || "Brown Hush";
+    const volume = Math.max(10, Math.min(100, Number(meditation.volume || 48)));
+
+    setChecked(refs.meditationEnabled, enabled);
+    setInputValue(refs.meditationLength, durationMin);
+    setInputValue(refs.meditationAmbient, ambient);
+    setInputValue(refs.meditationVolume, volume);
+    if (refs.meditationVolumeValue) refs.meditationVolumeValue.textContent = `${volume}%`;
+    if (refs.meditationPreviewSummary) {
+      refs.meditationPreviewSummary.textContent = `${durationMin} min · ${ambientLabel} · centered on-page session`;
+    }
+    if (refs.meditationStart) refs.meditationStart.disabled = !enabled;
+
+    if (!refs.meditationStatus) return;
+    if (!enabled) {
+      refs.meditationStatus.textContent = "Meditation popup is off. Turn it on when you want a guided pause ready in one click.";
+      return;
+    }
+    refs.meditationStatus.textContent = `Ready for a ${durationMin}-minute ${ambientLabel} session with ${volume}% ambient level.`;
   }
 
   function renderSiteInsight() {
     const insight = state.app.settings.siteInsight || {};
-    const host = state.currentHost || "";
-    const disabledOnHost = Boolean(host && insight.perSiteDisabled?.[host]);
-
+    const host = state.currentHost || "Site unavailable";
+    const siteDisabled = isSiteInsightDisabledForHost();
+    const cached = normalizeSiteInsightPayload(state.pageInsight);
     setChecked(refs.siteInsightEnabled, insight.enabled);
-    setInputValue(refs.siteInsightProfile, insight.selectedProfile || "regular");
-    setInputValue(refs.siteInsightDuration, insight.durationMs || 8000);
-    setChecked(refs.siteInsightAutoMinimize, insight.autoMinimize);
-    setChecked(refs.siteInsightPill, insight.minimizedPill);
+    if (refs.siteInsightHostChip) refs.siteInsightHostChip.textContent = host;
+    if (refs.siteInsightSummary) refs.siteInsightSummary.textContent = cached.summary;
+    if (refs.siteInsightPageType) refs.siteInsightPageType.textContent = cached.pageType;
+    if (refs.siteInsightAppears) refs.siteInsightAppears.textContent = cached.appearsToBe;
+    renderSiteInsightList(refs.siteInsightSignals, cached.signals);
+    if (refs.siteInsightSecurityBlock) refs.siteInsightSecurityBlock.hidden = !cached.securityNote;
+    if (refs.siteInsightSecurity) refs.siteInsightSecurity.textContent = cached.securityNote || "";
+    renderSiteInsightList(refs.siteInsightEssentials, cached.essentials);
+    if (refs.siteInsightAnalyze) refs.siteInsightAnalyze.disabled = !state.currentHost || !insight.enabled || siteDisabled;
+    if (refs.siteInsightCopy) refs.siteInsightCopy.disabled = !insight.enabled || siteDisabled || !cached.copyText;
+    if (!refs.siteInsightStatus) return;
+    if (!insight.enabled) {
+      refs.siteInsightStatus.textContent = "Site Insight is off.";
+      return;
+    }
+    if (siteDisabled) {
+      refs.siteInsightStatus.textContent = "Insight disabled for this host in settings.";
+      return;
+    }
+    if (!refs.siteInsightStatus.textContent.trim()) {
+      refs.siteInsightStatus.textContent = "Ready.";
+      return;
+    }
+    const confidencePct = Math.round((cached.confidence || 0) * 100);
+    const statusText = refs.siteInsightStatus.textContent.replace(/\s·\s\d+% confidence$/, "");
+    if (confidencePct > 0 && statusText.startsWith("Analyzed ")) {
+      refs.siteInsightStatus.textContent = `${statusText} · ${confidencePct}% confidence`;
+    }
+  }
 
-    refs.siteInsightDisableSite.disabled = !host;
-    refs.siteInsightDisableSite.textContent = disabledOnHost ? "Enable on This Site" : "Disable on This Site";
+  async function refreshSiteInsightFromTab({ showToastOnSuccess = false } = {}) {
+    const requestId = ++siteInsightRequestSeq;
+    const tab = await queryCurrentTab();
+    if (requestId !== siteInsightRequestSeq) return;
+    state.currentHost = normalizeHost(tab?.url || "");
 
-    if (!host) {
-      refs.siteInsightStatus.textContent = "Host: unavailable";
+    if (!state.currentHost) {
+      state.pageInsight = null;
+      if (refs.siteInsightStatus) refs.siteInsightStatus.textContent = "No active website tab.";
+      renderSiteInsight();
       return;
     }
 
-    const stateLabel = insight.enabled
-      ? (disabledOnHost ? "disabled on this host" : "enabled")
-      : "globally disabled";
-    refs.siteInsightStatus.textContent = `Host: ${host} · ${stateLabel}`;
+    if (!state.app?.settings?.siteInsight?.enabled) {
+      state.pageInsight = null;
+      if (refs.siteInsightStatus) refs.siteInsightStatus.textContent = "Site Insight is off.";
+      renderSiteInsight();
+      return;
+    }
+
+    if (isSiteInsightDisabledForHost()) {
+      state.pageInsight = null;
+      if (refs.siteInsightStatus) refs.siteInsightStatus.textContent = "Insight disabled for this host in settings.";
+      renderSiteInsight();
+      return;
+    }
+
+    if (refs.siteInsightAnalyze) {
+      refs.siteInsightAnalyze.disabled = true;
+      refs.siteInsightAnalyze.textContent = "Analyzing...";
+    }
+    if (refs.siteInsightStatus) refs.siteInsightStatus.textContent = `Analyzing ${state.currentHost}...`;
+
+    const response = await sendMessage({ type: "holmeta:collect-page-insight" });
+    if (requestId !== siteInsightRequestSeq) return;
+    if (refs.siteInsightAnalyze) {
+      refs.siteInsightAnalyze.disabled = false;
+      refs.siteInsightAnalyze.textContent = "Analyze Page";
+    }
+
+    if (!response?.ok || !response?.insight) {
+      state.pageInsight = null;
+      const reason = String(response?.error || "analysis_failed");
+      if (refs.siteInsightStatus) {
+        refs.siteInsightStatus.textContent = reason === "insight_disabled_for_site"
+          ? "Insight disabled for this host in settings."
+          : `Analyze failed: ${reason}`;
+      }
+      renderSiteInsight();
+      return;
+    }
+
+    state.pageInsight = normalizeSiteInsightPayload(response.insight);
+    if (refs.siteInsightStatus) refs.siteInsightStatus.textContent = `Analyzed ${state.currentHost}`;
+    renderSiteInsight();
+    if (showToastOnSuccess) toast(`Site Insight updated for ${state.currentHost}`);
   }
 
   function renderDeepWork() {
     const deep = state.app.settings.deepWork;
+    const metrics = getTodayFocusMetrics();
+    const countdownMs = Math.max(0, Number(deep.nextTransitionAt || 0) - Date.now());
+    const automationLabel = describeDeepWorkAutomation(deep);
+    const countdownLabel = deep.active
+      ? formatCountdownClock(countdownMs)
+      : `${Math.max(10, Number(deep.focusMin || 25))}m`;
+
     setInputValue(refs.pomodoroPreset, `${deep.focusMin}:${deep.breakMin}`);
+    setChecked(refs.deepWorkAutoBlocker, deep.autoBlocker);
+    setChecked(refs.deepWorkAutoLight, deep.autoLight);
+    if (refs.deepWorkCycleValue) refs.deepWorkCycleValue.textContent = `${deep.focusMin} / ${deep.breakMin}`;
+    if (refs.deepWorkTodayMinutes) refs.deepWorkTodayMinutes.textContent = formatMinutesCompact(metrics.totalMinutes);
+    if (refs.deepWorkTodaySessions) refs.deepWorkTodaySessions.textContent = String(metrics.completedSessions);
+    if (refs.deepWorkAutomationState) refs.deepWorkAutomationState.textContent = automationLabel;
+    if (refs.deepWorkCountdown) refs.deepWorkCountdown.textContent = countdownLabel;
+
     if (!deep.active) {
-      refs.deepWorkStatus.textContent = "Idle";
+      if (refs.deepWorkHeadline) refs.deepWorkHeadline.textContent = "Ready to engage";
+      if (refs.deepWorkSubline) {
+        refs.deepWorkSubline.textContent = `Queue a ${deep.focusMin}/${deep.breakMin} block. ${automationLabel === "Manual" ? "Run it manually or arm the helpers below." : `${automationLabel} will step in when the session starts.`}`;
+      }
+      if (refs.deepWorkPhaseBadge) {
+        refs.deepWorkPhaseBadge.textContent = "Standby";
+        refs.deepWorkPhaseBadge.className = "deep-work-phase-chip is-idle";
+      }
+      refs.startDeepWork.disabled = false;
+      refs.stopDeepWork.disabled = true;
+      refs.deepWorkStatus.textContent = `Idle · ${formatMinutesCompact(metrics.completedMinutes)} logged today across ${metrics.completedSessions} completed session${metrics.completedSessions === 1 ? "" : "s"}.`;
       return;
     }
-    const minsLeft = Math.max(0, Math.ceil((Number(deep.nextTransitionAt || 0) - Date.now()) / 60000));
-    refs.deepWorkStatus.textContent = `${deep.phase.toUpperCase()} · ${minsLeft}m remaining`;
+    const minsLeft = Math.max(0, Math.ceil(countdownMs / 60000));
+    const focusLive = deep.phase === "focus";
+
+    if (refs.deepWorkHeadline) {
+      refs.deepWorkHeadline.textContent = focusLive ? "Focus lane engaged" : "Recovery window active";
+    }
+    if (refs.deepWorkSubline) {
+      refs.deepWorkSubline.textContent = focusLive
+        ? `${automationLabel} ${automationLabel === "Manual" ? "is off" : "is holding the lane"} while you work. Keep the current block tight and intentional.`
+        : `Break window is open for ${minsLeft}m. Reset posture, blink, hydrate, then re-enter the lane clean.`;
+    }
+    if (refs.deepWorkPhaseBadge) {
+      refs.deepWorkPhaseBadge.textContent = focusLive ? "Focus live" : "Break live";
+      refs.deepWorkPhaseBadge.className = `deep-work-phase-chip ${focusLive ? "is-focus" : "is-break"}`;
+    }
+    refs.startDeepWork.disabled = true;
+    refs.stopDeepWork.disabled = false;
+    refs.deepWorkStatus.textContent = `${focusLive ? "Focus" : "Break"} · ${minsLeft}m remaining · ${formatMinutesCompact(metrics.totalMinutes)} captured today.`;
   }
 
   function renderAdvanced() {
     const adv = state.app.settings.advanced;
+    const premium = hasExtensionAccess();
+    const enabledCount = [adv.biofeedback, adv.morphing, adv.taskWeaver, adv.dashboardPredictions, adv.collaborativeSync]
+      .filter(Boolean).length;
+    const prediction = getDeepWorkPrediction();
+
+    if (!premium || !adv.taskWeaver) {
+      state.weaverResults = [];
+    }
+
     setChecked(refs.biofeedbackEnabled, adv.biofeedback);
     setChecked(refs.morphingEnabled, adv.morphing);
+    setChecked(refs.taskWeaverEnabled, adv.taskWeaver);
+    setChecked(refs.dashboardPredictionsEnabled, adv.dashboardPredictions);
+    setChecked(refs.collabSyncEnabled, adv.collaborativeSync);
+
+    if (refs.advancedLabStatus) {
+      if (!premium) {
+        refs.advancedLabStatus.textContent = "Premium lab locked. Upgrade to activate local experimental modules for focus shaping, workflow weaving, and sync snapshots.";
+      } else if (!enabledCount) {
+        refs.advancedLabStatus.textContent = "No lab modules are armed yet. Start with Task Weaver and Dashboard Predictions for the quickest lift.";
+      } else if (state.weaverResults.length) {
+        const lead = state.weaverResults[0];
+        refs.advancedLabStatus.textContent = `${enabledCount} lab module${enabledCount === 1 ? "" : "s"} active. Current lead move: ${lead.lane} · ${lead.title}.`;
+      } else {
+        refs.advancedLabStatus.textContent = `${enabledCount} lab module${enabledCount === 1 ? "" : "s"} active. Run Weave Workflow or copy a Focus Sync snapshot to put them to work.`;
+      }
+    }
+
+    if (refs.advancedLabPrediction) {
+      refs.advancedLabPrediction.textContent = adv.dashboardPredictions
+        ? `Predicted next protocol: ${prediction.recommended}. ${prediction.detail}`
+        : "Enable Dashboard Predictions to turn your recent focus history into a calmer next-session recommendation.";
+    }
+
+    if (refs.taskWeaver) {
+      refs.taskWeaver.textContent = state.weaverResults.length ? "Re-Weave Workflow" : "Weave Workflow";
+    }
+    if (refs.collabSync) {
+      refs.collabSync.textContent = state.weaverResults.length ? "Copy Sync Snapshot" : "Focus Sync Snapshot";
+    }
+
+    renderWeaver(state.weaverResults);
   }
 
   function renderWeaver(list = []) {
     refs.weaverResults.innerHTML = "";
-    if (!Array.isArray(list) || !list.length) return;
+    if (!Array.isArray(list) || !list.length) {
+      if (!hasExtensionAccess()) return;
+      const li = document.createElement("li");
+      li.className = "advanced-lab-result is-empty";
+      li.textContent = state.app?.settings?.advanced?.taskWeaver
+        ? "Run Weave Workflow to turn your current tab stack into a cleaner execution sequence."
+        : "Enable Task Weaver to generate a focused run order from the tabs already open in this window.";
+      refs.weaverResults.appendChild(li);
+      return;
+    }
     list.slice(0, 5).forEach((item) => {
       const li = document.createElement("li");
-      li.innerHTML = `<strong>${item.title}</strong><span>${item.reason}</span>`;
+      li.className = "advanced-lab-result";
+
+      const head = document.createElement("div");
+      head.className = "advanced-lab-result-head";
+
+      const titleWrap = document.createElement("div");
+      titleWrap.className = "advanced-lab-result-copy";
+
+      const lane = document.createElement("span");
+      lane.className = "advanced-lab-result-lane";
+      lane.textContent = item.lane || "Sequence";
+
+      const title = document.createElement("strong");
+      title.textContent = item.title || "Protocol move";
+
+      titleWrap.append(lane, title);
+      head.appendChild(titleWrap);
+
+      if (item.url) {
+        const openButton = document.createElement("button");
+        openButton.type = "button";
+        openButton.className = "ghost advanced-lab-open";
+        openButton.textContent = "Open";
+        openButton.addEventListener("click", () => {
+          chrome.tabs.create({ url: String(item.url) });
+        });
+        head.appendChild(openButton);
+      }
+
+      const reason = document.createElement("span");
+      reason.className = "advanced-lab-result-reason";
+      reason.textContent = item.reason || "No rationale available.";
+
+      li.append(head, reason);
       refs.weaverResults.appendChild(li);
     });
   }
@@ -1615,6 +3513,8 @@
     applyPopupToolRegistry();
     renderPremium();
     renderAccessGate();
+    renderDashboard();
+    renderVault();
     if (!hasExtensionAccess()) {
       refs.onboarding.hidden = true;
       setStatus("Access locked. Reactivate subscription to continue.");
@@ -1623,14 +3523,13 @@
     renderFavorites();
     renderReadingTheme();
     renderLight();
-    renderAdaptiveTheme();
     renderScreenEmulator();
     renderEyeDropper();
     renderScreenshotTool();
     renderTranslateTool();
     renderBlocker();
-    renderSecureTunnel();
     renderAlerts();
+    renderMeditation();
     renderSiteInsight();
     renderDeepWork();
     renderAdvanced();
@@ -1741,6 +3640,7 @@
   }
 
   async function runDayNightAction(action, payload = {}, successText = "") {
+    await flushPatchNow();
     const tab = await queryCurrentTab();
     const tabId = Number(tab?.id || 0);
     if (!Number.isInteger(tabId) || tabId <= 0) {
@@ -1806,6 +3706,7 @@
 
     state.hydrated = true;
     render();
+    void refreshSiteInsightFromTab();
 
     if (!hasExtensionAccess()) {
       refs.onboarding.hidden = true;
@@ -1842,20 +3743,8 @@
     chrome.tabs.create({ url });
   }
 
-  async function handleHotkeyButton(command) {
-    const response = await sendMessage({ type: "holmeta:run-command", command });
-    if (!response.ok) {
-      toast(`Action failed: ${response.error || "unknown"}`);
-      return;
-    }
-    state.app = response.state;
-    await refreshDiagnostics();
-    render();
-    toast(`Executed: ${command.replaceAll("_", " ")}`);
-  }
-
   async function handleBiofeedbackToggle(nextEnabled) {
-    if (!state.app.license.premium) {
+    if (!hasExtensionAccess()) {
       toast("Premium feature – upgrade at holmeta.com");
       refs.biofeedbackEnabled.checked = false;
       return;
@@ -1883,25 +3772,36 @@
     queuePatch({ advanced: { biofeedback: nextEnabled } });
   }
 
+  function setAdvancedToggle(nextKey, nextEnabled, ref) {
+    if (!hasExtensionAccess()) {
+      if (ref) ref.checked = false;
+      toast("Premium feature – upgrade at holmeta.com");
+      return;
+    }
+    queuePatch({ advanced: { [nextKey]: nextEnabled } });
+  }
+
   function currentReadingPatchFromUI() {
     const appearance = refs.readingThemeAuto.classList.contains("is-active")
-      ? "auto"
+      ? "adaptive"
       : refs.readingThemeLight.classList.contains("is-active")
         ? "light"
         : "dark";
     const darkVariant = normalizeReadingDarkVariant(refs.readingThemeDarkVariant?.value, "coal");
     const lightVariant = normalizeReadingLightVariant(refs.readingThemeLightVariant?.value, "white");
-    const scheduleMode = ["system", "sunset", "custom"].includes(String(refs.readingThemeScheduleMode.value || ""))
-      ? String(refs.readingThemeScheduleMode.value)
-      : "system";
+    const scheduleMode = "system";
     const schedule = {
-      enabled: appearance === "auto",
-      useSunset: scheduleMode === "sunset",
-      start: String(refs.readingThemeScheduleStart.value || "20:00"),
-      end: String(refs.readingThemeScheduleEnd.value || "06:00")
+      enabled: false,
+      useSunset: false,
+      start: "20:00",
+      end: "06:00"
     };
     const opaqueBackground = Boolean(refs.readingThemeOpaqueBackground?.checked);
     const pointerCursors = Boolean(refs.readingThemePointerCursors?.checked);
+    const preserveImages = Boolean(refs.readingThemePreserveImages?.checked);
+    const preserveLogos = Boolean(refs.readingThemePreserveLogos?.checked);
+    const higherContrast = Boolean(refs.readingThemeHigherContrast?.checked);
+    const softerSurfaces = Boolean(refs.readingThemeSofterSurfaces?.checked);
     const sansFontSize = normalizeReadingFontSize(refs.readingThemeSansSize?.value, 13);
     const sansFontFamily = normalizeReadingFontFamily(
       refs.readingThemeSansFamily?.value,
@@ -1912,24 +3812,10 @@
       refs.readingThemeCodeFamily?.value,
       "ui-monospace, \"SFMono-Regular\", Menlo, Consolas, monospace"
     );
-    const isNowInRange = (start, end) => {
-      const [startH, startM] = String(start || "20:00").split(":").map((v) => Number(v || 0));
-      const [endH, endM] = String(end || "06:00").split(":").map((v) => Number(v || 0));
-      const now = new Date();
-      const nowMins = now.getHours() * 60 + now.getMinutes();
-      const startMins = startH * 60 + startM;
-      const endMins = endH * 60 + endM;
-      if (startMins === endMins) return true;
-      if (startMins < endMins) return nowMins >= startMins && nowMins < endMins;
-      return nowMins >= startMins || nowMins < endMins;
-    };
     let mode = appearance === "light" ? "light" : "dark";
-    if (appearance === "auto") {
-      if (scheduleMode === "system") {
-        mode = window.matchMedia?.("(prefers-color-scheme: dark)")?.matches ? "dark" : "light";
-      } else {
-        mode = isNowInRange(schedule.start, schedule.end) ? "dark" : "light";
-      }
+    if (appearance === "adaptive") {
+      const diagnosticsMode = String(state.diagnostics?.readingAppearance?.mode || state.diagnostics?.readingMode || "");
+      mode = diagnosticsMode === "light" ? "light" : "dark";
     }
     const preset = readingPresetForVariants(mode, darkVariant, lightVariant);
     const current = getReadingSiteProfile() || getReadingThemeState();
@@ -1951,6 +3837,10 @@
       intensity,
       opaqueBackground,
       pointerCursors,
+      preserveImages,
+      preserveLogos,
+      higherContrast,
+      softerSurfaces,
       sansFontSize,
       sansFontFamily,
       codeFontSize,
@@ -1998,19 +3888,81 @@
     };
   }
 
-  function currentAdaptivePatchFromUI() {
-    const mode = String(refs.adaptiveThemeMode.value || "smart_dark");
-    const preset = String(refs.adaptiveThemePreset.value || "balanced");
-    const strategy = String(refs.adaptiveThemeStrategy.value || "auto");
-    const compatibilityMode = String(refs.adaptiveThemeCompatibility.value || "normal");
-    const intensity = Math.max(0, Math.min(100, Number(refs.adaptiveThemeIntensity.value || 52)));
-    return {
-      mode,
-      preset,
-      strategy,
-      compatibilityMode,
-      intensity
+  function applyLightPreset(presetKey) {
+    const presets = {
+      comfort: {
+        mode: "amber_focus",
+        spectrumPreset: "melatonin_guard",
+        intensity: 58,
+        dim: 18,
+        contrastSoft: 10,
+        brightness: 96,
+        saturation: 102,
+        blueCut: 74,
+        tintRed: 100,
+        tintGreen: 64,
+        tintBlue: 28,
+        reduceWhites: true,
+        videoSafe: true,
+        spotlightEnabled: false,
+        therapyMode: false
+      },
+      deep_night: {
+        mode: "deep_night",
+        spectrumPreset: "amber_590",
+        intensity: 76,
+        dim: 26,
+        contrastSoft: 14,
+        brightness: 90,
+        saturation: 92,
+        blueCut: 82,
+        tintRed: 100,
+        tintGreen: 54,
+        tintBlue: 18,
+        reduceWhites: true,
+        videoSafe: true,
+        spotlightEnabled: false,
+        therapyMode: false
+      },
+      infrared: {
+        mode: "near_infrared",
+        spectrumPreset: "deep_red_660",
+        intensity: 90,
+        dim: 34,
+        contrastSoft: 18,
+        brightness: 88,
+        saturation: 72,
+        blueCut: 100,
+        tintRed: 100,
+        tintGreen: 24,
+        tintBlue: 6,
+        reduceWhites: true,
+        videoSafe: false,
+        spotlightEnabled: false,
+        therapyMode: false
+      },
+      red_lock: {
+        mode: "red_lock",
+        spectrumPreset: "deep_red_660",
+        intensity: 100,
+        dim: 40,
+        contrastSoft: 20,
+        brightness: 84,
+        saturation: 68,
+        blueCut: 100,
+        tintRed: 100,
+        tintGreen: 12,
+        tintBlue: 0,
+        reduceWhites: true,
+        videoSafe: false,
+        spotlightEnabled: false,
+        therapyMode: false
+      }
     };
+    const next = presets[String(presetKey || "")];
+    if (!next) return;
+    queueLightPatch(next);
+    toast(`Light Filter preset armed: ${String(presetKey).replace(/_/g, " ")}`);
   }
 
   function queueLightPatch(partial) {
@@ -2035,18 +3987,6 @@
       return;
     }
     queuePatch({ readingTheme: partial });
-  }
-
-  function queueAdaptivePatch(partial) {
-    const adaptive = getAdaptiveThemeState();
-    const siteProfile = getAdaptiveSiteProfile();
-    if (state.currentHost && siteProfile) {
-      const map = { ...(adaptive.perSiteOverrides || adaptive.siteProfiles || {}) };
-      map[state.currentHost] = deepMerge(map[state.currentHost] || {}, partial);
-      queuePatch({ adaptiveSiteTheme: { perSiteOverrides: map } });
-      return;
-    }
-    queuePatch({ adaptiveSiteTheme: partial });
   }
 
   function setLightSiteOverride(enabled) {
@@ -2083,31 +4023,10 @@
     queuePatch({ lightFilter: { excludedSites: map } });
   }
 
-  function setReadingSiteOverride(enabled) {
-    if (!state.currentHost) {
-      toast("No active website detected.");
-      refs.readingThemeThisSiteEnabled.checked = false;
-      return;
-    }
-    const reading = getReadingThemeState();
-    const map = { ...(reading.perSiteOverrides || reading.siteProfiles || {}) };
-    if (enabled) {
-      map[state.currentHost] = {
-        enabled: true,
-        ...currentReadingPatchFromUI()
-      };
-      toast(`Reading Theme override enabled for ${state.currentHost}`);
-    } else {
-      delete map[state.currentHost];
-      toast(`Reading Theme override removed for ${state.currentHost}`);
-    }
-    queuePatch({ readingTheme: { perSiteOverrides: map } });
-  }
-
   function setReadingExcludeSite(enabled) {
     if (!state.currentHost) {
       toast("No active website detected.");
-      refs.readingThemeExcludeSite.checked = false;
+      if (refs.readingThemeExcludeSite) refs.readingThemeExcludeSite.checked = false;
       return;
     }
     const reading = getReadingThemeState();
@@ -2117,48 +4036,15 @@
     queuePatch({ readingTheme: { excludedSites: map } });
   }
 
-  function setAdaptiveSiteOverride(enabled) {
-    if (!state.currentHost) {
-      toast("No active website detected.");
-      refs.adaptiveThemeThisSiteEnabled.checked = false;
-      return;
-    }
-    const adaptive = getAdaptiveThemeState();
-    const map = { ...(adaptive.perSiteOverrides || adaptive.siteProfiles || {}) };
-    if (enabled) {
-      map[state.currentHost] = {
-        enabled: true,
-        ...currentAdaptivePatchFromUI()
-      };
-      toast(`Adaptive Theme override enabled for ${state.currentHost}`);
-    } else {
-      delete map[state.currentHost];
-      toast(`Adaptive Theme override removed for ${state.currentHost}`);
-    }
-    queuePatch({ adaptiveSiteTheme: { perSiteOverrides: map } });
-  }
-
-  function setAdaptiveExcludeSite(enabled) {
-    if (!state.currentHost) {
-      toast("No active website detected.");
-      refs.adaptiveThemeExcludeSite.checked = false;
-      return;
-    }
-    const adaptive = getAdaptiveThemeState();
-    const map = { ...(adaptive.excludedSites || {}) };
-    if (enabled) map[state.currentHost] = true;
-    else delete map[state.currentHost];
-    queuePatch({ adaptiveSiteTheme: { excludedSites: map } });
-  }
-
   function setReadingAppearanceWithEnable(appearance) {
-    const safeAppearance = ["light", "dark", "auto"].includes(String(appearance || ""))
+    const safeAppearance = ["light", "dark", "adaptive"].includes(String(appearance || ""))
       ? String(appearance)
       : "dark";
     const patch = currentReadingPatchFromUI();
     patch.appearance = safeAppearance;
-    patch.schedule.enabled = safeAppearance === "auto";
-    patch.mode = safeAppearance === "light" ? "light" : "dark";
+    patch.schedule.enabled = false;
+    if (safeAppearance === "light") patch.mode = "light";
+    else if (safeAppearance === "dark") patch.mode = "dark";
     patch.preset = readingPresetForVariants(patch.mode, patch.darkVariant, patch.lightVariant);
     patch.intensity = Math.max(
       Math.round(Math.max(0, Math.min(100, Number(patch.intensity ?? 0)))),
@@ -2215,19 +4101,6 @@
     };
     delete map[state.currentHost];
     queueTranslatePatch({ perSitePreferences: map });
-  }
-
-  function secureTunnelPayloadFromUI() {
-    const mode = String(refs.secureTunnelMode.value || "preset");
-    const presetId = String(refs.secureTunnelPreset.value || "fastest");
-    const custom = {
-      scheme: String(refs.secureTunnelCustomScheme.value || "http"),
-      host: String(refs.secureTunnelCustomHost.value || "").trim(),
-      port: Number(refs.secureTunnelCustomPort.value || 8080),
-      username: String(refs.secureTunnelCustomUser.value || "").trim(),
-      password: String(refs.secureTunnelCustomPass.value || "")
-    };
-    return { mode, presetId, custom };
   }
 
   function saveCurrentEyeHexToSwatches() {
@@ -2299,8 +4172,141 @@
 
   function bindEvents() {
     bindEditingTracking();
+    bindVaultEvents();
 
-    refs.readingThemeEnabled.addEventListener("change", (e) => queuePatch({ readingTheme: { enabled: e.target.checked } }));
+    refs.dashboardWorkStart?.addEventListener("input", (event) => {
+      initDashboardState();
+      if (!state.dashboard) return;
+      state.dashboard.workStart = String(event.target?.value || "09:00");
+      writeLocalString(DASHBOARD_STORAGE_KEYS.workStart, state.dashboard.workStart);
+      renderDashboardClockFrame();
+    });
+
+    refs.dashboardWorkEnd?.addEventListener("input", (event) => {
+      initDashboardState();
+      if (!state.dashboard) return;
+      state.dashboard.workEnd = String(event.target?.value || "17:00");
+      writeLocalString(DASHBOARD_STORAGE_KEYS.workEnd, state.dashboard.workEnd);
+      renderDashboardClockFrame();
+    });
+
+    refs.dashboardAddClock?.addEventListener("click", () => {
+      openDashboardCityModal();
+    });
+
+    refs.dashboardCityClose?.addEventListener("click", () => {
+      closeDashboardCityModal();
+    });
+
+    refs.dashboardCityModal?.addEventListener("click", (event) => {
+      if (event.target === refs.dashboardCityModal) {
+        closeDashboardCityModal();
+      }
+    });
+
+    refs.dashboardCitySearch?.addEventListener("input", (event) => {
+      renderDashboardCitySuggestions(String(event.target?.value || ""));
+    });
+
+    refs.dashboardCitySearch?.addEventListener("keydown", (event) => {
+      if (event.key === "Escape") {
+        closeDashboardCityModal();
+      }
+    });
+
+    refs.dashboardCitySuggestions?.addEventListener("click", (event) => {
+      const node = event.target?.closest?.("[data-dash-city]");
+      if (!node) return;
+      initDashboardState();
+      if (!state.dashboard) return;
+      const name = String(node.dataset?.dashCity || "").trim();
+      const tz = String(node.dataset?.dashTz || "").trim();
+      const code = String(node.dataset?.dashCode || "").trim();
+      if (!name || !tz) return;
+      const exists = state.dashboard.clocks.some((clock) => clock.name === name && clock.tz === tz);
+      if (!exists) {
+        state.dashboard.clocks.push({ name, tz, code });
+        state.dashboard.clocks = state.dashboard.clocks.slice(0, 8);
+        saveDashboardClocks();
+        renderDashboardClocks();
+        renderDashboardClockFrame();
+      }
+      closeDashboardCityModal();
+    });
+
+    refs.dashboardClocks?.addEventListener("click", (event) => {
+      const removeNode = event.target?.closest?.("[data-dash-clock-remove]");
+      if (!removeNode) return;
+      initDashboardState();
+      if (!state.dashboard) return;
+      const index = Number(removeNode.dataset?.dashClockRemove);
+      if (!Number.isInteger(index) || index < 0 || index >= state.dashboard.clocks.length) return;
+      state.dashboard.clocks.splice(index, 1);
+      saveDashboardClocks();
+      renderDashboardClocks();
+      renderDashboardClockFrame();
+    });
+
+    refs.dashboardWeatherRefresh?.addEventListener("click", () => {
+      initDashboardState();
+      void fetchDashboardWeather(true);
+    });
+
+    refs.dashboardTaskAdd?.addEventListener("click", () => {
+      addDashboardTask();
+    });
+
+    refs.dashboardTaskInput?.addEventListener("keydown", (event) => {
+      if (event.key === "Enter") {
+        event.preventDefault();
+        addDashboardTask();
+      }
+    });
+
+    refs.dashboardTaskList?.addEventListener("click", (event) => {
+      const toggleNode = event.target?.closest?.("[data-dash-task-toggle]");
+      if (toggleNode) {
+        toggleDashboardTask(toggleNode.dataset?.dashTaskToggle);
+        return;
+      }
+      const removeNode = event.target?.closest?.("[data-dash-task-remove]");
+      if (removeNode) {
+        removeDashboardTask(removeNode.dataset?.dashTaskRemove);
+      }
+    });
+
+    refs.dashboardPomoStart?.addEventListener("click", () => {
+      startDashboardPomo();
+    });
+
+    refs.dashboardPomoPause?.addEventListener("click", () => {
+      pauseDashboardPomo();
+    });
+
+    refs.dashboardPomoReset?.addEventListener("click", () => {
+      resetDashboardPomo();
+    });
+
+    refs.readingThemeEnabled.addEventListener("change", async (e) => {
+      const enabled = Boolean(e.target.checked);
+      if (enabled) {
+        const patch = currentReadingPatchFromUI();
+        queueReadingPatch({
+          enabled: true,
+          appearance: patch.appearance,
+          mode: patch.mode,
+          preset: patch.preset,
+          intensity: patch.intensity,
+          darkVariant: patch.darkVariant,
+          darkThemeVariant: patch.darkVariant,
+          lightVariant: patch.lightVariant,
+          lightThemeVariant: patch.lightVariant
+        });
+      } else {
+        queueReadingPatch({ enabled: false });
+      }
+      await applyAllTabs({ ensureLightEnabled: false, quiet: true });
+    });
     refs.readingThemeDark.addEventListener("click", async () => {
       refs.readingThemeDark.classList.add("is-active");
       refs.readingThemeLight.classList.remove("is-active");
@@ -2321,7 +4327,7 @@
       refs.readingThemeAuto.classList.add("is-active");
       refs.readingThemeDark.classList.remove("is-active");
       refs.readingThemeLight.classList.remove("is-active");
-      setReadingAppearanceWithEnable("auto");
+      setReadingAppearanceWithEnable("adaptive");
       await applyAllTabs({ ensureLightEnabled: false, quiet: true });
     });
 
@@ -2349,32 +4355,14 @@
       await applyAllTabs({ ensureLightEnabled: false, quiet: true });
     });
 
-    refs.readingThemeScheduleMode.addEventListener("change", () => {
+    refs.readingThemeScheduleMode?.addEventListener("change", () => {
       const patch = currentReadingPatchFromUI();
       queueReadingPatch({
-        appearance: "auto",
+        appearance: patch.appearance,
         scheduleMode: patch.scheduleMode,
         schedule: patch.schedule,
         mode: patch.mode,
         preset: patch.preset
-      });
-    });
-
-    refs.readingThemeScheduleStart.addEventListener("input", () => {
-      const patch = currentReadingPatchFromUI();
-      queueReadingPatch({
-        appearance: patch.appearance,
-        scheduleMode: patch.scheduleMode,
-        schedule: patch.schedule
-      });
-    });
-
-    refs.readingThemeScheduleEnd.addEventListener("input", () => {
-      const patch = currentReadingPatchFromUI();
-      queueReadingPatch({
-        appearance: patch.appearance,
-        scheduleMode: patch.scheduleMode,
-        schedule: patch.schedule
       });
     });
 
@@ -2386,6 +4374,30 @@
     refs.readingThemePointerCursors?.addEventListener("change", () => {
       const patch = currentReadingPatchFromUI();
       queueReadingPatch({ pointerCursors: patch.pointerCursors });
+    });
+
+    refs.readingThemePreserveImages?.addEventListener("change", async () => {
+      const patch = currentReadingPatchFromUI();
+      queueReadingPatch({ preserveImages: patch.preserveImages });
+      await applyAllTabs({ ensureLightEnabled: false, quiet: true });
+    });
+
+    refs.readingThemePreserveLogos?.addEventListener("change", async () => {
+      const patch = currentReadingPatchFromUI();
+      queueReadingPatch({ preserveLogos: patch.preserveLogos });
+      await applyAllTabs({ ensureLightEnabled: false, quiet: true });
+    });
+
+    refs.readingThemeHigherContrast?.addEventListener("change", async () => {
+      const patch = currentReadingPatchFromUI();
+      queueReadingPatch({ higherContrast: patch.higherContrast });
+      await applyAllTabs({ ensureLightEnabled: false, quiet: true });
+    });
+
+    refs.readingThemeSofterSurfaces?.addEventListener("change", async () => {
+      const patch = currentReadingPatchFromUI();
+      queueReadingPatch({ softerSurfaces: patch.softerSurfaces });
+      await applyAllTabs({ ensureLightEnabled: false, quiet: true });
     });
 
     refs.readingThemeSansSize?.addEventListener("input", () => {
@@ -2408,31 +4420,21 @@
       queueReadingPatch({ codeFontFamily: patch.codeFontFamily });
     });
 
-    refs.readingThemeThisSiteEnabled.addEventListener("change", (e) => setReadingSiteOverride(e.target.checked));
-    refs.readingThemeExcludeSite.addEventListener("change", (e) => setReadingExcludeSite(e.target.checked));
+    refs.readingThemeExcludeSite?.addEventListener("change", async (e) => {
+      setReadingExcludeSite(e.target.checked);
+      await applyAllTabs({ ensureLightEnabled: false, quiet: true });
+    });
     refs.readingThemeShowWidget?.addEventListener("click", async () => {
       await runDayNightAction("showWidget", {}, "Appearance widget shown on this site.");
     });
     refs.readingThemeHideWidget?.addEventListener("click", async () => {
       await runDayNightAction("hideWidget", {}, "Appearance widget hidden on this site.");
     });
-
-    if (refs.adaptiveThemeEnabled) {
-      refs.adaptiveThemeEnabled.addEventListener("change", (e) => queuePatch({ adaptiveSiteTheme: { enabled: e.target.checked } }));
-      refs.adaptiveThemeMode?.addEventListener("change", (e) => queueAdaptivePatch({ mode: String(e.target.value || "smart_dark") }));
-      refs.adaptiveThemePreset?.addEventListener("change", (e) => queueAdaptivePatch({ preset: String(e.target.value || "balanced") }));
-      refs.adaptiveThemeStrategy?.addEventListener("change", (e) => queueAdaptivePatch({ strategy: String(e.target.value || "auto") }));
-      refs.adaptiveThemeCompatibility?.addEventListener("change", (e) => queueAdaptivePatch({ compatibilityMode: String(e.target.value || "normal") }));
-      refs.adaptiveThemeIntensity?.addEventListener("input", (e) => {
-        const value = Math.max(0, Math.min(100, Number(e.target.value || 52)));
-        if (refs.adaptiveThemeIntensityValue) refs.adaptiveThemeIntensityValue.textContent = `${value}%`;
-        queueAdaptivePatch({ intensity: value });
-      });
-      refs.adaptiveThemeThisSiteEnabled?.addEventListener("change", (e) => setAdaptiveSiteOverride(e.target.checked));
-      refs.adaptiveThemeExcludeSite?.addEventListener("change", (e) => setAdaptiveExcludeSite(e.target.checked));
-    }
-
     refs.lightEnabled.addEventListener("change", (e) => queuePatch({ lightFilter: { enabled: e.target.checked } }));
+    refs.lightPresetComfort?.addEventListener("click", () => applyLightPreset("comfort"));
+    refs.lightPresetDeepNight?.addEventListener("click", () => applyLightPreset("deep_night"));
+    refs.lightPresetInfrared?.addEventListener("click", () => applyLightPreset("infrared"));
+    refs.lightPresetRedLock?.addEventListener("click", () => applyLightPreset("red_lock"));
     refs.lightMode.addEventListener("change", (e) => queueLightPatch({ mode: e.target.value }));
     refs.lightIntensity.addEventListener("input", (e) => {
       const value = Math.max(0, Math.min(100, Number(e.target.value || 0)));
@@ -2460,66 +4462,6 @@
 
     refs.lightThisSiteEnabled.addEventListener("change", (e) => setLightSiteOverride(e.target.checked));
     refs.lightExcludeSite.addEventListener("change", (e) => setLightExcludeSite(e.target.checked));
-    refs.lightApplyAll.addEventListener("click", async () => {
-      await applyAllTabs({ ensureLightEnabled: false, quiet: false });
-    });
-
-    refs.saveSiteProfile.addEventListener("click", async () => {
-      if (!state.currentHost) {
-        toast("No active website detected.");
-        return;
-      }
-      const response = await sendMessage({ type: "holmeta:save-site-profile", host: state.currentHost });
-      if (!response?.ok) {
-        toast(`Save profile failed: ${response?.error || "unknown"}`);
-        return;
-      }
-      state.app = response.state;
-      await refreshDiagnostics();
-      render();
-      toast(`Saved site profile for ${state.currentHost}`);
-    });
-
-    refs.copyGlobalToSite.addEventListener("click", () => {
-      if (!state.currentHost) {
-        toast("No active website detected.");
-        return;
-      }
-      const light = getLightFilterState();
-      const reading = getReadingThemeState();
-      const lightMap = { ...(light.perSiteOverrides || light.siteProfiles || {}) };
-      const readingMap = { ...(reading.perSiteOverrides || reading.siteProfiles || {}) };
-      lightMap[state.currentHost] = {
-        enabled: true,
-        ...currentLightPatchFromUI()
-      };
-      readingMap[state.currentHost] = {
-        enabled: true,
-        ...currentReadingPatchFromUI()
-      };
-      queuePatch({
-        lightFilter: { perSiteOverrides: lightMap },
-        readingTheme: { perSiteOverrides: readingMap }
-      });
-      toast(`Copied global visual profiles to ${state.currentHost}`);
-    });
-
-    refs.resetSiteOverrides.addEventListener("click", async () => {
-      if (!state.currentHost) {
-        toast("No active website detected.");
-        return;
-      }
-      const response = await sendMessage({ type: "holmeta:reset-site-overrides", host: state.currentHost });
-      if (!response?.ok) {
-        toast(`Reset failed: ${response?.error || "unknown"}`);
-        return;
-      }
-      state.app = response.state;
-      await refreshDiagnostics();
-      render();
-      toast(`Reset overrides for ${state.currentHost}`);
-    });
-
     refs.reduceWhites.addEventListener("change", (e) => queueLightPatch({ reduceWhites: e.target.checked }));
     refs.videoSafe.addEventListener("change", (e) => queueLightPatch({ videoSafe: e.target.checked }));
     refs.lightSpectrumPreset.addEventListener("change", (e) => queueLightPatch({ spectrumPreset: e.target.value }));
@@ -3147,7 +5089,7 @@
     refs.nuclearMode.addEventListener("change", (e) => {
       const checked = e.target.checked;
       if (checked) {
-        const ok = window.confirm("Enable Nuclear Mode? This will block most websites except allowlist.");
+        const ok = window.confirm("Enable Lockdown Mode? This will block most websites except allowed hosts.");
         if (!ok) {
           e.target.checked = false;
           return;
@@ -3187,29 +5129,22 @@
         toast("No active website detected.");
         return;
       }
-      const response = await sendMessage({ type: "holmeta:add-blocked-domain", host: state.currentHost });
+      const hostBlocked = Boolean((state.app?.settings?.blocker?.blockedDomains || []).includes(state.currentHost));
+      const response = await sendMessage({
+        type: hostBlocked ? "holmeta:remove-blocked-domain" : "holmeta:add-blocked-domain",
+        host: state.currentHost
+      });
       if (!response.ok) {
         toast(`Failed: ${response.error || "unknown"}`);
         return;
       }
       state.app = response.state;
       render();
-      toast(`Blocked ${state.currentHost}`);
-    });
-
-    refs.removeCurrentSite.addEventListener("click", async () => {
-      if (!state.currentHost) {
-        toast("No active website detected.");
-        return;
+      if (hostBlocked) {
+        toast(response.removed ? `Unblocked ${state.currentHost}` : `${state.currentHost} was not in blocked list`);
+      } else {
+        toast(`Blocked ${state.currentHost}`);
       }
-      const response = await sendMessage({ type: "holmeta:remove-blocked-domain", host: state.currentHost });
-      if (!response.ok) {
-        toast(`Failed: ${response.error || "unknown"}`);
-        return;
-      }
-      state.app = response.state;
-      render();
-      toast(response.removed ? `Unblocked ${state.currentHost}` : `${state.currentHost} was not in blocked list`);
     });
 
     refs.toggleWhitelistSite.addEventListener("click", async () => {
@@ -3219,12 +5154,12 @@
       }
       const response = await sendMessage({ type: "holmeta:toggle-blocker-whitelist-site", host: state.currentHost });
       if (!response.ok) {
-        toast(`Whitelist update failed: ${response.error || "unknown"}`);
+        toast(`Allow rule update failed: ${response.error || "unknown"}`);
         return;
       }
       state.app = response.state;
       render();
-      toast(response.whitelisted ? `Whitelisted ${state.currentHost}` : `Removed ${state.currentHost} from whitelist`);
+      toast(response.whitelisted ? `Allowed ${state.currentHost}` : `Removed allow rule for ${state.currentHost}`);
     });
 
     refs.toggleCosmeticSite.addEventListener("click", async () => {
@@ -3257,10 +5192,11 @@
 
     refs.refreshBlockLists.addEventListener("click", async () => {
       refs.refreshBlockLists.disabled = true;
+      const previousText = refs.refreshBlockLists.textContent;
       refs.refreshBlockLists.textContent = "Refreshing...";
       const response = await sendMessage({ type: "holmeta:refresh-blocker-lists" });
       refs.refreshBlockLists.disabled = false;
-      refs.refreshBlockLists.textContent = "Refresh Lists";
+      refs.refreshBlockLists.textContent = previousText || "Refresh Lists";
       if (!response.ok) {
         toast(`Refresh failed: ${response.error || "unknown"}`);
         return;
@@ -3281,85 +5217,6 @@
 
     refs.editBlocker.addEventListener("click", () => chrome.runtime.openOptionsPage());
 
-    refs.secureTunnelEnabled.addEventListener("change", async (event) => {
-      const response = await sendMessage({
-        type: "holmeta:secure-tunnel-toggle",
-        enabled: event.target.checked
-      });
-      if (!response.ok) {
-        toast(`Secure Tunnel failed: ${response.error || "unknown"}`);
-        event.target.checked = !event.target.checked;
-        return;
-      }
-      state.app = response.state;
-      render();
-      toast(event.target.checked ? "Secure Tunnel connected." : "Secure Tunnel disconnected.");
-    });
-
-    refs.secureTunnelMode.addEventListener("change", (event) => {
-      queuePatch({
-        secureTunnel: {
-          mode: String(event.target.value || "preset")
-        }
-      });
-    });
-
-    refs.secureTunnelPreset.addEventListener("change", (event) => {
-      queuePatch({
-        secureTunnel: {
-          selectedPresetId: String(event.target.value || "fastest")
-        }
-      });
-    });
-
-    refs.secureTunnelCustomScheme.addEventListener("change", (event) => {
-      queuePatch({ secureTunnel: { custom: { scheme: String(event.target.value || "http") } } });
-    });
-    refs.secureTunnelCustomHost.addEventListener("change", (event) => {
-      queuePatch({ secureTunnel: { custom: { host: String(event.target.value || "") } } });
-    });
-    refs.secureTunnelCustomPort.addEventListener("change", (event) => {
-      queuePatch({ secureTunnel: { custom: { port: Number(event.target.value || 8080) } } });
-    });
-    refs.secureTunnelCustomUser.addEventListener("change", (event) => {
-      queuePatch({ secureTunnel: { custom: { username: String(event.target.value || "") } } });
-    });
-    refs.secureTunnelCustomPass.addEventListener("change", (event) => {
-      queuePatch({ secureTunnel: { custom: { password: String(event.target.value || "") } } });
-    });
-
-    refs.secureTunnelSaveConnect.addEventListener("click", async () => {
-      const payload = secureTunnelPayloadFromUI();
-      refs.secureTunnelSaveConnect.disabled = true;
-      refs.secureTunnelSaveConnect.textContent = "Connecting...";
-      const response = await sendMessage({
-        type: "holmeta:secure-tunnel-connect",
-        mode: payload.mode,
-        presetId: payload.presetId,
-        custom: payload.custom
-      });
-      refs.secureTunnelSaveConnect.disabled = false;
-      refs.secureTunnelSaveConnect.textContent = "Save & Connect";
-      if (!response.ok) {
-        toast(`Connect failed: ${response.error || "unknown"}`);
-        return;
-      }
-      state.app = response.state;
-      render();
-      toast("Secure Tunnel connected.");
-    });
-
-    refs.secureTunnelDisconnect.addEventListener("click", async () => {
-      const response = await sendMessage({ type: "holmeta:secure-tunnel-disconnect" });
-      if (!response.ok) {
-        toast(`Disconnect failed: ${response.error || "unknown"}`);
-        return;
-      }
-      state.app = response.state;
-      render();
-      toast("Secure Tunnel disconnected.");
-    });
-
     refs.alertsEnabled.addEventListener("change", (e) => queuePatch({ alerts: { enabled: e.target.checked } }));
     refs.alertFrequency.addEventListener("change", (e) => queuePatch({ alerts: { frequencyMin: Number(e.target.value || 45) } }));
     refs.alertCadence.addEventListener("change", (e) => queuePatch({ alerts: { cadenceMode: String(e.target.value || "focus_weighted") } }));
@@ -3375,24 +5232,32 @@
       refs.alertSoundVolumeValue.textContent = `${value}%`;
       queuePatch({ alerts: { soundVolume: value } });
     });
-    refs.alertSoundPattern.addEventListener("change", (e) => queuePatch({ alerts: { soundPattern: String(e.target.value || "double") } }));
+    refs.alertSoundPattern.addEventListener("change", (e) => queuePatch({ alerts: { soundPattern: String(e.target.value || "auto") } }));
     refs.alertToastEnabled.addEventListener("change", (e) => queuePatch({ alerts: { toastEnabled: e.target.checked } }));
     refs.alertNotificationEnabled.addEventListener("change", (e) => queuePatch({ alerts: { notificationEnabled: e.target.checked } }));
-    refs.alertQuietHoursEnabled.addEventListener("change", (e) => queuePatch({ alerts: { quietHours: { enabled: e.target.checked } } }));
-    refs.alertQuietStart.addEventListener("change", (e) => queuePatch({ alerts: { quietHours: { start: e.target.value || "22:30" } } }));
-    refs.alertQuietEnd.addEventListener("change", (e) => queuePatch({ alerts: { quietHours: { end: e.target.value || "06:30" } } }));
     refs.alertSnoozeMinutes.addEventListener("change", (e) => queuePatch({ alerts: { snoozeMinutes: Number(e.target.value || 10) } }));
     refs.alertCooldown.addEventListener("change", (e) => queuePatch({ alerts: { cooldownMin: Number(e.target.value || 0) } }));
     refs.alertBurnoutThreshold.addEventListener("change", (e) => queuePatch({ alerts: { burnoutFocusThresholdMin: Number(e.target.value || 90) } }));
-    refs.alertTestType.addEventListener("change", (e) => {
-      state.alertTestType = String(e.target.value || "eye");
-    });
 
     refs.testAlert.addEventListener("click", async () => {
-      const kind = String(state.alertTestType || refs.alertTestType.value || "eye");
+      const alerts = state.app?.settings?.alerts || {};
+      const enabledKinds = getEnabledAlertKinds(alerts);
+      if (!enabledKinds.length) {
+        const message = "Enable at least one reminder type before running a preview.";
+        refs.alertStatus.textContent = message;
+        toast(message);
+        return;
+      }
+      const kind = getPreferredAlertKind(alerts);
       const response = await sendMessage({ type: "holmeta:test-alert", kind });
+      const kindLabel = ALERT_KIND_LABELS[kind] || "Health";
+      const kindPreview = ALERT_KIND_PREVIEW_TEXT[kind] || "Short reset cue delivered.";
+      const patternLabel = alerts.soundPattern === "auto"
+        ? `Auto sound · ${ALERT_KIND_SOUND_LABELS[kind] || "Beacon"}`
+        : `Sound pattern · ${String(alerts.soundPattern || "auto").replace(/_/g, " ")}`;
       if (!response.ok) {
         const reason = String(response.reason || response.error || "unknown");
+        refs.alertStatus.textContent = `Test failed: ${reason}`;
         toast(`Test failed: ${reason}`);
         return;
       }
@@ -3403,10 +5268,15 @@
         delivery.sound ? `sound (${delivery.soundChannel || "unknown"})` : null
       ].filter(Boolean);
       if (!channels.length) {
+        refs.alertStatus.textContent = "Test ran, but no visible or audible channels were reachable on this page.";
         toast("Test alert ran, but no output channels were reachable on this page.");
         return;
       }
-      toast(`Test alert delivered (${kind}) via ${channels.join(", ")}.`);
+      const summary = `Previewed ${kindLabel}. ${kindPreview} ${patternLabel}. Delivered via ${channels.join(", ")}.`;
+      refs.alertStatus.textContent = summary;
+      advanceAlertPreviewKind(state.app?.settings?.alerts || alerts, kind);
+      renderAlerts();
+      toast(summary);
     });
 
     refs.snoozeAlertsNow.addEventListener("click", async () => {
@@ -3421,49 +5291,112 @@
       toast(`Alerts snoozed for ${minutes} minutes.`);
     });
 
-    refs.siteInsightEnabled.addEventListener("change", (e) => {
-      queuePatch({ siteInsight: { enabled: e.target.checked } });
+    refs.meditationEnabled?.addEventListener("change", (e) => {
+      queuePatch({ meditation: { enabled: e.target.checked } });
+    });
+    refs.meditationLength?.addEventListener("change", (e) => {
+      queuePatch({ meditation: { durationMin: Number(e.target.value || 10) } });
+    });
+    refs.meditationAmbient?.addEventListener("change", (e) => {
+      queuePatch({ meditation: { ambient: String(e.target.value || "brown_hush") } });
+    });
+    refs.meditationVolume?.addEventListener("input", (e) => {
+      const value = Math.max(10, Math.min(100, Number(e.target.value || 48)));
+      if (refs.meditationVolumeValue) refs.meditationVolumeValue.textContent = `${value}%`;
+      queuePatch({ meditation: { volume: value } });
     });
 
-    refs.siteInsightProfile.addEventListener("change", (e) => {
-      queuePatch({ siteInsight: { selectedProfile: String(e.target.value || "regular") } });
-    });
-
-    refs.siteInsightDuration.addEventListener("change", (e) => {
-      const durationMs = Math.max(6000, Math.min(10000, Number(e.target.value || 8000)));
-      queuePatch({ siteInsight: { durationMs } });
-    });
-
-    refs.siteInsightAutoMinimize.addEventListener("change", (e) => {
-      queuePatch({ siteInsight: { autoMinimize: e.target.checked } });
-    });
-
-    refs.siteInsightPill.addEventListener("change", (e) => {
-      queuePatch({ siteInsight: { minimizedPill: e.target.checked } });
-    });
-
-    refs.siteInsightDisableSite.addEventListener("click", async () => {
-      if (!state.currentHost) {
-        toast("No active website detected.");
-        return;
-      }
-      const disabled = Boolean(state.app.settings.siteInsight?.perSiteDisabled?.[state.currentHost]);
-      const response = await sendMessage({
-        type: disabled ? "holmeta:enable-site-insight-host" : "holmeta:disable-site-insight-host",
-        host: state.currentHost
-      });
+    refs.meditationPreview?.addEventListener("click", async () => {
+      const meditation = getMeditationState();
+      const response = await sendMessage({ type: "holmeta:test-meditation" });
+      const ambientLabel = MEDITATION_AMBIENT_LABELS[String(meditation.ambient || "brown_hush")] || "Brown Hush";
+      const durationMin = Math.max(3, Math.min(20, Number(meditation.durationMin || 10)));
       if (!response.ok) {
-        toast(`Site Insight update failed: ${response.error || "unknown"}`);
+        const reason = String(response.reason || response.error || "unknown");
+        refs.meditationStatus.textContent = `Preview failed: ${reason}`;
+        toast(`Meditation preview failed: ${reason}`);
         return;
       }
-      state.app = response.state;
-      render();
-      toast(disabled ? "Site Insight enabled on this site." : "Site Insight disabled on this site.");
+      const channels = [
+        response.delivery?.toast ? "live popup" : null,
+        response.delivery?.sound ? `ambient (${response.delivery?.soundChannel || "unknown"})` : null
+      ].filter(Boolean);
+      const summary = `Previewed ${durationMin}-minute ${ambientLabel}. Delivered via ${channels.join(", ") || "no channels"}.`;
+      refs.meditationStatus.textContent = summary;
+      toast(summary);
     });
 
-    refs.siteInsightOpenSettings.addEventListener("click", () => chrome.runtime.openOptionsPage());
+    refs.meditationStart?.addEventListener("click", async () => {
+      const meditation = getMeditationState();
+      if (!meditation.enabled) {
+        refs.meditationStatus.textContent = "Turn Meditation Popup on before starting a session.";
+        toast("Turn Meditation Popup on before starting a session.");
+        return;
+      }
+      const response = await sendMessage({ type: "holmeta:start-meditation" });
+      const ambientLabel = MEDITATION_AMBIENT_LABELS[String(meditation.ambient || "brown_hush")] || "Brown Hush";
+      const durationMin = Math.max(3, Math.min(20, Number(meditation.durationMin || 10)));
+      if (!response.ok) {
+        const reason = String(response.reason || response.error || "unknown");
+        refs.meditationStatus.textContent = `Start failed: ${reason}`;
+        toast(`Meditation session failed: ${reason}`);
+        return;
+      }
+      const channels = [
+        response.delivery?.toast ? "live popup" : null,
+        response.delivery?.sound ? `ambient (${response.delivery?.soundChannel || "unknown"})` : null
+      ].filter(Boolean);
+      const summary = `Started ${durationMin}-minute ${ambientLabel}. Live via ${channels.join(", ") || "no channels"}.`;
+      refs.meditationStatus.textContent = summary;
+      toast(summary);
+    });
+
+    refs.meditationStop?.addEventListener("click", async () => {
+      const response = await sendMessage({ type: "holmeta:stop-meditation" });
+      if (!response.ok) {
+        const reason = String(response.reason || response.error || "unknown");
+        refs.meditationStatus.textContent = `Stop failed: ${reason}`;
+        toast(`Stop failed: ${reason}`);
+        return;
+      }
+      refs.meditationStatus.textContent = "Meditation session stopped.";
+      toast("Meditation session stopped.");
+    });
+
+    refs.siteInsightEnabled.addEventListener("change", (e) => {
+      siteInsightRequestSeq += 1;
+      queuePatch({ siteInsight: { enabled: e.target.checked } });
+      if (!e.target.checked) {
+        state.pageInsight = null;
+        if (refs.siteInsightStatus) refs.siteInsightStatus.textContent = "Site Insight is off.";
+      } else if (refs.siteInsightStatus) {
+        refs.siteInsightStatus.textContent = "Ready.";
+      }
+      renderSiteInsight();
+    });
+
+    refs.siteInsightAnalyze.addEventListener("click", async () => {
+      await refreshSiteInsightFromTab({ showToastOnSuccess: true });
+    });
+
+    refs.siteInsightCopy.addEventListener("click", async () => {
+      const payload = normalizeSiteInsightPayload(state.pageInsight || {});
+      const text = payload.copyText || payload.essentials.join("\n");
+      if (!text.trim()) {
+        refs.siteInsightStatus.textContent = "Nothing to copy yet.";
+        return;
+      }
+      const ok = await copyToClipboard(text);
+      if (!ok) {
+        refs.siteInsightStatus.textContent = "Copy failed.";
+        return;
+      }
+      refs.siteInsightStatus.textContent = "Essentials copied.";
+      toast("Site Insight essentials copied.");
+    });
 
     refs.startDeepWork.addEventListener("click", async () => {
+      await flushPatch();
       const [focusMin, breakMin] = String(refs.pomodoroPreset.value || "25:5").split(":").map((n) => Number(n));
       const response = await sendMessage({ type: "holmeta:start-deep-work", focusMin, breakMin });
       if (!response.ok) {
@@ -3486,37 +5419,74 @@
       toast("Deep Work stopped.");
     });
 
+    refs.deepWorkAutoBlocker.addEventListener("change", (e) => {
+      queuePatch({ deepWork: { autoBlocker: e.target.checked } });
+    });
+
+    refs.deepWorkAutoLight.addEventListener("change", (e) => {
+      queuePatch({ deepWork: { autoLight: e.target.checked } });
+    });
+
     refs.biofeedbackEnabled.addEventListener("change", (e) => handleBiofeedbackToggle(e.target.checked));
 
     refs.morphingEnabled.addEventListener("change", (e) => {
-      if (!state.app.license.premium) {
-        e.target.checked = false;
-        toast("Premium feature – upgrade at holmeta.com");
-        return;
-      }
-      queuePatch({ advanced: { morphing: e.target.checked } });
+      setAdvancedToggle("morphing", e.target.checked, e.target);
+    });
+
+    refs.taskWeaverEnabled.addEventListener("change", (e) => {
+      setAdvancedToggle("taskWeaver", e.target.checked, e.target);
+    });
+
+    refs.dashboardPredictionsEnabled.addEventListener("change", (e) => {
+      setAdvancedToggle("dashboardPredictions", e.target.checked, e.target);
+    });
+
+    refs.collabSyncEnabled.addEventListener("change", (e) => {
+      setAdvancedToggle("collaborativeSync", e.target.checked, e.target);
     });
 
     refs.taskWeaver.addEventListener("click", async () => {
-      if (!state.app.license.premium) {
+      await flushPatch();
+      if (!hasExtensionAccess()) {
         toast("Premium feature – upgrade at holmeta.com");
+        return;
+      }
+      if (!state.app.settings.advanced.taskWeaver) {
+        toast("Enable Task Weaver in Advanced Lab first.");
         return;
       }
       refs.taskWeaver.disabled = true;
       refs.taskWeaver.textContent = "Weaving...";
       const response = await sendMessage({ type: "holmeta:task-weaver" });
       refs.taskWeaver.disabled = false;
-      refs.taskWeaver.textContent = "Weave Now";
+      refs.taskWeaver.textContent = "Weave Workflow";
       if (!response.ok) {
         toast(`Weaver failed: ${response.error || "unknown"}`);
         return;
       }
-      renderWeaver(response.results || []);
-      toast("Protocol suggestions ready.");
+      state.weaverResults = Array.isArray(response.results) ? response.results : [];
+      renderAdvanced();
+      toast(state.weaverResults.length ? "Workflow suggestions ready." : "No useful web tabs were available to weave.");
     });
 
-    refs.collabSync.addEventListener("click", () => {
-      toast("Collaborative Focus Sync is a premium roadmap feature in this local-first build.");
+    refs.collabSync.addEventListener("click", async () => {
+      await flushPatch();
+      if (!hasExtensionAccess()) {
+        toast("Premium feature – upgrade at holmeta.com");
+        return;
+      }
+      if (!state.app.settings.advanced.collaborativeSync) {
+        toast("Enable Focus Sync in Advanced Lab first.");
+        return;
+      }
+      const snapshot = buildFocusSyncSnapshot();
+      const ok = await copyToClipboard(snapshot);
+      if (refs.advancedLabStatus) {
+        refs.advancedLabStatus.textContent = ok
+          ? "Focus Sync snapshot copied. Paste it into chat, notes, or your session handoff."
+          : "Focus Sync snapshot generated. Copy failed locally, but the session brief is ready to retry.";
+      }
+      toast(ok ? "Focus Sync snapshot copied." : "Focus Sync snapshot generated, but copy was blocked.");
     });
 
     refs.accessStartTrial?.addEventListener("click", () => openUpgrade());
@@ -3542,10 +5512,6 @@
     refs.openWebsite.addEventListener("click", () => openExternal(WEBSITE_URL));
     refs.openDashboard.addEventListener("click", () => openExternal(DASHBOARD_URL));
     refs.openOptions.addEventListener("click", () => chrome.runtime.openOptionsPage());
-
-    document.querySelectorAll(".hotkey").forEach((btn) => {
-      btn.addEventListener("click", () => handleHotkeyButton(btn.dataset.command));
-    });
 
     document.addEventListener("keydown", (event) => {
       if (event.key === "Escape" && !refs.onboarding.hidden) {
@@ -3647,20 +5613,13 @@
   async function boot() {
     bindEvents();
     bindOnboardingEvents();
-    await hydrate();
+    await Promise.all([hydrate(), loadVaultMeta()]);
 
     setInterval(() => {
       if (!state.app?.settings?.deepWork?.active) return;
       renderDeepWork();
     }, 20000);
   }
-
-  window.addEventListener("unload", () => {
-    if (state.tunnelTimerHandle) {
-      clearInterval(state.tunnelTimerHandle);
-      state.tunnelTimerHandle = null;
-    }
-  });
 
   boot().catch((error) => {
     log("error", "boot_failed", error);
