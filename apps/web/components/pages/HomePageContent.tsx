@@ -7,7 +7,7 @@ import { Panel } from "@/components/holmeta/Panel";
 import { pathWithLocale, type SupportedLocale } from "@/lib/i18n/config";
 import { getMessages, listAt, t, type MessageTree } from "@/lib/i18n/messages";
 
-const DEMO_VIDEO_PATH = "/videos/holmeta-demo.mp4";
+const DEMO_VIDEO_PATH = "/videos/holmeta-demo-latest.mp4";
 const NAV_LOCALES: Array<{ code: SupportedLocale; label: string }> = [
   { code: "en", label: "English" },
   { code: "ar", label: "العربية" },

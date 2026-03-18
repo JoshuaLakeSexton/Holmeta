@@ -1,7 +1,7 @@
 {
   "meta": {
     "title": "HOLMETA",
-    "description": "Holmeta is a holistic browser kit for comfort, focus, insight, and local-first control."
+    "description": "Holmeta is the all-in-one system for healthier, smarter browsing."
   },
   "language": {
     "label": "Language",
@@ -28,8 +28,8 @@
       "faq": "FAQ"
     },
     "kicker": "MISSION BRIEFING",
-    "title": "The holistic browser kit for people who live in tabs.",
-    "subtitle": "Holmeta is the holistic browser kit that brings adaptive appearance, intense light filtering, health alerts, meditation, site insight, translation, and a local vault into one command center.",
+    "title": "Holmeta is the all-in-one system for healthier, smarter browsing.",
+    "subtitle": "Your personal command center for light filtering, health-aware browsing, translation, site insight, and a private local vault.",
     "supportLine": "Browser-only. Local-first. One command center. Cancel anytime.",
     "proof": [
       "Adaptive Day / Night + Light Filter",
