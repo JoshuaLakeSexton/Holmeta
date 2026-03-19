@@ -80,7 +80,7 @@
     "pricing": {
       "kicker": "PREISE",
       "title": "Einfache Preise",
-      "planTitle": "HOLMETA PREMIUM — 2 $/MONAT",
+      "planTitle": "HOLMETA PREMIUM — 2 $/MONAT · 20 $/JAHR",
       "bullets": [
         "Adaptive Day / Night Appearance mit Dunkel-, Hell- und ADAPT-Modus",
         "Light-Filter-Presets mit stärkerer Feinabstimmung pro Website",
@@ -155,7 +155,7 @@
     "perYear": "Jahr",
     "yearlyNote": "Möchten Sie jährlich zahlen? Sie können im Checkout wechseln.",
     "openCheckout": "Zum Checkout",
-    "footer": "Preise können je nach Region abweichen. Stripe zeigt den endgültigen Betrag vor der Bestätigung an.",
+    "footer": "Die Preise sind fest: 2 $ pro Monat und 20 $ pro Jahr. Stripe zeigt den endgültigen Betrag vor der Bestätigung an.",
     "aria": {
       "premiumCard": "Holmeta Premium Preise",
       "yearlyCard": "Holmeta Jahrespreis"
@@ -202,7 +202,7 @@
       },
       "yearly": {
         "label": "HOLMETA JÄHRLICH",
-        "detail": "Jährliche Abrechnung",
+        "detail": "20 $/Jahr",
         "note": "Ideal für tägliche Nutzung"
       }
     },

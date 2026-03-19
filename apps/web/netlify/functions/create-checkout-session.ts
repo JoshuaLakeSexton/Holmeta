@@ -5,13 +5,10 @@ import { corsPreflight, json, methodNotAllowed, parseJsonBody, requestId } from 
 import { reportServerEvent } from "./_lib/monitor";
 import { requireEnvVars } from "./_lib/env";
 import {
-  currencyForMarket,
   normalizedPlan,
   resolveMarketFromSignals,
-  resolvePriceIdForPlan,
   type PlanKey,
-  type MarketKey,
-  requiredPriceEnvForPlan
+  type MarketKey
 } from "./_lib/plans";
 
 interface CheckoutBody {
@@ -21,6 +18,11 @@ interface CheckoutBody {
   country?: string | null;
   currency?: string | null;
 }
+
+const PLAN_USD_AMOUNTS: Record<PlanKey, number> = {
+  monthly_a: 200,
+  yearly: 2000
+};
 
 function trialDaysFromEnv(): number {
   const raw = Number(process.env.TRIAL_DAYS ?? "3");
@@ -119,22 +121,9 @@ export const handler: Handler = async (event) => {
     country: body.country,
     currency: body.currency
   });
-  const targetCurrency = String(body.currency || "").trim().toLowerCase() || currencyForMarket(marketKey);
-  const resolvedPriceId = resolvePriceIdForPlan(planKey, marketKey);
-  if (!resolvedPriceId) {
-    const requiredName = requiredPriceEnvForPlan(planKey, marketKey);
-    await reportServerEvent("error", "checkout_missing_price_mapping", {
-      planKey,
-      marketKey,
-      requiredName,
-      requestId: rid
-    });
-
-    return respond(500, {
-      error: `Server missing price mapping for ${planKey}. Configure ${requiredName}.`,
-      code: "PRICE_MAPPING_MISSING"
-    });
-  }
+  const targetCurrency = "usd";
+  const unitAmount = PLAN_USD_AMOUNTS[planKey];
+  const recurringInterval: Stripe.PriceCreateParams.Recurring.Interval = planKey === "yearly" ? "year" : "month";
 
   const publicBaseUrl = requiredEnv("PUBLIC_BASE_URL");
   if (!publicBaseUrl) {
@@ -165,7 +154,17 @@ export const handler: Handler = async (event) => {
       allow_promotion_codes: true,
       line_items: [
         {
-          price: resolvedPriceId,
+          price_data: {
+            currency: targetCurrency,
+            unit_amount: unitAmount,
+            recurring: {
+              interval: recurringInterval
+            },
+            product_data: {
+              name: "Holmeta Premium",
+              description: planKey === "yearly" ? "$20 per year" : "$2 per month"
+            }
+          },
           quantity: 1
         }
       ],
@@ -223,23 +222,6 @@ export const handler: Handler = async (event) => {
       error: message,
       requestId: rid
     });
-
-    const lower = message.toLowerCase();
-    if (lower.includes("inactive")) {
-      return respond(409, {
-        ok: false,
-        error: `Configured Stripe price is inactive for ${planKey}.`,
-        code: "PRICE_INACTIVE"
-      });
-    }
-
-    if (lower.includes("recurring price")) {
-      return respond(409, {
-        ok: false,
-        error: `Configured Stripe price must be recurring for ${planKey}.`,
-        code: "PRICE_NOT_RECURRING"
-      });
-    }
 
     return respond(502, {
       ok: false,

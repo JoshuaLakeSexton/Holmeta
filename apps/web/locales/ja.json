@@ -61,7 +61,7 @@
     "pricing": {
       "title": "シンプルな料金",
       "kicker": "価格設定",
-      "planTitle": "HOLMETA PREMIUM — 月額 $2",
+      "planTitle": "HOLMETA PREMIUM — 月額 $2 · 年額 $20",
       "bullets": [
         "ダーク・ライト・ADAPT を備えた Adaptive Day / Night Appearance",
         "サイトごとに強く調整できる Light Filter プリセット",
@@ -155,7 +155,7 @@
     "perYear": "年",
     "yearlyNote": "年額プランはチェックアウト時に選べます。",
     "openCheckout": "チェックアウトを開始",
-    "footer": "価格表示は地域に合わせて変わる場合があります。最終金額は Stripe Checkout で確認できます。",
+    "footer": "料金は固定です（月額 $2・年額 $20）。最終金額は Stripe Checkout で確認できます。",
     "aria": {
       "premiumCard": "Holmeta プレミアム料金",
       "yearlyCard": "Holmeta 年額料金"
@@ -202,7 +202,7 @@
       },
       "yearly": {
         "label": "HOLMETA 年額",
-        "detail": "年額課金",
+        "detail": "$20/year",
         "note": "毎日使う人に最適"
       }
     },

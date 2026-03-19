@@ -86,7 +86,7 @@ export function PricingPageContent({ locale = "en" }: PricingPageProps) {
         </article>
 
         <p className="hm-meta">
-          {t(messages, "pricingPage.footer", "Prices may localize by region. Stripe shows the final amount before you confirm.")}
+          {t(messages, "pricingPage.footer", "Pricing is fixed at $2 per month and $20 per year. Stripe shows the final amount before you confirm.")}
         </p>
       </Panel>
     </main>

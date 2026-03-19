@@ -80,7 +80,7 @@
     "pricing": {
       "kicker": "TARIFS",
       "title": "Des tarifs simples",
-      "planTitle": "HOLMETA PREMIUM — 2 $/MOIS",
+      "planTitle": "HOLMETA PREMIUM — 2 $/MOIS · 20 $/AN",
       "bullets": [
         "Adaptive Day / Night Appearance avec modes sombre, clair et ADAPT",
         "Préréglages Light Filter avec réglage plus poussé par site",
@@ -155,7 +155,7 @@
     "perYear": "an",
     "yearlyNote": "Vous préférez la facturation annuelle ? Vous pouvez la choisir au moment du paiement.",
     "openCheckout": "Commencer le paiement",
-    "footer": "Les prix peuvent varier selon la région. Stripe affiche le montant final avant confirmation.",
+    "footer": "Le tarif est fixe : 2 $ par mois et 20 $ par an. Stripe affiche le montant final avant confirmation.",
     "aria": {
       "premiumCard": "Tarification Holmeta Premium",
       "yearlyCard": "Tarification Holmeta annuelle"
@@ -202,7 +202,7 @@
       },
       "yearly": {
         "label": "HOLMETA ANNUEL",
-        "detail": "Facturation annuelle",
+        "detail": "20 $/an",
         "note": "Idéal pour un usage quotidien"
       }
     },

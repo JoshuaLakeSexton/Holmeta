@@ -61,7 +61,7 @@
     "pricing": {
       "title": "간단한 요금",
       "kicker": "가격",
-      "planTitle": "HOLMETA PREMIUM — 월 $2",
+      "planTitle": "HOLMETA PREMIUM — 월 $2 · 연 $20",
       "bullets": [
         "다크, 라이트, ADAPT 모드를 갖춘 Adaptive Day / Night Appearance",
         "사이트별로 더 강하게 조절할 수 있는 Light Filter 프리셋",
@@ -155,7 +155,7 @@
     "perYear": "년",
     "yearlyNote": "연간 요금제는 결제 단계에서 선택할 수 있습니다.",
     "openCheckout": "결제 시작",
-    "footer": "표시 가격은 지역에 따라 달라질 수 있으며, 최종 금액은 Stripe Checkout에서 확인됩니다.",
+    "footer": "요금은 고정입니다(월 $2, 연 $20). 최종 금액은 Stripe Checkout에서 확인됩니다.",
     "aria": {
       "premiumCard": "Holmeta 프리미엄 요금 카드",
       "yearlyCard": "Holmeta 연간 요금 카드"
@@ -202,7 +202,7 @@
       },
       "yearly": {
         "label": "HOLMETA 연간",
-        "detail": "연간 청구",
+        "detail": "연 $20",
         "note": "매일 사용하는 분께 적합"
       }
     },

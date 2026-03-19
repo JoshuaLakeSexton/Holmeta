@@ -21,6 +21,7 @@
   const NODE_TRANSLATION_LIMIT = 420;
   const TEXT_LENGTH_LIMIT = 4200;
   const CACHE_LIMIT = 2000;
+  const SELECTION_SNAPSHOT_MAX_AGE_MS = 10 * 60 * 1000;
 
   const LANGUAGES = [
     { code: "auto", label: "Auto" },
@@ -157,6 +158,7 @@
     selectionChipVisible: false,
     selectionRange: null,
     selectionText: "",
+    selectionSnapshot: null,
     translatedRecords: [],
     translatedActive: false,
     translating: false,
@@ -838,12 +840,22 @@
   }
 
   function handleSelectionChanged() {
+    const snapshot = getSelectionSnapshot();
+    if (snapshot) {
+      state.selectionSnapshot = {
+        text: snapshot.text,
+        range: snapshot.range,
+        capturedAt: now()
+      };
+      state.selectionRange = snapshot.range;
+      state.selectionText = snapshot.text;
+    }
+
     if (!shouldShowSelectionChipOnSite()) {
       clearSelectionChip();
       return;
     }
 
-    const snapshot = getSelectionSnapshot();
     if (!snapshot || snapshot.text.length < 2) {
       clearSelectionChip();
       return;
@@ -854,6 +866,30 @@
     }
 
     showSelectionChip(snapshot, state.settings.targetLanguage);
+  }
+
+  function getFreshSelectionSnapshot() {
+    const live = getSelectionSnapshot();
+    if (live) {
+      state.selectionSnapshot = {
+        text: live.text,
+        range: live.range,
+        capturedAt: now()
+      };
+      state.selectionRange = live.range;
+      state.selectionText = live.text;
+      return live;
+    }
+
+    const cached = state.selectionSnapshot;
+    if (!cached || !cached.text) return null;
+    const age = now() - Number(cached.capturedAt || 0);
+    if (age > SELECTION_SNAPSHOT_MAX_AGE_MS) return null;
+
+    return {
+      text: String(cached.text || ""),
+      range: cached.range || null
+    };
   }
 
   async function copyText(text) {
@@ -1142,8 +1178,8 @@
     }
 
     const snapshot = options.forceSnapshot
-      ? { text: state.selectionText, range: state.selectionRange }
-      : getSelectionSnapshot();
+      ? (getFreshSelectionSnapshot() || { text: state.selectionText, range: state.selectionRange })
+      : getFreshSelectionSnapshot();
 
     const text = toSafeText(snapshot?.text || "", TEXT_LENGTH_LIMIT);
     if (!text) {
@@ -1213,6 +1249,7 @@
 
     const card = document.createElement("section");
     card.className = "hm-tr-card";
+    const canReplace = Boolean(selectionRange && typeof selectionRange.cloneRange === "function");
     card.innerHTML = `
       <div class="hm-tr-head">
         <p class="kicker">HOLMETA Translate</p>
@@ -1231,7 +1268,7 @@
       <div class="hm-tr-actions">
         <button type="button" class="secondary" data-action="copy">Copy</button>
         <button type="button" class="secondary" data-action="save">Save</button>
-        <button type="button" data-action="replace">Replace</button>
+        <button type="button" data-action="replace"${canReplace ? "" : " disabled title=\"Select text first to replace\""}>Replace</button>
         <button type="button" data-action="close">Close</button>
       </div>
     `;
@@ -1443,6 +1480,10 @@
     document.addEventListener("mouseup", () => {
       window.requestAnimationFrame(handleSelectionChanged);
     }, { passive: true });
+
+    document.addEventListener("selectionchange", () => {
+      window.requestAnimationFrame(handleSelectionChanged);
+    });
 
     document.addEventListener("keyup", (event) => {
       if (event.key === "Escape") {

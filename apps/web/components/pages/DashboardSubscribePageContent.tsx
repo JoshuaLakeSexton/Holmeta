@@ -5,8 +5,10 @@ import { useState } from "react";
 import { Button } from "@/components/holmeta/Button";
 import { Panel } from "@/components/holmeta/Panel";
 import { trackEvent } from "@/lib/analytics/client";
+import { formatCurrency } from "@/lib/i18n/format";
 import { pathWithLocale, type SupportedLocale } from "@/lib/i18n/config";
 import { getMessages, objectAt, t } from "@/lib/i18n/messages";
+import { resolveDisplayPlan } from "@/lib/pricing/display";
 
 type PlanKey = "monthly_a" | "yearly";
 
@@ -14,7 +16,7 @@ const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "/.netlify/functions";
 
 const DEFAULT_PLANS: Array<{ key: PlanKey; label: string; detail: string; note: string }> = [
   { key: "monthly_a", label: "HOLMETA PREMIUM", detail: "$2/mo", note: "Full command center access" },
-  { key: "yearly", label: "HOLMETA YEARLY", detail: "Yearly billing", note: "Best for daily command-center use" }
+  { key: "yearly", label: "HOLMETA YEARLY", detail: "$20/year", note: "Best for daily command-center use" }
 ];
 
 function apiUrl(path: string): string {
@@ -28,6 +30,9 @@ type DashboardSubscribePageProps = {
 
 export function DashboardSubscribePageContent({ locale = "en" }: DashboardSubscribePageProps) {
   const messages = getMessages(locale);
+  const displayPlan = resolveDisplayPlan(locale);
+  const monthlyPrice = `${formatCurrency(displayPlan.monthlyAmount, displayPlan.currency, locale)} / ${t(messages, "pricingPage.perMonth", "month")}`;
+  const yearlyPrice = `${formatCurrency(displayPlan.yearlyAmount, displayPlan.currency, locale)} / ${t(messages, "pricingPage.perYear", "year")}`;
   const localizedPlans = {
     monthly_a: objectAt(messages, "subscribe.plans.monthly_a", DEFAULT_PLANS[0]),
     yearly: objectAt(messages, "subscribe.plans.yearly", DEFAULT_PLANS[1])
@@ -35,7 +40,7 @@ export function DashboardSubscribePageContent({ locale = "en" }: DashboardSubscr
   const displayPlans = (["monthly_a", "yearly"] as const).map((key) => ({
     key,
     label: String(localizedPlans[key]?.label || DEFAULT_PLANS.find((row) => row.key === key)?.label || ""),
-    detail: String(localizedPlans[key]?.detail || DEFAULT_PLANS.find((row) => row.key === key)?.detail || ""),
+    detail: key === "monthly_a" ? monthlyPrice : yearlyPrice,
     note: String(localizedPlans[key]?.note || DEFAULT_PLANS.find((row) => row.key === key)?.note || "")
   }));
   const [loading, setLoading] = useState<PlanKey | null>(null);

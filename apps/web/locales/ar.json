@@ -80,7 +80,7 @@
     "pricing": {
       "kicker": "الأسعار",
       "title": "تسعير بسيط",
-      "planTitle": "HOLMETA PREMIUM — 2 دولار/شهر",
+      "planTitle": "HOLMETA PREMIUM — 2 دولار/شهر · 20 دولار/سنة",
       "bullets": [
         "Adaptive Day / Night Appearance مع أوضاع الداكن والفاتح وADAPT",
         "إعدادات Light Filter مع ضبط أقوى لكل موقع",
@@ -155,7 +155,7 @@
     "perYear": "سنة",
     "yearlyNote": "تفضّل الفوترة السنوية؟ يمكنك التبديل إليها أثناء الدفع.",
     "openCheckout": "ابدأ الدفع",
-    "footer": "قد تختلف الأسعار حسب المنطقة. يعرض Stripe المبلغ النهائي قبل التأكيد.",
+    "footer": "الأسعار ثابتة: 2 دولار شهريًا و20 دولار سنويًا. يعرض Stripe المبلغ النهائي قبل التأكيد.",
     "aria": {
       "premiumCard": "تسعير Holmeta Premium",
       "yearlyCard": "تسعير Holmeta السنوي"
@@ -202,7 +202,7 @@
       },
       "yearly": {
         "label": "HOLMETA سنوي",
-        "detail": "فوترة سنوية",
+        "detail": "20 دولار/سنة",
         "note": "مثالي للاستخدام اليومي"
       }
     },

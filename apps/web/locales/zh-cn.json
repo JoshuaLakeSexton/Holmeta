@@ -61,7 +61,7 @@
     "pricing": {
       "title": "简单定价",
       "kicker": "定价",
-      "planTitle": "HOLMETA Premium — 每月 $2",
+      "planTitle": "HOLMETA Premium — 每月 $2 · 每年 $20",
       "bullets": [
         "具备深色、浅色和 ADAPT 模式的 Adaptive Day / Night Appearance",
         "可按站点更强调整的 Light Filter 预设",
@@ -155,7 +155,7 @@
     "perYear": "年",
     "yearlyNote": "年付方案可在结账时选择。",
     "openCheckout": "开始结账",
-    "footer": "显示价格可能因地区而本地化，最终金额会在 Stripe Checkout 中确认。",
+    "footer": "价格固定为每月 $2、每年 $20。最终金额会在 Stripe Checkout 中确认。",
     "aria": {
       "premiumCard": "Holmeta 高级版定价卡片",
       "yearlyCard": "Holmeta 年付定价卡片"
@@ -202,7 +202,7 @@
       },
       "yearly": {
         "label": "HOLMETA 年付",
-        "detail": "按年计费",
+        "detail": "每年 $20",
         "note": "适合每天使用"
       }
     },

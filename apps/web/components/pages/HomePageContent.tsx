@@ -4,8 +4,10 @@ import { Button } from "@/components/holmeta/Button";
 import { FAQItem } from "@/components/holmeta/FAQItem";
 import { FeatureCard } from "@/components/holmeta/FeatureCard";
 import { Panel } from "@/components/holmeta/Panel";
+import { formatCurrency } from "@/lib/i18n/format";
 import { pathWithLocale, type SupportedLocale } from "@/lib/i18n/config";
 import { getMessages, listAt, t, type MessageTree } from "@/lib/i18n/messages";
+import { resolveDisplayPlan } from "@/lib/pricing/display";
 
 const DEMO_VIDEO_PATH = "/videos/holmeta-demo-latest.mp4";
 const NAV_LOCALES: Array<{ code: SupportedLocale; label: string }> = [
@@ -61,6 +63,10 @@ function faqItems(messages: MessageTree) {
 
 export function HomePageContent({ locale = "en" }: HomePageProps) {
   const messages = getMessages(locale);
+  const displayPlan = resolveDisplayPlan(locale);
+  const monthlyPrice = formatCurrency(displayPlan.monthlyAmount, displayPlan.currency, locale);
+  const yearlyPrice = formatCurrency(displayPlan.yearlyAmount, displayPlan.currency, locale);
+  const pricingHeadline = `HOLMETA PREMIUM — ${monthlyPrice}/${t(messages, "pricingPage.perMonth", "month")} · ${yearlyPrice}/${t(messages, "pricingPage.perYear", "year")}`;
   const activeNavLocale = NAV_LOCALES.find((entry) => entry.code === locale) || NAV_LOCALES[0];
   const whyHolmeta = featureItems(messages);
   const pricingBullets = listAt(messages, "home.pricing.bullets").map((item) => String(item || "")).filter(Boolean);
@@ -215,7 +221,7 @@ export function HomePageContent({ locale = "en" }: HomePageProps) {
           </h2>
 
           <article className="hm-pricing-card" aria-label={t(messages, "home.aria.premiumCard", "Holmeta Premium pricing")}>
-            <p className="hm-meta">{t(messages, "home.pricing.planTitle", "HOLMETA PREMIUM — $2/MONTH")}</p>
+            <p className="hm-meta">{pricingHeadline}</p>
             <ul className="hm-list">
               {pricingBullets.map((item) => (
                 <li key={item}>{item}</li>

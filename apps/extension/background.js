@@ -711,6 +711,191 @@ function normalizeTranslationEntry(entry) {
   };
 }
 
+const BACKGROUND_TRANSLATE_ALLOWED_LANGS = new Set([
+  "auto",
+  "en",
+  "es",
+  "fr",
+  "de",
+  "pt",
+  "it",
+  "nl",
+  "sv",
+  "no",
+  "da",
+  "fi",
+  "ja",
+  "ko",
+  "zh"
+]);
+
+const BACKGROUND_TRANSLATE_PHRASES = {
+  "hello": { es: "hola", fr: "bonjour", de: "hallo", pt: "olá", it: "ciao", nl: "hallo" },
+  "thank you": { es: "gracias", fr: "merci", de: "danke", pt: "obrigado", it: "grazie", nl: "dank je" },
+  "please": { es: "por favor", fr: "s'il vous plaît", de: "bitte", pt: "por favor", it: "per favore", nl: "alsjeblieft" },
+  "sign in": { es: "iniciar sesión", fr: "se connecter", de: "anmelden", pt: "entrar", it: "accedi", nl: "inloggen" },
+  "sign up": { es: "registrarse", fr: "s'inscrire", de: "registrieren", pt: "cadastre-se", it: "registrati", nl: "registreren" },
+  "learn more": { es: "saber más", fr: "en savoir plus", de: "mehr erfahren", pt: "saiba mais", it: "scopri di più", nl: "meer informatie" },
+  "contact us": { es: "contáctanos", fr: "nous contacter", de: "kontakt", pt: "fale conosco", it: "contattaci", nl: "contact opnemen" },
+  "read more": { es: "leer más", fr: "lire plus", de: "mehr lesen", pt: "ler mais", it: "leggi di più", nl: "lees meer" }
+};
+
+const BACKGROUND_TRANSLATE_WORDS = {
+  es: { account: "cuenta", page: "página", settings: "configuración", search: "buscar", profile: "perfil", save: "guardar", open: "abrir", close: "cerrar", start: "iniciar", stop: "detener", translate: "traducir", language: "idioma", dashboard: "panel" },
+  fr: { account: "compte", page: "page", settings: "paramètres", search: "rechercher", profile: "profil", save: "enregistrer", open: "ouvrir", close: "fermer", start: "démarrer", stop: "arrêter", translate: "traduire", language: "langue", dashboard: "tableau" },
+  de: { account: "konto", page: "seite", settings: "einstellungen", search: "suche", profile: "profil", save: "speichern", open: "öffnen", close: "schließen", start: "start", stop: "stopp", translate: "übersetzen", language: "sprache", dashboard: "dashboard" },
+  pt: { account: "conta", page: "página", settings: "configurações", search: "buscar", profile: "perfil", save: "salvar", open: "abrir", close: "fechar", start: "iniciar", stop: "parar", translate: "traduzir", language: "idioma", dashboard: "painel" },
+  it: { account: "account", page: "pagina", settings: "impostazioni", search: "cerca", profile: "profilo", save: "salva", open: "apri", close: "chiudi", start: "avvia", stop: "ferma", translate: "traduci", language: "lingua", dashboard: "dashboard" },
+  nl: { account: "account", page: "pagina", settings: "instellingen", search: "zoeken", profile: "profiel", save: "opslaan", open: "openen", close: "sluiten", start: "start", stop: "stop", translate: "vertalen", language: "taal", dashboard: "dashboard" }
+};
+
+function normalizeBackgroundTranslateLang(code, fallback = "auto") {
+  const raw = String(code || "").trim().toLowerCase();
+  if (BACKGROUND_TRANSLATE_ALLOWED_LANGS.has(raw)) return raw;
+  return fallback;
+}
+
+function preserveTranslateCase(sourceWord, translatedWord) {
+  if (!translatedWord) return translatedWord;
+  if (sourceWord.toUpperCase() === sourceWord) return translatedWord.toUpperCase();
+  if (sourceWord[0] && sourceWord[0].toUpperCase() === sourceWord[0]) {
+    return translatedWord.charAt(0).toUpperCase() + translatedWord.slice(1);
+  }
+  return translatedWord;
+}
+
+function reverseTranslateWordMap(lang) {
+  const map = BACKGROUND_TRANSLATE_WORDS[lang] || {};
+  const out = {};
+  for (const [englishWord, localWord] of Object.entries(map)) {
+    const token = String(localWord || "").toLowerCase();
+    if (!token) continue;
+    if (!out[token]) out[token] = englishWord;
+  }
+  return out;
+}
+
+function translateViaBackgroundDictionary(text, sourceLang, targetLang) {
+  if (!text) return "";
+  if (sourceLang === targetLang) return text;
+
+  let working = ` ${String(text)} `;
+  for (const [englishPhrase, translations] of Object.entries(BACKGROUND_TRANSLATE_PHRASES)) {
+    if (!translations[targetLang]) continue;
+    let sourcePhrase = englishPhrase;
+    if (sourceLang !== "en") {
+      const sourceTranslation = translations[sourceLang];
+      if (!sourceTranslation) continue;
+      sourcePhrase = sourceTranslation;
+    }
+    const escaped = sourcePhrase.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const regex = new RegExp(`\\b${escaped}\\b`, "gi");
+    working = working.replace(regex, (match) => preserveTranslateCase(match, translations[targetLang]));
+  }
+
+  const sourceToEnglish = sourceLang === "en" ? null : reverseTranslateWordMap(sourceLang);
+  const englishToTarget = targetLang === "en" ? null : (BACKGROUND_TRANSLATE_WORDS[targetLang] || {});
+  const tokenRegex = /([A-Za-zÀ-ÖØ-öø-ÿĀ-žЀ-ӿ]+)/g;
+
+  return working.replace(tokenRegex, (token) => {
+    const lower = token.toLowerCase();
+    const englishToken = sourceToEnglish ? (sourceToEnglish[lower] || lower) : lower;
+    const next = englishToTarget ? (englishToTarget[englishToken] || englishToken) : englishToken;
+    return preserveTranslateCase(token, next);
+  }).trim();
+}
+
+function detectBackgroundSourceLanguage(text, preferred = "auto") {
+  const preferredLang = normalizeBackgroundTranslateLang(preferred, "auto");
+  if (preferredLang !== "auto") return preferredLang;
+  const sample = String(text || "").trim();
+  if (!sample) return "en";
+  if (/[\u3040-\u30ff]/.test(sample)) return "ja";
+  if (/[\u4e00-\u9fff]/.test(sample)) return "zh";
+  if (/[\uac00-\ud7af]/.test(sample)) return "ko";
+  return "en";
+}
+
+async function runStandaloneTranslateText(payload = {}, translateSettings = {}) {
+  const text = toSafeText(payload.text || "", 4200);
+  if (!text) return { ok: false, error: "empty_text" };
+
+  const settings = normalizeTranslateSettings(translateSettings || {});
+  const sourceLang = detectBackgroundSourceLanguage(text, payload.sourceLang || settings.sourceLanguage || "auto");
+  const targetLang = normalizeBackgroundTranslateLang(payload.targetLang || settings.targetLanguage || "en", "en");
+  const provider = ["local_lite", "remote_api"].includes(String(settings.provider || ""))
+    ? String(settings.provider)
+    : "local_lite";
+
+  if (sourceLang === targetLang) {
+    const entry = normalizeTranslationEntry({
+      originalText: text,
+      translatedText: text,
+      sourceLang,
+      targetLang,
+      domain: ""
+    });
+    if (!entry) return { ok: false, error: "translation_entry_invalid" };
+    return { ok: true, entry, provider, confidence: "high", note: "Source and target languages match." };
+  }
+
+  if (provider === "remote_api" && String(settings.providerConfig?.endpoint || "").trim()) {
+    try {
+      const headers = {
+        "Content-Type": "application/json",
+        ...(settings.providerConfig?.headers && typeof settings.providerConfig.headers === "object"
+          ? settings.providerConfig.headers
+          : {})
+      };
+      if (settings.providerConfig?.apiKey) {
+        headers.Authorization = `Bearer ${settings.providerConfig.apiKey}`;
+      }
+
+      const response = await fetch(String(settings.providerConfig.endpoint || "").trim(), {
+        method: "POST",
+        headers,
+        body: JSON.stringify({ text, sourceLang, targetLang })
+      });
+      if (response.ok) {
+        const data = await response.json();
+        const translatedText = toSafeText(data?.translatedText || data?.translation || "", 4200);
+        if (translatedText) {
+          const entry = normalizeTranslationEntry({
+            originalText: text,
+            translatedText,
+            sourceLang,
+            targetLang,
+            domain: ""
+          });
+          if (!entry) return { ok: false, error: "translation_entry_invalid" };
+          return { ok: true, entry, provider: "remote_api", confidence: "medium", note: "Translated with remote API provider." };
+        }
+      }
+    } catch {
+      // Fall through to local dictionary fallback.
+    }
+  }
+
+  const translatedText = toSafeText(translateViaBackgroundDictionary(text, sourceLang, targetLang) || text, 4200);
+  const entry = normalizeTranslationEntry({
+    originalText: text,
+    translatedText,
+    sourceLang,
+    targetLang,
+    domain: ""
+  });
+  if (!entry) return { ok: false, error: "translation_entry_invalid" };
+  return {
+    ok: true,
+    entry,
+    provider: "local_lite",
+    confidence: "low",
+    note: translatedText !== text
+      ? "Translated with local dictionary fallback."
+      : "No dictionary hit found; text preserved."
+  };
+}
+
 function createDefaultReadingThemeSettings() {
   return {
     enabled: false,
@@ -2869,39 +3054,50 @@ function addSavedPhraseEntry(state, entryInput) {
   return true;
 }
 
-async function runTranslateActionOnActiveTab(type, payload = {}) {
+async function runTranslateActionOnActiveTab(type, payload = {}, translateSettings = {}) {
+  const allowStandaloneFallback = type === "holmeta:translate-text";
+  const fallbackStandalone = async (reasonCode) => {
+    if (!allowStandaloneFallback) return { ok: false, error: reasonCode };
+    const standalone = await runStandaloneTranslateText(payload, translateSettings);
+    if (!standalone.ok) return { ok: false, error: standalone.error || reasonCode };
+    return {
+      ...standalone,
+      fallback: true
+    };
+  };
+
   const tabs = await tabsQuery({ active: true, currentWindow: true });
   const tab = tabs.find((item) => Number.isInteger(item.id));
-  if (!tab) return { ok: false, error: "no_active_tab" };
+  if (!tab) return fallbackStandalone("no_active_tab");
   if (isRestrictedExtensionPageUrl(tab.url)) {
-    return { ok: false, error: "restricted_page" };
+    return fallbackStandalone("restricted_page");
   }
 
   const ready = await ensureContentScriptReady(tab.id);
   if (!ready.ok) {
-    if (ready.error === "cannot_access_tab") return { ok: false, error: "restricted_page" };
-    return { ok: false, error: "content_script_unavailable" };
+    if (ready.error === "cannot_access_tab") return fallbackStandalone("restricted_page");
+    return fallbackStandalone("content_script_unavailable");
   }
 
   const sent = await sendTab(tab.id, { type, payload }, { frameId: 0 });
   if (!sent.ok) {
     if (isMissingReceiverError(sent.error)) {
       const retryReady = await ensureContentScriptReady(tab.id);
-      if (!retryReady.ok) return { ok: false, error: "content_script_unavailable" };
+      if (!retryReady.ok) return fallbackStandalone("content_script_unavailable");
       const retry = await sendTab(tab.id, { type, payload }, { frameId: 0 });
-      if (!retry.ok) return { ok: false, error: retry.error || "translate_send_failed" };
+      if (!retry.ok) return fallbackStandalone(retry.error || "translate_send_failed");
       return retry.res || { ok: true };
     }
-    return { ok: false, error: sent.error || "translate_send_failed" };
+    return fallbackStandalone(sent.error || "translate_send_failed");
   }
   if (sent.res?.ok === false && sent.res?.error === "translate_engine_unavailable") {
     const reinjected = await executeScriptFiles(tab.id, CONTENT_SCRIPT_FILES);
     if (!reinjected.ok) {
-      return { ok: false, error: reinjected.error || "translate_engine_unavailable" };
+      return fallbackStandalone(reinjected.error || "translate_engine_unavailable");
     }
     const retry = await sendTab(tab.id, { type, payload }, { frameId: 0 });
     if (!retry.ok) {
-      return { ok: false, error: retry.error || "translate_send_failed" };
+      return fallbackStandalone(retry.error || "translate_send_failed");
     }
     return retry.res || { ok: true };
   }
@@ -5258,7 +5454,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       type === "holmeta:translate-restore" ||
       type === "holmeta:translate-save-current"
     ) {
-      const result = await runTranslateActionOnActiveTab(type, message.payload || {});
+      const result = await runTranslateActionOnActiveTab(type, message.payload || {}, state.settings?.translate || {});
       if (!result?.ok) {
         sendResponse({ ok: false, error: result?.error || "translate_failed", state: publicState(state) });
         return;

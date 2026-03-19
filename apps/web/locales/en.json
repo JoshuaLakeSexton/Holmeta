@@ -80,7 +80,7 @@
     "pricing": {
       "kicker": "PRICING",
       "title": "Simple pricing",
-      "planTitle": "HOLMETA PREMIUM — $2/MONTH",
+      "planTitle": "HOLMETA PREMIUM — $2/MONTH · $20/YEAR",
       "bullets": [
         "Adaptive Day / Night Appearance with dark, light, and ADAPT modes",
         "Light Filter presets with stronger per-site tuning",
@@ -155,7 +155,7 @@
     "perYear": "year",
     "yearlyNote": "Prefer yearly billing? You can switch to it in checkout.",
     "openCheckout": "Start Checkout",
-    "footer": "Prices may localize by region. Stripe shows the final amount before you confirm.",
+    "footer": "Pricing is fixed at $2 per month and $20 per year. Stripe shows the final amount before you confirm.",
     "aria": {
       "premiumCard": "Holmeta Premium pricing",
       "yearlyCard": "Holmeta Yearly pricing"
@@ -202,7 +202,7 @@
       },
       "yearly": {
         "label": "HOLMETA YEARLY",
-        "detail": "Yearly billing",
+        "detail": "$20/year",
         "note": "Best for daily command-center use"
       }
     },
@@ -343,8 +343,8 @@
     ],
     "billingTitle": "Billing and Trials",
     "billing": [
-      "Premium pricing is $2 per month.",
-      "Yearly billing is also available where offered on the subscribe page.",
+      "Premium pricing is $2 per month and $20 per year.",
+      "Stripe checkout and subscription billing use the same $2 monthly and $20 yearly pricing.",
       "Trial terms are shown in Stripe Checkout.",
       "You can manage, cancel, or request refund review from billing support and Stripe portal."
     ],

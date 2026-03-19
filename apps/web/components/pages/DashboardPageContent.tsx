@@ -5,21 +5,23 @@ import { useMemo, useState } from "react";
 import { Button } from "@/components/holmeta/Button";
 import { Panel } from "@/components/holmeta/Panel";
 import { trackEvent } from "@/lib/analytics/client";
+import { formatCurrency } from "@/lib/i18n/format";
 import { pathWithLocale, type SupportedLocale } from "@/lib/i18n/config";
 import { getMessages, listAt, objectAt, t } from "@/lib/i18n/messages";
+import { resolveDisplayPlan } from "@/lib/pricing/display";
 
 type PlanKey = "monthly_a" | "yearly";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "/.netlify/functions";
 
-const PLAN_COPY_DEFAULT: Record<PlanKey, { title: string; detail: string }> = {
+const PLAN_COPY_DEFAULT: Record<PlanKey, { title: string; note: string }> = {
   monthly_a: {
     title: "HOLMETA PREMIUM",
-    detail: "$2/mo · full command center access"
+    note: "full command center access"
   },
   yearly: {
     title: "HOLMETA YEARLY",
-    detail: "Yearly billing · best for daily use"
+    note: "best for daily use"
   }
 };
 
@@ -40,9 +42,18 @@ type DashboardPageProps = {
 
 export function DashboardPageContent({ locale = "en" }: DashboardPageProps) {
   const messages = getMessages(locale);
+  const displayPlan = resolveDisplayPlan(locale);
+  const monthlyPrice = `${formatCurrency(displayPlan.monthlyAmount, displayPlan.currency, locale)} / ${t(messages, "pricingPage.perMonth", "month")}`;
+  const yearlyPrice = `${formatCurrency(displayPlan.yearlyAmount, displayPlan.currency, locale)} / ${t(messages, "pricingPage.perYear", "year")}`;
   const planCopy = {
-    monthly_a: objectAt(messages, "dashboard.plans.monthly_a", PLAN_COPY_DEFAULT.monthly_a),
-    yearly: objectAt(messages, "dashboard.plans.yearly", PLAN_COPY_DEFAULT.yearly)
+    monthly_a: {
+      title: String(objectAt(messages, "dashboard.plans.monthly_a", PLAN_COPY_DEFAULT.monthly_a)?.title || PLAN_COPY_DEFAULT.monthly_a.title),
+      detail: `${monthlyPrice} · ${String(objectAt(messages, "dashboard.plans.monthly_a", PLAN_COPY_DEFAULT.monthly_a)?.note || PLAN_COPY_DEFAULT.monthly_a.note)}`
+    },
+    yearly: {
+      title: String(objectAt(messages, "dashboard.plans.yearly", PLAN_COPY_DEFAULT.yearly)?.title || PLAN_COPY_DEFAULT.yearly.title),
+      detail: `${yearlyPrice} · ${String(objectAt(messages, "dashboard.plans.yearly", PLAN_COPY_DEFAULT.yearly)?.note || PLAN_COPY_DEFAULT.yearly.note)}`
+    }
   } satisfies Record<PlanKey, { title: string; detail: string }>;
   const [planKey, setPlanKey] = useState<PlanKey>("monthly_a");
   const [loading, setLoading] = useState(false);

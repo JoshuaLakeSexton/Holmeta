@@ -603,6 +603,25 @@
     return bytes;
   }
 
+  function makeVaultId(offset = 0) {
+    const base = Date.now() * 1000;
+    try {
+      const random = new Uint32Array(1);
+      crypto.getRandomValues(random);
+      return base + (random[0] % 1000) + Math.max(0, Number(offset) || 0);
+    } catch {
+      return base + Math.floor(Math.random() * 1000) + Math.max(0, Number(offset) || 0);
+    }
+  }
+
+  function normalizeVaultId(rawValue, offset = 0) {
+    const parsed = Number(rawValue);
+    if (Number.isFinite(parsed) && parsed > 0) {
+      return parsed;
+    }
+    return makeVaultId(offset);
+  }
+
   function vaultStorageGet(keys) {
     return new Promise((resolve, reject) => {
       chrome.storage.local.get(keys, (result) => {
@@ -674,6 +693,9 @@
   async function decryptVaultPayload(payload, password) {
     const dec = new TextDecoder();
     const packed = fromByteBase64(payload);
+    if (!packed || packed.length <= 44) {
+      throw new Error("Vault payload is corrupted.");
+    }
     const salt = packed.slice(0, 32);
     const iv = packed.slice(32, 44);
     const ciphertext = packed.slice(44);
@@ -692,7 +714,7 @@
           const pass = String(item?.pass || "");
           if (!site || !user || !pass) return null;
           return {
-            id: Number(item?.id || Date.now() + index),
+            id: normalizeVaultId(item?.id, index),
             site,
             user,
             pass,
@@ -708,7 +730,7 @@
         const body = String(item?.body || "").trim().slice(0, 12000);
         if (!title || !body) return null;
         return {
-          id: Number(item?.id || Date.now() + index),
+          id: normalizeVaultId(item?.id, index),
           title,
           body,
           tags: String(item?.tags || "").trim().slice(0, 240),
@@ -1163,8 +1185,8 @@
     const now = new Date().toISOString();
     const record = {
       id: state.vault.editingCredentialIndex !== null
-        ? state.vault.credentials[state.vault.editingCredentialIndex]?.id || Date.now()
-        : Date.now(),
+        ? normalizeVaultId(state.vault.credentials[state.vault.editingCredentialIndex]?.id)
+        : makeVaultId(),
       site: site.slice(0, 120),
       user: user.slice(0, 160),
       pass,
@@ -1200,7 +1222,7 @@
     const currentStore = state.vault.editingTextType === "prompt" ? state.vault.prompts : state.vault.notes;
     const existing = state.vault.editingTextIndex !== null ? currentStore[state.vault.editingTextIndex] : null;
     const record = {
-      id: existing?.id || Date.now(),
+      id: normalizeVaultId(existing?.id),
       title: title.slice(0, 140),
       body: body.slice(0, 12000),
       tags: String(refs.vaultTextTags?.value || "").trim().slice(0, 240),
@@ -2691,9 +2713,13 @@
     refs.translateSiteAutoChip.disabled = !state.currentHost;
     refs.translateSiteAutoArticle.disabled = !state.currentHost;
 
-    refs.translateStatus.textContent = translate.enabled
-      ? `Active · ${state.currentHost || "site unavailable"} · ${translate.provider === "remote_api" ? "Remote API provider" : "Local Lite provider"}`
-      : "Translate Tool is off.";
+    if (!translate.enabled) {
+      refs.translateStatus.textContent = "Translate Tool is off.";
+    } else if (!state.currentHost) {
+      refs.translateStatus.textContent = "Active · open a standard website tab for page/selection translation.";
+    } else {
+      refs.translateStatus.textContent = `Active · ${state.currentHost} · ${translate.provider === "remote_api" ? "Remote API provider" : "Local Lite provider"}`;
+    }
 
     const disableInteractive = !translate.enabled;
     [
@@ -3463,8 +3489,20 @@
     await flushPatchNow();
     const response = await sendMessage({ type, payload });
     if (!response?.ok) {
-      toast(`Translate failed: ${response?.error || "unknown"}`);
-      return { ok: false, error: response?.error || "translate_failed" };
+      const code = String(response?.error || "translate_failed");
+      const friendly = {
+        no_selection: "Select text on the page, then run Translate Selection.",
+        no_nodes: "No translatable text was found in this area.",
+        disabled_on_site: "Translate is disabled for this site.",
+        provider_not_configured: "Remote provider is not configured. Use Local Lite or add endpoint settings.",
+        content_script_unavailable: "Translation is unavailable on this page. Open a standard website tab and refresh once.",
+        restricted_page: "Chrome/system pages are restricted and cannot be translated.",
+        no_active_tab: "No active website tab detected."
+      };
+      const message = friendly[code] || "Translation request failed. Try refreshing the page and running again.";
+      refs.translateStatus.textContent = message;
+      toast(message);
+      return { ok: false, error: code };
     }
 
     if (response.state) {
@@ -3483,6 +3521,7 @@
       toast(successText);
     }
 
+    refs.translateStatus.textContent = "Translation complete.";
     return response;
   }
 
