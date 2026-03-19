@@ -268,8 +268,42 @@ input[type="file"]::file-selector-button {
 input[type="range"] {
   width: 100%;
   margin: 0;
-  accent-color: var(--c-accent);
+  accent-color: var(--c-warn);
   cursor: pointer;
+}
+
+input[type="range"]::-webkit-slider-runnable-track {
+  height: 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(243, 243, 244, 0.22);
+  background: rgba(217, 197, 178, 0.2);
+}
+
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 18px;
+  height: 18px;
+  margin-top: -6px;
+  border-radius: 50%;
+  border: 1px solid rgba(20, 17, 15, 0.75);
+  background: var(--c-warn);
+  box-shadow: 0 0 0 1px rgba(255, 179, 0, 0.24), 0 0 10px rgba(255, 179, 0, 0.2);
+}
+
+input[type="range"]::-moz-range-track {
+  height: 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(243, 243, 244, 0.22);
+  background: rgba(217, 197, 178, 0.2);
+}
+
+input[type="range"]::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 1px solid rgba(20, 17, 15, 0.75);
+  background: var(--c-warn);
+  box-shadow: 0 0 0 1px rgba(255, 179, 0, 0.24), 0 0 10px rgba(255, 179, 0, 0.2);
 }
 
 .hm-toggle,
