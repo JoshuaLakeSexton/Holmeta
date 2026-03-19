@@ -6,7 +6,7 @@ import { Button } from "@/components/holmeta/Button";
 import { Panel } from "@/components/holmeta/Panel";
 import { trackEvent } from "@/lib/analytics/client";
 import { pathWithLocale, type SupportedLocale } from "@/lib/i18n/config";
-import { getMessages, objectAt, t } from "@/lib/i18n/messages";
+import { getMessages, listAt, objectAt, t } from "@/lib/i18n/messages";
 
 type PlanKey = "monthly_a" | "yearly";
 
@@ -22,6 +22,12 @@ const PLAN_COPY_DEFAULT: Record<PlanKey, { title: string; detail: string }> = {
     detail: "Yearly billing · best for daily use"
   }
 };
+
+const DASHBOARD_STEPS_DEFAULT = [
+  "Open /billing/success with your checkout session ID.",
+  "Reveal and copy your one-time license key.",
+  "Download the extension, paste the key, and turn on the tools you want."
+] as const;
 
 function apiUrl(path: string): string {
   const base = API_BASE.replace(/\/$/, "");
@@ -41,6 +47,10 @@ export function DashboardPageContent({ locale = "en" }: DashboardPageProps) {
   const [planKey, setPlanKey] = useState<PlanKey>("monthly_a");
   const [loading, setLoading] = useState(false);
   const [statusLine, setStatusLine] = useState(t(messages, "dashboard.statusReady", "STATUS: READY TO START 3-DAY TRIAL"));
+  const checkoutSteps = listAt(messages, "dashboard.steps")
+    .map((item) => String(item || "").trim())
+    .filter(Boolean);
+  const steps = checkoutSteps.length ? checkoutSteps : [...DASHBOARD_STEPS_DEFAULT];
 
   const ctaLabel = useMemo(() => {
     const selected = planCopy[planKey];
@@ -133,9 +143,9 @@ export function DashboardPageContent({ locale = "en" }: DashboardPageProps) {
       <Panel>
         <h2 className="hm-subtitle">{t(messages, "dashboard.afterCheckout", "What happens next")}</h2>
         <ol className="hm-protocol-grid">
-          {[0, 1, 2].map((index) => (
+          {steps.map((step, index) => (
             <li key={index}>
-              <strong>{index + 1})</strong> {t(messages, `dashboard.steps.${index}`, "")}
+              <strong>{index + 1})</strong> {step}
             </li>
           ))}
         </ol>

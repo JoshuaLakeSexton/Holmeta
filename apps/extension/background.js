@@ -714,25 +714,33 @@ function normalizeTranslationEntry(entry) {
 function createDefaultReadingThemeSettings() {
   return {
     enabled: false,
-    appearance: "adaptive", // light | dark | adaptive
-    darkVariant: "coal", // coal (Night) | iron_ore (Iron) | brown (Holmeta Brown)
+    appearance: "comfort", // comfort-only runtime, legacy values still accepted for migration.
+    mode: "comfort",
+    preset: "comfort",
+    brightnessDimmer: 20,
+    warmLightFilter: 18,
+    reduceWhiteIntensity: true,
+    whiteIntensity: 32,
+    contrastSoftening: "low", // off | low | medium
+    focusFade: "off", // off | low | medium
+    preserveImages: true,
+    preserveVideos: true,
+    readerSurfaceMode: false,
+    // Legacy compatibility fields retained for migration paths.
+    darkVariant: "coal",
     darkThemeVariant: "coal",
-    lightVariant: "white", // white | warm | off_white
+    lightVariant: "white",
     lightThemeVariant: "white",
-    scheduleMode: "system", // legacy compatibility: system | sunset | custom
+    scheduleMode: "system",
     schedule: {
       enabled: false,
       useSunset: false,
       start: "20:00",
       end: "06:00"
     },
-    // Legacy compatibility fields retained for migration paths.
-    mode: "dark",
-    preset: "coal",
     intensity: 44,
     opaqueBackground: false,
     pointerCursors: false,
-    preserveImages: true,
     preserveLogos: true,
     higherContrast: false,
     softerSurfaces: false,
@@ -892,6 +900,12 @@ function normalizeReadingScheduleMode(value, fallback = "system") {
   return fallback;
 }
 
+function normalizeComfortTier(value, fallback = "off") {
+  const raw = String(value || "").trim().toLowerCase();
+  if (raw === "off" || raw === "low" || raw === "medium") return raw;
+  return fallback;
+}
+
 function resolveReadingModeFromAppearance(appearance, schedule) {
   const safeAppearance = normalizeReadingAppearance(appearance, "adaptive");
   if (safeAppearance === "light" || safeAppearance === "dark") return safeAppearance;
@@ -942,9 +956,20 @@ function normalizeReadingThemeSettings(rawSettings, fallback, legacyLight = {}) 
     : readingPresetFromLegacy(mode, darkVariant, lightVariant);
   const enabled = Boolean(raw.enabled ?? legacyLight.readingModeEnabled ?? base.enabled);
   const intensity = Math.round(clamp(raw.intensity ?? legacyLight.intensity ?? base.intensity, 0, 100));
+  const brightnessDimmer = Math.round(clamp(raw.brightnessDimmer ?? raw.dim ?? base.brightnessDimmer ?? 20, 0, 60));
+  const warmLightFilter = Math.round(clamp(raw.warmLightFilter ?? raw.warmth ?? raw.intensity ?? base.warmLightFilter ?? 18, 0, 70));
+  const reduceWhiteIntensity = Boolean(raw.reduceWhiteIntensity ?? raw.reduceWhites ?? base.reduceWhiteIntensity ?? true);
+  const whiteIntensity = Math.round(clamp(raw.whiteIntensity ?? raw.whiteSoftening ?? raw.blueCut ?? base.whiteIntensity ?? 32, 0, 70));
+  const contrastSoftening = normalizeComfortTier(
+    raw.contrastSoftening ?? (raw.higherContrast ? "off" : (raw.softerSurfaces ? "medium" : base.contrastSoftening)),
+    base.contrastSoftening || "low"
+  );
+  const focusFade = normalizeComfortTier(raw.focusFade ?? (raw.spotlightEnabled ? "medium" : base.focusFade), base.focusFade || "off");
   const opaqueBackground = Boolean(raw.opaqueBackground ?? base.opaqueBackground);
   const pointerCursors = Boolean(raw.pointerCursors ?? base.pointerCursors);
   const preserveImages = Boolean(raw.preserveImages ?? base.preserveImages ?? true);
+  const preserveVideos = Boolean(raw.preserveVideos ?? raw.videoSafe ?? base.preserveVideos ?? true);
+  const readerSurfaceMode = Boolean(raw.readerSurfaceMode ?? base.readerSurfaceMode ?? false);
   const preserveLogos = Boolean(raw.preserveLogos ?? base.preserveLogos ?? true);
   const higherContrast = Boolean(raw.higherContrast ?? base.higherContrast ?? false);
   const softerSurfaces = Boolean(raw.softerSurfaces ?? base.softerSurfaces ?? false);
@@ -1017,9 +1042,20 @@ function normalizeReadingThemeSettings(rawSettings, fallback, legacyLight = {}) 
         ? String(row.preset)
         : readingPresetFromLegacy(rowMode, rowDarkVariant, rowLightVariant),
       intensity: Math.round(clamp(row.intensity ?? intensity, 0, 100)),
+      brightnessDimmer: Math.round(clamp(row.brightnessDimmer ?? row.dim ?? brightnessDimmer, 0, 60)),
+      warmLightFilter: Math.round(clamp(row.warmLightFilter ?? row.warmth ?? row.intensity ?? warmLightFilter, 0, 70)),
+      reduceWhiteIntensity: Boolean(row.reduceWhiteIntensity ?? row.reduceWhites ?? reduceWhiteIntensity),
+      whiteIntensity: Math.round(clamp(row.whiteIntensity ?? row.whiteSoftening ?? row.blueCut ?? whiteIntensity, 0, 70)),
+      contrastSoftening: normalizeComfortTier(
+        row.contrastSoftening ?? (row.higherContrast ? "off" : (row.softerSurfaces ? "medium" : contrastSoftening)),
+        contrastSoftening
+      ),
+      focusFade: normalizeComfortTier(row.focusFade ?? (row.spotlightEnabled ? "medium" : focusFade), focusFade),
       opaqueBackground: Boolean(row.opaqueBackground ?? opaqueBackground),
       pointerCursors: Boolean(row.pointerCursors ?? pointerCursors),
       preserveImages: Boolean(row.preserveImages ?? preserveImages),
+      preserveVideos: Boolean(row.preserveVideos ?? row.videoSafe ?? preserveVideos),
+      readerSurfaceMode: Boolean(row.readerSurfaceMode ?? readerSurfaceMode),
       preserveLogos: Boolean(row.preserveLogos ?? preserveLogos),
       higherContrast: Boolean(row.higherContrast ?? higherContrast),
       softerSurfaces: Boolean(row.softerSurfaces ?? softerSurfaces),
@@ -1054,9 +1090,17 @@ function normalizeReadingThemeSettings(rawSettings, fallback, legacyLight = {}) 
     mode,
     preset,
     intensity,
+    brightnessDimmer,
+    warmLightFilter,
+    reduceWhiteIntensity,
+    whiteIntensity,
+    contrastSoftening,
+    focusFade,
     opaqueBackground,
     pointerCursors,
     preserveImages,
+    preserveVideos,
+    readerSurfaceMode,
     preserveLogos,
     higherContrast,
     softerSurfaces,
@@ -2529,28 +2573,10 @@ function loadManifestContentScripts() {
 
   return [
     "appearance/init-theme-toggle.js",
-    "appearance/palette-presets.js",
-    "appearance/token-generator.js",
-    "appearance/appearance-state.js",
-    "appearance/theme-detector.js",
-    "appearance/site-classifier.js",
-    "appearance/color-engine.js",
-    "appearance/dom-scanner.js",
-    "appearance/token-engine.js",
-    "appearance/media-guard.js",
-    "appearance/protection-engine.js",
-    "appearance/ui-surface-classifier.js",
-    "appearance/site-profile.js",
-    "appearance/repair-memory.js",
-    "appearance/shadow-dom.js",
-    "appearance/iframe-handler.js",
-    "appearance/mutation-manager.js",
-    "appearance/component-normalizer.js",
-    "appearance/dynamic-node-processor.js",
-    "appearance/site-compatibility.js",
-    "appearance/site-rules.js",
-    "appearance/token-remapper.js",
-    "appearance/appearance-engine.js",
+    "src/shared/storage.js",
+    "src/content/media-protection.js",
+    "src/content/comfort-overlays.js",
+    "src/content/appearance-comfort.js",
     "appearance/darklight-settings.js",
     "appearance/darklight-engine.js",
     "appearance/darklight-switch.js",

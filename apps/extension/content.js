@@ -2056,18 +2056,103 @@
     state.biofeedbackTimer = null;
   }
 
-  function applyLightEngine() {
-    const engine = globalThis.HolmetaLightEngine;
-    if (!engine || typeof engine.apply !== "function") {
-      log("error", "light_engine_missing");
+  function applyAppearanceFallback() {
+    const appearanceEngine = globalThis.HolmetaAppearanceEngine;
+    if (!appearanceEngine || typeof appearanceEngine.apply !== "function") {
+      log("error", "appearance_engine_missing");
+      state.diagnostics = {
+        active: false,
+        reason: "appearance_engine_missing"
+      };
       return;
     }
 
-    state.diagnostics = engine.apply({
-      settings: state.settings,
-      effective: state.effective,
-      license: { premium: state.licensePremium }
-    });
+    const reading = state.settings?.darkLightTheme || state.settings?.readingTheme || {};
+    const host = normalizeHost(location.href);
+    const excludedMap = reading.excludedSites && typeof reading.excludedSites === "object"
+      ? reading.excludedSites
+      : {};
+    const excludedHosts = Array.isArray(reading.excludedHosts)
+      ? reading.excludedHosts.map((value) => normalizeHost(value))
+      : [];
+    const isExcluded = Boolean(
+      (host && excludedMap[host])
+      || (host && excludedHosts.includes(host))
+    );
+    if (isExcluded) {
+      appearanceEngine.clear?.();
+      state.diagnostics = appearanceEngine.getDiagnostics?.() || { active: false, reason: "site_excluded" };
+      return;
+    }
+
+    const perSite = reading.perSiteOverrides && typeof reading.perSiteOverrides === "object"
+      ? reading.perSiteOverrides
+      : (reading.siteProfiles && typeof reading.siteProfiles === "object" ? reading.siteProfiles : {});
+    const siteProfile = host ? perSite[host] : null;
+    const profile = siteProfile && typeof siteProfile === "object"
+      ? { ...reading, ...siteProfile }
+      : { ...reading };
+
+    if (!profile.enabled) {
+      appearanceEngine.clear?.();
+      state.diagnostics = appearanceEngine.getDiagnostics?.() || { active: false, reason: "disabled" };
+      return;
+    }
+
+    try {
+      state.diagnostics = appearanceEngine.apply({
+        ...profile,
+        enabled: true
+      }, {
+        debug: Boolean(state.settings?.meta?.debug)
+      });
+    } catch (error) {
+      log("error", "appearance_fallback_apply_failed", { error: String(error?.message || error) });
+      appearanceEngine.clear?.();
+      state.diagnostics = {
+        active: false,
+        reason: "appearance_fallback_apply_failed"
+      };
+    }
+  }
+
+  function applyLightEngine() {
+    const engine = globalThis.HolmetaLightEngine;
+    if (engine && typeof engine.apply === "function") {
+      try {
+        const safeSettings = (() => {
+          try {
+            if (typeof structuredClone === "function") return structuredClone(state.settings || {});
+          } catch {
+            // Fall through.
+          }
+          try {
+            return JSON.parse(JSON.stringify(state.settings || {}));
+          } catch {
+            return { ...(state.settings || {}) };
+          }
+        })();
+
+        if (safeSettings?.darkLightTheme && typeof safeSettings.darkLightTheme === "object") {
+          safeSettings.darkLightTheme = { ...safeSettings.darkLightTheme, enabled: false };
+        }
+        if (safeSettings?.readingTheme && typeof safeSettings.readingTheme === "object") {
+          safeSettings.readingTheme = { ...safeSettings.readingTheme, enabled: false };
+        }
+
+        state.diagnostics = engine.apply({
+          settings: safeSettings,
+          effective: state.effective,
+          license: { premium: state.licensePremium }
+        });
+      } catch (error) {
+        log("error", "light_engine_apply_failed", { error: String(error?.message || error) });
+      }
+    } else {
+      log("error", "light_engine_missing");
+    }
+
+    applyAppearanceFallback();
   }
 
   function escapeSelectorValue(value) {
@@ -2315,7 +2400,10 @@
     }
 
     if (type === "holmeta:get-light-diagnostics") {
-      const diagnostics = globalThis.HolmetaLightEngine?.getDiagnostics?.() || state.diagnostics || null;
+      const diagnostics = globalThis.HolmetaLightEngine?.getDiagnostics?.()
+        || globalThis.HolmetaAppearanceEngine?.getDiagnostics?.()
+        || state.diagnostics
+        || null;
       sendResponse({ ok: true, diagnostics });
       return false;
     }

@@ -71,7 +71,7 @@
 
   const onboardingSteps = [
     {
-      title: "MISSION: Reduce screen strain. Increase focus.",
+      title: "MISSION BRIEFING",
       body: "Start with Warm Shift mode. Adjust intensity and keep reduce-whites enabled for comfort."
     },
     {
@@ -227,30 +227,23 @@
     lightScheduleEnd: document.getElementById("lightScheduleEnd"),
     lightCustomScheduleRow: document.getElementById("lightCustomScheduleRow"),
     readingThemeEnabled: document.getElementById("readingThemeEnabled"),
-    readingThemeDark: document.getElementById("readingThemeDark"),
-    readingThemeLight: document.getElementById("readingThemeLight"),
-    readingThemeAuto: document.getElementById("readingThemeAuto"),
-    readingThemeDarkVariantRow: document.getElementById("readingThemeDarkVariantRow"),
-    readingThemeLightVariantRow: document.getElementById("readingThemeLightVariantRow"),
-    readingThemeDarkVariant: document.getElementById("readingThemeDarkVariant"),
-    readingThemeLightVariant: document.getElementById("readingThemeLightVariant"),
-    readingThemeOpaqueBackground: document.getElementById("readingThemeOpaqueBackground"),
-    readingThemePointerCursors: document.getElementById("readingThemePointerCursors"),
-    readingThemeSansSize: document.getElementById("readingThemeSansSize"),
-    readingThemeSansFamily: document.getElementById("readingThemeSansFamily"),
-    readingThemeCodeSize: document.getElementById("readingThemeCodeSize"),
-    readingThemeCodeFamily: document.getElementById("readingThemeCodeFamily"),
-    readingThemeScheduleMode: document.getElementById("readingThemeScheduleMode"),
-    readingThemeScheduleStart: document.getElementById("readingThemeScheduleStart"),
-    readingThemeScheduleEnd: document.getElementById("readingThemeScheduleEnd"),
+    readingComfortDimmer: document.getElementById("readingComfortDimmer"),
+    readingComfortDimmerValue: document.getElementById("readingComfortDimmerValue"),
+    readingComfortWarmth: document.getElementById("readingComfortWarmth"),
+    readingComfortWarmthValue: document.getElementById("readingComfortWarmthValue"),
+    readingComfortWhiteIntensity: document.getElementById("readingComfortWhiteIntensity"),
+    readingComfortWhiteIntensityValue: document.getElementById("readingComfortWhiteIntensityValue"),
+    readingComfortReduceWhites: document.getElementById("readingComfortReduceWhites"),
+    readingComfortContrastOff: document.getElementById("readingComfortContrastOff"),
+    readingComfortContrastLow: document.getElementById("readingComfortContrastLow"),
+    readingComfortContrastMedium: document.getElementById("readingComfortContrastMedium"),
+    readingComfortFocusOff: document.getElementById("readingComfortFocusOff"),
+    readingComfortFocusLow: document.getElementById("readingComfortFocusLow"),
+    readingComfortFocusMedium: document.getElementById("readingComfortFocusMedium"),
+    readingComfortReaderSurface: document.getElementById("readingComfortReaderSurface"),
     readingThemeExcludeSite: document.getElementById("readingThemeExcludeSite"),
     readingThemePreserveImages: document.getElementById("readingThemePreserveImages"),
-    readingThemePreserveLogos: document.getElementById("readingThemePreserveLogos"),
-    readingThemeHigherContrast: document.getElementById("readingThemeHigherContrast"),
-    readingThemeSofterSurfaces: document.getElementById("readingThemeSofterSurfaces"),
-    readingThemeStatus: document.getElementById("readingThemeStatus"),
-    readingThemeShowWidget: document.getElementById("readingThemeShowWidget"),
-    readingThemeHideWidget: document.getElementById("readingThemeHideWidget"),
+    readingThemePreserveVideos: document.getElementById("readingThemePreserveVideos"),
     toggleStateLabel: document.getElementById("toggleStateLabel"),
     appearanceModeText: document.getElementById("appearanceModeText"),
     appearanceModeSub: document.getElementById("appearanceModeSub"),
@@ -2037,103 +2030,18 @@
     return state.app?.settings?.meditation || {};
   }
 
-  const READING_DARK_VARIANTS = [
-    "coal",
-    "iron_ore",
-    "brown"
-  ];
+  const COMFORT_TIERS = ["off", "low", "medium"];
 
-  const READING_LIGHT_VARIANTS = [
-    "white",
-    "warm",
-    "off_white"
-  ];
-
-  const READING_DARK_LABELS = {
-    coal: "Night",
-    iron_ore: "Iron",
-    brown: "Holmeta Brown"
-  };
-
-  const READING_LIGHT_LABELS = {
-    white: "White",
-    warm: "Warm",
-    off_white: "Beige"
-  };
-
-  function normalizeReadingDarkVariant(value, fallback = "coal") {
-    const raw = String(value || "").trim().toLowerCase();
-    if (raw === "iron ore" || raw === "iron") return "iron_ore";
-    if (["coal-black", "coal -black", "night", "soft_black", "black", "gray", "grey", "dim_slate", "teal", "purple", "forest_green", "dark purple", "dark green"].includes(raw)) return "coal";
-    if (["dark brown", "sepia", "gentle_night", "holmeta brown", "holmeta_brown"].includes(raw)) return "brown";
-    if (READING_DARK_VARIANTS.includes(raw)) return raw;
-    return normalizeReadingDarkVariant(fallback, "coal");
-  }
-
-  function normalizeReadingLightVariant(value, fallback = "white") {
-    const raw = String(value || "").trim().toLowerCase();
-    if (["gray", "beige", "soft_paper"].includes(raw)) return "off_white";
-    if (["warm_page", "light_brown"].includes(raw)) return "warm";
-    if (["neutral_light", "soft_green", "baby_blue"].includes(raw)) return "white";
-    if (READING_LIGHT_VARIANTS.includes(raw)) return raw;
-    return normalizeReadingLightVariant(fallback, "white");
-  }
-
-  function normalizeReadingFontSize(value, fallback = 13) {
+  function normalizeComfortPercent(value, fallback, min = 0, max = 100) {
     const n = Math.round(Number(value));
     if (!Number.isFinite(n)) return fallback;
-    return Math.max(10, Math.min(24, n));
+    return Math.max(min, Math.min(max, n));
   }
 
-  function normalizeReadingFontFamily(value, fallback) {
-    const raw = String(value ?? "").trim();
-    if (!raw) return fallback;
-    const safe = raw.replace(/[<>`]/g, "").slice(0, 220);
-    return safe || fallback;
-  }
-
-  function darkVariantFromPreset(preset, fallback = "coal") {
-    const key = String(preset || "").trim().toLowerCase();
-    if (key === "iron ore" || key === "iron") return "iron_ore";
-    if (READING_DARK_VARIANTS.includes(key)) return key;
-    if (["soft_black", "dim_slate", "night", "black", "grey", "gray", "teal", "purple", "forest_green", "dark purple", "dark green"].includes(key)) return "coal";
-    if (["gentle_night", "sepia", "holmeta brown", "holmeta_brown", "dark brown"].includes(key)) return "brown";
-    return normalizeReadingDarkVariant(fallback, "coal");
-  }
-
-  function lightVariantFromPreset(preset, fallback = "white") {
-    const key = String(preset || "").trim().toLowerCase();
-    if (READING_LIGHT_VARIANTS.includes(key)) return key;
-    if (["neutral_light", "baby_blue", "soft_green"].includes(key)) return "white";
-    if (["warm_page", "light_brown"].includes(key)) return "warm";
-    if (["soft_paper", "gray", "beige"].includes(key)) return "off_white";
-    return normalizeReadingLightVariant(fallback, "white");
-  }
-
-  function readingPresetForVariants(mode, darkVariant, lightVariant) {
-    return mode === "light" ? lightVariant : darkVariant;
-  }
-
-  function baseReadingIntensity(mode, darkVariant, lightVariant) {
-    if (mode === "light") {
-      const lightLevels = {
-        white: 72,
-        warm: 68,
-        off_white: 66
-      };
-      return lightLevels[lightVariant] || 70;
-    }
-    const darkLevels = {
-      coal: 78,
-      iron_ore: 80,
-      brown: 76
-    };
-    return darkLevels[darkVariant] || 78;
-  }
-
-  function readingVariantLabel(mode, variant) {
-    if (mode === "light") return READING_LIGHT_LABELS[variant] || variant;
-    return READING_DARK_LABELS[variant] || variant;
+  function normalizeComfortTier(value, fallback = "off") {
+    const raw = String(value || fallback).trim().toLowerCase();
+    if (COMFORT_TIERS.includes(raw)) return raw;
+    return fallback;
   }
 
   function getLightSiteProfile() {
@@ -2401,130 +2309,69 @@
   function renderReadingTheme() {
     const reading = getReadingThemeState();
     const siteProfile = getReadingSiteProfile();
-    const rawAppearance = String(siteProfile?.appearance || reading.appearance || siteProfile?.mode || reading.mode || "dark");
-    const appearance = rawAppearance === "auto"
-      ? "adaptive"
-      : (["light", "dark", "adaptive"].includes(rawAppearance) ? rawAppearance : "dark");
-    const sourcePreset = String(siteProfile?.preset || reading.preset || "");
-    const darkVariant = normalizeReadingDarkVariant(
-      siteProfile?.darkVariant || reading.darkVariant || siteProfile?.darkThemeVariant || reading.darkThemeVariant,
-      darkVariantFromPreset(sourcePreset, "coal")
-    );
-    const lightVariant = normalizeReadingLightVariant(
-      siteProfile?.lightVariant || reading.lightVariant || siteProfile?.lightThemeVariant || reading.lightThemeVariant,
-      lightVariantFromPreset(sourcePreset, "white")
-    );
-    const scheduleModeRaw = String(siteProfile?.scheduleMode || reading.scheduleMode || (siteProfile?.schedule?.useSunset || reading.schedule?.useSunset ? "sunset" : "system"));
-    const scheduleMode = ["system", "sunset", "custom"].includes(scheduleModeRaw)
-      ? scheduleModeRaw
-      : ((siteProfile?.schedule?.useSunset || reading.schedule?.useSunset) ? "sunset" : "custom");
-    const scheduleStart = String(siteProfile?.schedule?.start || reading.schedule?.start || "20:00");
-    const scheduleEnd = String(siteProfile?.schedule?.end || reading.schedule?.end || "06:00");
+
     const effective = {
       enabled: Boolean(siteProfile?.enabled ?? reading.enabled),
-      appearance,
-      darkVariant,
-      lightVariant,
-      scheduleMode,
-      scheduleStart,
-      scheduleEnd,
-      opaqueBackground: Boolean(siteProfile?.opaqueBackground ?? reading.opaqueBackground),
-      pointerCursors: Boolean(siteProfile?.pointerCursors ?? reading.pointerCursors),
-      preserveImages: Boolean(siteProfile?.preserveImages ?? reading.preserveImages ?? true),
-      preserveLogos: Boolean(siteProfile?.preserveLogos ?? reading.preserveLogos ?? true),
-      higherContrast: Boolean(siteProfile?.higherContrast ?? reading.higherContrast ?? false),
-      softerSurfaces: Boolean(siteProfile?.softerSurfaces ?? reading.softerSurfaces ?? false),
-      sansFontSize: normalizeReadingFontSize(siteProfile?.sansFontSize ?? reading.sansFontSize, 13),
-      sansFontFamily: normalizeReadingFontFamily(
-        siteProfile?.sansFontFamily ?? reading.sansFontFamily,
-        "-apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif"
+      brightnessDimmer: normalizeComfortPercent(
+        siteProfile?.brightnessDimmer ?? siteProfile?.dim ?? reading.brightnessDimmer ?? reading.dim ?? 20,
+        20,
+        0,
+        60
       ),
-      codeFontSize: normalizeReadingFontSize(siteProfile?.codeFontSize ?? reading.codeFontSize, 12),
-      codeFontFamily: normalizeReadingFontFamily(
-        siteProfile?.codeFontFamily ?? reading.codeFontFamily,
-        "ui-monospace, \"SFMono-Regular\", Menlo, Consolas, monospace"
-      )
+      warmLightFilter: normalizeComfortPercent(
+        siteProfile?.warmLightFilter ?? siteProfile?.warmth ?? reading.warmLightFilter ?? reading.warmth ?? reading.intensity ?? 18,
+        18,
+        0,
+        70
+      ),
+      reduceWhiteIntensity: Boolean(
+        siteProfile?.reduceWhiteIntensity ?? siteProfile?.reduceWhites ?? reading.reduceWhiteIntensity ?? reading.reduceWhites ?? true
+      ),
+      whiteIntensity: normalizeComfortPercent(
+        siteProfile?.whiteIntensity ?? siteProfile?.whiteSoftening ?? reading.whiteIntensity ?? reading.whiteSoftening ?? reading.blueCut ?? 32,
+        32,
+        0,
+        70
+      ),
+      contrastSoftening: normalizeComfortTier(
+        siteProfile?.contrastSoftening ?? reading.contrastSoftening ?? (siteProfile?.softerSurfaces ?? reading.softerSurfaces ? "medium" : "low"),
+        "low"
+      ),
+      focusFade: normalizeComfortTier(
+        siteProfile?.focusFade ?? reading.focusFade ?? (siteProfile?.spotlightEnabled ?? reading.spotlightEnabled ? "medium" : "off"),
+        "off"
+      ),
+      preserveImages: Boolean(siteProfile?.preserveImages ?? reading.preserveImages ?? true),
+      preserveVideos: Boolean(siteProfile?.preserveVideos ?? siteProfile?.videoSafe ?? reading.preserveVideos ?? reading.videoSafe ?? true),
+      readerSurfaceMode: Boolean(siteProfile?.readerSurfaceMode ?? reading.readerSurfaceMode ?? false)
     };
 
     setChecked(refs.readingThemeEnabled, effective.enabled);
-    refs.readingThemeLight.classList.toggle("is-active", effective.appearance === "light");
-    refs.readingThemeDark.classList.toggle("is-active", effective.appearance === "dark");
-    refs.readingThemeAuto.classList.toggle("is-active", effective.appearance === "adaptive");
-    setInputValue(refs.readingThemeDarkVariant, effective.darkVariant);
-    setInputValue(refs.readingThemeLightVariant, effective.lightVariant);
-    const scheduleModeForUI = "system";
-    setInputValue(refs.readingThemeScheduleMode, scheduleModeForUI);
-    setInputValue(refs.readingThemeScheduleStart, effective.scheduleStart);
-    setInputValue(refs.readingThemeScheduleEnd, effective.scheduleEnd);
-    if (refs.readingThemeDarkVariantRow) {
-      refs.readingThemeDarkVariantRow.hidden = effective.appearance === "light";
-    }
-    if (refs.readingThemeLightVariantRow) {
-      refs.readingThemeLightVariantRow.hidden = effective.appearance === "dark";
-    }
-    setChecked(refs.readingThemeOpaqueBackground, effective.opaqueBackground);
-    setChecked(refs.readingThemePointerCursors, effective.pointerCursors);
+    setInputValue(refs.readingComfortDimmer, effective.brightnessDimmer);
+    setInputValue(refs.readingComfortWarmth, effective.warmLightFilter);
+    setInputValue(refs.readingComfortWhiteIntensity, effective.whiteIntensity);
+    if (refs.readingComfortDimmerValue) refs.readingComfortDimmerValue.textContent = `${effective.brightnessDimmer}%`;
+    if (refs.readingComfortWarmthValue) refs.readingComfortWarmthValue.textContent = `${effective.warmLightFilter}%`;
+    if (refs.readingComfortWhiteIntensityValue) refs.readingComfortWhiteIntensityValue.textContent = `${effective.whiteIntensity}%`;
+    setChecked(refs.readingComfortReduceWhites, effective.reduceWhiteIntensity);
+    refs.readingComfortContrastOff?.classList.toggle("is-active", effective.contrastSoftening === "off");
+    refs.readingComfortContrastLow?.classList.toggle("is-active", effective.contrastSoftening === "low");
+    refs.readingComfortContrastMedium?.classList.toggle("is-active", effective.contrastSoftening === "medium");
+    refs.readingComfortFocusOff?.classList.toggle("is-active", effective.focusFade === "off");
+    refs.readingComfortFocusLow?.classList.toggle("is-active", effective.focusFade === "low");
+    refs.readingComfortFocusMedium?.classList.toggle("is-active", effective.focusFade === "medium");
     setChecked(refs.readingThemePreserveImages, effective.preserveImages);
-    setChecked(refs.readingThemePreserveLogos, effective.preserveLogos);
-    setChecked(refs.readingThemeHigherContrast, effective.higherContrast);
-    setChecked(refs.readingThemeSofterSurfaces, effective.softerSurfaces);
-    setInputValue(refs.readingThemeSansSize, effective.sansFontSize);
-    setInputValue(refs.readingThemeSansFamily, effective.sansFontFamily);
-    setInputValue(refs.readingThemeCodeSize, effective.codeFontSize);
-    setInputValue(refs.readingThemeCodeFamily, effective.codeFontFamily);
-    if (refs.readingThemeScheduleStart) refs.readingThemeScheduleStart.disabled = true;
-    if (refs.readingThemeScheduleEnd) refs.readingThemeScheduleEnd.disabled = true;
+    setChecked(refs.readingThemePreserveVideos, effective.preserveVideos);
+    setChecked(refs.readingComfortReaderSurface, effective.readerSurfaceMode);
     const hasActiveHost = Boolean(state.currentHost);
     if (refs.readingThemeExcludeSite) refs.readingThemeExcludeSite.disabled = !hasActiveHost;
     setChecked(refs.readingThemeExcludeSite, isReadingSiteExcluded());
-    if (refs.readingThemeShowWidget) refs.readingThemeShowWidget.disabled = !state.currentHost;
-    if (refs.readingThemeHideWidget) refs.readingThemeHideWidget.disabled = !state.currentHost;
 
-    const darkLabel = readingVariantLabel("dark", darkVariant);
-    const lightLabel = readingVariantLabel("light", lightVariant);
     if (refs.appearanceModeText) {
-      refs.appearanceModeText.textContent = effective.appearance === "adaptive"
-        ? "ADAPT"
-        : (effective.appearance === "dark" ? "Night" : "Day");
+      refs.appearanceModeText.textContent = effective.enabled ? "Comfort" : "Appearance";
     }
     if (refs.toggleStateLabel) {
-      refs.toggleStateLabel.textContent = effective.enabled
-        ? (effective.appearance === "dark" ? "NIGHT" : effective.appearance === "light" ? "DAY" : "ADAPT")
-        : "OFF";
-    }
-    const diagnosticsVariant = String(state.diagnostics?.readingVariant || "");
-    const activeVariantLabel = (() => {
-      if (!diagnosticsVariant) return "";
-      const key = diagnosticsVariant.replace("appearance_dark_", "").replace("appearance_light_", "");
-      if (!key) return "";
-      if (diagnosticsVariant.startsWith("appearance_light_")) {
-        return readingVariantLabel("light", key);
-      }
-      return readingVariantLabel("dark", key);
-    })();
-
-    if (refs.readingThemeStatus) {
-      const excluded = isReadingSiteExcluded();
-      if (excluded) {
-        refs.readingThemeStatus.textContent = "[Excluded] This site is excluded from Tool 2.";
-        return;
-      }
-
-      const hostSuffix = state.currentHost ? ` on ${state.currentHost}` : "";
-      if (effective.enabled) {
-        if (effective.appearance === "adaptive") {
-          refs.readingThemeStatus.textContent = `[On] Adaptive${hostSuffix} · Dark ${darkLabel} / Light ${lightLabel}.`;
-          if (activeVariantLabel) {
-            refs.readingThemeStatus.textContent += ` Active now: ${activeVariantLabel}.`;
-          }
-        } else {
-          const activeLabel = effective.appearance === "dark" ? `Dark ${darkLabel}` : `Light ${lightLabel}`;
-          refs.readingThemeStatus.textContent = `[On] ${activeLabel}${hostSuffix}.`;
-        }
-        return;
-      }
-
-      refs.readingThemeStatus.textContent = "[Off] Appearance is off. Toggle On to apply Dark, Light, or Adaptive mode.";
+      refs.toggleStateLabel.textContent = effective.enabled ? "ON" : "OFF";
     }
   }
 
@@ -3639,36 +3486,6 @@
     return response;
   }
 
-  async function runDayNightAction(action, payload = {}, successText = "") {
-    await flushPatchNow();
-    const tab = await queryCurrentTab();
-    const tabId = Number(tab?.id || 0);
-    if (!Number.isInteger(tabId) || tabId <= 0) {
-      toast("Appearance action unavailable on this page.");
-      return { ok: false, error: "invalid_tab" };
-    }
-
-    const response = await sendMessage({
-      type: "holmeta:daynight-action",
-      tabId,
-      action: String(action || ""),
-      payload
-    });
-
-    if (!response?.ok) {
-      toast(`Appearance action failed: ${response?.error || "unknown"}`);
-      return { ok: false, error: response?.error || "daynight_action_failed" };
-    }
-
-    if (response.result?.settings) {
-      state.app.settings = response.result.settings;
-      render();
-    }
-
-    if (successText) toast(successText);
-    return response;
-  }
-
   async function refreshDiagnostics() {
     const tab = await queryCurrentTab();
     const tabId = Number(tab?.id || 0);
@@ -3782,69 +3599,44 @@
   }
 
   function currentReadingPatchFromUI() {
-    const appearance = refs.readingThemeAuto.classList.contains("is-active")
-      ? "adaptive"
-      : refs.readingThemeLight.classList.contains("is-active")
-        ? "light"
-        : "dark";
-    const darkVariant = normalizeReadingDarkVariant(refs.readingThemeDarkVariant?.value, "coal");
-    const lightVariant = normalizeReadingLightVariant(refs.readingThemeLightVariant?.value, "white");
-    const scheduleMode = "system";
-    const schedule = {
-      enabled: false,
-      useSunset: false,
-      start: "20:00",
-      end: "06:00"
-    };
-    const opaqueBackground = Boolean(refs.readingThemeOpaqueBackground?.checked);
-    const pointerCursors = Boolean(refs.readingThemePointerCursors?.checked);
+    const contrastSoftening = refs.readingComfortContrastMedium?.classList.contains("is-active")
+      ? "medium"
+      : refs.readingComfortContrastLow?.classList.contains("is-active")
+        ? "low"
+        : "off";
+    const focusFade = refs.readingComfortFocusMedium?.classList.contains("is-active")
+      ? "medium"
+      : refs.readingComfortFocusLow?.classList.contains("is-active")
+        ? "low"
+        : "off";
+    const brightnessDimmer = normalizeComfortPercent(refs.readingComfortDimmer?.value, 20, 0, 60);
+    const warmLightFilter = normalizeComfortPercent(refs.readingComfortWarmth?.value, 18, 0, 70);
+    const whiteIntensity = normalizeComfortPercent(refs.readingComfortWhiteIntensity?.value, 32, 0, 70);
+    const reduceWhiteIntensity = Boolean(refs.readingComfortReduceWhites?.checked);
     const preserveImages = Boolean(refs.readingThemePreserveImages?.checked);
-    const preserveLogos = Boolean(refs.readingThemePreserveLogos?.checked);
-    const higherContrast = Boolean(refs.readingThemeHigherContrast?.checked);
-    const softerSurfaces = Boolean(refs.readingThemeSofterSurfaces?.checked);
-    const sansFontSize = normalizeReadingFontSize(refs.readingThemeSansSize?.value, 13);
-    const sansFontFamily = normalizeReadingFontFamily(
-      refs.readingThemeSansFamily?.value,
-      "-apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif"
-    );
-    const codeFontSize = normalizeReadingFontSize(refs.readingThemeCodeSize?.value, 12);
-    const codeFontFamily = normalizeReadingFontFamily(
-      refs.readingThemeCodeFamily?.value,
-      "ui-monospace, \"SFMono-Regular\", Menlo, Consolas, monospace"
-    );
-    let mode = appearance === "light" ? "light" : "dark";
-    if (appearance === "adaptive") {
-      const diagnosticsMode = String(state.diagnostics?.readingAppearance?.mode || state.diagnostics?.readingMode || "");
-      mode = diagnosticsMode === "light" ? "light" : "dark";
-    }
-    const preset = readingPresetForVariants(mode, darkVariant, lightVariant);
-    const current = getReadingSiteProfile() || getReadingThemeState();
-    const targetIntensity = baseReadingIntensity(mode, darkVariant, lightVariant);
-    const existingIntensity = Number(current?.intensity);
-    const intensity = Number.isFinite(existingIntensity)
-      ? Math.max(Math.round(Math.max(0, Math.min(100, existingIntensity))), targetIntensity)
-      : targetIntensity;
+    const preserveVideos = Boolean(refs.readingThemePreserveVideos?.checked);
+    const readerSurfaceMode = Boolean(refs.readingComfortReaderSurface?.checked);
+
     return {
-      appearance,
-      darkVariant,
-      darkThemeVariant: darkVariant,
-      lightVariant,
-      lightThemeVariant: lightVariant,
-      scheduleMode,
-      schedule,
-      mode,
-      preset,
-      intensity,
-      opaqueBackground,
-      pointerCursors,
+      appearance: "comfort",
+      mode: "comfort",
+      preset: "comfort",
+      brightnessDimmer,
+      warmLightFilter,
+      reduceWhiteIntensity,
+      whiteIntensity,
+      contrastSoftening,
+      focusFade,
       preserveImages,
-      preserveLogos,
-      higherContrast,
-      softerSurfaces,
-      sansFontSize,
-      sansFontFamily,
-      codeFontSize,
-      codeFontFamily
+      preserveVideos,
+      readerSurfaceMode,
+      // Legacy aliases kept so existing background normalization can still merge safely.
+      dim: brightnessDimmer,
+      reduceWhites: reduceWhiteIntensity,
+      videoSafe: preserveVideos,
+      higherContrast: contrastSoftening === "off",
+      softerSurfaces: contrastSoftening === "medium",
+      preserveLogos: preserveImages
     };
   }
 
@@ -4036,20 +3828,27 @@
     queuePatch({ readingTheme: { excludedSites: map } });
   }
 
-  function setReadingAppearanceWithEnable(appearance) {
-    const safeAppearance = ["light", "dark", "adaptive"].includes(String(appearance || ""))
-      ? String(appearance)
-      : "dark";
+  function clearReadingExcludeForCurrentHost() {
+    if (!state.currentHost) return false;
+    const reading = getReadingThemeState();
+    const map = { ...(reading.excludedSites || {}) };
+    if (!map[state.currentHost]) return false;
+    delete map[state.currentHost];
+    queuePatch({ readingTheme: { excludedSites: map } });
+    if (refs.readingThemeExcludeSite) {
+      refs.readingThemeExcludeSite.checked = false;
+    }
+    return true;
+  }
+
+  async function applyReadingAcrossTabs() {
+    const result = await applyAllTabs({ ensureLightEnabled: false, quiet: true });
+    return result;
+  }
+
+  function setReadingAppearanceWithEnable() {
+    clearReadingExcludeForCurrentHost();
     const patch = currentReadingPatchFromUI();
-    patch.appearance = safeAppearance;
-    patch.schedule.enabled = false;
-    if (safeAppearance === "light") patch.mode = "light";
-    else if (safeAppearance === "dark") patch.mode = "dark";
-    patch.preset = readingPresetForVariants(patch.mode, patch.darkVariant, patch.lightVariant);
-    patch.intensity = Math.max(
-      Math.round(Math.max(0, Math.min(100, Number(patch.intensity ?? 0)))),
-      baseReadingIntensity(patch.mode, patch.darkVariant, patch.lightVariant)
-    );
     queueReadingPatch({
       enabled: true,
       ...patch
@@ -4287,148 +4086,88 @@
       resetDashboardPomo();
     });
 
-    refs.readingThemeEnabled.addEventListener("change", async (e) => {
+    refs.readingThemeEnabled?.addEventListener("change", async (e) => {
       const enabled = Boolean(e.target.checked);
       if (enabled) {
-        const patch = currentReadingPatchFromUI();
-        queueReadingPatch({
-          enabled: true,
-          appearance: patch.appearance,
-          mode: patch.mode,
-          preset: patch.preset,
-          intensity: patch.intensity,
-          darkVariant: patch.darkVariant,
-          darkThemeVariant: patch.darkVariant,
-          lightVariant: patch.lightVariant,
-          lightThemeVariant: patch.lightVariant
-        });
+        setReadingAppearanceWithEnable();
       } else {
         queueReadingPatch({ enabled: false });
       }
-      await applyAllTabs({ ensureLightEnabled: false, quiet: true });
-    });
-    refs.readingThemeDark.addEventListener("click", async () => {
-      refs.readingThemeDark.classList.add("is-active");
-      refs.readingThemeLight.classList.remove("is-active");
-      refs.readingThemeAuto.classList.remove("is-active");
-      setReadingAppearanceWithEnable("dark");
-      await applyAllTabs({ ensureLightEnabled: false, quiet: true });
+      await applyReadingAcrossTabs();
     });
 
-    refs.readingThemeLight.addEventListener("click", async () => {
-      refs.readingThemeLight.classList.add("is-active");
-      refs.readingThemeDark.classList.remove("is-active");
-      refs.readingThemeAuto.classList.remove("is-active");
-      setReadingAppearanceWithEnable("light");
-      await applyAllTabs({ ensureLightEnabled: false, quiet: true });
+    refs.readingComfortDimmer?.addEventListener("input", async (e) => {
+      const value = normalizeComfortPercent(e.target.value, 20, 0, 60);
+      if (refs.readingComfortDimmerValue) refs.readingComfortDimmerValue.textContent = `${value}%`;
+      queueReadingPatch({ brightnessDimmer: value, dim: value });
+      await applyReadingAcrossTabs();
     });
 
-    refs.readingThemeAuto.addEventListener("click", async () => {
-      refs.readingThemeAuto.classList.add("is-active");
-      refs.readingThemeDark.classList.remove("is-active");
-      refs.readingThemeLight.classList.remove("is-active");
-      setReadingAppearanceWithEnable("adaptive");
-      await applyAllTabs({ ensureLightEnabled: false, quiet: true });
+    refs.readingComfortWarmth?.addEventListener("input", async (e) => {
+      const value = normalizeComfortPercent(e.target.value, 18, 0, 70);
+      if (refs.readingComfortWarmthValue) refs.readingComfortWarmthValue.textContent = `${value}%`;
+      queueReadingPatch({ warmLightFilter: value });
+      await applyReadingAcrossTabs();
     });
 
-    refs.readingThemeDarkVariant.addEventListener("change", async () => {
-      const patch = currentReadingPatchFromUI();
+    refs.readingComfortWhiteIntensity?.addEventListener("input", async (e) => {
+      const value = normalizeComfortPercent(e.target.value, 32, 0, 70);
+      if (refs.readingComfortWhiteIntensityValue) refs.readingComfortWhiteIntensityValue.textContent = `${value}%`;
+      queueReadingPatch({ whiteIntensity: value });
+      await applyReadingAcrossTabs();
+    });
+
+    const applyContrastTier = async (tier) => {
+      refs.readingComfortContrastOff?.classList.toggle("is-active", tier === "off");
+      refs.readingComfortContrastLow?.classList.toggle("is-active", tier === "low");
+      refs.readingComfortContrastMedium?.classList.toggle("is-active", tier === "medium");
       queueReadingPatch({
-        darkVariant: patch.darkVariant,
-        darkThemeVariant: patch.darkVariant,
-        mode: patch.mode,
-        preset: patch.preset,
-        intensity: patch.intensity
+        contrastSoftening: tier,
+        higherContrast: tier === "off",
+        softerSurfaces: tier === "medium"
       });
-      await applyAllTabs({ ensureLightEnabled: false, quiet: true });
-    });
+      await applyReadingAcrossTabs();
+    };
+    refs.readingComfortContrastOff?.addEventListener("click", async () => applyContrastTier("off"));
+    refs.readingComfortContrastLow?.addEventListener("click", async () => applyContrastTier("low"));
+    refs.readingComfortContrastMedium?.addEventListener("click", async () => applyContrastTier("medium"));
 
-    refs.readingThemeLightVariant.addEventListener("change", async () => {
-      const patch = currentReadingPatchFromUI();
-      queueReadingPatch({
-        lightVariant: patch.lightVariant,
-        lightThemeVariant: patch.lightVariant,
-        mode: patch.mode,
-        preset: patch.preset,
-        intensity: patch.intensity
-      });
-      await applyAllTabs({ ensureLightEnabled: false, quiet: true });
-    });
+    const applyFocusTier = async (tier) => {
+      refs.readingComfortFocusOff?.classList.toggle("is-active", tier === "off");
+      refs.readingComfortFocusLow?.classList.toggle("is-active", tier === "low");
+      refs.readingComfortFocusMedium?.classList.toggle("is-active", tier === "medium");
+      queueReadingPatch({ focusFade: tier });
+      await applyReadingAcrossTabs();
+    };
+    refs.readingComfortFocusOff?.addEventListener("click", async () => applyFocusTier("off"));
+    refs.readingComfortFocusLow?.addEventListener("click", async () => applyFocusTier("low"));
+    refs.readingComfortFocusMedium?.addEventListener("click", async () => applyFocusTier("medium"));
 
-    refs.readingThemeScheduleMode?.addEventListener("change", () => {
-      const patch = currentReadingPatchFromUI();
-      queueReadingPatch({
-        appearance: patch.appearance,
-        scheduleMode: patch.scheduleMode,
-        schedule: patch.schedule,
-        mode: patch.mode,
-        preset: patch.preset
-      });
-    });
-
-    refs.readingThemeOpaqueBackground?.addEventListener("change", () => {
-      const patch = currentReadingPatchFromUI();
-      queueReadingPatch({ opaqueBackground: patch.opaqueBackground });
-    });
-
-    refs.readingThemePointerCursors?.addEventListener("change", () => {
-      const patch = currentReadingPatchFromUI();
-      queueReadingPatch({ pointerCursors: patch.pointerCursors });
+    refs.readingComfortReduceWhites?.addEventListener("change", async (e) => {
+      queueReadingPatch({ reduceWhiteIntensity: Boolean(e.target.checked), reduceWhites: Boolean(e.target.checked) });
+      await applyReadingAcrossTabs();
     });
 
     refs.readingThemePreserveImages?.addEventListener("change", async () => {
       const patch = currentReadingPatchFromUI();
-      queueReadingPatch({ preserveImages: patch.preserveImages });
-      await applyAllTabs({ ensureLightEnabled: false, quiet: true });
+      queueReadingPatch({ preserveImages: patch.preserveImages, preserveLogos: patch.preserveImages });
+      await applyReadingAcrossTabs();
     });
 
-    refs.readingThemePreserveLogos?.addEventListener("change", async () => {
+    refs.readingThemePreserveVideos?.addEventListener("change", async () => {
       const patch = currentReadingPatchFromUI();
-      queueReadingPatch({ preserveLogos: patch.preserveLogos });
-      await applyAllTabs({ ensureLightEnabled: false, quiet: true });
+      queueReadingPatch({ preserveVideos: patch.preserveVideos, videoSafe: patch.preserveVideos });
+      await applyReadingAcrossTabs();
     });
 
-    refs.readingThemeHigherContrast?.addEventListener("change", async () => {
-      const patch = currentReadingPatchFromUI();
-      queueReadingPatch({ higherContrast: patch.higherContrast });
-      await applyAllTabs({ ensureLightEnabled: false, quiet: true });
-    });
-
-    refs.readingThemeSofterSurfaces?.addEventListener("change", async () => {
-      const patch = currentReadingPatchFromUI();
-      queueReadingPatch({ softerSurfaces: patch.softerSurfaces });
-      await applyAllTabs({ ensureLightEnabled: false, quiet: true });
-    });
-
-    refs.readingThemeSansSize?.addEventListener("input", () => {
-      const patch = currentReadingPatchFromUI();
-      queueReadingPatch({ sansFontSize: patch.sansFontSize });
-    });
-
-    refs.readingThemeSansFamily?.addEventListener("input", () => {
-      const patch = currentReadingPatchFromUI();
-      queueReadingPatch({ sansFontFamily: patch.sansFontFamily });
-    });
-
-    refs.readingThemeCodeSize?.addEventListener("input", () => {
-      const patch = currentReadingPatchFromUI();
-      queueReadingPatch({ codeFontSize: patch.codeFontSize });
-    });
-
-    refs.readingThemeCodeFamily?.addEventListener("input", () => {
-      const patch = currentReadingPatchFromUI();
-      queueReadingPatch({ codeFontFamily: patch.codeFontFamily });
+    refs.readingComfortReaderSurface?.addEventListener("change", async (e) => {
+      queueReadingPatch({ readerSurfaceMode: Boolean(e.target.checked) });
+      await applyReadingAcrossTabs();
     });
 
     refs.readingThemeExcludeSite?.addEventListener("change", async (e) => {
       setReadingExcludeSite(e.target.checked);
-      await applyAllTabs({ ensureLightEnabled: false, quiet: true });
-    });
-    refs.readingThemeShowWidget?.addEventListener("click", async () => {
-      await runDayNightAction("showWidget", {}, "Appearance widget shown on this site.");
-    });
-    refs.readingThemeHideWidget?.addEventListener("click", async () => {
-      await runDayNightAction("hideWidget", {}, "Appearance widget hidden on this site.");
+      await applyReadingAcrossTabs();
     });
     refs.lightEnabled.addEventListener("change", (e) => queuePatch({ lightFilter: { enabled: e.target.checked } }));
     refs.lightPresetComfort?.addEventListener("click", () => applyLightPreset("comfort"));

@@ -146,8 +146,8 @@
 
       <section class="panel core tool2-shell" id="readingThemePanel">
         <div class="section-head">
-          <h2>2) Day / Night Appearance</h2>
-          <span id="toggleStateLabel" class="badge">DAY</span>
+          <h2>2) Appearance Comfort</h2>
+          <span id="toggleStateLabel" class="badge">OFF</span>
         </div>
 
         <div id="toggleCard" class="tool2-card">
@@ -162,10 +162,11 @@
               </svg>
             </div>
             <div class="tool2-copy">
-              <p class="tool2-kicker">Theme</p>
-              <p class="tool2-title"><span id="appearanceModeText">Day</span> Mode</p>
+              <p class="tool2-kicker">Comfort Layer</p>
+              <p class="tool2-title"><span id="appearanceModeText">Appearance</span> Comfort</p>
+              <p class="micro">Reduce glare, soften harsh light, and make the web easier on your eyes.</p>
             </div>
-            <label class="tool2-switch" aria-label="Toggle day and night mode">
+            <label class="tool2-switch" aria-label="Toggle appearance comfort">
               <input id="readingThemeEnabled" type="checkbox" />
               <span class="tool2-switch-track">
                 <span class="tool2-switch-thumb"></span>
@@ -176,71 +177,82 @@
           <div class="tool2-divider"></div>
 
           <div class="field-row">
-            <label>Theme</label>
+            <label for="readingComfortDimmer">Brightness Dimmer</label>
+            <div class="row">
+              <input id="readingComfortDimmer" type="range" min="0" max="60" step="1" />
+              <span id="readingComfortDimmerValue" class="value">20%</span>
+            </div>
+          </div>
+
+          <div class="field-row">
+            <label for="readingComfortWarmth">Warm Light Filter</label>
+            <div class="row">
+              <input id="readingComfortWarmth" type="range" min="0" max="70" step="1" />
+              <span id="readingComfortWarmthValue" class="value">18%</span>
+            </div>
+          </div>
+
+          <div class="field-row">
+            <label for="readingComfortWhiteIntensity">White Intensity</label>
+            <div class="row">
+              <input id="readingComfortWhiteIntensity" type="range" min="0" max="70" step="1" />
+              <span id="readingComfortWhiteIntensityValue" class="value">32%</span>
+            </div>
+          </div>
+
+          <div class="field-row">
+            <label>Contrast Softening</label>
             <div class="row reading-theme-buttons">
-              <button id="readingThemeLight" class="ghost" type="button" aria-label="Appearance light mode">
-                <span>Light</span>
+              <button id="readingComfortContrastOff" class="ghost" type="button" aria-label="Contrast softening off">
+                <span>Off</span>
               </button>
-              <button id="readingThemeDark" class="secondary" type="button" aria-label="Appearance dark mode">
-                <span>Dark</span>
+              <button id="readingComfortContrastLow" class="secondary" type="button" aria-label="Contrast softening low">
+                <span>Low</span>
               </button>
-              <button id="readingThemeAuto" class="ghost" type="button" aria-label="Appearance adaptive site theme">
-                <span>ADAPT</span>
+              <button id="readingComfortContrastMedium" class="ghost" type="button" aria-label="Contrast softening medium">
+                <span>Medium</span>
               </button>
             </div>
           </div>
 
-          <div id="readingThemeDarkVariantRow" class="field-row reading-theme-selects">
-            <label for="readingThemeDarkVariant">Dark type</label>
-            <select id="readingThemeDarkVariant" aria-label="Appearance dark variant">
-              <option value="coal">Night</option>
-              <option value="iron_ore">Iron</option>
-              <option value="brown">Holmeta Brown</option>
-            </select>
-          </div>
-
-          <div id="readingThemeLightVariantRow" class="field-row reading-theme-selects">
-            <label for="readingThemeLightVariant">Light type</label>
-            <select id="readingThemeLightVariant" aria-label="Appearance light variant">
-              <option value="white">White</option>
-              <option value="warm">Warm</option>
-              <option value="off_white">Beige</option>
-            </select>
-          </div>
-
-          <div class="tool2-hidden-control-group" aria-hidden="true">
-            <select id="readingThemeScheduleMode" class="tool2-hidden-control" aria-label="Appearance auto schedule mode">
-              <option value="sunset">Auto</option>
-              <option value="custom">Manual</option>
-              <option value="system" selected>System</option>
-            </select>
-            <input id="readingThemeScheduleStart" class="tool2-hidden-control" type="time" value="20:00" aria-label="Appearance schedule start" />
-            <input id="readingThemeScheduleEnd" class="tool2-hidden-control" type="time" value="06:00" aria-label="Appearance schedule end" />
+          <div class="field-row">
+            <label>Focus Fade</label>
+            <div class="row reading-theme-buttons">
+              <button id="readingComfortFocusOff" class="ghost" type="button" aria-label="Focus fade off">
+                <span>Off</span>
+              </button>
+              <button id="readingComfortFocusLow" class="secondary" type="button" aria-label="Focus fade low">
+                <span>Low</span>
+              </button>
+              <button id="readingComfortFocusMedium" class="ghost" type="button" aria-label="Focus fade medium">
+                <span>Medium</span>
+              </button>
+            </div>
           </div>
 
           <div class="row actions-row reading-theme-site-actions reading-theme-site-actions-single">
-            <label class="switch" title="Exclude this host from appearance changes">
+            <label class="switch" title="Disable Appearance Comfort on this host">
               <input id="readingThemeExcludeSite" type="checkbox" />
               <span>Exclude site</span>
             </label>
           </div>
 
           <div class="tool2-quick-fix-grid">
-            <label class="switch" title="Keep images, video, and photography intact">
+            <label class="switch" title="Keep images visually clean where possible">
               <input id="readingThemePreserveImages" type="checkbox" />
               <span>Preserve images</span>
             </label>
-            <label class="switch" title="Protect brand marks and logo containers">
-              <input id="readingThemePreserveLogos" type="checkbox" />
-              <span>Preserve logos</span>
+            <label class="switch" title="Keep videos visually clean where possible">
+              <input id="readingThemePreserveVideos" type="checkbox" />
+              <span>Preserve videos</span>
             </label>
-            <label class="switch" title="Push text contrast harder on difficult sites">
-              <input id="readingThemeHigherContrast" type="checkbox" />
-              <span>Higher contrast</span>
+            <label class="switch" title="Soften harsh white-heavy pages">
+              <input id="readingComfortReduceWhites" type="checkbox" />
+              <span>Reduce white intensity</span>
             </label>
-            <label class="switch" title="Reduce harsh surface separation and panel slabs">
-              <input id="readingThemeSofterSurfaces" type="checkbox" />
-              <span>Softer surfaces</span>
+            <label class="switch" title="Only apply reading background softening on article-like pages">
+              <input id="readingComfortReaderSurface" type="checkbox" />
+              <span>Reader surface mode</span>
             </label>
           </div>
 
@@ -1282,7 +1294,7 @@
 
     <div id="onboarding" class="onboarding" hidden role="dialog" aria-modal="true" aria-labelledby="onboardingTitle">
       <div class="onboarding-card">
-        <p class="kicker">MISSION: Reduce screen strain. Increase focus.</p>
+        <p class="kicker">MISSION BRIEFING</p>
         <h2 id="onboardingTitle">Welcome to HOLMETA</h2>
         <p id="onboardingBody">Command Center quick setup.</p>
         <div class="row actions-row">

@@ -509,13 +509,11 @@ input[type="checkbox"] {
   opacity: 0;
 }
 
-#readingThemePanel:has(#readingThemeDark.is-active) .tool2-sun,
-#readingThemePanel:has(#readingThemeAuto.is-active) .tool2-sun {
+#readingThemePanel:has(#readingThemeEnabled:checked) .tool2-sun {
   opacity: 0;
 }
 
-#readingThemePanel:has(#readingThemeDark.is-active) .tool2-moon,
-#readingThemePanel:has(#readingThemeAuto.is-active) .tool2-moon {
+#readingThemePanel:has(#readingThemeEnabled:checked) .tool2-moon {
   opacity: 1;
 }
 

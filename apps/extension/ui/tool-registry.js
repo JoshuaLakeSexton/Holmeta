@@ -4,7 +4,7 @@
   const popup = [
     { id: "commandLinksPanel", title: "Command Links" },
     { id: "favoritesPanel", title: "Favorite Sites" },
-    { id: "readingThemePanel", title: "Day / Night Appearance" },
+    { id: "readingThemePanel", title: "Appearance Comfort" },
     { id: "lightPanel", title: "Light Filter Tool" },
     { id: "deepWorkFold", title: "Deep Work Protocol", headingTag: "summary" },
     { id: "screenEmulatorPanel", title: "Screen Resolution Emulator" },
@@ -21,7 +21,7 @@
 
   const options = [
     { id: "optPanelLight", title: "Light Filter Tool" },
-    { id: "optPanelAppearance", title: "Day / Night Appearance" },
+    { id: "optPanelAppearance", title: "Appearance Comfort" },
     { id: "optPanelBlocker", title: "Site Blocker Tool" },
     { id: "optPanelAlerts", title: "Health Alert Popups" },
     { id: "optPanelInsight", title: "Site Insight Popup" },

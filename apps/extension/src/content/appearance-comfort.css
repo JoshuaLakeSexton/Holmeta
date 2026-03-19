@@ -1,0 +1,57 @@
+html[data-hm-comfort='1'] {
+  color-scheme: light dark;
+}
+
+#holmeta-comfort-root {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 2147482900;
+  isolation: isolate;
+}
+
+#holmeta-comfort-root .hm-comfort-layer {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 140ms ease;
+  will-change: opacity;
+}
+
+#holmeta-comfort-dimmer {
+  background: #090909;
+  mix-blend-mode: multiply;
+}
+
+#holmeta-comfort-warm {
+  background:
+    radial-gradient(140% 90% at 50% -10%, rgba(255, 201, 120, 0.35) 0%, rgba(255, 162, 96, 0.06) 62%, transparent 100%),
+    linear-gradient(180deg, rgba(255, 178, 94, 0.2) 0%, rgba(255, 140, 90, 0.16) 100%);
+  mix-blend-mode: soft-light;
+}
+
+#holmeta-comfort-white {
+  background: #f1e4cc;
+  mix-blend-mode: multiply;
+}
+
+#holmeta-comfort-soft {
+  background: #c7c0b6;
+  mix-blend-mode: soft-light;
+}
+
+#holmeta-comfort-focus {
+  background:
+    radial-gradient(circle at 50% 42%, rgba(0, 0, 0, 0) 0 36%, rgba(0, 0, 0, 0.3) 100%);
+  mix-blend-mode: multiply;
+}
+
+html[data-hm-comfort='1'][data-hm-comfort-focus='medium'] #holmeta-comfort-focus {
+  background:
+    radial-gradient(circle at 50% 42%, rgba(0, 0, 0, 0) 0 33%, rgba(0, 0, 0, 0.38) 100%);
+}
+
+html[data-hm-comfort='1'] [data-hm-comfort-media='1'] {
+  transition: filter 140ms ease;
+}

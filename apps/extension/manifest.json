@@ -48,9 +48,17 @@
       "matches": [
         "<all_urls>"
       ],
-      "js": [
-        "appearance/init-theme-toggle.js"
+      "css": [
+        "src/content/appearance-comfort.css"
       ],
+      "js": [
+        "appearance/init-theme-toggle.js",
+        "src/shared/storage.js",
+        "src/content/media-protection.js",
+        "src/content/comfort-overlays.js",
+        "src/content/appearance-comfort.js"
+      ],
+      "all_frames": true,
       "run_at": "document_start"
     },
     {
@@ -58,28 +66,6 @@
         "<all_urls>"
       ],
       "js": [
-        "appearance/palette-presets.js",
-        "appearance/token-generator.js",
-        "appearance/appearance-state.js",
-        "appearance/theme-detector.js",
-        "appearance/site-classifier.js",
-        "appearance/color-engine.js",
-        "appearance/dom-scanner.js",
-        "appearance/token-engine.js",
-        "appearance/media-guard.js",
-        "appearance/protection-engine.js",
-        "appearance/ui-surface-classifier.js",
-        "appearance/site-profile.js",
-        "appearance/repair-memory.js",
-        "appearance/shadow-dom.js",
-        "appearance/iframe-handler.js",
-        "appearance/mutation-manager.js",
-        "appearance/component-normalizer.js",
-        "appearance/dynamic-node-processor.js",
-        "appearance/site-compatibility.js",
-        "appearance/site-rules.js",
-        "appearance/token-remapper.js",
-        "appearance/appearance-engine.js",
         "appearance/darklight-settings.js",
         "appearance/darklight-engine.js",
         "appearance/darklight-switch.js",
