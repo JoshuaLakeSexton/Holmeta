@@ -71,7 +71,6 @@ export function HomePageContent({ locale = "en" }: HomePageProps) {
   const whyHolmeta = featureItems(messages);
   const pricingBullets = listAt(messages, "home.pricing.bullets").map((item) => String(item || "")).filter(Boolean);
   const heroProof = listAt(messages, "home.proof").map((item) => String(item || "")).filter(Boolean);
-  const trustItems = listAt(messages, "home.trust.items").map((item) => String(item || "")).filter(Boolean);
   const howSteps = listAt(messages, "home.how.steps").map((item) => String(item || "")).filter(Boolean);
   const faqs = faqItems(messages);
 
@@ -124,7 +123,6 @@ export function HomePageContent({ locale = "en" }: HomePageProps) {
       <section className="hm-section hm-hero" aria-labelledby="hero-title">
         <div className="hm-hero-grid">
           <Panel className="hm-hero-copy">
-            <p className="hm-kicker">{t(messages, "home.kicker", "MISSION BRIEFING")}</p>
             <h1 className="hm-title" id="hero-title">
               {t(messages, "home.title", "The holistic browser kit for people who live in tabs.")}
             </h1>
@@ -135,9 +133,7 @@ export function HomePageContent({ locale = "en" }: HomePageProps) {
               <Button href={localizedHref(locale, "/dashboard/subscribe")} variant="primary">
                 {t(messages, "common.trialCta", "Start 3-Day Trial")}
               </Button>
-              <Button href="#demo">{t(messages, "common.watchDemo", "Watch 30-Sec Demo")}</Button>
             </div>
-            <p className="hm-meta">{t(messages, "home.supportLine", "Browser-only. Privacy-first. Cancel anytime.")}</p>
             <ul className="hm-list hm-hero-list hm-proof-list">
               {heroProof.map((item) => (
                 <li key={item}>{item}</li>
@@ -146,8 +142,6 @@ export function HomePageContent({ locale = "en" }: HomePageProps) {
           </Panel>
 
           <Panel className="hm-proof-card" id="demo" aria-label={t(messages, "home.aria.demoPreview", "Holmeta demo preview")}>
-            <p className="hm-kicker">{t(messages, "home.demo.kicker", "30-SECOND DEMO")}</p>
-            <p className="hm-meta">{t(messages, "home.demo.summary", "See filter toggle, focus timer, and reminder prompts in one quick walkthrough.")}</p>
             <figure className="hm-proof-frame hm-demo-frame">
               <video
                 className="hm-demo-video"
@@ -165,19 +159,7 @@ export function HomePageContent({ locale = "en" }: HomePageProps) {
         </div>
       </section>
 
-      <section className="hm-section" aria-label={t(messages, "home.aria.proofStrip", "Proof strip")}>
-        <Panel>
-          <p className="hm-kicker">{t(messages, "home.trust.kicker", "BUILT FOR PEOPLE WHO LIVE IN TABS")}</p>
-          <div className="hm-trust-strip" aria-label={t(messages, "home.aria.trustMarkers", "Trust markers")}>
-            {trustItems.map((item) => (
-              <span key={item} className="hm-chip">{item}</span>
-            ))}
-          </div>
-        </Panel>
-      </section>
-
       <section className="hm-section" id="features" aria-labelledby="features-title">
-        <p className="hm-kicker">{t(messages, "home.why.kicker", "WHY HOLMETA")}</p>
         <h2 className="hm-subtitle" id="features-title">
           {t(messages, "home.why.title", "Why people keep Holmeta open")}
         </h2>
@@ -190,7 +172,6 @@ export function HomePageContent({ locale = "en" }: HomePageProps) {
 
       <section className="hm-section" id="how-it-works" aria-labelledby="how-title">
         <Panel>
-          <p className="hm-kicker">{t(messages, "home.how.kicker", "HOW IT WORKS")}</p>
           <h2 className="hm-subtitle" id="how-title">
             {t(messages, "home.how.title", "How Holmeta works")}
           </h2>
@@ -215,7 +196,6 @@ export function HomePageContent({ locale = "en" }: HomePageProps) {
 
       <section className="hm-section" id="pricing" aria-labelledby="pricing-title">
         <Panel>
-          <p className="hm-kicker">{t(messages, "home.pricing.kicker", "PRICING")}</p>
           <h2 className="hm-subtitle" id="pricing-title">
             {t(messages, "home.pricing.title", "Simple pricing")}
           </h2>
@@ -243,7 +223,6 @@ export function HomePageContent({ locale = "en" }: HomePageProps) {
 
       <section className="hm-section" id="privacy" aria-labelledby="privacy-title">
         <Panel>
-          <p className="hm-kicker">{t(messages, "home.privacy.kicker", "PRIVACY")}</p>
           <h2 className="hm-subtitle" id="privacy-title">
             {t(messages, "home.privacy.title", "Built to stay in your browser")}
           </h2>
@@ -264,7 +243,6 @@ export function HomePageContent({ locale = "en" }: HomePageProps) {
 
       <section className="hm-section" id="faq" aria-labelledby="faq-title">
         <Panel>
-          <p className="hm-kicker">{t(messages, "home.faq.kicker", "FAQ")}</p>
           <h2 className="hm-subtitle" id="faq-title">
             {t(messages, "home.faq.title", "Common Questions")}
           </h2>

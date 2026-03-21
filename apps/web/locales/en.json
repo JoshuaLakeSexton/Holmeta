@@ -10,7 +10,6 @@
   "common": {
     "brand": "HOLMETA",
     "trialCta": "Start 3-Day Trial",
-    "watchDemo": "Watch 30-Sec Demo",
     "seeHowItWorks": "See How It Works",
     "readPrivacy": "Read Privacy",
     "readTerms": "Read Terms",
@@ -27,30 +26,17 @@
       "pricing": "Pricing",
       "faq": "FAQ"
     },
-    "kicker": "MISSION BRIEFING",
     "title": "Holmeta is the all-in-one system for healthier, smarter browsing.",
     "subtitle": "Your personal command center for light filtering, health-aware browsing, translation, site insight, and a private local vault.",
-    "supportLine": "Browser-only. Local-first. One command center. Cancel anytime.",
     "proof": [
       "Adaptive Day / Night + Light Filter",
       "Health Alerts + Meditation Popups",
       "Site Insight + Local Vault"
     ],
     "demo": {
-      "kicker": "30-SECOND DEMO",
-      "summary": "See appearance control, alert flow, and Holmeta command-center tools in one quick walkthrough.",
       "unsupported": "Your browser does not support the demo video."
     },
-    "trust": {
-      "kicker": "BUILT FOR PEOPLE WHO LIVE IN TABS",
-      "items": [
-        "Holistic browser kit",
-        "Local-first defaults",
-        "One extension, many tools"
-      ]
-    },
     "why": {
-      "kicker": "WHY HOLMETA",
       "title": "What Holmeta gives you in one extension",
       "items": [
         {
@@ -68,7 +54,6 @@
       ]
     },
     "how": {
-      "kicker": "HOW IT WORKS",
       "title": "How Holmeta works",
       "steps": [
         "Start your 3-day trial",
@@ -78,7 +63,6 @@
       "body": "No stack of separate browser add-ons. Holmeta is designed as one holistic browser kit you can tune page by page."
     },
     "pricing": {
-      "kicker": "PRICING",
       "title": "Simple pricing",
       "planTitle": "HOLMETA PREMIUM — $2/MONTH · $20/YEAR",
       "bullets": [
@@ -91,7 +75,6 @@
       "foot": "One clean subscription. No ads, no data selling, no pile of separate browser add-ons."
     },
     "privacy": {
-      "kicker": "PRIVACY",
       "title": "Built as a local-first browser kit",
       "body": "Holmeta runs where you work: inside the browser. Sensitive controls, vault data, and most daily workflow tools stay close to the page and local to your setup.",
       "bullets": [
@@ -102,7 +85,6 @@
       ]
     },
     "faq": {
-      "kicker": "FAQ",
       "title": "Common Questions",
       "items": [
         {

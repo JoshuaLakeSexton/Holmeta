@@ -42,7 +42,6 @@ export function PricingPageContent({ locale = "en" }: PricingPageProps) {
   return (
     <main className="shell">
       <Panel as="header">
-        <p className="hm-kicker">{t(messages, "home.pricing.kicker", "PRICING")}</p>
         <h1 className="hm-title">{t(messages, "home.pricing.title", "Simple pricing")}</h1>
         <p className="hm-meta">{t(messages, "pricingPage.subtitle", "Full Holmeta access in one clean subscription. Adaptive appearance, filters, alerts, insight, and vault tools all stay inside the same command center.")}</p>
       </Panel>

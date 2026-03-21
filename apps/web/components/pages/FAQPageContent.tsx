@@ -23,7 +23,6 @@ export function FAQPageContent({ locale = "en" }: FAQPageProps) {
   return (
     <main className="shell">
       <Panel as="header">
-        <p className="hm-kicker">{t(messages, "home.faq.kicker", "FAQ")}</p>
         <h1 className="hm-title">{t(messages, "home.faq.title", "Common Questions")}</h1>
       </Panel>
 
